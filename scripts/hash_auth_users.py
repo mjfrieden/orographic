@@ -6,6 +6,8 @@ import hashlib
 import json
 import secrets
 
+PBKDF2_ITERATIONS = 100000
+
 
 def b64url(data: bytes) -> str:
     return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
@@ -15,7 +17,7 @@ def prompt_user(role: str) -> dict[str, object]:
     username = input(f"{role} username: ").strip().lower()
     password = getpass.getpass(f"{role} password: ")
     salt = secrets.token_urlsafe(18)
-    iterations = 250000
+    iterations = PBKDF2_ITERATIONS
     digest = hashlib.pbkdf2_hmac(
         "sha256",
         password.encode("utf-8"),

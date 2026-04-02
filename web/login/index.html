@@ -20,8 +20,12 @@
         --mint: #8ff7c1;
         --rose: #ff7b8d;
       }
+      * {
+        box-sizing: border-box;
+      }
       body {
         margin: 0;
+        padding: 14px;
         min-height: 100vh;
         display: grid;
         place-items: center;
@@ -71,6 +75,7 @@
         font: inherit;
       }
       button {
+        width: 100%;
         padding: 13px 14px;
         border: 0;
         border-radius: 14px;
@@ -103,28 +108,43 @@
       const next = params.get("next") || "/";
       const form = document.getElementById("login-form");
       const errorNode = document.getElementById("error");
+      const submitButton = form.querySelector('button[type="submit"]');
 
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
         errorNode.textContent = "";
+        submitButton.disabled = true;
+        submitButton.textContent = "Entering...";
         const payload = {
           username: document.getElementById("username").value,
           password: document.getElementById("password").value,
           next,
         };
-        const response = await fetch("/api/login", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await response.json();
-        if (!response.ok || !data.ok) {
-          errorNode.textContent = data.error || "Login failed";
-          return;
+        try {
+          const response = await fetch("/api/login", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+
+          const contentType = response.headers.get("content-type") || "";
+          const data = contentType.includes("application/json")
+            ? await response.json()
+            : { ok: false, error: await response.text() };
+
+          if (!response.ok || !data.ok) {
+            errorNode.textContent = data.error || "Login failed";
+            return;
+          }
+
+          window.location.assign(data.redirectTo || "/");
+        } catch (error) {
+          errorNode.textContent = error.message || "Login failed";
+        } finally {
+          submitButton.disabled = false;
+          submitButton.textContent = "Enter Arena";
         }
-        window.location.assign(data.redirectTo || "/");
       });
     </script>
   </body>
 </html>
-

@@ -1,5 +1,6 @@
 const COOKIE_NAME = "orographic_session";
 const SESSION_TTL_SECONDS = 60 * 60 * 12;
+const PBKDF2_ITERATIONS = 100000;
 
 function textEncoder() {
   return new TextEncoder();
@@ -76,7 +77,7 @@ export function getAuthUsers(env) {
     role: String(user.role || "viewer").trim().toLowerCase(),
     salt: String(user.salt || ""),
     hash: String(user.hash || ""),
-    iterations: Number(user.iterations || 250000),
+    iterations: Number(user.iterations || PBKDF2_ITERATIONS),
   }));
 }
 
@@ -186,4 +187,3 @@ export function htmlResponse(body, status = 200) {
     },
   });
 }
-
