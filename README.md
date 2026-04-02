@@ -74,6 +74,8 @@ As of April 1, 2026, the default recommendation is:
 3. Let a scheduled GitHub Actions workflow write `web/data/latest_run.json`.
 4. Let Cloudflare Pages redeploy on commit.
 
+An optional `pages_deploy.yml` workflow is included for direct-upload deploys if you would rather use GitHub Actions plus a Cloudflare API token instead of dashboard Git integration.
+
 If you want $0 with a private repo, use a self-hosted GitHub runner on your machine instead of GitHub-hosted minutes.
 
 More detail lives in [deployment-options.md](/Users/mjfrieden/Desktop/2026/Orographic/docs/deployment-options.md).

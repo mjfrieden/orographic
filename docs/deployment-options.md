@@ -39,6 +39,7 @@ Setup notes:
 - The initial `Connect to GitHub` step for a Pages project is still a dashboard flow.
 - After the repo is connected, every commit to the production branch redeploys the site automatically.
 - Runtime secrets such as `OROGRAPHIC_SESSION_SECRET` and `OROGRAPHIC_AUTH_USERS_JSON` can be added with Wrangler or the Cloudflare dashboard and do not belong in the repository.
+- If you prefer not to connect the repo in the dashboard, Orographic can also deploy by direct upload from GitHub Actions once `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` are present in repo secrets.
 
 ## Option B: Cloudflare Pages + self-hosted GitHub runner
 
