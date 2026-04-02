@@ -11,6 +11,9 @@ permissions:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -30,13 +33,31 @@ jobs:
           python engine/run_scan.py --output web/data/latest_run.json
 
       - name: Commit refreshed snapshot
+        id: snapshot
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add web/data/latest_run.json
           if git diff --cached --quiet; then
+            echo "snapshot_changed=false" >> "$GITHUB_OUTPUT"
             echo "No snapshot changes to commit."
             exit 0
           fi
           git commit -m "chore: refresh Orographic snapshot"
           git push
+          echo "snapshot_changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Deploy refreshed snapshot to Cloudflare Pages
+        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        run: |
+          npx wrangler pages deploy web \
+            --project-name orographic \
+            --branch main \
+            --commit-hash "$(git rev-parse HEAD)" \
+            --commit-message "scheduled snapshot refresh"
