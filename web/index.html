@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orographic Arena</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="noise"></div>
+    <main class="shell">
+      <header class="hero panel">
+        <div>
+          <p class="eyebrow">Orographic Options Platform</p>
+          <h1>Quest Board</h1>
+          <p class="subhead">
+            A short-term options game layer powered by Scout, Forge, and Council.
+          </p>
+        </div>
+        <div class="hero-meta">
+          <div class="pill" id="regime-pill">Loading regime...</div>
+          <div class="muted" id="generated-at">Awaiting latest run...</div>
+          <div class="account-meta">
+            <span class="muted" id="session-user">Checking session...</span>
+            <button id="logout-btn" class="mini-action" type="button">Log Out</button>
+          </div>
+        </div>
+      </header>
+
+      <section class="grid top-grid">
+        <article class="panel">
+          <h2>Boss Board</h2>
+          <div id="live-board" class="card-stack"></div>
+        </article>
+        <article class="panel">
+          <h2>Shadow Lane</h2>
+          <div id="shadow-board" class="card-stack"></div>
+        </article>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <h2>Pipeline</h2>
+          <p class="muted">Scout narrows names, Forge prices contracts, Council selects the live board.</p>
+        </div>
+        <div class="pipeline-grid">
+          <div>
+            <h3>Scout</h3>
+            <div id="scout-board" class="mini-table"></div>
+          </div>
+          <div>
+            <h3>Forge</h3>
+            <div id="forge-board" class="mini-table"></div>
+          </div>
+          <div>
+            <h3>Council</h3>
+            <div id="council-summary" class="summary-box"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Ruleset</h2>
+        <div class="rules">
+          <div class="rule">
+            <strong>Abstain First</strong>
+            <span>The board can stay empty if no contract clears live quality.</span>
+          </div>
+          <div class="rule">
+            <strong>No Fake Quotes</strong>
+            <span>Forge rejects contracts without a real positive bid and ask.</span>
+          </div>
+          <div class="rule">
+            <strong>Live vs Shadow</strong>
+            <span>Every run keeps a shadow lane so we can learn without overfitting live capital.</span>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <template id="card-template">
+      <article class="pick-card">
+        <div class="pick-head">
+          <h3 class="title"></h3>
+          <span class="side"></span>
+        </div>
+        <p class="meta"></p>
+        <div class="stats"></div>
+        <p class="notes"></p>
+      </article>
+    </template>
+
+    <script type="module" src="./app.js"></script>
+  </body>
+</html>
