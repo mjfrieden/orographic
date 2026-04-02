@@ -31,13 +31,24 @@
           <p class="eyebrow">Stormwatch Over San Diego Bay</p>
           <h1>Orographic Harbor Board</h1>
           <p class="subhead">
-            A tavern raid table for short-duration options, framed like a fantasy war room at golden hour on the
-            California coast.
+            A live harbor command table for short-duration options, with the lead contract elevated like a captain's
+            call at sunset on the California coast.
           </p>
           <div class="hero-tags" aria-label="Board themes">
-            <span class="hero-tag">Sunset Intel</span>
+            <span class="hero-tag">Captain's Table</span>
             <span class="hero-tag">Tideforged Contracts</span>
-            <span class="hero-tag">Council Picks</span>
+            <span class="hero-tag">Shadow Drills</span>
+          </div>
+        </div>
+        <div class="hero-atlas" aria-hidden="true">
+          <div class="atlas-compass">
+            <span class="atlas-center">SD</span>
+          </div>
+          <div class="atlas-route"></div>
+          <div class="atlas-points">
+            <span>Point Loma</span>
+            <span>Coronado</span>
+            <span>Mission Bay</span>
           </div>
         </div>
         <div class="hero-meta">
@@ -59,14 +70,51 @@
         </div>
       </header>
 
-      <section class="grid top-grid">
-        <article class="panel board-panel live-panel">
+      <section class="panel board-hud">
+        <div class="hud-grid">
+          <article class="hud-card">
+            <span class="meta-label">Board Status</span>
+            <strong id="board-status" class="hud-value">Awaiting council readout</strong>
+            <p id="board-status-note" class="muted hud-note">Council notes will appear here once the latest run loads.</p>
+          </article>
+          <article class="hud-card">
+            <span class="meta-label">Live Contracts</span>
+            <strong id="live-count-hud" class="hud-value">--</strong>
+            <p class="muted hud-note">Contracts cleared for the flagship table.</p>
+          </article>
+          <article class="hud-card">
+            <span class="meta-label">Shadow Contracts</span>
+            <strong id="shadow-count-hud" class="hud-value">--</strong>
+            <p class="muted hud-note">Training-lane contracts held in reserve.</p>
+          </article>
+          <article class="hud-card hud-card-wide">
+            <span class="meta-label">Regime Source</span>
+            <strong id="regime-source" class="hud-value">Awaiting source symbol</strong>
+            <p id="regime-source-note" class="muted hud-note">Market-tide notes will appear here once the board hydrates.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="grid battle-grid">
+        <article class="panel featured-panel">
           <div class="section-head">
-            <p class="section-kicker">Main Questline</p>
-            <h2>Sunset Harbor Picks</h2>
-            <p class="muted">Council-approved live contracts for the flagship voyage.</p>
+            <p class="section-kicker">Captain's Table</p>
+            <h2>Featured Tide Contract</h2>
+            <p class="muted">The lead live contract gets a centerpiece stage, while reserve picks hold the rail beside it.</p>
           </div>
-          <div id="live-board" class="card-stack"></div>
+          <div class="featured-layout">
+            <div id="featured-slot" class="featured-slot"></div>
+            <aside class="reserve-rail">
+              <div class="reserve-head">
+                <div>
+                  <p class="section-kicker">On Deck</p>
+                  <h3>Reserve Lane</h3>
+                </div>
+                <div id="reserve-count" class="reserve-badge">--</div>
+              </div>
+              <div id="live-board" class="card-stack reserve-stack"></div>
+            </aside>
+          </div>
         </article>
         <article class="panel board-panel shadow-panel">
           <div class="section-head">
@@ -82,7 +130,7 @@
         <div class="section-head">
           <p class="section-kicker">Operations</p>
           <h2>Pacific War Table</h2>
-          <p class="muted">Scout scouts the coastline, Forge tempers the contracts, and Council calls the board.</p>
+          <p class="muted">Scout scouts the coast, Forge tempers the contracts, and Council decides whether the harbor opens live fire.</p>
         </div>
         <div class="pipeline-grid">
           <div>

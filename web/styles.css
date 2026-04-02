@@ -959,9 +959,453 @@ input:focus {
   text-decoration: none;
 }
 
+@keyframes panel-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ambient-glow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.32;
+  }
+
+  50% {
+    transform: translate3d(0, -10px, 0) scale(1.04);
+    opacity: 0.48;
+  }
+}
+
+.scene-bloom {
+  animation: ambient-glow 12s ease-in-out infinite;
+}
+
+.panel {
+  animation: panel-rise 420ms ease both;
+}
+
+.panel-hero {
+  background:
+    radial-gradient(circle at 18% 20%, rgba(255, 215, 137, 0.18), transparent 24%),
+    radial-gradient(circle at 72% 10%, rgba(113, 210, 209, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(50, 31, 22, 0.32), rgba(10, 25, 37, 0.9));
+}
+
+.hero {
+  grid-template-columns: auto minmax(0, 1fr) minmax(180px, 220px) minmax(250px, 300px);
+  gap: 22px;
+  align-items: stretch;
+  padding: 28px 30px;
+}
+
+.hero-copy {
+  gap: 0;
+}
+
+.hero-atlas {
+  position: relative;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 18px 10px;
+  border-radius: 24px;
+  border: 1px solid rgba(244, 221, 164, 0.14);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 215, 137, 0.08), transparent 48%),
+    linear-gradient(180deg, rgba(14, 33, 46, 0.72), rgba(11, 21, 31, 0.72));
+}
+
+.hero-atlas::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 247, 230, 0.05);
+}
+
+.atlas-compass {
+  position: relative;
+  width: 110px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(244, 221, 164, 0.24);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 245, 208, 0.1), transparent 58%),
+    linear-gradient(180deg, rgba(25, 56, 72, 0.72), rgba(16, 28, 42, 0.8));
+  box-shadow: inset 0 1px 0 rgba(255, 247, 230, 0.08);
+}
+
+.atlas-compass::before,
+.atlas-compass::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 1px dashed rgba(244, 221, 164, 0.18);
+}
+
+.atlas-compass::before {
+  inset: 14px;
+}
+
+.atlas-compass::after {
+  inset: 30px;
+  border-style: solid;
+}
+
+.atlas-center {
+  position: relative;
+  z-index: 1;
+  font-family: "Cinzel", serif;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--gold-bright);
+}
+
+.atlas-route {
+  width: 100%;
+  height: 54px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 10% 50%, rgba(113, 210, 209, 0.78) 0 6px, transparent 7px),
+    radial-gradient(circle at 48% 50%, rgba(255, 215, 137, 0.78) 0 5px, transparent 6px),
+    radial-gradient(circle at 86% 50%, rgba(241, 144, 114, 0.74) 0 6px, transparent 7px),
+    linear-gradient(90deg, transparent 0 6%, rgba(244, 221, 164, 0.42) 6% 94%, transparent 94%);
+  opacity: 0.9;
+}
+
+.atlas-points {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+  font-family: "Marcellus SC", serif;
+  font-size: 0.75rem;
+  letter-spacing: 0.14em;
+  color: var(--parchment);
+  text-transform: uppercase;
+}
+
+.board-hud {
+  margin-bottom: 20px;
+}
+
+.hud-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  padding: 18px 22px 22px;
+}
+
+.hud-card {
+  position: relative;
+  padding: 16px 18px;
+  border-radius: 22px;
+  border: 1px solid rgba(244, 221, 164, 0.16);
+  background:
+    linear-gradient(180deg, rgba(44, 28, 20, 0.38), rgba(9, 23, 35, 0.82)),
+    rgba(9, 23, 35, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 246, 229, 0.05);
+}
+
+.hud-card-wide {
+  background:
+    radial-gradient(circle at 88% 24%, rgba(113, 210, 209, 0.14), transparent 26%),
+    linear-gradient(180deg, rgba(44, 28, 20, 0.38), rgba(9, 23, 35, 0.82)),
+    rgba(9, 23, 35, 0.76);
+}
+
+.hud-value {
+  display: block;
+  color: var(--ink);
+  font-family: "Cinzel", serif;
+  font-size: clamp(1.2rem, 2vw, 1.6rem);
+  line-height: 1.02;
+}
+
+.hud-note {
+  margin: 10px 0 0;
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.battle-grid {
+  grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+.featured-panel,
+.shadow-panel {
+  position: relative;
+}
+
+.featured-panel::after,
+.shadow-panel::after {
+  left: auto;
+  width: 220px;
+  height: 220px;
+  top: -70px;
+  right: -50px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 215, 137, 0.18), transparent 70%);
+}
+
+.shadow-panel::after {
+  background: radial-gradient(circle, rgba(113, 210, 209, 0.14), transparent 70%);
+}
+
+.featured-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(260px, 0.82fr);
+  gap: 18px;
+  padding: 30px 24px 24px;
+}
+
+.featured-slot,
+.reserve-rail {
+  position: relative;
+  z-index: 1;
+}
+
+.featured-slot {
+  display: grid;
+  align-content: start;
+}
+
+.reserve-rail {
+  padding: 14px;
+  border-radius: 26px;
+  border: 1px solid rgba(244, 221, 164, 0.14);
+  background:
+    linear-gradient(180deg, rgba(10, 24, 36, 0.84), rgba(7, 19, 29, 0.92)),
+    rgba(7, 19, 29, 0.82);
+}
+
+.reserve-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px 14px;
+}
+
+.reserve-head .section-kicker {
+  margin-bottom: 6px;
+}
+
+.reserve-badge {
+  min-width: 44px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: rgba(255, 215, 137, 0.12);
+  border: 1px solid rgba(244, 221, 164, 0.2);
+  color: var(--gold-bright);
+  font-family: "Marcellus SC", serif;
+  font-size: 0.94rem;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.reserve-stack {
+  padding: 0;
+  gap: 12px;
+}
+
+.pick-card {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.pick-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(244, 221, 164, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 230, 0.08),
+    0 22px 42px rgba(0, 0, 0, 0.28);
+}
+
+.pick-card.is-featured {
+  min-height: 100%;
+  padding: 28px 24px;
+  grid-template-columns: 100px minmax(0, 1fr);
+  border-color: rgba(244, 221, 164, 0.28);
+  background:
+    radial-gradient(circle at 84% 20%, rgba(255, 215, 137, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(60, 38, 25, 0.98), rgba(14, 27, 40, 0.96)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.pick-card.is-featured::before {
+  inset: 12px;
+}
+
+.pick-card.is-featured .card-crest-inner {
+  width: 88px;
+  min-height: 88px;
+}
+
+.pick-card.is-featured .title {
+  font-size: clamp(2rem, 3vw, 2.8rem);
+}
+
+.pick-card.is-featured .meta {
+  font-size: 1.2rem;
+}
+
+.pick-card.is-featured .notes {
+  font-size: 1.08rem;
+}
+
+.pick-card.is-featured .stats {
+  margin-top: 18px;
+}
+
+.shadow-panel .pick-card {
+  background:
+    linear-gradient(145deg, rgba(33, 30, 60, 0.82), rgba(11, 23, 34, 0.95)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.mini-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(255, 247, 230, 0.06);
+  color: var(--parchment-deep);
+  font-family: "Cinzel", serif;
+  font-size: 0.63rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.board-message {
+  min-height: 100%;
+  padding: 22px;
+  align-content: center;
+  background:
+    radial-gradient(circle at 88% 16%, rgba(255, 215, 137, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(58, 34, 24, 0.76), rgba(12, 23, 35, 0.82)),
+    rgba(12, 23, 35, 0.72);
+}
+
+.board-message .summary-item {
+  padding: 18px;
+}
+
+.board-message .summary-value {
+  font-size: 1.15rem;
+  line-height: 1.24;
+}
+
+body[data-regime="neutral"] .pill,
+.pill.is-neutral {
+  background:
+    linear-gradient(180deg, rgba(255, 215, 137, 0.14), rgba(113, 210, 209, 0.1)),
+    rgba(17, 34, 48, 0.84);
+  color: var(--gold-bright);
+}
+
+body[data-board-state="abstain"] .featured-panel::after {
+  background: radial-gradient(circle, rgba(241, 144, 114, 0.16), transparent 70%);
+}
+
+.dashboard-page::before {
+  top: 24px;
+  right: max(18px, 6vw);
+  width: min(21vw, 250px);
+  opacity: 0.32;
+  filter: blur(4px);
+}
+
+.dashboard-page .scene-bloom-left,
+.dashboard-page .scene-bloom-right {
+  opacity: 0.08;
+}
+
+.dashboard-page .panel {
+  background:
+    linear-gradient(180deg, rgba(16, 34, 47, 1), rgba(7, 15, 24, 1)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02), transparent 40%);
+  backdrop-filter: none;
+}
+
+.dashboard-page .panel-hero {
+  background:
+    radial-gradient(circle at 16% 18%, rgba(255, 215, 137, 0.06), transparent 24%),
+    radial-gradient(circle at 70% 8%, rgba(113, 210, 209, 0.05), transparent 24%),
+    linear-gradient(180deg, rgba(45, 27, 19, 0.18), rgba(11, 24, 35, 1));
+}
+
+.dashboard-page .hero-emblem {
+  width: clamp(108px, 12vw, 148px);
+}
+
+.panel-hero h1 {
+  font-size: clamp(38px, 5vw, 68px);
+}
+
+.panel-hero .subhead {
+  max-width: 30rem;
+  font-size: clamp(1.08rem, 1.7vw, 1.28rem);
+}
+
+.dashboard-page .hud-card,
+.dashboard-page .reserve-rail,
+.dashboard-page .summary-box,
+.dashboard-page .mini-row,
+.dashboard-page .rule {
+  background-color: rgba(9, 21, 32, 1);
+}
+
+.dashboard-page .meta-panel {
+  background:
+    linear-gradient(180deg, rgba(40, 24, 18, 0.56), rgba(10, 22, 33, 1)),
+    rgba(10, 22, 33, 1);
+}
+
+.dashboard-page .pick-card,
+.dashboard-page .mini-row,
+.dashboard-page .summary-box,
+.dashboard-page .hud-card,
+.dashboard-page .rule,
+.dashboard-page .reserve-rail,
+.dashboard-page .meta-panel {
+  backdrop-filter: none;
+}
+
 @media (max-width: 1100px) {
   .hero {
     grid-template-columns: auto 1fr;
+  }
+
+  .hero-atlas {
+    grid-column: 1 / -1;
+    grid-template-columns: 130px 1fr;
+    gap: 18px;
+    justify-items: stretch;
+    align-items: center;
+  }
+
+  .atlas-route {
+    display: none;
+  }
+
+  .atlas-points {
+    text-align: left;
   }
 
   .hero-meta {
@@ -969,6 +1413,9 @@ input:focus {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .hud-grid,
+  .battle-grid,
+  .featured-layout,
   .pipeline-grid,
   .rules,
   .admin-grid {
@@ -1003,7 +1450,8 @@ input:focus {
   }
 
   .hero-copy,
-  .hero-meta {
+  .hero-meta,
+  .hero-atlas {
     justify-items: start;
   }
 
@@ -1011,7 +1459,11 @@ input:focus {
     grid-template-columns: 1fr;
   }
 
-  .top-grid,
+  .hud-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .featured-layout,
   .stats {
     grid-template-columns: 1fr;
   }
@@ -1024,6 +1476,15 @@ input:focus {
     justify-content: flex-start;
   }
 
+  .pick-card.is-featured .card-crest-inner {
+    width: 78px;
+    min-height: 78px;
+  }
+
+  .pick-card.is-featured .title {
+    font-size: clamp(1.7rem, 8vw, 2.2rem);
+  }
+
   .portal-card {
     padding: 26px 22px;
   }
@@ -1031,6 +1492,7 @@ input:focus {
 
 @media (max-width: 560px) {
   .section-head,
+  .hud-grid,
   .card-stack,
   .pipeline-grid,
   .rules,
@@ -1052,6 +1514,15 @@ input:focus {
   .rule-rune {
     position: static;
     margin-bottom: 12px;
+  }
+
+  .hud-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .reserve-head {
+    flex-direction: column;
+    align-items: start;
   }
 
   .account-meta {

@@ -22,3 +22,15 @@ TODO
 TODO
 - If desired, publish the visual overhaul and repeat the live smoke test after deployment.
 - If desired, add bespoke illustration or SVG asset work on top of the CSS-driven art direction.
+
+- April 2, 2026: Completed a second-pass dashboard-only display refinement focused on stronger hierarchy and a more diegetic command-table feel.
+- Added a compact command header with a decorative harbor atlas, a new board-status HUD strip, and a featured-contract stage that gives the first live contract a centerpiece treatment while keeping reserve picks on deck.
+- Reworked the board rendering so abstain states and active live states both read clearly without changing any selection logic, routing, auth, or data fetching.
+- Added presentation-only helpers for regime tone styling, board-status copy, reserve counts, and ranked Scout/Forge labels.
+- Tuned dashboard contrast and opacity so the interface survives real browser screenshots without relying on blur-heavy translucency.
+- Verified the V2 pass locally with `wrangler pages dev web --port 8788`, checking desktop and mobile viewer flows against the real local auth flow and confirming zero browser-console errors.
+- Also validated the active featured-card state by intercepting `latest_run.json` in-browser during verification so the featured live layout was exercised even though the current local snapshot was abstaining.
+
+TODO
+- If desired, ship the V2 dashboard pass to production and repeat the live smoke test.
+- If desired, add bespoke illustration/SVG assets or custom iconography now that the layout hierarchy is stronger.
