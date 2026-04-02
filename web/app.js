@@ -7,12 +7,52 @@ function pct(value, digits = 1) {
   return `${(Number(value) * 100).toFixed(digits)}%`;
 }
 
+function money(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "--";
+  }
+  return `$${Number(value).toFixed(2)}`;
+}
+
+function integer(value) {
+  if (value === null || value === undefined || Number.isNaN(Number(value))) {
+    return "--";
+  }
+  return Number(value).toLocaleString();
+}
+
+function toneClass(value) {
+  return String(value).toLowerCase() === "call" ? "is-call" : "is-put";
+}
+
+function formatTimestamp(value) {
+  if (!value) {
+    return "No timestamp";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(date);
+}
+
 function cardFor(candidate, template) {
   const node = template.content.firstElementChild.cloneNode(true);
+  const tone = toneClass(candidate.option_type);
+  node.classList.add(tone);
+  node.querySelector(".crest-letter").textContent = candidate.symbol.slice(0, 3);
+  node.querySelector(".crest-side").textContent = candidate.option_type.toUpperCase();
   node.querySelector(".title").textContent = `${candidate.symbol} ${candidate.strike} ${candidate.expiry}`;
+  node.querySelector(".contract").textContent = candidate.contract_symbol;
   node.querySelector(".side").textContent = candidate.option_type.toUpperCase();
   node.querySelector(".meta").textContent =
-    `${candidate.contract_symbol} | premium $${candidate.premium.toFixed(2)} | spread ${pct(candidate.spread_pct)}`;
+    `Premium ${money(candidate.premium)} | Spread ${pct(candidate.spread_pct)} | Cost ${money(candidate.contract_cost)}`;
   node.querySelector(".notes").textContent =
     candidate.notes?.join(". ") || "No extra notes.";
 
@@ -21,7 +61,7 @@ function cardFor(candidate, template) {
     ["Forge Score", candidate.forge_score.toFixed(2)],
     ["Exp Return", pct(candidate.expected_return_pct)],
     ["Breakeven", pct(candidate.breakeven_move_pct)],
-    ["Open Interest", String(candidate.open_interest)],
+    ["Open Interest", integer(candidate.open_interest)],
   ];
   for (const [label, value] of entries) {
     const stat = document.createElement("div");
@@ -32,8 +72,12 @@ function cardFor(candidate, template) {
   return node;
 }
 
-function rowHtml(title, body) {
-  return `<div class="mini-row"><strong>${title}</strong><span class="muted">${body}</span></div>`;
+function rowHtml(title, body, tone) {
+  return `<div class="mini-row ${tone}"><strong>${title}</strong><span class="muted">${body}</span></div>`;
+}
+
+function summaryItemHtml(label, value) {
+  return `<div class="summary-item"><span class="summary-label">${label}</span><span class="summary-value">${value}</span></div>`;
 }
 
 async function loadSession() {
@@ -79,9 +123,12 @@ async function main() {
   const response = await fetch(source, { cache: "no-store" });
   const payload = await response.json();
 
-  document.getElementById("generated-at").textContent = payload.generated_at_utc || "No timestamp";
-  document.getElementById("regime-pill").textContent =
-    `${payload.regime.mode.toUpperCase()} | bias ${payload.regime.bias}`;
+  document.getElementById("generated-at").textContent = formatTimestamp(payload.generated_at_utc);
+
+  const regimePill = document.getElementById("regime-pill");
+  regimePill.textContent = `${payload.regime.mode.replace("_", " ").toUpperCase()} | bias ${payload.regime.bias}`;
+  regimePill.classList.add(payload.regime.mode === "risk_on" ? "is-call" : "is-put");
+  document.body.dataset.regime = payload.regime.mode;
 
   const template = document.getElementById("card-template");
   const liveBoard = document.getElementById("live-board");
@@ -106,7 +153,8 @@ async function main() {
       (row) =>
         rowHtml(
           `${row.symbol} ${row.direction.toUpperCase()} | scout ${row.scout_score}`,
-          `m5 ${pct(row.momentum_5d)} | m20 ${pct(row.momentum_20d)} | RSI ${row.rsi_14}`
+          `m5 ${pct(row.momentum_5d)} | m20 ${pct(row.momentum_20d)} | RSI ${row.rsi_14}`,
+          toneClass(row.direction)
         )
     )
     .join("");
@@ -118,19 +166,20 @@ async function main() {
       (row) =>
         rowHtml(
           `${row.symbol} ${row.option_type.toUpperCase()} | forge ${row.forge_score}`,
-          `premium $${row.premium.toFixed(2)} | exp ${pct(row.expected_return_pct)} | OI ${row.open_interest}`
+          `premium ${money(row.premium)} | exp ${pct(row.expected_return_pct)} | OI ${integer(row.open_interest)}`,
+          toneClass(row.option_type)
         )
     )
     .join("");
 
   const councilSummary = document.getElementById("council-summary");
-  councilSummary.innerHTML = `
-    <div><strong>Abstain:</strong> ${payload.council.abstain}</div>
-    <div><strong>Live count:</strong> ${payload.council.summary.live_count}</div>
-    <div><strong>Shadow count:</strong> ${payload.council.summary.shadow_count}</div>
-    <div><strong>Candidate count:</strong> ${payload.council.summary.candidate_count}</div>
-    <div><strong>Notes:</strong> ${payload.council.summary.notes.join(" ")}</div>
-  `;
+  councilSummary.innerHTML = [
+    summaryItemHtml("Abstain", payload.council.abstain ? "Yes" : "No"),
+    summaryItemHtml("Live Count", integer(payload.council.summary.live_count)),
+    summaryItemHtml("Shadow Count", integer(payload.council.summary.shadow_count)),
+    summaryItemHtml("Candidate Count", integer(payload.council.summary.candidate_count)),
+    summaryItemHtml("Notes", payload.council.summary.notes.join(" ") || "No extra council notes."),
+  ].join("");
 }
 
 main().catch((error) => {

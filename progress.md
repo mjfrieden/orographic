@@ -11,3 +11,14 @@ Original prompt: Please proceed with a public GitHub + GitHub-hosted Actions + C
 
 TODO
 - Push the auth/UI fix, verify GitHub Actions deploy succeeds, and confirm live login for both viewer and admin accounts.
+
+- April 1, 2026: Reworked the Orographic web UI into a fantasy tavern / Pacific sunset visual direction inspired by Hearthstone and World of Warcraft in San Diego.
+- Kept functionality intact while redesigning the shared presentation layer for the main board, login page, admin page, and admin-only access-denied page.
+- Added presentation-only client helpers for timestamp formatting, call/put tone styling, and richer summary card rendering without changing the underlying data flow.
+- Fixed a login regression introduced by the shared stylesheet move: `/styles.css` now stays publicly reachable so signed-out routes render correctly.
+- Verified the overhaul locally with `wrangler pages dev web --port 8788` and captured fresh screenshots in `output/ui-review/` for desktop login, desktop dashboard, viewer admin lockout, admin dashboard, and mobile dashboard.
+- The only remaining browser-console noise in verification is the expected `403` document response when a viewer intentionally loads `/admin`.
+
+TODO
+- If desired, publish the visual overhaul and repeat the live smoke test after deployment.
+- If desired, add bespoke illustration or SVG asset work on top of the CSS-driven art direction.

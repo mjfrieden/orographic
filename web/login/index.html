@@ -7,101 +7,44 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Sora:wght@400;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Cormorant+Garamond:wght@400;500;600;700&family=Marcellus+SC&display=swap"
       rel="stylesheet"
     />
-    <style>
-      :root {
-        --bg: #07101d;
-        --panel: rgba(10, 23, 39, 0.88);
-        --line: rgba(136, 216, 255, 0.18);
-        --ink: #eef6ff;
-        --muted: #9db1cd;
-        --mint: #8ff7c1;
-        --rose: #ff7b8d;
-      }
-      * {
-        box-sizing: border-box;
-      }
-      body {
-        margin: 0;
-        padding: 14px;
-        min-height: 100vh;
-        display: grid;
-        place-items: center;
-        color: var(--ink);
-        font-family: "Chakra Petch", sans-serif;
-        background:
-          radial-gradient(circle at 20% 18%, rgba(143, 247, 193, 0.16), transparent 26%),
-          radial-gradient(circle at 84% 14%, rgba(136, 216, 255, 0.16), transparent 24%),
-          linear-gradient(145deg, #06101b 0%, #0d1a2f 45%, #142846 100%);
-      }
-      .card {
-        width: min(440px, calc(100% - 28px));
-        padding: 28px;
-        border-radius: 24px;
-        border: 1px solid var(--line);
-        background: var(--panel);
-        box-shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
-      }
-      .eyebrow, h1 {
-        font-family: "Sora", sans-serif;
-      }
-      .eyebrow {
-        margin: 0 0 10px;
-        color: var(--mint);
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.16em;
-      }
-      h1 {
-        margin: 0 0 12px;
-      }
-      p {
-        color: var(--muted);
-      }
-      form {
-        display: grid;
-        gap: 12px;
-        margin-top: 18px;
-      }
-      input {
-        width: 100%;
-        padding: 13px 14px;
-        border-radius: 14px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--ink);
-        font: inherit;
-      }
-      button {
-        width: 100%;
-        padding: 13px 14px;
-        border: 0;
-        border-radius: 14px;
-        background: linear-gradient(90deg, #8ff7c1, #88d8ff);
-        color: #06111d;
-        font: inherit;
-        font-weight: 700;
-        cursor: pointer;
-      }
-      .error {
-        min-height: 24px;
-        color: var(--rose);
-      }
-    </style>
+    <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body>
-    <main class="card">
-      <p class="eyebrow">Orographic Access</p>
-      <h1>Sign In</h1>
-      <p>Use your assigned Orographic account to enter the Quest Board.</p>
-      <form id="login-form">
-        <input id="username" name="username" type="text" autocomplete="username" placeholder="Username" required />
-        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" required />
-        <button type="submit">Enter Arena</button>
+  <body class="portal-page login-page">
+    <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
+    <div class="scene-bloom scene-bloom-right" aria-hidden="true"></div>
+    <div class="noise"></div>
+    <main class="portal-shell">
+      <section class="panel portal-card">
+        <div class="portal-crest" aria-hidden="true">
+          <div class="portal-crest-core">ORO</div>
+        </div>
+        <p class="eyebrow">Harbor Gate</p>
+        <h1>Enter Orographic</h1>
+        <p class="subhead">Present your credentials to step onto the San Diego sunset quest board.</p>
+        <form id="login-form" class="portal-form">
+          <label class="field">
+            <span>Username</span>
+            <input id="username" name="username" type="text" autocomplete="username" placeholder="Username" required />
+          </label>
+          <label class="field">
+            <span>Password</span>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Password"
+              required
+            />
+          </label>
+          <button type="submit" class="primary-action">Enter Arena</button>
+        </form>
         <div id="error" class="error"></div>
-      </form>
+        <p class="portal-footnote muted">Access remains role-gated exactly as before. This is a visual overhaul only.</p>
+      </section>
     </main>
     <script>
       const params = new URLSearchParams(window.location.search);
