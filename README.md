@@ -12,6 +12,8 @@ The game layer lives in `web/`. It is designed to deploy cleanly to Cloudflare P
 
 The protected access layer lives in `functions/` and runs as Cloudflare Pages Functions. It signs a short-lived session cookie and validates users from environment secrets, so the public repository never needs to store login credentials.
 
+The current game loop also uses Pages Functions as a thin Tradier proxy. The browser never sees the Tradier token directly. Order previews and submissions stay server-side.
+
 ## Why this version is different
 
 - No synthetic bid/ask fallback in the scan engine.
@@ -47,6 +49,13 @@ npx wrangler pages dev web
 
 Then open the local Pages URL shown by Wrangler.
 
+Controls on the main page:
+
+- `WASD` or arrow keys: move the cutter
+- `E`: tractor the nearest signal into the command deck
+- `Space`: start or resume a run
+- `F`: toggle fullscreen
+
 ## Repo layout
 
 - `engine/`: Python scan pipeline and tests
@@ -64,6 +73,28 @@ Orographic expects two Cloudflare Pages secrets:
 - `OROGRAPHIC_AUTH_USERS_JSON`: JSON array of hashed users with `username`, `role`, `salt`, `hash`, and `iterations`
 
 Keep both in local ignored files or Cloudflare secrets only. Do not commit them to the public repository.
+
+Tradier integration expects these additional Pages secrets or local `.dev.vars` entries:
+
+- `TRADIER_ACCESS_TOKEN`: your Tradier API token
+- `TRADIER_ACCOUNT_ID`: the brokerage account id
+- `TRADIER_SANDBOX_MODE`: `true` for paper trading, `false` for production base URLs
+- `TRADIER_LIVE_TRADING_ENABLED`: `true` only when you explicitly want production order submission enabled
+- `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
+
+Recommended default:
+
+- keep `TRADIER_SANDBOX_MODE=true`
+- keep `TRADIER_LIVE_TRADING_ENABLED=false`
+- validate previews and account snapshots locally before enabling live order traffic
+
+The Tradier workflow in this repo currently supports:
+
+1. Server-side status check
+2. Server-side account snapshot via the status route
+3. Server-side option quote refresh for the arena contracts
+4. Server-side option order preview using `preview=true`
+5. Admin-only limit-order live placement gated by explicit confirmation, current live-board membership, and fresh snapshot timing
 
 ## Recommended free deployment
 

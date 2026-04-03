@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="dashboard-page">
+  <body class="dashboard-page game-page">
     <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
     <div class="scene-bloom scene-bloom-right" aria-hidden="true"></div>
     <div class="noise"></div>
@@ -20,24 +20,24 @@
       <div class="shell-ornament shell-ornament-left" aria-hidden="true"></div>
       <div class="shell-ornament shell-ornament-right" aria-hidden="true"></div>
 
-      <header class="hero panel panel-hero">
+      <header class="hero panel panel-hero game-hero">
         <div class="hero-emblem" aria-hidden="true">
           <div class="hero-emblem-core">
             <span>ORO</span>
           </div>
-          <div class="hero-emblem-ribbon">Pacific Watch</div>
+          <div class="hero-emblem-ribbon">Signal Raid</div>
         </div>
         <div class="hero-copy">
-          <p class="eyebrow">Stormwatch Over San Diego Bay</p>
-          <h1>Orographic Harbor Board</h1>
+          <p class="eyebrow">Tradier-Guarded Harbor Combat</p>
+          <h1>Orographic Arena</h1>
           <p class="subhead">
-            A live harbor command table for short-duration options, with the lead contract elevated like a captain's
-            call at sunset on the California coast.
+            Pilot a skiff through market-tide signals, capture a contract from Orographic&rsquo;s live or shadow board,
+            and route a deliberate Tradier preview or order from the command deck.
           </p>
           <div class="hero-tags" aria-label="Board themes">
-            <span class="hero-tag">Captain's Table</span>
-            <span class="hero-tag">Tideforged Contracts</span>
-            <span class="hero-tag">Shadow Drills</span>
+            <span class="hero-tag">Canvas Raid</span>
+            <span class="hero-tag">Paper First</span>
+            <span class="hero-tag">Admin-Gated Live Orders</span>
           </div>
         </div>
         <div class="hero-atlas" aria-hidden="true">
@@ -92,6 +92,119 @@
             <strong id="regime-source" class="hud-value">Awaiting source symbol</strong>
             <p id="regime-source-note" class="muted hud-note">Market-tide notes will appear here once the board hydrates.</p>
           </article>
+        </div>
+      </section>
+
+      <section class="panel panel-arena">
+        <div class="section-head">
+          <p class="section-kicker">Signal Raid</p>
+          <h2>Orographic Arena</h2>
+          <p class="muted">
+            Move with <strong>WASD</strong> or arrow keys, press <strong>Space</strong> to pulse nearby signals, and
+            press <strong>F</strong> to toggle fullscreen before queuing a guarded Tradier action.
+          </p>
+        </div>
+        <div class="arena-grid">
+          <div class="arena-column">
+            <div class="arena-frame" id="arena-frame">
+              <canvas id="signal-arena" width="960" height="540" aria-label="Orographic signal arena"></canvas>
+              <div class="arena-overlay" id="arena-overlay">
+                <div class="arena-overlay-card">
+                  <p class="section-kicker">Start Screen</p>
+                  <h3>Launch The Harbor Run</h3>
+                  <p class="muted">
+                    Capture contract sigils to arm the broker console. Live submissions stay locked unless Council
+                    promoted the setup and the session is admin.
+                  </p>
+                  <button id="arena-start-btn" class="primary-action" type="button">Launch Signal Run</button>
+                </div>
+              </div>
+            </div>
+            <div class="arena-strip">
+              <div class="arena-chip">
+                <span class="meta-label">Raid Score</span>
+                <strong id="arena-score" class="hud-value">0</strong>
+              </div>
+              <div class="arena-chip">
+                <span class="meta-label">Combo</span>
+                <strong id="arena-combo" class="hud-value">0</strong>
+              </div>
+              <div class="arena-chip arena-chip-wide">
+                <span class="meta-label">Arena Notice</span>
+                <strong id="arena-notice" class="hud-value">Collect a tide sigil to lock a contract.</strong>
+              </div>
+              <button id="arena-reset-btn" class="mini-action" type="button">Reset Run</button>
+            </div>
+          </div>
+
+          <aside class="arena-sidebar">
+            <article class="hud-card arena-console">
+              <span class="meta-label">Selected Contract</span>
+              <strong id="selected-symbol" class="hud-value">No contract locked</strong>
+              <p id="selected-lane" class="muted hud-note">Awaiting pickup</p>
+              <p id="selected-meta" class="muted hud-note">
+                Collect a live or shadow sigil in the arena, or tap a card below to arm a contract.
+              </p>
+              <div class="summary-box arena-summary">
+                <div class="summary-item">
+                  <span class="summary-label">Contract</span>
+                  <span id="selected-contract" class="summary-value summary-value-wrap">--</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Guardrail</span>
+                  <span id="selected-risk" class="summary-value">Limit orders stay disabled until a contract is selected.</span>
+                </div>
+              </div>
+            </article>
+
+            <article class="hud-card arena-console">
+              <div class="arena-console-head">
+                <div>
+                  <span class="meta-label">Broker Console</span>
+                  <strong id="broker-mode" class="pill is-neutral">Loading...</strong>
+                </div>
+                <button id="broker-refresh-btn" class="mini-action" type="button">Refresh</button>
+              </div>
+              <div class="summary-box arena-summary">
+                <div class="summary-item">
+                  <span class="summary-label">Equity</span>
+                  <span id="account-equity" class="summary-value">--</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Option Buying Power</span>
+                  <span id="buying-power" class="summary-value">--</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Positions</span>
+                  <span id="positions-count" class="summary-value">--</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Signal Freshness</span>
+                  <span id="snapshot-health" class="summary-value">--</span>
+                </div>
+              </div>
+              <label class="trade-qty" for="trade-qty">
+                <span class="meta-label">Contracts</span>
+                <input id="trade-qty" type="number" min="1" max="3" step="1" value="1" />
+              </label>
+              <div class="arena-actions">
+                <button id="preview-order-btn" class="primary-action" type="button">Preview Order</button>
+                <button id="submit-order-btn" class="secondary-action" type="button">Transmit Live Order</button>
+              </div>
+              <p id="broker-message" class="muted hud-note">Broker console standing by.</p>
+              <div id="broker-warnings" class="hero-tags" aria-live="polite"></div>
+            </article>
+
+            <article class="hud-card arena-console">
+              <span class="meta-label">Preview Bay</span>
+              <div id="preview-summary" class="summary-box arena-summary"></div>
+            </article>
+
+            <article class="hud-card arena-console">
+              <span class="meta-label">Recent Orders</span>
+              <div id="orders-feed" class="mini-table"></div>
+            </article>
+          </aside>
         </div>
       </section>
 
@@ -152,7 +265,7 @@
         <div class="section-head">
           <p class="section-kicker">House Rules</p>
           <h2>Tavern Code</h2>
-          <p class="muted">The same decision logic remains underneath the new fantasy-coast dressing.</p>
+          <p class="muted">The same decision logic remains underneath the new game loop and broker console.</p>
         </div>
         <div class="rules">
           <div class="rule">
@@ -162,13 +275,13 @@
           </div>
           <div class="rule">
             <span class="rule-rune">II</span>
-            <strong>No Fake Quotes</strong>
-            <span>Forge rejects contracts without a real positive bid and ask.</span>
+            <strong>Limit Orders Only</strong>
+            <span>Tradier requests are staged as explicit limit orders, not blind market orders.</span>
           </div>
           <div class="rule">
             <span class="rule-rune">III</span>
-            <strong>Live vs Shadow</strong>
-            <span>Every run keeps a shadow lane so we can learn without overfitting live capital.</span>
+            <strong>Live Requires Council</strong>
+            <span>In live mode, only current live-board contracts and fresh signals can transmit.</span>
           </div>
         </div>
       </section>

@@ -1,4 +1,6 @@
-const source = "./data/latest_run.json";
+import { mountHarborRun } from "./harbor-run.js";
+
+const SOURCE = "./data/latest_run.json";
 
 function pct(value, digits = 1) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) {
@@ -74,6 +76,7 @@ function boardMessage(title, body, extra = "") {
 
 function cardFor(candidate, template, options = {}) {
   const node = template.content.firstElementChild.cloneNode(true);
+  node.dataset.contractSymbol = candidate.contract_symbol;
   const tone = toneClass(candidate.option_type);
   node.classList.add(tone);
   if (options.featured) {
@@ -87,12 +90,14 @@ function cardFor(candidate, template, options = {}) {
   node.querySelector(".side").textContent = candidate.option_type.toUpperCase();
   node.querySelector(".meta").textContent =
     `Premium ${money(candidate.premium)} | Spread ${pct(candidate.spread_pct)} | Cost ${money(candidate.contract_cost)}`;
-  node.querySelector(".notes").textContent =
-    sentenceList(candidate.notes, options.featured ? "No extra council notes on the featured contract." : "No extra notes.");
+  node.querySelector(".notes").textContent = sentenceList(
+    candidate.notes,
+    options.featured ? "No extra council notes on the featured contract." : "No extra notes."
+  );
 
   const stats = node.querySelector(".stats");
   const entries = [
-    ["Forge Score", candidate.forge_score.toFixed(2)],
+    ["Forge Score", Number(candidate.forge_score || 0).toFixed(2)],
     ["Exp Return", pct(candidate.expected_return_pct)],
     ["Breakeven", pct(candidate.breakeven_move_pct)],
     ["Open Interest", integer(candidate.open_interest)],
@@ -115,11 +120,18 @@ function summaryItemHtml(label, value) {
 }
 
 async function loadSession() {
-  const response = await fetch("/api/session", { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`session request failed with ${response.status}`);
+  try {
+    const response = await fetch("/api/session", { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`session request failed with ${response.status}`);
+    }
+    return response.json();
+  } catch {
+    return {
+      authenticated: false,
+      session: null,
+    };
   }
-  return response.json();
 }
 
 function bindLogout() {
@@ -143,19 +155,7 @@ function bindLogout() {
   });
 }
 
-async function main() {
-  const sessionPayload = await loadSession();
-  const userLabel = document.getElementById("session-user");
-  if (sessionPayload.authenticated && sessionPayload.session) {
-    userLabel.textContent =
-      `${sessionPayload.session.username} | ${sessionPayload.session.role.toUpperCase()} access`;
-  } else {
-    userLabel.textContent = "Session unavailable";
-  }
-  bindLogout();
-
-  const response = await fetch(source, { cache: "no-store" });
-  const payload = await response.json();
+function renderBoard(payload) {
   const liveBoardCards = payload.council.live_board;
   const shadowBoardCards = payload.council.shadow_board;
   const featuredCandidate = liveBoardCards[0] || null;
@@ -165,7 +165,7 @@ async function main() {
 
   const regimePill = document.getElementById("regime-pill");
   regimePill.textContent = `${payload.regime.mode.replace("_", " ").toUpperCase()} | bias ${payload.regime.bias}`;
-  regimePill.classList.add(regimeToneClass(payload.regime.mode));
+  regimePill.className = `pill ${regimeToneClass(payload.regime.mode)}`;
   document.body.dataset.regime = payload.regime.mode;
   document.body.dataset.boardState = payload.council.abstain ? "abstain" : "active";
 
@@ -175,6 +175,10 @@ async function main() {
   const shadowBoard = document.getElementById("shadow-board");
   const boardStatus = document.getElementById("board-status");
   const boardStatusNote = document.getElementById("board-status-note");
+
+  featuredSlot.innerHTML = "";
+  liveBoard.innerHTML = "";
+  shadowBoard.innerHTML = "";
 
   if (featuredCandidate) {
     featuredSlot.appendChild(
@@ -240,8 +244,7 @@ async function main() {
     `Watching ${payload.regime.source_symbol || "the market"} for ${payload.regime.mode.replace("_", " ")} tides.`
   );
 
-  const scoutBoard = document.getElementById("scout-board");
-  scoutBoard.innerHTML = payload.scout_signals
+  document.getElementById("scout-board").innerHTML = payload.scout_signals
     .slice(0, 5)
     .map(
       (row, index) =>
@@ -254,8 +257,7 @@ async function main() {
     )
     .join("");
 
-  const forgeBoard = document.getElementById("forge-board");
-  forgeBoard.innerHTML = payload.forge_candidates
+  document.getElementById("forge-board").innerHTML = payload.forge_candidates
     .slice(0, 5)
     .map(
       (row, index) =>
@@ -268,16 +270,39 @@ async function main() {
     )
     .join("");
 
-  const councilSummary = document.getElementById("council-summary");
-  councilSummary.innerHTML = [
+  document.getElementById("council-summary").innerHTML = [
     summaryItemHtml("Abstain", payload.council.abstain ? "Yes" : "No"),
     summaryItemHtml("Live Count", integer(payload.council.summary.live_count)),
     summaryItemHtml("Shadow Count", integer(payload.council.summary.shadow_count)),
     summaryItemHtml("Candidate Count", integer(payload.council.summary.candidate_count)),
-    summaryItemHtml("Notes", payload.council.summary.notes.join(" ") || "No extra council notes."),
+    summaryItemHtml("Notes", (payload.council.summary.notes || []).join(" ") || "No extra council notes."),
   ].join("");
 }
 
+async function main() {
+  const sessionPayload = await loadSession();
+  const userLabel = document.getElementById("session-user");
+  if (sessionPayload.authenticated && sessionPayload.session) {
+    userLabel.textContent = `${sessionPayload.session.username} | ${sessionPayload.session.role.toUpperCase()} access`;
+  } else {
+    userLabel.textContent = "Local preview mode";
+  }
+  bindLogout();
+
+  const response = await fetch(SOURCE, { cache: "no-store" });
+  const payload = await response.json();
+  renderBoard(payload);
+  mountHarborRun({ payload, sessionPayload });
+}
+
 main().catch((error) => {
-  document.getElementById("live-board").innerHTML = `<div class="summary-box">Failed to load latest run: ${error}</div>`;
+  const message = `Failed to load Orographic Arena: ${error.message || error}`;
+  const liveBoard = document.getElementById("live-board");
+  if (liveBoard) {
+    liveBoard.innerHTML = `<div class="summary-box">${message}</div>`;
+  }
+  const brokerMessage = document.getElementById("broker-message");
+  if (brokerMessage) {
+    brokerMessage.textContent = message;
+  }
 });
