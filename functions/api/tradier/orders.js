@@ -1,217 +1,203 @@
 import {
+  buildEligibility,
+  buildOrderEnvelope,
+  describeSnapshot,
+  fetchOptionQuote,
+  findCandidate,
   getTradierSettings,
   jsonResponse,
+  loadLatestSnapshot,
   previewOrPlaceOrder,
-  publicTradierConfig,
   requireSession,
+  validateSubmission,
 } from "../../_lib/tradier.js";
 
-const ALLOWED_SIDES = new Set([
-  "buy_to_open",
-  "buy_to_close",
-  "sell_to_open",
-  "sell_to_close",
-]);
-
-async function loadSnapshot(request) {
-  const response = await fetch(
-    new URL("/data/latest_run.json", request.url).toString(),
-    {
-      headers: {
-        accept: "application/json",
-      },
-    },
-  );
-  if (!response.ok) {
-    throw new Error("Unable to load the latest Orographic snapshot.");
-  }
-  return response.json();
-}
-
-function snapshotAgeMinutes(snapshot) {
-  const generatedAt = Date.parse(String(snapshot?.generated_at_utc || ""));
-  if (!Number.isFinite(generatedAt)) {
-    return null;
-  }
-  return (Date.now() - generatedAt) / 60000;
-}
-
-function normalizeOrderPayload(payload, settings) {
-  const quantity = Number.parseInt(String(payload.quantity ?? ""), 10);
-  if (!Number.isFinite(quantity) || quantity < 1) {
-    throw new Error("Quantity must be a positive whole number.");
-  }
-  if (quantity > settings.maxContracts) {
-    throw new Error(
-      `Quantity exceeds the configured limit of ${settings.maxContracts} contracts.`,
-    );
-  }
-
-  const side = String(payload.side || "buy_to_open")
-    .trim()
-    .toLowerCase();
-  if (!ALLOWED_SIDES.has(side)) {
-    throw new Error("Unsupported option side.");
-  }
-
-  const type = String(payload.type || "limit")
-    .trim()
-    .toLowerCase();
-  if (type !== "limit") {
-    throw new Error("This build only allows limit orders.");
-  }
-
-  const duration = String(payload.duration || "day")
-    .trim()
-    .toLowerCase();
-  if (duration !== "day") {
-    throw new Error("This build only allows day duration orders.");
-  }
-
-  const price = Number(payload.price);
-  if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("A positive limit price is required.");
-  }
-
-  const symbol = String(payload.symbol || "")
-    .trim()
-    .toUpperCase();
-  const optionSymbol = String(payload.option_symbol || "")
-    .trim()
-    .toUpperCase();
-  if (!symbol || !optionSymbol) {
-    throw new Error("Both symbol and option_symbol are required.");
-  }
-
-  return {
-    class: "option",
-    symbol,
-    option_symbol: optionSymbol,
-    side,
-    quantity,
-    type,
-    duration,
-    price: price.toFixed(2),
-  };
-}
-
+/**
+ * POST /api/tradier/orders
+ *
+ * Preview or place a Tradier option order.
+ *
+ * Body:
+ *   preview (bool, required)     – true = preview only, false = place live/sandbox order
+ *   option_symbol (string)       – OCC option symbol, e.g. AAPL250411C00185000
+ *   symbol (string)              – underlying equity symbol
+ *   side (string)                – "buy_to_open" (only supported side)
+ *   quantity (int)               – number of option contracts (capped by env config)
+ *   type (string)                – "limit" only
+ *   duration (string)            – "day" or "gtc"
+ *   price (number)               – limit price
+ *   confirm_live (bool)          – must be true for live (non-sandbox) order placement
+ *
+ * Preview: any authenticated session, no snapshot freshness gate.
+ * Placement: admin-only, snapshot must be fresh, live mode requires live-board contract.
+ */
 export async function onRequestPost(context) {
   const auth = await requireSession(context);
   if (auth.response) {
     return auth.response;
   }
-  const session = auth.session;
+  const { session } = auth;
 
-  const settings = getTradierSettings(context.env);
-  if (!settings.configured) {
+  let body;
+  try {
+    body = await context.request.json();
+  } catch {
+    return jsonResponse({ ok: false, error: "Request body must be valid JSON." }, 400);
+  }
+
+  const {
+    preview: isPreview,
+    option_symbol: optionSymbol,
+    symbol: underlyingSymbol,
+    side = "buy_to_open",
+    quantity = 1,
+    type: orderType = "limit",
+    duration = "day",
+    price,
+    confirm_live: confirmLive,
+  } = body || {};
+
+  if (!optionSymbol) {
+    return jsonResponse({ ok: false, error: "option_symbol is required." }, 400);
+  }
+  if (!price || Number(price) <= 0) {
+    return jsonResponse({ ok: false, error: "A positive limit price is required." }, 400);
+  }
+  if (side !== "buy_to_open" && side !== "sell_to_close") {
+    return jsonResponse({ ok: false, error: "Only buy_to_open and sell_to_close are supported." }, 400);
+  }
+  if (orderType !== "limit") {
+    return jsonResponse({ ok: false, error: "Only limit orders are supported." }, 400);
+  }
+
+  const config = getTradierSettings(context.env);
+  if (!config.configured) {
     return jsonResponse(
       {
         ok: false,
-        error: "Tradier is not configured.",
-        broker: publicTradierConfig(settings),
+        error: "Tradier is not configured. Set TRADIER_ACCESS_TOKEN and TRADIER_ACCOUNT_ID.",
+        broker: { configured: false },
       },
-      400,
+      503,
     );
   }
 
-  let payload;
+  // Load snapshot for candidate validation and freshness check
+  let snapshot = null;
+  let snapshotInfo = null;
   try {
-    payload = await context.request.json();
+    snapshot = await loadLatestSnapshot(context);
+    snapshotInfo = describeSnapshot(snapshot, config.maxSignalAgeMinutes);
   } catch {
-    return jsonResponse({ ok: false, error: "Invalid JSON payload." }, 400);
+    snapshotInfo = { is_fresh: false, reason: "Could not load signal snapshot." };
   }
 
-  const preview = payload.preview !== false;
-  if (!preview) {
-    if (session.role !== "admin") {
-      return jsonResponse(
-        { ok: false, error: "Admin session required for order transmission." },
-        403,
-      );
+  // Locate the candidate in the snapshot so we know its lane
+  const found = snapshot ? findCandidate(snapshot, optionSymbol) : null;
+  const { lane = "unknown", candidate = null } = found || {};
+
+  const eligibility = buildEligibility({ config, lane, snapshotInfo });
+
+  // ----- PREVIEW path (any authenticated user) -----
+  if (isPreview) {
+    // Fetch a live quote so the preview price is fresh
+    let liveQuote = null;
+    try {
+      const quoteResult = await fetchOptionQuote(config, optionSymbol);
+      liveQuote = quoteResult.quote;
+    } catch {
+      liveQuote = null;
     }
-    if (settings.mode === "live" && !settings.liveTradingEnabled) {
+
+    const envelope = buildOrderEnvelope(
+      candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
+      quantity,
+      config.mode,
+      liveQuote,
+      side
+    );
+
+    try {
+      const result = await previewOrPlaceOrder(context.env, envelope, { preview: true });
+      return jsonResponse({
+        ok: true,
+        preview: true,
+        order: result.order,
+        envelope,
+        eligibility,
+        rate_limits: result.rateLimits,
+      });
+    } catch (error) {
       return jsonResponse(
-        {
-          ok: false,
-          error:
-            "Live trading is disabled. Set TRADIER_LIVE_TRADING_ENABLED=true to allow production order placement.",
-          broker: publicTradierConfig(settings),
-        },
-        403,
-      );
-    }
-    if (settings.mode === "live" && payload.confirm_live !== true) {
-      return jsonResponse(
-        { ok: false, error: "Live orders require explicit confirmation." },
-        400,
+        { ok: false, error: String(error.message || error), eligibility },
+        502,
       );
     }
   }
 
-  let orderPayload;
-  try {
-    orderPayload = normalizeOrderPayload(payload, settings);
-  } catch (error) {
+  // ----- LIVE/SANDBOX PLACEMENT path (admin-only) -----
+  const validation = validateSubmission({ config, session, lane, snapshotInfo, side });
+  if (!validation.ok) {
     return jsonResponse(
-      { ok: false, error: String(error.message || error) },
-      400,
+      { ok: false, error: validation.error, eligibility },
+      validation.status,
     );
   }
 
-  try {
-    if (!preview) {
-      const snapshot = await loadSnapshot(context.request);
-      const liveContracts = snapshot?.council?.live_board || [];
-      const liveMatch = liveContracts.find(
-        (candidate) =>
-          String(candidate.contract_symbol || "")
-            .trim()
-            .toUpperCase() === orderPayload.option_symbol,
-      );
-      const ageMinutes = snapshotAgeMinutes(snapshot);
-      if (settings.mode === "live" && !liveMatch) {
-        return jsonResponse(
-          {
-            ok: false,
-            error:
-              "Live transmission is limited to contracts currently on the live board.",
-          },
-          403,
-        );
-      }
-      if (
-        settings.mode === "live" &&
-        (ageMinutes === null || ageMinutes > settings.maxSignalAgeMinutes)
-      ) {
-        return jsonResponse(
-          {
-            ok: false,
-            error: `Live transmission requires a snapshot newer than ${settings.maxSignalAgeMinutes} minutes.`,
-          },
-          409,
-        );
-      }
-    }
+  // Live mode requires explicit confirm_live flag from the client
+  if (config.mode === "live" && !confirmLive) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: "Live order blocked: confirm_live must be true for live-mode placement.",
+        eligibility,
+      },
+      409,
+    );
+  }
 
-    const result = await previewOrPlaceOrder(context.env, orderPayload, {
-      preview,
-    });
+  if (config.mode === "live" && !config.liveTradingEnabled) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: "Live trading is not enabled. Set TRADIER_LIVE_TRADING_ENABLED=true to arm live orders.",
+        eligibility,
+      },
+      412,
+    );
+  }
+
+  // Fetch live quote for order pricing
+  let liveQuote = null;
+  try {
+    const quoteResult = await fetchOptionQuote(config, optionSymbol);
+    liveQuote = quoteResult.quote;
+  } catch {
+    liveQuote = null;
+  }
+
+  const envelope = buildOrderEnvelope(
+    candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
+    quantity,
+    config.mode,
+    liveQuote,
+    side
+  );
+
+  try {
+    const result = await previewOrPlaceOrder(context.env, envelope, { preview: false });
     return jsonResponse({
       ok: true,
-      preview,
-      broker: publicTradierConfig(settings),
+      preview: false,
       order: result.order,
       confirmation: result.confirmation,
-      rateLimits: result.rateLimits,
+      envelope,
+      eligibility,
+      rate_limits: result.rateLimits,
     });
   } catch (error) {
     return jsonResponse(
-      {
-        ok: false,
-        preview,
-        error: String(error.message || error),
-        broker: publicTradierConfig(settings),
-      },
+      { ok: false, error: String(error.message || error), eligibility },
       502,
     );
   }

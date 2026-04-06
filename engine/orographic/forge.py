@@ -121,12 +121,16 @@ def rank_contracts(
             breakeven_move_pct = _breakeven_move_pct(option_type, signal.spot, strike, premium)
             intrinsic_now = _intrinsic(option_type, signal.spot, strike)
             extrinsic_ratio = max(premium - intrinsic_now, 0.0) / premium if premium > 0 else 1.0
+            iv = max(float(row["impliedVolatility"]), 0.10)
+            target_iv = 0.35
+            allocation_weight = round(min(max(target_iv / iv, 0.25), 3.0), 4)
+
             delta = black_scholes_delta(
                 spot=signal.spot,
                 strike=strike,
                 time_to_expiry_years=time_to_expiry_years,
                 risk_free_rate=risk_free_rate,
-                volatility=max(float(row["impliedVolatility"]), 0.15),
+                volatility=iv,
                 option_type=option_type,
             )
             if delta is None or abs(delta) < min_abs_delta or abs(delta) > max_abs_delta:
@@ -137,12 +141,19 @@ def rank_contracts(
                 + 0.18 * min(volume / 300.0, 1.0)
                 - 0.35 * min(spread_pct / max_spread_pct, 1.0)
             )
+            
+            # Variance Risk Premium (VRP) Check
+            # If the option's Implied Volatility is massively higher than the underlying's Realized Volatility, 
+            # it means the market maker is charging a huge premium. We heavily penalize this.
+            vrp_penalty = max(iv - signal.realized_vol_20d - 0.10, 0.0) * 2.0
+
             economics_score = _clip(
                 0.50
                 + 0.25 * min(expected_return_pct / 1.5, 1.0)
                 + 0.15 * min((projected_move_pct - breakeven_move_pct) / 0.05, 1.0)
                 + 0.10 * (1.0 - min(extrinsic_ratio, 1.0))
                 - 0.15 * max(extrinsic_ratio - 0.90, 0.0) / 0.10
+                - vrp_penalty
             )
             forge_score = _clip(
                 0.45 * ((signal.scout_score + 1.0) / 2.0)
@@ -154,6 +165,8 @@ def rank_contracts(
                 notes.append("projected payoff is asymmetric")
             if extrinsic_ratio < 0.8:
                 notes.append("time-value burden is acceptable")
+            if vrp_penalty > 0.05:
+                notes.append(f"VRP penalty applied: IV is highly elevated over RV")
             if delta is not None and 0.20 <= abs(delta) <= 0.45:
                 notes.append("delta sits in the preferred weekly range")
 
@@ -181,6 +194,7 @@ def rank_contracts(
                     extrinsic_ratio=round(extrinsic_ratio, 4),
                     scout_score=signal.scout_score,
                     forge_score=round(forge_score, 4),
+                    allocation_weight=allocation_weight,
                     notes=notes,
                 )
             )

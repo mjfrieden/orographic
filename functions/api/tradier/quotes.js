@@ -1,51 +1,48 @@
 import {
   fetchQuotes,
-  getTradierSettings,
   jsonResponse,
-  publicTradierConfig,
   requireSession,
 } from "../../_lib/tradier.js";
 
-function parseSymbols(request) {
-  const url = new URL(request.url);
-  return String(url.searchParams.get("symbols") || "")
-    .split(",")
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .slice(0, 8);
-}
-
+/**
+ * GET /api/tradier/quotes?symbols=AAPL250411C00185000,...
+ *
+ * Batch option quote refresh for the current board's contract symbols.
+ * Includes greeks (delta, iv) when available from Tradier response.
+ * Requires an authenticated session (any role).
+ */
 export async function onRequestGet(context) {
   const auth = await requireSession(context);
   if (auth.response) {
     return auth.response;
   }
 
-  const settings = getTradierSettings(context.env);
-  if (!settings.configured) {
-    return jsonResponse({
-      ok: true,
-      broker: publicTradierConfig(settings),
-      quotes: [],
-      rateLimits: null,
-    });
+  const url = new URL(context.request.url);
+  const raw = (url.searchParams.get("symbols") || "").trim();
+  if (!raw) {
+    return jsonResponse({ ok: false, error: "symbols parameter is required." }, 400);
   }
 
-  const symbols = parseSymbols(context.request);
+  const symbols = raw
+    .split(",")
+    .map((s) => s.trim().toUpperCase())
+    .filter(Boolean);
+
   if (!symbols.length) {
-    return jsonResponse(
-      { ok: false, error: "At least one symbol is required." },
-      400,
-    );
+    return jsonResponse({ ok: false, error: "No valid symbols provided." }, 400);
+  }
+
+  // Cap to prevent runaway requests
+  if (symbols.length > 12) {
+    return jsonResponse({ ok: false, error: "Maximum 12 symbols per request." }, 400);
   }
 
   try {
-    const payload = await fetchQuotes(context.env, symbols);
+    const result = await fetchQuotes(context.env, symbols);
     return jsonResponse({
       ok: true,
-      broker: publicTradierConfig(settings),
-      quotes: payload.quotes,
-      rateLimits: payload.rateLimits,
+      quotes: result.quotes,
+      rate_limits: result.rateLimits,
     });
   } catch (error) {
     return jsonResponse(

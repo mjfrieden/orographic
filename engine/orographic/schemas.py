@@ -58,6 +58,7 @@ class ContractCandidate:
     extrinsic_ratio: float
     scout_score: float
     forge_score: float
+    allocation_weight: float = 1.0
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

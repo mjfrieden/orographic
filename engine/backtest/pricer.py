@@ -1,0 +1,156 @@
+"""
+engine/backtest/pricer.py
+
+Computes entry and exit prices for replayed candidates.
+
+Entry: Monday open price from history (or nearest prior close) → B-S ask
+Exit:  Friday close price from history → intrinsic value + residual time value
+P&L:   (exit_price - entry_price) * 100 shares per contract
+"""
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from datetime import date
+from math import erf, exp, log as math_log, sqrt
+
+import pandas as pd
+
+from engine.orographic.schemas import ContractCandidate
+from engine.backtest.fetcher import get_open_on, get_price_on, nearest_trading_day
+from engine.backtest.options_provider import HistoricalOptionsProvider
+
+log = logging.getLogger(__name__)
+
+BUDGET_PER_TRADE = 100.0   # USD — user-specified fixed allocation
+
+
+def _normal_cdf(x: float) -> float:
+    return 0.5 * (1.0 + erf(x / sqrt(2.0)))
+
+
+def _bs_price(
+    spot: float,
+    strike: float,
+    tte: float,
+    vol: float,
+    rf: float = 0.04,
+    option_type: str = "call",
+) -> float:
+    if spot <= 0 or strike <= 0 or tte <= 0 or vol <= 0:
+        return max(0.0, spot - strike if option_type == "call" else strike - spot)
+    d1 = (math_log(spot / strike) + (rf + 0.5 * vol * vol) * tte) / (vol * sqrt(tte))
+    d2 = d1 - vol * sqrt(tte)
+    if option_type == "call":
+        return max(0.0, spot * _normal_cdf(d1) - strike * exp(-rf * tte) * _normal_cdf(d2))
+    return max(0.0, strike * exp(-rf * tte) * _normal_cdf(-d2) - spot * _normal_cdf(-d1))
+
+
+@dataclass
+class TradeLeg:
+    symbol: str
+    contract_symbol: str
+    option_type: str
+    strike: float
+    expiry: str
+    entry_date: date
+    exit_date: date | None
+
+    entry_spot: float          # underlying price at entry
+    exit_spot: float | None    # underlying price at exit
+
+    entry_price: float         # option premium paid (per share)
+    exit_price: float          # option value at exit (per share)
+
+    contracts: int             # number of contracts purchased
+    cost_basis: float          # entry_price * 100 * contracts
+    exit_value: float          # exit_price * 100 * contracts
+    pnl: float                 # exit_value - cost_basis
+    pnl_pct: float             # pnl / cost_basis
+
+    expired_worthless: bool
+    forge_score: float
+    scout_score: float
+    implied_volatility: float
+
+
+def price_trade(
+    candidate: ContractCandidate,
+    monday: date,
+    friday: date,
+    history_df: pd.DataFrame,
+    options_provider: HistoricalOptionsProvider,
+    *,
+    budget: float = BUDGET_PER_TRADE,
+) -> TradeLeg | None:
+    """
+    Compute the P&L for entering a candidate on `monday` and exiting on `friday`.
+    Entry price = candidate.ask (already computed by replay)
+    Exit price  = Bid price from options provider on Friday
+    """
+    entry_date = nearest_trading_day(monday, history_df, direction="forward")
+    exit_date = nearest_trading_day(friday, history_df, direction="back")
+
+    if entry_date is None or exit_date is None:
+        return None
+
+    entry_spot = get_open_on(candidate.symbol, entry_date, history_df)
+    exit_spot = get_price_on(candidate.symbol, exit_date, history_df)
+
+    if entry_spot is None or exit_spot is None:
+        return None
+
+    entry_price = candidate.ask
+    if entry_price <= 0:
+        return None
+
+    # Contracts: how many fit in the dynamically volatility-scaled budget (minimum 1)
+    actual_budget = budget * candidate.allocation_weight
+    cost_per_contract = entry_price * 100.0
+    contracts = max(1, int(actual_budget // cost_per_contract))
+    cost_basis = cost_per_contract * contracts
+
+    # Fetch Friday options chain to find the exit Bid
+    # We fallback to 0.0 (expired worthless) if anything goes wrong
+    exit_price = 0.0
+    chain = options_provider.get_chain(candidate.symbol, exit_date, fallback_spot=exit_spot, fallback_vol=candidate.implied_volatility)
+    
+    if not chain.empty:
+        opt_type_char = "C" if candidate.option_type == "call" else "P"
+        expiry_date = pd.to_datetime(candidate.expiry).date()
+        
+        match = chain[
+            (chain["option_type"] == opt_type_char) &
+            (pd.to_datetime(chain["expire_date"]).dt.date == expiry_date) &
+            (round(chain["strike"], 2) == round(candidate.strike, 2))
+        ]
+        if not match.empty:
+            exit_price = float(match.iloc[0].get("bid", 0.0))
+
+    expired_worthless = exit_price < 0.01
+    exit_value = exit_price * 100.0 * contracts
+    pnl = exit_value - cost_basis
+    pnl_pct = pnl / cost_basis
+
+    return TradeLeg(
+        symbol=candidate.symbol,
+        contract_symbol=candidate.contract_symbol,
+        option_type=candidate.option_type,
+        strike=candidate.strike,
+        expiry=candidate.expiry,
+        entry_date=entry_date,
+        exit_date=exit_date,
+        entry_spot=round(entry_spot, 4),
+        exit_spot=round(exit_spot, 4),
+        entry_price=round(entry_price, 4),
+        exit_price=round(exit_price, 4),
+        contracts=contracts,
+        cost_basis=round(cost_basis, 2),
+        exit_value=round(exit_value, 2),
+        pnl=round(pnl, 2),
+        pnl_pct=round(pnl_pct, 4),
+        expired_worthless=expired_worthless,
+        forge_score=candidate.forge_score,
+        scout_score=candidate.scout_score,
+        implied_volatility=candidate.implied_volatility,
+    )

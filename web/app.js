@@ -1,115 +1,388 @@
-import { mountHarborRun } from "./harbor-run.js";
+/**
+ * Orographic Arena — AI Options Trading Dashboard
+ * No game loop. Direct AI recommendations → Tradier execution.
+ */
 
-const SOURCE = "./data/latest_run.json";
+const SNAPSHOT_SOURCE = "./data/latest_run.json";
 
-function pct(value, digits = 1) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return "--";
-  }
-  return `${(Number(value) * 100).toFixed(digits)}%`;
-}
+// ── Formatting helpers ──────────────────────────────────────────────────────
 
 function money(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return "--";
-  }
-  return `$${Number(value).toFixed(2)}`;
+  const n = Number(value);
+  if (value === null || value === undefined || !Number.isFinite(n)) return "--";
+  return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+}
+
+function pct(value, digits = 1) {
+  const n = Number(value);
+  if (value === null || value === undefined || !Number.isFinite(n)) return "--";
+  return `${(n * 100).toFixed(digits)}%`;
 }
 
 function integer(value) {
-  if (value === null || value === undefined || Number.isNaN(Number(value))) {
-    return "--";
-  }
-  return Number(value).toLocaleString();
+  const n = Number(value);
+  if (value === null || value === undefined || !Number.isFinite(n)) return "--";
+  return n.toLocaleString("en-US");
+}
+
+function signed(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "--";
+  const formatted = money(Math.abs(n));
+  return n >= 0 ? `+${formatted}` : `-${formatted}`;
+}
+
+function formatTs(value) {
+  if (!value) return "No timestamp";
+  const d = new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return new Intl.DateTimeFormat(undefined, {
+    month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit",
+    timeZoneName: "short",
+  }).format(d);
 }
 
 function toneClass(value) {
   return String(value).toLowerCase() === "call" ? "is-call" : "is-put";
 }
 
-function regimeToneClass(value) {
-  const normalized = String(value).toLowerCase();
-  if (normalized === "risk_on") {
-    return "is-call";
-  }
-  if (normalized === "risk_off") {
-    return "is-put";
-  }
+function regimeToneClass(mode) {
+  if (String(mode).toLowerCase() === "risk_on")  return "is-call";
+  if (String(mode).toLowerCase() === "risk_off") return "is-put";
   return "is-neutral";
 }
 
-function formatTimestamp(value) {
-  if (!value) {
-    return "No timestamp";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  }).format(date);
-}
-
 function sentenceList(notes, fallback) {
-  if (Array.isArray(notes) && notes.length) {
-    return notes.join(". ");
-  }
+  if (Array.isArray(notes) && notes.length) return notes.join(". ");
   return fallback;
 }
 
-function boardMessage(title, body, extra = "") {
-  return `
-    <div class="summary-box board-message">
-      <div class="summary-item">
-        <span class="summary-label">${title}</span>
-        <span class="summary-value">${body}</span>
+// ── Session & Auth ──────────────────────────────────────────────────────────
+
+let SESSION = null;
+
+async function loadSession() {
+  try {
+    const r = await fetch("/api/session", { cache: "no-store" });
+    if (!r.ok) return { authenticated: false, session: null };
+    return r.json();
+  } catch {
+    return { authenticated: false, session: null };
+  }
+}
+
+function bindLogout() {
+  const btn = document.getElementById("logout-btn");
+  if (!btn) return;
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    btn.textContent = "Signing out…";
+    try {
+      await fetch("/api/logout", { method: "POST", headers: { "content-type": "application/json" } });
+      window.location.href = "/login";
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "Log Out";
+    }
+  });
+}
+
+// ── Account / Broker ────────────────────────────────────────────────────────
+
+let BROKER_STATE = {
+  configured: false,
+  mode: "offline",
+  liveTradingEnabled: false,
+  balances: null,
+  positions: [],
+  orders: [],
+};
+
+async function loadAccount() {
+  try {
+    const r = await fetch("/api/tradier/account", { cache: "no-store" });
+    const data = await r.json();
+    if (data.ok && data.broker) {
+      BROKER_STATE = {
+        ...BROKER_STATE,
+        configured:         data.broker.configured,
+        mode:               data.broker.mode || data.broker.environment || "offline",
+        liveTradingEnabled: data.broker.liveTradingEnabled,
+        balances:           data.balances || data.broker.balances || null,
+        positions:          data.positions || data.broker.positions || [],
+        orders:             data.orders || data.broker.orders || [],
+        maxContracts:       data.broker.maxContracts || 3,
+      };
+    }
+  } catch {
+    // Leave defaults; ribbon will show --
+  }
+  renderRibbon();
+  renderPositions();
+  renderOrders();
+  bindPositionsTable();
+}
+
+function renderRibbon() {
+  const bal = BROKER_STATE.balances || {};
+  setText("ribbon-equity",    money(bal.total_equity));
+  setText("ribbon-obp",       money(bal.option_buying_power));
+  setText("ribbon-cash",      money(bal.total_cash));
+  const pl = bal.close_pl ?? bal.open_pl ?? null;
+  const plEl = document.getElementById("ribbon-pl");
+  if (plEl) {
+    plEl.textContent = pl !== null ? signed(pl) : "--";
+    plEl.className = "ribbon-stat-value" +
+      (pl > 0 ? " is-positive" : pl < 0 ? " is-negative" : "");
+  }
+  setText("ribbon-positions", String(BROKER_STATE.positions.length));
+
+  const modeEl = document.getElementById("ribbon-broker-mode");
+  if (modeEl) {
+    const m = BROKER_STATE.mode || "offline";
+    const label = BROKER_STATE.configured
+      ? (m === "live" ? "LIVE" : "SANDBOX")
+      : "OFFLINE";
+    modeEl.textContent = label;
+    modeEl.className = "ribbon-mode-pill" +
+      (m === "live" && BROKER_STATE.configured ? " is-live" :
+       BROKER_STATE.configured ? " is-sandbox" : " is-offline");
+  }
+}
+
+function renderPositions() {
+  const tbody = document.getElementById("positions-tbody");
+  if (!tbody) return;
+  const rows = BROKER_STATE.positions || [];
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((pos) => {
+    const cv  = pos.current_value ?? null;
+    const cb  = pos.cost_basis ?? null;
+    const pl  = cv !== null && cb !== null ? cv - cb : null;
+    const sym = String(pos.symbol || "");
+    const isOpt = sym.length > 6;
+    const tone = isOpt ? (sym.includes("C") ? "is-call-cell" : "is-put-cell") : "";
+    const actionCell = isOpt
+      ? `<button class="mini-action close-position-btn" type="button" data-contract="${sym}" data-qty="${pos.quantity}">Close</button>`
+      : ``;
+    return `<tr>
+      <td class="${tone}">${sym}</td>
+      <td>${integer(pos.quantity)}</td>
+      <td class="is-num">${money(cb)}</td>
+      <td class="is-num">${money(cv)}</td>
+      <td class="is-num ${pl !== null ? (pl >= 0 ? "is-positive" : "is-negative") : ""}">${pl !== null ? signed(pl) : "--"}</td>
+      <td>${pos.date_acquired ? pos.date_acquired.slice(0, 10) : "--"}</td>
+      <td style="text-align:right;">${actionCell}</td>
+    </tr>`;
+  }).join("");
+}
+
+function renderOrders() {
+  const tbody = document.getElementById("orders-tbody");
+  if (!tbody) return;
+  const rows = (BROKER_STATE.orders || []).slice(0, 10);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No recent orders found.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows.map((o) => {
+    const isBuy = String(o.side || "").includes("buy");
+    return `<tr>
+      <td><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
+      <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}</td>
+      <td class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
+      <td class="is-num">${integer(o.quantity)}</td>
+      <td class="is-num">${o.price ? money(o.price) : "--"}</td>
+      <td class="is-num">${o.avg_fill_price ? money(o.avg_fill_price) : "--"}</td>
+      <td style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
+    </tr>`;
+  }).join("");
+}
+
+// ── Snapshot / Board ────────────────────────────────────────────────────────
+
+let SNAPSHOT = null;
+let LIVE_QUOTES = new Map();
+
+async function loadSnapshot() {
+  const r = await fetch(SNAPSHOT_SOURCE, { cache: "no-store" });
+  SNAPSHOT = await r.json();
+  return SNAPSHOT;
+}
+
+async function refreshQuotes(contractSymbols) {
+  if (!contractSymbols.length) return;
+  try {
+    const url = `/api/tradier/quotes?symbols=${encodeURIComponent(contractSymbols.join(","))}`;
+    const r = await fetch(url, { cache: "no-store" });
+    const data = await r.json();
+    if (data.ok && Array.isArray(data.quotes)) {
+      data.quotes.forEach((q) => LIVE_QUOTES.set(q.symbol, q));
+    }
+  } catch {
+    // Non-fatal; fall back to snapshot premium
+  }
+}
+
+// ── AI Rationale ────────────────────────────────────────────────────────────
+
+async function fetchRationale(candidate, regime) {
+  try {
+    const r = await fetch("/api/ai/explain", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ candidate, regime }),
+    });
+    const data = await r.json();
+    return data.ok ? data.rationale : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Card Rendering ──────────────────────────────────────────────────────────
+
+function scoreBarWidth(score) {
+  const s = Math.max(0, Math.min(1, Number(score || 0)));
+  return `${Math.round(s * 100)}%`;
+}
+
+function buildTradeCard(candidate, regime, lane) {
+  const role       = SESSION?.session?.role || "viewer";
+  const isAdmin    = role === "admin";
+  const isLive     = lane === "live";
+  const tone       = toneClass(candidate.option_type);
+  const dir        = candidate.option_type?.toUpperCase();
+  const liveQuote  = LIVE_QUOTES.get(candidate.contract_symbol);
+  const displayBid = liveQuote?.bid ?? candidate.bid;
+  const displayAsk = liveQuote?.ask ?? candidate.ask ?? candidate.premium;
+  const displayIv  = liveQuote?.greeks?.mid_iv
+    ? Number(liveQuote.greeks.mid_iv * 100).toFixed(0) + "%"
+    : candidate.implied_volatility
+      ? Number(candidate.implied_volatility * 100).toFixed(0) + "%"
+      : "--";
+
+  const card = document.createElement("div");
+  card.className = `trade-card ${tone}${!isLive ? " is-shadow" : ""}`;
+  card.dataset.contractSymbol = candidate.contract_symbol;
+  card.dataset.lane = lane;
+
+  card.innerHTML = `
+    <div class="card-art">
+      <div class="card-art-glow"></div>
+      <span class="card-symbol-giant">${candidate.symbol}</span>
+      <div class="card-gem card-score-gem" title="Forge score">
+        ${Number(candidate.forge_score || 0).toFixed(2)}
       </div>
-      ${extra ? `<div class="summary-item"><span class="summary-value">${extra}</span></div>` : ""}
+      <div class="card-gem card-gem-direction" title="Direction">${dir}</div>
+    </div>
+    <div class="card-body">
+      <div class="card-ticker-row">
+        <span class="card-ticker">${candidate.symbol}</span>
+        <span class="card-lane-badge ${isLive ? "is-live" : "is-shadow"}">${isLive ? "Live" : "Shadow"}</span>
+      </div>
+      <p class="card-contract">${candidate.contract_symbol}</p>
+
+      <div class="card-score-bar-wrap">
+        <div class="card-score-bar-label">
+          <span>Conviction</span>
+          <span>${Number(candidate.forge_score || 0).toFixed(2)}</span>
+        </div>
+        <div class="card-score-bar-track">
+          <div class="card-score-bar-fill" style="width:${scoreBarWidth(candidate.forge_score)}"></div>
+        </div>
+      </div>
+
+      <div class="card-stats">
+        <div class="card-stat">
+          <span class="card-stat-label">Strike</span>
+          <span class="card-stat-value">$${Number(candidate.strike).toFixed(0)}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">Expiry</span>
+          <span class="card-stat-value">${candidate.expiry}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">Ask</span>
+          <span class="card-stat-value">${money(displayAsk)}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">Bid</span>
+          <span class="card-stat-value">${money(displayBid)}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">Delta</span>
+          <span class="card-stat-value">${candidate.delta ? Number(candidate.delta).toFixed(2) : "--"}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">IV</span>
+          <span class="card-stat-value">${displayIv}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">Breakeven</span>
+          <span class="card-stat-value">${pct(candidate.breakeven_move_pct)}</span>
+        </div>
+        <div class="card-stat">
+          <span class="card-stat-label">Exp. Return</span>
+          <span class="card-stat-value">${pct(candidate.expected_return_pct, 0)}</span>
+        </div>
+      </div>
+
+      <div id="rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}" class="card-rationale is-loading">
+        Asking the Council…
+      </div>
+
+      <div class="card-actions">
+        <button
+          class="primary-action ${tone} card-preview-btn"
+          type="button"
+          data-contract="${candidate.contract_symbol}"
+          data-symbol="${candidate.symbol}"
+          data-lane="${lane}"
+          data-ask="${displayAsk || ""}"
+          data-alloc="${candidate.allocation_weight || 1.0}"
+          ${!isLive && BROKER_STATE.mode === "live" ? "disabled title='Live mode only accepts live-board contracts'" : ""}
+        >Preview Trade</button>
+
+        ${isAdmin ? `
+        <button
+          class="danger-action card-execute-btn"
+          type="button"
+          data-contract="${candidate.contract_symbol}"
+          data-symbol="${candidate.symbol}"
+          data-lane="${lane}"
+          data-ask="${displayAsk || ""}"
+          data-alloc="${candidate.allocation_weight || 1.0}"
+          ${!isLive && BROKER_STATE.mode === "live" ? "disabled title='Live mode only'" : ""}
+        >Execute Trade</button>
+        ` : ""}
+      </div>
+
+      ${candidate.notes?.length ? `
+        <p class="card-notes">${candidate.notes.join(" · ")}</p>
+      ` : ""}
     </div>
   `;
+
+  return card;
 }
 
-function cardFor(candidate, template, options = {}) {
-  const node = template.content.firstElementChild.cloneNode(true);
-  node.dataset.contractSymbol = candidate.contract_symbol;
-  const tone = toneClass(candidate.option_type);
-  node.classList.add(tone);
-  if (options.featured) {
-    node.classList.add("is-featured");
-  }
-  node.querySelector(".crest-letter").textContent = candidate.symbol.slice(0, 3);
-  node.querySelector(".crest-side").textContent = candidate.option_type.toUpperCase();
-  node.querySelector(".card-kicker").textContent = options.kicker || "Harbor Contract";
-  node.querySelector(".title").textContent = `${candidate.symbol} ${candidate.strike} ${candidate.expiry}`;
-  node.querySelector(".contract").textContent = candidate.contract_symbol;
-  node.querySelector(".side").textContent = candidate.option_type.toUpperCase();
-  node.querySelector(".meta").textContent =
-    `Premium ${money(candidate.premium)} | Spread ${pct(candidate.spread_pct)} | Cost ${money(candidate.contract_cost)}`;
-  node.querySelector(".notes").textContent = sentenceList(
-    candidate.notes,
-    options.featured ? "No extra council notes on the featured contract." : "No extra notes."
-  );
-
-  const stats = node.querySelector(".stats");
-  const entries = [
-    ["Forge Score", Number(candidate.forge_score || 0).toFixed(2)],
-    ["Exp Return", pct(candidate.expected_return_pct)],
-    ["Breakeven", pct(candidate.breakeven_move_pct)],
-    ["Open Interest", integer(candidate.open_interest)],
-  ];
-  for (const [label, value] of entries) {
-    const stat = document.createElement("div");
-    stat.className = "stat";
-    stat.innerHTML = `<span class="stat-label">${label}</span><span class="stat-value">${value}</span>`;
-    stats.appendChild(stat);
-  }
-  return node;
+function buildEmptyCard(title, body) {
+  const card = document.createElement("div");
+  card.className = "trade-card";
+  card.style.cssText = "padding:32px;text-align:center;";
+  card.innerHTML = `
+    <p style="font-family:var(--font-ui);font-size:.85rem;color:var(--text-muted);margin-bottom:8px;">${title}</p>
+    <p style="font-family:var(--font-data);font-size:.75rem;color:var(--text-muted);">${body}</p>
+  `;
+  return card;
 }
+
+// ── Board Rendering ─────────────────────────────────────────────────────────
 
 function rowHtml(title, body, tone, slotLabel) {
   return `<div class="mini-row ${tone}"><span class="mini-slot">${slotLabel}</span><strong>${title}</strong><span class="muted">${body}</span></div>`;
@@ -119,190 +392,637 @@ function summaryItemHtml(label, value) {
   return `<div class="summary-item"><span class="summary-label">${label}</span><span class="summary-value">${value}</span></div>`;
 }
 
-async function loadSession() {
-  try {
-    const response = await fetch("/api/session", { cache: "no-store" });
-    if (!response.ok) {
-      throw new Error(`session request failed with ${response.status}`);
+async function renderBoard(payload) {
+  const live   = payload.council.live_board || [];
+  const shadow = payload.council.shadow_board || [];
+
+  // Header / meta
+  setText("board-status",      payload.council.abstain ? "Council abstained" : live.length ? "Harbor live" : "Live board quiet");
+  setText("board-status-note", sentenceList(payload.council.summary?.notes, "No council notes."));
+  setText("live-count-hud",    integer(payload.council.summary?.live_count));
+  setText("shadow-count-hud",  integer(payload.council.summary?.shadow_count));
+
+  const regimePill = document.getElementById("regime-pill");
+  if (regimePill) {
+    regimePill.textContent = `${String(payload.regime.mode).replace("_", " ").toUpperCase()} · bias ${payload.regime.bias}`;
+    regimePill.className = `hud-value ${regimeToneClass(payload.regime.mode) === "is-call" ? "" : regimeToneClass(payload.regime.mode)}`;
+  }
+  setText("regime-source",      payload.regime.source_symbol || "SPY");
+  setText("regime-source-note", sentenceList(payload.regime.notes, `Watching ${payload.regime.source_symbol || "the market"}.`));
+
+  const regimeTag = document.getElementById("regime-tag");
+  if (regimeTag) {
+    regimeTag.textContent = `Regime: ${String(payload.regime.mode).replace("_", " ").toUpperCase()}`;
+  }
+  const dispatchTag = document.getElementById("dispatch-tag");
+  if (dispatchTag) {
+    dispatchTag.textContent = `Last dispatch: ${formatTs(payload.generated_at_utc)}`;
+  }
+
+  // Prefetch live quotes for all contracts
+  const allContracts = [...live, ...shadow].map((c) => c.contract_symbol).filter(Boolean);
+  await refreshQuotes(allContracts);
+
+  // Render live picks
+  const liveGrid = document.getElementById("live-picks-grid");
+  if (liveGrid) {
+    liveGrid.innerHTML = "";
+    if (!live.length) {
+      liveGrid.appendChild(buildEmptyCard(
+        "Council Abstained",
+        sentenceList(payload.council.summary?.notes, "No contract cleared the live board threshold for this run.")
+      ));
+    } else {
+      live.forEach((c) => liveGrid.appendChild(buildTradeCard(c, payload.regime, "live")));
     }
-    return response.json();
-  } catch {
-    return {
-      authenticated: false,
-      session: null,
-    };
+  }
+
+  // Render shadow picks
+  const shadowGrid = document.getElementById("shadow-picks-grid");
+  if (shadowGrid) {
+    shadowGrid.innerHTML = "";
+    if (!shadow.length) {
+      shadowGrid.appendChild(buildEmptyCard("Shadow Lane Quiet", "No shadow contracts available for this run."));
+    } else {
+      shadow.forEach((c) => shadowGrid.appendChild(buildTradeCard(c, payload.regime, "shadow")));
+    }
+  }
+
+  // Scout / Forge / Council pipeline tables
+  const scoutBoard = document.getElementById("scout-board");
+  if (scoutBoard) {
+    scoutBoard.innerHTML = (payload.scout_signals || []).slice(0, 5).map((row, i) =>
+      rowHtml(
+        `${row.symbol} ${String(row.direction).toUpperCase()} · ${row.scout_score}`,
+        `m5 ${pct(row.momentum_5d)} · m20 ${pct(row.momentum_20d)} · RSI ${row.rsi_14}`,
+        toneClass(row.direction),
+        `Scout ${String(i + 1).padStart(2, "0")}`
+      )
+    ).join("") || `<div class="muted" style="padding:12px;font-family:var(--font-data);font-size:.75rem">No scout signals.</div>`;
+  }
+
+  const forgeBoard = document.getElementById("forge-board");
+  if (forgeBoard) {
+    forgeBoard.innerHTML = (payload.forge_candidates || []).slice(0, 5).map((row, i) =>
+      rowHtml(
+        `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
+        `ask ${money(row.ask ?? row.premium)} · exp ${pct(row.expected_return_pct)} · OI ${integer(row.open_interest)}`,
+        toneClass(row.option_type),
+        `Forge ${String(i + 1).padStart(2, "0")}`
+      )
+    ).join("") || `<div class="muted" style="padding:12px;font-family:var(--font-data);font-size:.75rem">No forge candidates.</div>`;
+  }
+
+  const councilSummary = document.getElementById("council-summary");
+  if (councilSummary) {
+    councilSummary.innerHTML = [
+      summaryItemHtml("Abstain",    payload.council.abstain ? "Yes" : "No"),
+      summaryItemHtml("Live",       integer(payload.council.summary?.live_count)),
+      summaryItemHtml("Shadow",     integer(payload.council.summary?.shadow_count)),
+      summaryItemHtml("Candidates", integer(payload.council.summary?.candidate_count)),
+      summaryItemHtml("Regime",     String(payload.regime.mode).replace("_", " ")),
+      summaryItemHtml("Notes",      sentenceList(payload.council.summary?.notes, "No extra notes.")),
+    ].join("");
+  }
+
+  // Bind card buttons
+  bindCardButtons();
+
+  // Stream AI rationale for each card asynchronously
+  const allCandidates = [
+    ...live.map((c) => ({ candidate: c, lane: "live" })),
+    ...shadow.map((c) => ({ candidate: c, lane: "shadow" })),
+  ];
+  for (const { candidate } of allCandidates) {
+    loadCardRationale(candidate, payload.regime);
   }
 }
 
-function bindLogout() {
-  const logoutButton = document.getElementById("logout-btn");
-  logoutButton.addEventListener("click", async () => {
-    logoutButton.disabled = true;
-    logoutButton.textContent = "Signing out...";
+async function loadCardRationale(candidate, regime) {
+  const id  = `rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}`;
+  const el  = document.getElementById(id);
+  if (!el) return;
+  const rationale = await fetchRationale(candidate, regime);
+  if (el) {
+    el.classList.remove("is-loading");
+    el.textContent = rationale || sentenceList(
+      candidate.notes,
+      `${candidate.symbol} ${candidate.option_type} — Forge score ${Number(candidate.forge_score || 0).toFixed(2)}.`
+    );
+  }
+}
+
+// ── Order Flow (Preview → Execute) ─────────────────────────────────────────
+
+let PENDING_ORDER = null;
+
+function openModal(title, bodyHtml, executeEnabled, orderData) {
+  setText("modal-title", title);
+  const body = document.getElementById("modal-body");
+  if (body) body.innerHTML = bodyHtml;
+  const execBtn = document.getElementById("modal-execute-btn");
+  if (execBtn) execBtn.disabled = !executeEnabled;
+  const msg = document.getElementById("modal-message");
+  if (msg) msg.textContent = "";
+  PENDING_ORDER = orderData || null;
+  const modal = document.getElementById("preview-modal");
+  if (modal) modal.hidden = false;
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  const modal = document.getElementById("preview-modal");
+  if (modal) modal.hidden = true;
+  document.body.style.overflow = "";
+  PENDING_ORDER = null;
+}
+
+function bindModal() {
+  document.getElementById("modal-close-btn")?.addEventListener("click", closeModal);
+  document.getElementById("modal-cancel-btn")?.addEventListener("click", closeModal);
+  document.getElementById("preview-modal")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+
+  document.getElementById("modal-execute-btn")?.addEventListener("click", async () => {
+    if (!PENDING_ORDER) return;
+    const btn = document.getElementById("modal-execute-btn");
+    const msg = document.getElementById("modal-message");
+    btn.disabled = true;
+    btn.textContent = "Submitting…";
+    if (msg) msg.textContent = "";
+
     try {
-      await fetch("/api/logout", {
+      const r = await fetch("/api/tradier/orders", {
         method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ...PENDING_ORDER, preview: false, confirm_live: true }),
       });
-      window.location.href = "/login";
-    } catch (error) {
-      logoutButton.disabled = false;
-      logoutButton.textContent = "Log Out";
-      document.getElementById("session-user").textContent = `Logout failed: ${error.message}`;
+      const data = await r.json();
+      if (!r.ok || !data.ok) throw new Error(data.error || `Order failed (${r.status})`);
+
+      const order = data.order || {};
+      if (msg) {
+        msg.textContent = "";
+        msg.style.color = "var(--teal)";
+      }
+      openModal(
+        "Order Submitted",
+        `<div class="summary-box">
+          ${summaryItemHtml("Status",  order.status || "submitted")}
+          ${summaryItemHtml("Order ID", order.id || "--")}
+          ${summaryItemHtml("Contract", data.envelope?.option_symbol || PENDING_ORDER.option_symbol)}
+          ${summaryItemHtml("Qty",      order.quantity || PENDING_ORDER.quantity)}
+          ${summaryItemHtml("Price",    money(order.price || PENDING_ORDER.price))}
+        </div>`,
+        false,
+        null
+      );
+      // Refresh account after a brief delay
+      setTimeout(loadAccount, 1800);
+    } catch (err) {
+      const msg = document.getElementById("modal-message");
+      if (msg) {
+        msg.textContent = String(err.message || err);
+        msg.style.color = "var(--crimson)";
+      }
+      btn.disabled = false;
+      btn.textContent = "Execute Trade";
     }
   });
 }
 
-function renderBoard(payload) {
-  const liveBoardCards = payload.council.live_board;
-  const shadowBoardCards = payload.council.shadow_board;
-  const featuredCandidate = liveBoardCards[0] || null;
-  const reserveCandidates = liveBoardCards.slice(1);
+async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocWeight) {
+  const msg = document.getElementById("modal-message");
+  openModal("Requesting Preview…", `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`, false, null);
 
-  document.getElementById("generated-at").textContent = formatTimestamp(payload.generated_at_utc);
+  try {
+    const price = Number(ask) || 0.01;
+    // Volatility-Scaled position sizing (target $100 base budget)
+    const weight = Number(allocWeight) || 1.0;
+    const scaledBudget = 100.0 * weight;
+    const qty = Math.max(1, Math.floor(scaledBudget / (price * 100.0)));
 
-  const regimePill = document.getElementById("regime-pill");
-  regimePill.textContent = `${payload.regime.mode.replace("_", " ").toUpperCase()} | bias ${payload.regime.bias}`;
-  regimePill.className = `pill ${regimeToneClass(payload.regime.mode)}`;
-  document.body.dataset.regime = payload.regime.mode;
-  document.body.dataset.boardState = payload.council.abstain ? "abstain" : "active";
+    const r = await fetch("/api/tradier/orders", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        preview: true,
+        option_symbol: contractSymbol,
+        symbol: underlyingSymbol,
+        side: "buy_to_open",
+        quantity: qty,
+        type: "limit",
+        duration: "day",
+        price,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `Preview failed (${r.status})`);
 
-  const template = document.getElementById("card-template");
-  const featuredSlot = document.getElementById("featured-slot");
-  const liveBoard = document.getElementById("live-board");
-  const shadowBoard = document.getElementById("shadow-board");
-  const boardStatus = document.getElementById("board-status");
-  const boardStatusNote = document.getElementById("board-status-note");
+    const order = data.order || {};
+    const elig  = data.eligibility || {};
+    const isAdmin = SESSION?.session?.role === "admin";
+    const warned = (elig.warnings || []).length;
+    const canExec = isAdmin && !warned;
 
-  featuredSlot.innerHTML = "";
-  liveBoard.innerHTML = "";
-  shadowBoard.innerHTML = "";
+    const warningHtml = (elig.warnings || []).map((w) =>
+      `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
+    ).join("");
 
-  if (featuredCandidate) {
-    featuredSlot.appendChild(
-      cardFor(featuredCandidate, template, {
-        featured: true,
-        kicker: "Captain's Pick",
-      })
-    );
-    boardStatus.textContent = "Harbor live";
-    boardStatusNote.textContent = sentenceList(
-      payload.council.summary.notes,
-      "Council opened the harbor for a live contract."
-    );
-  } else {
-    featuredSlot.innerHTML = boardMessage(
-      payload.council.abstain ? "Council Abstained" : "No Live Contract",
-      "No contract cleared the featured live threshold for this run.",
-      sentenceList(
-        payload.council.summary.notes,
-        "Council kept the featured stage empty rather than forcing a low-conviction contract."
-      )
-    );
-    boardStatus.textContent = payload.council.abstain ? "Council abstained" : "Live board quiet";
-    boardStatusNote.textContent = sentenceList(
-      payload.council.summary.notes,
-      "No live contracts cleared the threshold."
-    );
-  }
+    const bodyHtml = `
+      <div class="summary-box">
+        ${summaryItemHtml("Contract",    data.envelope?.option_symbol || contractSymbol)}
+        ${summaryItemHtml("Side",        "Buy to Open · Limit")}
+        ${summaryItemHtml("Vol Scaling", weight.toFixed(2) + "x")}
+        ${summaryItemHtml("Quantity",    order.quantity || qty)}
+        ${summaryItemHtml("Limit Price", money(order.price || price))}
+        ${summaryItemHtml("Est. Cost",   money(order.order_cost ?? order.cost))}
+        ${summaryItemHtml("Commission",  money(order.commission))}
+        ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
+        ${summaryItemHtml("Lane",        lane)}
+      </div>
+      ${warningHtml}
+      ${!isAdmin ? `<p style="font-family:var(--font-data);font-size:.72rem;color:var(--text-muted);margin-top:12px;">Admin session required to execute.</p>` : ""}
+    `;
 
-  if (!reserveCandidates.length) {
-    liveBoard.innerHTML = boardMessage(
-      "Reserve Lane",
-      featuredCandidate ? "No additional live contracts are waiting on deck." : "The reserve lane is quiet until Council clears a live contract."
-    );
-  } else {
-    reserveCandidates.forEach((candidate) =>
-      liveBoard.appendChild(
-        cardFor(candidate, template, {
-          kicker: "On Deck",
-        })
-      )
-    );
-  }
+    // Store the pending order so Execute can fire it
+    const pendingOrder = {
+      option_symbol: contractSymbol,
+      symbol: underlyingSymbol,
+      side: "buy_to_open",
+      quantity: qty,
+      type: "limit",
+      duration: "day",
+      price,
+    };
 
-  if (!shadowBoardCards.length) {
-    shadowBoard.innerHTML = boardMessage("Shadow Lane", "No shadow contracts are available for this run.");
-  } else {
-    shadowBoardCards.forEach((candidate) =>
-      shadowBoard.appendChild(
-        cardFor(candidate, template, {
-          kicker: "Shadow Preview",
-        })
-      )
+    openModal("Order Preview", bodyHtml, canExec, pendingOrder);
+  } catch (err) {
+    openModal(
+      "Preview Failed",
+      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
+      false,
+      null
     );
   }
-
-  document.getElementById("reserve-count").textContent = String(reserveCandidates.length);
-  document.getElementById("live-count-hud").textContent = integer(payload.council.summary.live_count);
-  document.getElementById("shadow-count-hud").textContent = integer(payload.council.summary.shadow_count);
-  document.getElementById("regime-source").textContent = payload.regime.source_symbol || "No source";
-  document.getElementById("regime-source-note").textContent = sentenceList(
-    payload.regime.notes,
-    `Watching ${payload.regime.source_symbol || "the market"} for ${payload.regime.mode.replace("_", " ")} tides.`
-  );
-
-  document.getElementById("scout-board").innerHTML = payload.scout_signals
-    .slice(0, 5)
-    .map(
-      (row, index) =>
-        rowHtml(
-          `${row.symbol} ${row.direction.toUpperCase()} | scout ${row.scout_score}`,
-          `m5 ${pct(row.momentum_5d)} | m20 ${pct(row.momentum_20d)} | RSI ${row.rsi_14}`,
-          toneClass(row.direction),
-          `Scout ${String(index + 1).padStart(2, "0")}`
-        )
-    )
-    .join("");
-
-  document.getElementById("forge-board").innerHTML = payload.forge_candidates
-    .slice(0, 5)
-    .map(
-      (row, index) =>
-        rowHtml(
-          `${row.symbol} ${row.option_type.toUpperCase()} | forge ${row.forge_score}`,
-          `premium ${money(row.premium)} | exp ${pct(row.expected_return_pct)} | OI ${integer(row.open_interest)}`,
-          toneClass(row.option_type),
-          `Forge ${String(index + 1).padStart(2, "0")}`
-        )
-    )
-    .join("");
-
-  document.getElementById("council-summary").innerHTML = [
-    summaryItemHtml("Abstain", payload.council.abstain ? "Yes" : "No"),
-    summaryItemHtml("Live Count", integer(payload.council.summary.live_count)),
-    summaryItemHtml("Shadow Count", integer(payload.council.summary.shadow_count)),
-    summaryItemHtml("Candidate Count", integer(payload.council.summary.candidate_count)),
-    summaryItemHtml("Notes", (payload.council.summary.notes || []).join(" ") || "No extra council notes."),
-  ].join("");
 }
+
+async function handleDirectExecute(contractSymbol, underlyingSymbol, lane, ask, allocWeight) {
+  // Direct execute: still shows the modal with pre-confirmed execute button
+  await handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocWeight);
+  // Auto-enable execute if not already blocked
+  const execBtn = document.getElementById("modal-execute-btn");
+  if (execBtn && !execBtn.disabled) {
+    execBtn.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+}
+
+async function handleClosePosition(contractSymbol, qty) {
+  const match = contractSymbol.match(/^[A-Z]+/);
+  const underlyingSymbol = match ? match[0] : contractSymbol;
+
+  const msg = document.getElementById("modal-message");
+  openModal("Closing Position…", `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`, false, null);
+
+  try {
+    const price = 0.01; // Will be resolved to bid price on backend
+    const r = await fetch("/api/tradier/orders", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        preview: true,
+        option_symbol: contractSymbol,
+        symbol: underlyingSymbol,
+        side: "sell_to_close",
+        quantity: Number(qty) || 1,
+        type: "limit",
+        duration: "day",
+        price,
+      }),
+    });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || `Preview failed (${r.status})`);
+
+    const order = data.order || {};
+    const elig  = data.eligibility || {};
+    const isAdmin = SESSION?.session?.role === "admin";
+    const warned = (elig.warnings || []).length;
+    const canExec = isAdmin && !warned;
+
+    const warningHtml = (elig.warnings || []).map((w) =>
+      `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
+    ).join("");
+
+    const bodyHtml = `
+      <div class="summary-box">
+        ${summaryItemHtml("Contract",    data.envelope?.option_symbol || contractSymbol)}
+        ${summaryItemHtml("Side",        "Sell to Close · Limit")}
+        ${summaryItemHtml("Quantity",    order.quantity || qty)}
+        ${summaryItemHtml("Limit Price", money(order.price || price))}
+        ${summaryItemHtml("Est. Proceeds", money(Math.abs(order.order_cost ?? order.cost)))}
+        ${summaryItemHtml("Commission",  money(order.commission))}
+        ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
+      </div>
+      ${warningHtml}
+      ${!isAdmin ? `<p style="font-family:var(--font-data);font-size:.72rem;color:var(--text-muted);margin-top:12px;">Admin session required to execute.</p>` : ""}
+    `;
+
+    const pendingOrder = {
+      option_symbol: contractSymbol,
+      symbol: underlyingSymbol,
+      side: "sell_to_close",
+      quantity: Number(qty) || 1,
+      type: "limit",
+      duration: "day",
+      price: order.price || price,
+    };
+
+    openModal("Close Position Preview", bodyHtml, canExec, pendingOrder);
+  } catch (err) {
+    openModal(
+      "Preview Failed",
+      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
+      false,
+      null
+    );
+  }
+}
+
+function bindPositionsTable() {
+  document.querySelectorAll(".close-position-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleClosePosition(btn.dataset.contract, btn.dataset.qty);
+    });
+  });
+}
+
+function bindCardButtons() {
+  document.querySelectorAll(".card-preview-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handlePreview(
+        btn.dataset.contract,
+        btn.dataset.symbol,
+        btn.dataset.lane,
+        btn.dataset.ask,
+        btn.dataset.alloc
+      );
+    });
+  });
+
+  document.querySelectorAll(".card-execute-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      handleDirectExecute(
+        btn.dataset.contract,
+        btn.dataset.symbol,
+        btn.dataset.lane,
+        btn.dataset.ask,
+        btn.dataset.alloc
+      );
+    });
+  });
+}
+
+// ── Utility ─────────────────────────────────────────────────────────────────
+
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
+// ── Backtest ─────────────────────────────────────────────────────────────────
+
+async function loadBacktest() {
+  try {
+    const r = await fetch("/api/backtest/summary", { cache: "no-store" });
+    if (!r.ok) throw new Error("not found");
+    const data = await r.json();
+    if (data.ok && data.backtest) return data.backtest;
+  } catch {
+    /* silently degrade — show "no data" placeholder */
+  }
+  return null;
+}
+
+function renderEquityCurve(canvas, curve) {
+  const ctx = canvas.getContext("2d");
+  if (!ctx || !curve || curve.length === 0) return;
+
+  // Retina / high-DPI
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+
+  const W = rect.width;
+  const H = rect.height;
+  const PAD = { top: 16, right: 24, bottom: 32, left: 52 };
+  const plotW = W - PAD.left - PAD.right;
+  const plotH = H - PAD.top  - PAD.bottom;
+
+  const values = curve.map(pt => pt.cumulative_pnl);
+  const minVal = Math.min(0, ...values);
+  const maxVal = Math.max(0, ...values);
+  const range  = maxVal - minVal || 1;
+
+  function xOf(i)   { return PAD.left + (i / (values.length - 1)) * plotW; }
+  function yOf(val) { return PAD.top  + plotH - ((val - minVal) / range) * plotH; }
+
+  // Zero line
+  const zeroY = yOf(0);
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath();
+  ctx.moveTo(PAD.left, zeroY);
+  ctx.lineTo(W - PAD.right, zeroY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Gradient fill
+  const lastVal = values[values.length - 1];
+  const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
+  const positive = lastVal >= 0;
+  if (positive) {
+    grad.addColorStop(0,   "rgba(74,216,162,0.35)");
+    grad.addColorStop(1,   "rgba(74,216,162,0.02)");
+  } else {
+    grad.addColorStop(0,   "rgba(220,53,69,0.02)");
+    grad.addColorStop(1,   "rgba(220,53,69,0.35)");
+  }
+
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), yOf(values[0]));
+  for (let i = 1; i < values.length; i++) ctx.lineTo(xOf(i), yOf(values[i]));
+  ctx.lineTo(xOf(values.length - 1), H - PAD.bottom);
+  ctx.lineTo(PAD.left, H - PAD.bottom);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = positive ? "#4ad8a2" : "#dc3545";
+  ctx.lineJoin = "round";
+  for (let i = 0; i < values.length; i++) {
+    i === 0 ? ctx.moveTo(xOf(i), yOf(values[i])) : ctx.lineTo(xOf(i), yOf(values[i]));
+  }
+  ctx.stroke();
+
+  // Dots at each data point
+  ctx.fillStyle = positive ? "#4ad8a2" : "#dc3545";
+  for (let i = 0; i < values.length; i++) {
+    ctx.beginPath();
+    ctx.arc(xOf(i), yOf(values[i]), 3, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Y-axis labels
+  ctx.font = "11px var(--font-data, monospace)";
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.textAlign = "right";
+  const steps = 4;
+  for (let s = 0; s <= steps; s++) {
+    const val = minVal + (range / steps) * s;
+    const y   = yOf(val);
+    ctx.fillText(`$${val >= 0 ? "+" : ""}${val.toFixed(0)}`, PAD.left - 6, y + 4);
+  }
+
+  // X-axis dates (show first and last only)
+  ctx.textAlign = "center";
+  ctx.fillStyle = "rgba(255,255,255,0.35)";
+  if (curve.length > 0) {
+    ctx.fillText(curve[0].week, xOf(0), H - 6);
+    ctx.fillText(curve[curve.length - 1].week, xOf(curve.length - 1), H - 6);
+  }
+}
+
+function renderBacktest(bt) {
+  if (!bt) {
+    const noData = document.getElementById("bt-no-data");
+    if (noData) noData.hidden = false;
+    return;
+  }
+
+  // Stats ribbon
+  const setVal = (id, text, positive) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = text;
+    if (positive === true)  el.classList.add("positive");
+    if (positive === false) el.classList.add("negative");
+  };
+
+  const totalPnl     = Number(bt.total_pnl || 0);
+  const netReturn    = Number(bt.net_return_pct || 0);
+  const sharpe       = Number(bt.sharpe_ratio || 0);
+  const maxDD        = Number(bt.max_drawdown || 0);
+  const winRate      = Number(bt.win_rate || 0);
+  const avgWin       = Number(bt.avg_winner_pct || 0);
+  const avgLoss      = Number(bt.avg_loser_pct || 0);
+  const trades       = Number(bt.total_trades || 0);
+
+  setVal("bt-win-rate",    `${(winRate * 100).toFixed(1)}%`,      winRate >= 0.5);
+  setVal("bt-total-pnl",  `${totalPnl >= 0 ? "+" : ""}$${totalPnl.toFixed(2)}`, totalPnl >= 0);
+  setVal("bt-sharpe",     sharpe.toFixed(2),                      sharpe >= 1.0);
+  setVal("bt-drawdown",   `${(maxDD * 100).toFixed(1)}%`,         maxDD >= -0.10);
+  setVal("bt-avg-win",    `+${(avgWin * 100).toFixed(1)}%`,       true);
+  setVal("bt-avg-loss",   `${(avgLoss * 100).toFixed(1)}%`,       false);
+  setVal("bt-trades",     trades.toLocaleString(),                null);
+  setVal("bt-net-return", `${netReturn >= 0 ? "+" : ""}${(netReturn * 100).toFixed(1)}%`, netReturn >= 0);
+
+  // Equity curve
+  const canvas = document.getElementById("equity-curve-chart");
+  const noData = document.getElementById("bt-no-data");
+  if (canvas && bt.equity_curve && bt.equity_curve.length > 0) {
+    if (noData) noData.hidden = true;
+    // Wait one frame so the canvas has been laid out
+    requestAnimationFrame(() => renderEquityCurve(canvas, bt.equity_curve));
+  } else {
+    if (noData) noData.hidden = false;
+  }
+
+  // Symbol breakdown
+  if (bt.symbol_breakdown && bt.symbol_breakdown.length > 0) {
+    const wrap = document.getElementById("bt-symbols");
+    const grid = document.getElementById("bt-symbol-grid");
+    if (wrap && grid) {
+      wrap.hidden = false;
+      grid.innerHTML = bt.symbol_breakdown.map(row => {
+        const pnlPos = row.total_pnl >= 0;
+        return `
+          <div class="bt-sym-card">
+            <span class="bt-sym-label">${row.symbol}</span>
+            <span class="bt-sym-meta">${row.trades} trades · ${(row.win_rate * 100).toFixed(0)}% win</span>
+            <span class="bt-sym-meta ${pnlPos ? "positive" : "negative"}" style="color:${pnlPos ? "var(--green)" : "var(--red)"}">
+              ${pnlPos ? "+" : ""}$${row.total_pnl.toFixed(2)}
+            </span>
+          </div>`;
+      }).join("");
+    }
+  }
+
+  // Trade log (last 20)
+  if (bt.all_trades && bt.all_trades.length > 0) {
+    const wrap = document.getElementById("bt-trades-wrap");
+    const tbody = document.getElementById("bt-trade-rows");
+    if (wrap && tbody) {
+      wrap.hidden = false;
+      const shown = [...bt.all_trades].reverse().slice(0, 30);
+      tbody.innerHTML = shown.map(t => {
+        const pnlPos = t.pnl >= 0;
+        return `
+          <tr>
+            <td>${t.entry_date}</td>
+            <td>${t.symbol}</td>
+            <td class="${t.option_type === "call" ? "is-call" : "is-put"}">${t.option_type.toUpperCase()}</td>
+            <td>$${t.strike}</td>
+            <td>$${t.entry_price.toFixed(2)}</td>
+            <td>$${t.exit_price.toFixed(2)}</td>
+            <td style="color:${pnlPos ? "var(--green)" : "var(--red)"}">${pnlPos ? "+" : ""}$${t.pnl.toFixed(2)}</td>
+            <td style="color:${pnlPos ? "var(--green)" : "var(--red)"}">${(t.pnl_pct * 100).toFixed(0)}%</td>
+          </tr>`;
+      }).join("");
+    }
+  }
+}
+
+// ── Boot ────────────────────────────────────────────────────────────────────
 
 async function main() {
+  // Auth
   const sessionPayload = await loadSession();
+  SESSION = sessionPayload;
   const userLabel = document.getElementById("session-user");
-  if (sessionPayload.authenticated && sessionPayload.session) {
-    userLabel.textContent = `${sessionPayload.session.username} | ${sessionPayload.session.role.toUpperCase()} access`;
-  } else {
-    userLabel.textContent = "Local preview mode";
+  if (userLabel) {
+    userLabel.textContent = sessionPayload.authenticated && sessionPayload.session
+      ? `${sessionPayload.session.username} · ${String(sessionPayload.session.role).toUpperCase()}`
+      : "Local preview";
   }
   bindLogout();
+  bindModal();
 
-  const response = await fetch(SOURCE, { cache: "no-store" });
-  const payload = await response.json();
-  renderBoard(payload);
-  mountHarborRun({ payload, sessionPayload });
+  // Load account (non-blocking so board renders even if Tradier is offline)
+  loadAccount().catch(() => {});
+
+  // Load snapshot and render board
+  try {
+    const payload = await loadSnapshot();
+    await renderBoard(payload);
+  } catch (err) {
+    const liveGrid = document.getElementById("live-picks-grid");
+    if (liveGrid) {
+      liveGrid.innerHTML = `<div style="padding:32px;font-family:var(--font-data);font-size:.8rem;color:var(--crimson)">Failed to load snapshot: ${err.message || err}</div>`;
+    }
+  }
+
+  // Load backtest results (non-blocking — shows placeholder if not yet generated)
+  loadBacktest().then(bt => renderBacktest(bt)).catch(() => {});
 }
 
-main().catch((error) => {
-  const message = `Failed to load Orographic Arena: ${error.message || error}`;
-  const liveBoard = document.getElementById("live-board");
-  if (liveBoard) {
-    liveBoard.innerHTML = `<div class="summary-box">${message}</div>`;
-  }
-  const brokerMessage = document.getElementById("broker-message");
-  if (brokerMessage) {
-    brokerMessage.textContent = message;
-  }
-});
+main();

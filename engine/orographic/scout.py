@@ -6,10 +6,23 @@ import pandas as pd
 
 from .market_data import history
 from .schemas import MarketRegime, ScoutSignal
+from .sentinel import fetch_ai_multiplier
 
 
 def _clip(value: float, low: float = -1.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
+
+def _calculate_z_scores(metrics: dict[str, float]) -> dict[str, float]:
+    """Calculate cross-sectional Z-Scores for a dictionary of metric values."""
+    if not metrics:
+        return {}
+    values = list(metrics.values())
+    mean = sum(values) / len(values)
+    variance = sum((x - mean) ** 2 for x in values) / len(values)
+    std_dev = variance ** 0.5 if variance > 0 else 1.0
+    if std_dev == 0:
+        return {k: 0.0 for k in metrics.keys()}
+    return {k: (v - mean) / std_dev for k, v in metrics.items()}
 
 
 def _rsi(close: pd.Series, period: int = 14) -> float:
@@ -74,8 +87,7 @@ def infer_market_regime() -> MarketRegime:
     return MarketRegime(mode=mode, bias=round(bias, 4), source_symbol="SPY")
 
 
-def build_signal(symbol: str, regime: MarketRegime) -> ScoutSignal | None:
-    frame = history(symbol, period="6mo")
+def build_signal(symbol: str, regime: MarketRegime, frame: pd.DataFrame, z_score: float) -> ScoutSignal | None:
     close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
     if len(close) < 60:
         return None
@@ -95,9 +107,9 @@ def build_signal(symbol: str, regime: MarketRegime) -> ScoutSignal | None:
     )
 
     empirical_score = _clip(
-        (momentum_5d * 4.5)
-        + (momentum_20d * 3.0)
-        - max(atr_pct_14d - 0.045, 0.0) * 2.0
+        (z_score * 0.45)  # Replacing absolute momentum with Cross-Sectional Z-Score
+        + (momentum_5d * 2.0)
+        - max(atr_pct_14d - 0.045, 0.0) * 1.5
     )
     regime_bonus = 0.0
     direction = "call" if technical_score >= 0 else "put"
@@ -109,7 +121,18 @@ def build_signal(symbol: str, regime: MarketRegime) -> ScoutSignal | None:
         regime_bonus = -0.08
 
     scout_score = _clip(0.58 * technical_score + 0.32 * empirical_score + regime_bonus)
+    
+    # --- AI Sentinel Overlap ---
+    # Fetch AI Multiplier based on real-time news evaluation
+    ai_score = fetch_ai_multiplier(symbol)
+    
+    # Supercharge or penalize the score
+    scout_score = _clip(scout_score * ai_score.multiplier)
+    
     notes: list[str] = []
+    if ai_score.multiplier != 1.0:
+        notes.append(f"AI Sentinel ({ai_score.multiplier}x multiplier: {ai_score.catalyst}) - {ai_score.rationale}")
+        
     if abs(momentum_5d) > 0.035:
         notes.append("short-term momentum is strong")
     if 40.0 <= rsi_14 <= 60.0:
@@ -136,16 +159,49 @@ def build_signal(symbol: str, regime: MarketRegime) -> ScoutSignal | None:
 def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal]]:
     regime = infer_market_regime()
     signals: list[ScoutSignal] = []
+    
+    universe_data = {}
+    momentum_metrics = {}
+    
+    # Pre-fetch and calculate base metrics for cross-sectional ranking
     for symbol in symbols:
         cleaned = symbol.strip().upper()
         if not cleaned:
             continue
         try:
-            signal = build_signal(cleaned, regime)
+            frame = history(cleaned, period="6mo")
+            close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+            if len(close) < 60:
+                continue
+            spot = float(close.iloc[-1])
+            momentum_20d = float(spot / close.iloc[-21] - 1.0)
+            realized_vol_20d = float(close.pct_change().rolling(20).std().iloc[-1] * (252 ** 0.5))
+            
+            # Volatility-Adjusted Momentum metric
+            # Prevents rewarding high momentum that was achieved through pure variance
+            vol_adj_momentum = momentum_20d / max(realized_vol_20d, 0.05)
+            
+            universe_data[cleaned] = frame
+            momentum_metrics[cleaned] = vol_adj_momentum
+        except Exception:
+            continue
+            
+    # Calculate Z-Scores across the entire universe
+    z_scores = _calculate_z_scores(momentum_metrics)
+
+    # Build final statistical signals
+    for cleaned, frame in universe_data.items():
+        z_score = z_scores.get(cleaned, 0.0)
+        try:
+            signal = build_signal(cleaned, regime, frame, z_score)
         except Exception:
             signal = None
         if signal is not None:
+            # Add context constraint
+            if z_score > 1.5:
+                signal.notes.append("volatility-adjusted relative strength outlier")
             signals.append(signal)
+
     signals.sort(key=lambda row: abs(row.scout_score), reverse=True)
     return regime, signals
 

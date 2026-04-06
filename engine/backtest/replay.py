@@ -1,0 +1,378 @@
+"""
+engine/backtest/replay.py
+
+Replays the Scout → Forge pipeline for a given historical Monday
+using Black-Scholes pricing + historical equity data.
+
+Council is NOT replayed here by default — we backtest ALL Forge candidates
+so we measure what the full candidate pool would have returned.
+"""
+from __future__ import annotations
+
+import logging
+from dataclasses import dataclass
+from datetime import date
+from math import erf, exp, log as math_log, sqrt
+from typing import Any
+
+import pandas as pd
+
+from engine.orographic.schemas import ContractCandidate, MarketRegime, ScoutSignal
+from engine.backtest.fetcher import (
+    fetch_equity_history,
+    friday_of_week,
+    get_price_on,
+    realized_vol_as_of,
+)
+from engine.backtest.options_provider import HistoricalOptionsProvider
+
+log = logging.getLogger(__name__)
+
+
+# ── Black-Scholes helpers ────────────────────────────────────────────────────
+
+def _normal_cdf(x: float) -> float:
+    return 0.5 * (1.0 + erf(x / sqrt(2.0)))
+
+
+def _bs_price(
+    spot: float,
+    strike: float,
+    tte: float,          # time to expiry in years
+    vol: float,
+    rf: float = 0.04,
+    option_type: str = "call",
+) -> float:
+    """Black-Scholes option price."""
+    if spot <= 0 or strike <= 0 or tte <= 0 or vol <= 0:
+        return 0.0
+    d1 = (math_log(spot / strike) + (rf + 0.5 * vol * vol) * tte) / (vol * sqrt(tte))
+    d2 = d1 - vol * sqrt(tte)
+    if option_type == "call":
+        return spot * _normal_cdf(d1) - strike * exp(-rf * tte) * _normal_cdf(d2)
+    return strike * exp(-rf * tte) * _normal_cdf(-d2) - spot * _normal_cdf(-d1)
+
+
+def _bs_delta(
+    spot: float,
+    strike: float,
+    tte: float,
+    vol: float,
+    rf: float = 0.04,
+    option_type: str = "call",
+) -> float | None:
+    if spot <= 0 or strike <= 0 or tte <= 0 or vol <= 0:
+        return None
+    d1 = (math_log(spot / strike) + (rf + 0.5 * vol * vol) * tte) / (vol * sqrt(tte))
+    if option_type == "call":
+        return _normal_cdf(d1)
+    return _normal_cdf(d1) - 1.0
+
+
+# ── Scout replay ────────────────────────────────────────────────────────────
+
+def _clip(value: float, low: float = -1.0, high: float = 1.0) -> float:
+    return max(low, min(high, value))
+
+
+def _rsi(close: pd.Series, period: int = 14) -> float:
+    delta = close.diff()
+    up = delta.clip(lower=0.0).rolling(period).mean()
+    down = -delta.clip(upper=0.0).rolling(period).mean()
+    rs = up / down.replace(0.0, pd.NA)
+    rsi_series = 100 - (100 / (1 + rs))
+    value = rsi_series.iloc[-1]
+    return float(value) if pd.notna(value) else 50.0
+
+
+def _atr_pct(frame: pd.DataFrame, period: int = 14) -> float:
+    high = pd.to_numeric(frame["High"], errors="coerce")
+    low = pd.to_numeric(frame["Low"], errors="coerce")
+    close = pd.to_numeric(frame["Close"], errors="coerce")
+    prev_close = close.shift(1)
+    tr = pd.concat(
+        [(high - low).abs(), (high - prev_close).abs(), (low - prev_close).abs()],
+        axis=1
+    ).max(axis=1)
+    atr = tr.rolling(period).mean().iloc[-1]
+    spot = close.iloc[-1]
+    if pd.isna(atr) or pd.isna(spot) or float(spot) <= 0:
+        return 0.0
+    return float(atr / spot)
+
+
+def _flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Flatten MultiIndex columns returned by recent yfinance versions."""
+    if isinstance(df.columns, pd.MultiIndex):
+        df = df.copy()
+        df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
+    return df
+
+
+def build_signal_as_of(
+    symbol: str,
+    as_of: date,
+    history_df: pd.DataFrame,
+    regime: MarketRegime,
+) -> ScoutSignal | None:
+    """Run Scout signal generation against historical data ending on `as_of`."""
+    history_df = _flatten_columns(history_df)
+    mask = history_df.index.date <= as_of
+    frame = history_df[mask].copy()
+    close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+    if len(close) < 60:
+        return None
+
+    spot = float(close.iloc[-1])
+    momentum_5d = float(spot / close.iloc[-6] - 1.0)
+    momentum_20d = float(spot / close.iloc[-21] - 1.0)
+    realized_vol_20d = float(close.pct_change().rolling(20).std().iloc[-1] * (252 ** 0.5))
+    rsi_14 = _rsi(close, period=14)
+    atr_pct_14d = _atr_pct(frame, period=14)
+
+    technical_score = _clip(
+        momentum_5d * 7.0
+        + momentum_20d * 5.0
+        + ((rsi_14 - 50.0) / 25.0) * 0.6
+        - max(realized_vol_20d - 0.55, 0.0) * 0.45
+    )
+    empirical_score = _clip(
+        (momentum_5d * 4.5)
+        + (momentum_20d * 3.0)
+        - max(atr_pct_14d - 0.045, 0.0) * 2.0
+    )
+    direction = "call" if technical_score >= 0 else "put"
+    regime_bonus = 0.0
+    if regime.mode == "risk_on" and direction == "call":
+        regime_bonus = 0.08
+    elif regime.mode == "risk_off" and direction == "put":
+        regime_bonus = 0.08
+    elif regime.mode != "neutral":
+        regime_bonus = -0.08
+
+    scout_score = _clip(0.58 * technical_score + 0.32 * empirical_score + regime_bonus)
+
+    notes: list[str] = []
+    if abs(momentum_5d) > 0.035:
+        notes.append("short-term momentum is strong")
+    if 40.0 <= rsi_14 <= 60.0:
+        notes.append("RSI is balanced")
+    if atr_pct_14d > 0.05:
+        notes.append("ATR elevated")
+
+    return ScoutSignal(
+        symbol=symbol,
+        direction=direction,
+        spot=round(spot, 4),
+        momentum_5d=round(momentum_5d, 4),
+        momentum_20d=round(momentum_20d, 4),
+        rsi_14=round(rsi_14, 2),
+        realized_vol_20d=round(realized_vol_20d, 4),
+        atr_pct_14d=round(atr_pct_14d, 4),
+        technical_score=round(technical_score, 4),
+        empirical_score=round(empirical_score, 4),
+        scout_score=round(scout_score, 4),
+        notes=notes,
+    )
+
+
+def infer_regime_as_of(
+    spy_history: pd.DataFrame,
+    vix_history: pd.DataFrame,
+    as_of: date,
+) -> MarketRegime:
+    """Reconstruct the market regime as it would have been computed on `as_of`."""
+    spy_history = _flatten_columns(spy_history)
+    vix_history = _flatten_columns(vix_history)
+    spy_mask = spy_history.index.date <= as_of
+    vix_mask = vix_history.index.date <= as_of
+    spy_close = pd.to_numeric(spy_history[spy_mask]["Close"], errors="coerce").dropna()
+    vix_close = pd.to_numeric(vix_history[vix_mask]["Close"], errors="coerce").dropna()
+
+    if len(spy_close) < 21 or len(vix_close) < 6:
+        return MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY")
+
+    spy_5 = float(spy_close.iloc[-1] / spy_close.iloc[-6] - 1.0)
+    spy_20 = float(spy_close.iloc[-1] / spy_close.iloc[-21] - 1.0)
+    vix_level = float(vix_close.iloc[-1])
+    vix_5 = float(vix_close.iloc[-1] / vix_close.iloc[-6] - 1.0)
+
+    def clip1(v: float) -> float:
+        return max(-1.0, min(1.0, v))
+
+    bias = clip1((spy_5 * 6.0) + (spy_20 * 4.0) - (vix_5 * 0.8) - ((vix_level - 20.0) / 35.0))
+    if bias >= 0.18:
+        mode = "risk_on"
+    elif bias <= -0.18:
+        mode = "risk_off"
+    else:
+        mode = "neutral"
+    return MarketRegime(mode=mode, bias=round(bias, 4), source_symbol="SPY")
+
+
+def forge_candidates_as_of(
+    signal: ScoutSignal,
+    as_of: date,
+    options_provider: HistoricalOptionsProvider,
+    *,
+    min_abs_delta: float = 0.18,
+    max_abs_delta: float = 0.45,
+    max_premium: float = 2.00,
+) -> list[ContractCandidate]:
+    """
+    Generate ContractCandidate objects using real historical chains.
+    Enforces the 'less than $200 total cost' constraint (ask <= 2.00).
+    """
+    candidates: list[ContractCandidate] = []
+    expiry = friday_of_week(as_of)
+    spot = signal.spot
+    direction = signal.option_type if hasattr(signal, "option_type") else signal.direction
+
+    chain = options_provider.get_chain(signal.symbol, as_of, fallback_spot=spot, fallback_vol=signal.realized_vol_20d or 0.35)
+    if chain.empty:
+        return []
+
+    # Filter to only the correct option type & expiry matching the same week
+    opt_type_char = 'C' if direction == "call" else 'P'
+    valid_opts = chain[
+        (chain["option_type"] == opt_type_char) &
+        (pd.to_datetime(chain["expire_date"]).dt.date == expiry)
+    ]
+
+    for _, row in valid_opts.iterrows():
+        ask = float(row.get("ask", 0.0))
+        bid = float(row.get("bid", 0.0))
+        delta = float(row.get("delta", 0.0))
+        vol = float(row.get("implied_volatility", 0.35))
+        strike = float(row.get("strike", 0.0))
+
+        if ask <= 0.05 or bid <= 0.0:
+            continue
+        # User Constraint: Only pick options < $200 total cost
+        if ask > max_premium:
+            continue
+        if abs(delta) < min_abs_delta or abs(delta) > max_abs_delta:
+            continue
+
+        premium = ask
+        mid = (bid + ask) / 2.0
+        spread_pct = (ask - bid) / mid if mid > 0 else 0.20
+        target_iv = 0.35
+        allocation_weight = round(min(max(target_iv / vol, 0.25), 3.0), 4)
+
+        # Variance Risk Premium (VRP) Check
+        vrp_penalty = max(vol - signal.realized_vol_20d - 0.10, 0.0) * 2.0
+
+        # Forge-style scoring
+        moneyness = (strike / spot - 1.0) if direction == "call" else (1.0 - strike / spot)
+        breakeven_move = ((strike + premium) / spot - 1.0) if direction == "call" else (1.0 - (strike - premium) / spot)
+        projected_move = max(abs(signal.momentum_5d), signal.atr_pct_14d * 1.15, 0.018)
+        intrinsic_now = max(spot - strike, 0.0) if direction == "call" else max(strike - spot, 0.0)
+        extrinsic_ratio = max(premium - intrinsic_now, 0.0) / premium if premium > 0 else 1.0
+        projected_spot = spot * (1 + projected_move) if direction == "call" else spot * (1 - projected_move)
+        projected_value = max(projected_spot - strike, 0.0) if direction == "call" else max(strike - projected_spot, 0.0)
+        expected_return_pct = projected_value / premium - 1.0
+
+        liquidity_score = max(0.0, min(1.0, 0.65 - 0.35 * min(spread_pct / 0.18, 1.0)))
+        economics_score = max(0.0, min(1.0,
+            0.50
+            + 0.25 * min(expected_return_pct / 1.5, 1.0)
+            + 0.15 * min((projected_move - breakeven_move) / 0.05, 1.0)
+            + 0.10 * (1.0 - min(extrinsic_ratio, 1.0))
+            - vrp_penalty
+        ))
+        forge_score = max(0.0, min(1.0,
+            0.45 * ((signal.scout_score + 1.0) / 2.0)
+            + 0.30 * liquidity_score
+            + 0.25 * economics_score
+        ))
+
+        contract_symbol = f"{signal.symbol}{expiry.strftime('%y%m%d')}{opt_type_char}{int(strike * 1000):08d}"
+
+        candidates.append(ContractCandidate(
+            symbol=signal.symbol,
+            contract_symbol=contract_symbol,
+            option_type=direction,
+            expiry=expiry.isoformat(),
+            strike=strike,
+            bid=bid,
+            ask=ask,
+            last=mid,
+            premium=premium,
+            contract_cost=round(premium * 100.0, 2),
+            spread_pct=round(spread_pct, 4),
+            open_interest=int(row.get("open_interest", 500)),
+            volume=int(row.get("trade_volume", 100)),
+            implied_volatility=round(vol, 4),
+            delta=round(delta, 4),
+            moneyness=round(moneyness, 4),
+            projected_move_pct=round(projected_move, 4),
+            breakeven_move_pct=round(breakeven_move, 4),
+            expected_return_pct=round(expected_return_pct, 4),
+            extrinsic_ratio=round(extrinsic_ratio, 4),
+            scout_score=signal.scout_score,
+            forge_score=round(forge_score, 4),
+            allocation_weight=allocation_weight,
+            notes=["Sourced via OptionsDX Loader"],
+        ))
+
+    candidates.sort(key=lambda c: c.forge_score, reverse=True)
+    return candidates
+
+@dataclass
+class WeekReplay:
+    """The signals and candidates reconstructed for a given Monday."""
+    monday: date
+    friday: date
+    regime: MarketRegime
+    signals: list[ScoutSignal]
+    candidates: list[ContractCandidate]
+
+
+def replay_week(
+    monday: date,
+    symbols: list[str],
+    equity_histories: dict[str, pd.DataFrame],
+    spy_history: pd.DataFrame,
+    vix_history: pd.DataFrame,
+    options_provider: HistoricalOptionsProvider,
+) -> WeekReplay:
+    """
+    Reconstruct what Scout + Forge would have produced on the given Monday.
+    `equity_histories` maps symbol → DataFrame (already fetched and cached).
+    """
+    regime = infer_regime_as_of(spy_history, vix_history, monday)
+
+    signals: list[ScoutSignal] = []
+    for symbol in symbols:
+        hist = equity_histories.get(symbol)
+        if hist is None:
+            continue
+        try:
+            sig = build_signal_as_of(symbol, monday, hist, regime)
+        except Exception as exc:
+            log.warning("Scout replay failed for %s on %s: %s", symbol, monday, exc)
+            sig = None
+        if sig is not None:
+            signals.append(sig)
+
+    signals.sort(key=lambda s: abs(s.scout_score), reverse=True)
+
+    candidates: list[ContractCandidate] = []
+    for sig in signals:
+        try:
+            cands = forge_candidates_as_of(sig, monday, options_provider)
+        except Exception as exc:
+            log.warning("Forge replay failed for %s on %s: %s", sig.symbol, monday, exc)
+            cands = []
+        candidates.extend(cands)
+
+    candidates.sort(key=lambda c: c.forge_score, reverse=True)
+
+    return WeekReplay(
+        monday=monday,
+        friday=friday_of_week(monday),
+        regime=regime,
+        signals=signals,
+        candidates=candidates,
+    )

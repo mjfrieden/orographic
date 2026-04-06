@@ -3,47 +3,84 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Orographic Arena</title>
+    <title>Orographic — AI Options Trading</title>
+    <meta name="description" content="AI-assisted weekly options trade recommendations powered by Scout, Forge, and Council signal pipeline with Tradier execution." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Cormorant+Garamond:wght@400;500;600;700&family=Marcellus+SC&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Cormorant+Garamond:wght@400;500;600;700&family=Marcellus+SC&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/styles.css" />
   </head>
-  <body class="dashboard-page game-page">
+  <body class="dashboard-page">
+    <!-- Atmospheric layers -->
     <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
     <div class="scene-bloom scene-bloom-right" aria-hidden="true"></div>
-    <div class="noise"></div>
-    <main class="shell">
-      <div class="shell-ornament shell-ornament-left" aria-hidden="true"></div>
-      <div class="shell-ornament shell-ornament-right" aria-hidden="true"></div>
+    <div class="noise" aria-hidden="true"></div>
 
-      <header class="hero panel panel-hero game-hero">
+    <!-- ── Account Ribbon ── -->
+    <nav class="account-ribbon" role="navigation" aria-label="Account status">
+      <div class="ribbon-logo">
+        <div class="ribbon-logo-rune" aria-hidden="true">ORO</div>
+        Orographic
+      </div>
+      <div class="ribbon-divider" aria-hidden="true"></div>
+
+      <div class="ribbon-stat">
+        <span class="ribbon-stat-label">Equity</span>
+        <span class="ribbon-stat-value" id="ribbon-equity">--</span>
+      </div>
+      <div class="ribbon-stat">
+        <span class="ribbon-stat-label">Option BP</span>
+        <span class="ribbon-stat-value" id="ribbon-obp">--</span>
+      </div>
+      <div class="ribbon-stat">
+        <span class="ribbon-stat-label">Cash</span>
+        <span class="ribbon-stat-value" id="ribbon-cash">--</span>
+      </div>
+      <div class="ribbon-stat">
+        <span class="ribbon-stat-label">Day P&amp;L</span>
+        <span class="ribbon-stat-value" id="ribbon-pl">--</span>
+      </div>
+      <div class="ribbon-stat">
+        <span class="ribbon-stat-label">Positions</span>
+        <span class="ribbon-stat-value" id="ribbon-positions">--</span>
+      </div>
+
+      <div class="ribbon-spacer"></div>
+
+      <div id="ribbon-broker-mode" class="ribbon-mode-pill is-offline">Connecting...</div>
+      <div class="ribbon-divider" aria-hidden="true"></div>
+      <span class="ribbon-session" id="session-user">Checking session…</span>
+      <button id="logout-btn" class="mini-action" type="button">Log Out</button>
+    </nav>
+
+    <main class="shell">
+
+      <!-- ── Hero Header ── -->
+      <header class="panel panel-hero" role="banner">
         <div class="hero-emblem" aria-hidden="true">
-          <div class="hero-emblem-core">
-            <span>ORO</span>
-          </div>
-          <div class="hero-emblem-ribbon">Signal Raid</div>
+          <div class="hero-emblem-core"><span>ORO</span></div>
+          <div class="hero-emblem-ribbon">Signal Council</div>
         </div>
+
         <div class="hero-copy">
-          <p class="eyebrow">Tradier-Guarded Harbor Combat</p>
+          <p class="eyebrow">San Diego Harbor · AI Options Intelligence</p>
           <h1>Orographic Arena</h1>
           <p class="subhead">
-            Pilot a skiff through market-tide signals, capture a contract from Orographic&rsquo;s live or shadow board,
-            and route a deliberate Tradier preview or order from the command deck.
+            Scout scans the coast. Forge tempers the contracts. Council opens the harbor.
+            Review AI-recommended weekly options trades and execute through Tradier.
           </p>
-          <div class="hero-tags" aria-label="Board themes">
-            <span class="hero-tag">Canvas Raid</span>
-            <span class="hero-tag">Paper First</span>
-            <span class="hero-tag">Admin-Gated Live Orders</span>
+          <div class="hero-tags" aria-label="System status">
+            <span class="hero-tag" id="regime-tag">Loading regime…</span>
+            <span class="hero-tag" id="dispatch-tag">Awaiting dispatch…</span>
+            <span class="hero-tag">Paper-First · Limit Orders Only</span>
           </div>
         </div>
+
         <div class="hero-atlas" aria-hidden="true">
-          <div class="atlas-compass">
-            <span class="atlas-center">SD</span>
-          </div>
+          <div class="atlas-compass"><span class="atlas-center">SD</span></div>
           <div class="atlas-route"></div>
           <div class="atlas-points">
             <span>Point Loma</span>
@@ -51,199 +88,123 @@
             <span>Mission Bay</span>
           </div>
         </div>
-        <div class="hero-meta">
-          <section class="meta-panel">
-            <span class="meta-label">Current Regime</span>
-            <div class="pill" id="regime-pill">Loading regime...</div>
-          </section>
-          <section class="meta-panel">
-            <span class="meta-label">Latest Dispatch</span>
-            <div class="muted meta-value" id="generated-at">Awaiting latest run...</div>
-          </section>
-          <section class="meta-panel">
-            <span class="meta-label">Active Session</span>
-            <div class="account-meta">
-              <span class="muted meta-value" id="session-user">Checking session...</span>
-              <button id="logout-btn" class="mini-action" type="button">Log Out</button>
-            </div>
-          </section>
-        </div>
       </header>
 
-      <section class="panel board-hud">
+      <!-- ── Board Status HUD ── -->
+      <section class="panel board-hud" aria-label="Board summary">
         <div class="hud-grid">
           <article class="hud-card">
             <span class="meta-label">Board Status</span>
-            <strong id="board-status" class="hud-value">Awaiting council readout</strong>
-            <p id="board-status-note" class="muted hud-note">Council notes will appear here once the latest run loads.</p>
+            <strong id="board-status" class="hud-value">Loading…</strong>
+            <p id="board-status-note" class="muted hud-note">Council notes will appear once the latest run loads.</p>
           </article>
           <article class="hud-card">
             <span class="meta-label">Live Contracts</span>
             <strong id="live-count-hud" class="hud-value">--</strong>
-            <p class="muted hud-note">Contracts cleared for the flagship table.</p>
+            <p class="muted hud-note">Contracts cleared for the live board.</p>
           </article>
           <article class="hud-card">
             <span class="meta-label">Shadow Contracts</span>
             <strong id="shadow-count-hud" class="hud-value">--</strong>
-            <p class="muted hud-note">Training-lane contracts held in reserve.</p>
+            <p class="muted hud-note">Training-lane contracts in reserve.</p>
           </article>
           <article class="hud-card hud-card-wide">
-            <span class="meta-label">Regime Source</span>
-            <strong id="regime-source" class="hud-value">Awaiting source symbol</strong>
-            <p id="regime-source-note" class="muted hud-note">Market-tide notes will appear here once the board hydrates.</p>
+            <span class="meta-label">Market Regime · <span id="regime-source">—</span></span>
+            <strong id="regime-pill" class="hud-value">Loading…</strong>
+            <p id="regime-source-note" class="muted hud-note">Regime notes will appear once the board hydrates.</p>
           </article>
         </div>
       </section>
 
-      <section class="panel panel-arena">
+      <!-- ── AI Picks — Live Board ── -->
+      <section class="panel picks-section" aria-label="Live AI trade recommendations">
         <div class="section-head">
-          <p class="section-kicker">Signal Raid</p>
-          <h2>Orographic Arena</h2>
+          <p class="section-kicker">Captain's Table · Live Board</p>
+          <h2>AI Trade Recommendations</h2>
           <p class="muted">
-            Move with <strong>WASD</strong> or arrow keys, press <strong>Space</strong> to pulse nearby signals, and
-            press <strong>F</strong> to toggle fullscreen before queuing a guarded Tradier action.
+            Council-cleared contracts with AI-generated rationale. Preview before executing.
+            Live orders require admin session — paper trades are open to all.
           </p>
         </div>
-        <div class="arena-grid">
-          <div class="arena-column">
-            <div class="arena-frame" id="arena-frame">
-              <canvas id="signal-arena" width="960" height="540" aria-label="Orographic signal arena"></canvas>
-              <div class="arena-overlay" id="arena-overlay">
-                <div class="arena-overlay-card">
-                  <p class="section-kicker">Start Screen</p>
-                  <h3>Launch The Harbor Run</h3>
-                  <p class="muted">
-                    Capture contract sigils to arm the broker console. Live submissions stay locked unless Council
-                    promoted the setup and the session is admin.
-                  </p>
-                  <button id="arena-start-btn" class="primary-action" type="button">Launch Signal Run</button>
-                </div>
-              </div>
-            </div>
-            <div class="arena-strip">
-              <div class="arena-chip">
-                <span class="meta-label">Raid Score</span>
-                <strong id="arena-score" class="hud-value">0</strong>
-              </div>
-              <div class="arena-chip">
-                <span class="meta-label">Combo</span>
-                <strong id="arena-combo" class="hud-value">0</strong>
-              </div>
-              <div class="arena-chip arena-chip-wide">
-                <span class="meta-label">Arena Notice</span>
-                <strong id="arena-notice" class="hud-value">Collect a tide sigil to lock a contract.</strong>
-              </div>
-              <button id="arena-reset-btn" class="mini-action" type="button">Reset Run</button>
-            </div>
+        <div id="live-picks-grid" class="picks-grid">
+          <div class="card-placeholder muted" style="padding:32px;text-align:center;font-family:var(--font-data);font-size:.8rem;">
+            Loading live recommendations…
           </div>
-
-          <aside class="arena-sidebar">
-            <article class="hud-card arena-console">
-              <span class="meta-label">Selected Contract</span>
-              <strong id="selected-symbol" class="hud-value">No contract locked</strong>
-              <p id="selected-lane" class="muted hud-note">Awaiting pickup</p>
-              <p id="selected-meta" class="muted hud-note">
-                Collect a live or shadow sigil in the arena, or tap a card below to arm a contract.
-              </p>
-              <div class="summary-box arena-summary">
-                <div class="summary-item">
-                  <span class="summary-label">Contract</span>
-                  <span id="selected-contract" class="summary-value summary-value-wrap">--</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Guardrail</span>
-                  <span id="selected-risk" class="summary-value">Limit orders stay disabled until a contract is selected.</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="hud-card arena-console">
-              <div class="arena-console-head">
-                <div>
-                  <span class="meta-label">Broker Console</span>
-                  <strong id="broker-mode" class="pill is-neutral">Loading...</strong>
-                </div>
-                <button id="broker-refresh-btn" class="mini-action" type="button">Refresh</button>
-              </div>
-              <div class="summary-box arena-summary">
-                <div class="summary-item">
-                  <span class="summary-label">Equity</span>
-                  <span id="account-equity" class="summary-value">--</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Option Buying Power</span>
-                  <span id="buying-power" class="summary-value">--</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Positions</span>
-                  <span id="positions-count" class="summary-value">--</span>
-                </div>
-                <div class="summary-item">
-                  <span class="summary-label">Signal Freshness</span>
-                  <span id="snapshot-health" class="summary-value">--</span>
-                </div>
-              </div>
-              <label class="trade-qty" for="trade-qty">
-                <span class="meta-label">Contracts</span>
-                <input id="trade-qty" type="number" min="1" max="3" step="1" value="1" />
-              </label>
-              <div class="arena-actions">
-                <button id="preview-order-btn" class="primary-action" type="button">Preview Order</button>
-                <button id="submit-order-btn" class="secondary-action" type="button">Transmit Live Order</button>
-              </div>
-              <p id="broker-message" class="muted hud-note">Broker console standing by.</p>
-              <div id="broker-warnings" class="hero-tags" aria-live="polite"></div>
-            </article>
-
-            <article class="hud-card arena-console">
-              <span class="meta-label">Preview Bay</span>
-              <div id="preview-summary" class="summary-box arena-summary"></div>
-            </article>
-
-            <article class="hud-card arena-console">
-              <span class="meta-label">Recent Orders</span>
-              <div id="orders-feed" class="mini-table"></div>
-            </article>
-          </aside>
         </div>
       </section>
 
-      <section class="grid battle-grid">
-        <article class="panel featured-panel">
-          <div class="section-head">
-            <p class="section-kicker">Captain's Table</p>
-            <h2>Featured Tide Contract</h2>
-            <p class="muted">The lead live contract gets a centerpiece stage, while reserve picks hold the rail beside it.</p>
+      <!-- ── Shadow Lane ── -->
+      <section class="panel picks-section" aria-label="Shadow training lane">
+        <div class="section-head">
+          <p class="section-kicker">Training Grounds · Shadow Lane</p>
+          <h2>Shadow Picks</h2>
+          <p class="muted">These contracts did not clear the live threshold but are worth monitoring. No orders are routed from this lane in live mode.</p>
+        </div>
+        <div id="shadow-picks-grid" class="picks-grid">
+          <div class="card-placeholder muted" style="padding:32px;text-align:center;font-family:var(--font-data);font-size:.8rem;">
+            Loading shadow picks…
           </div>
-          <div class="featured-layout">
-            <div id="featured-slot" class="featured-slot"></div>
-            <aside class="reserve-rail">
-              <div class="reserve-head">
-                <div>
-                  <p class="section-kicker">On Deck</p>
-                  <h3>Reserve Lane</h3>
-                </div>
-                <div id="reserve-count" class="reserve-badge">--</div>
-              </div>
-              <div id="live-board" class="card-stack reserve-stack"></div>
-            </aside>
-          </div>
-        </article>
-        <article class="panel board-panel shadow-panel">
-          <div class="section-head">
-            <p class="section-kicker">Training Grounds</p>
-            <h2>Moonlit Shadow Lane</h2>
-            <p class="muted">Shadow contracts stay visible so the crew can learn without forcing the raid.</p>
-          </div>
-          <div id="shadow-board" class="card-stack"></div>
-        </article>
+        </div>
       </section>
 
-      <section class="panel panel-war-table">
+      <!-- ── Open Positions ── -->
+      <section class="panel positions-section" aria-label="Open positions">
+        <div class="section-head">
+          <p class="section-kicker">Tradier · Portfolio</p>
+          <h2>Open Positions</h2>
+        </div>
+        <div id="positions-table-wrap">
+          <table class="data-table" id="positions-table">
+            <thead>
+              <tr>
+                <th>Symbol</th>
+                <th>Qty</th>
+                <th class="is-num">Cost Basis</th>
+                <th class="is-num">Market Value</th>
+                <th class="is-num">P&amp;L</th>
+                <th>Acquired</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="positions-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Loading positions…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Order History ── -->
+      <section class="panel orders-section" aria-label="Order history">
+        <div class="section-head">
+          <p class="section-kicker">Tradier · Orders</p>
+          <h2>Recent Orders</h2>
+        </div>
+        <div id="orders-table-wrap">
+          <table class="data-table" id="orders-table">
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Contract</th>
+                <th>Side</th>
+                <th class="is-num">Qty</th>
+                <th class="is-num">Price</th>
+                <th class="is-num">Fill</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="orders-tbody">
+              <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Loading orders…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── Signal Pipeline ── -->
+      <section class="panel panel-war-table" aria-label="Signal pipeline">
         <div class="section-head">
           <p class="section-kicker">Operations</p>
           <h2>Pacific War Table</h2>
-          <p class="muted">Scout scouts the coast, Forge tempers the contracts, and Council decides whether the harbor opens live fire.</p>
+          <p class="muted">Scout scouts the coast, Forge tempers the contracts, Council decides whether the harbor opens.</p>
         </div>
         <div class="pipeline-grid">
           <div>
@@ -261,56 +222,136 @@
         </div>
       </section>
 
-      <section class="panel panel-rules">
+      <!-- ── Historical Performance ── -->
+      <section class="panel panel-backtest" id="backtest-panel" aria-label="Historical performance">
+        <div class="section-head">
+          <p class="section-kicker">Quantitative Research · Strategy Validation</p>
+          <h2>Historical Performance</h2>
+          <p class="section-sub">3-month backtest · All Forge candidates · $100 / trade · B-S pricing</p>
+        </div>
+
+        <!-- Stats ribbon -->
+        <div class="bt-stats" id="bt-stats">
+          <div class="bt-stat">
+            <span class="bt-label">Win Rate</span>
+            <span class="bt-value" id="bt-win-rate">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Total P&L</span>
+            <span class="bt-value" id="bt-total-pnl">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Sharpe</span>
+            <span class="bt-value" id="bt-sharpe">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Max Drawdown</span>
+            <span class="bt-value" id="bt-drawdown">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Avg Winner</span>
+            <span class="bt-value" id="bt-avg-win">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Avg Loser</span>
+            <span class="bt-value" id="bt-avg-loss">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Trades</span>
+            <span class="bt-value" id="bt-trades">—</span>
+          </div>
+          <div class="bt-stat">
+            <span class="bt-label">Net Return</span>
+            <span class="bt-value" id="bt-net-return">—</span>
+          </div>
+        </div>
+
+        <!-- Equity curve chart -->
+        <div class="bt-chart-wrap">
+          <canvas id="equity-curve-chart" aria-label="Cumulative P&L equity curve"></canvas>
+          <p id="bt-no-data" class="muted bt-no-data" hidden>
+            No backtest data yet. Run <code>python -m backtest.runner</code> from the <code>engine/</code> directory.
+          </p>
+        </div>
+
+        <!-- Per-symbol breakdown -->
+        <div class="bt-symbols" id="bt-symbols" hidden>
+          <h3 class="bt-sub-head">By Symbol</h3>
+          <div class="bt-symbol-grid" id="bt-symbol-grid"></div>
+        </div>
+
+        <!-- Recent trades table -->
+        <div class="bt-trades" id="bt-trades-wrap" hidden>
+          <h3 class="bt-sub-head">Trade Log</h3>
+          <table class="data-table" id="bt-trade-table">
+            <thead>
+              <tr>
+                <th>Date</th><th>Symbol</th><th>Type</th><th>Strike</th>
+                <th>Entry</th><th>Exit</th><th>P&L</th><th>%</th>
+              </tr>
+            </thead>
+            <tbody id="bt-trade-rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ── House Rules ── -->
+
+      <section class="panel panel-rules" aria-label="Trading rules">
         <div class="section-head">
           <p class="section-kicker">House Rules</p>
           <h2>Tavern Code</h2>
-          <p class="muted">The same decision logic remains underneath the new game loop and broker console.</p>
         </div>
         <div class="rules">
           <div class="rule">
             <span class="rule-rune">I</span>
-            <strong>Abstain First</strong>
-            <span>The board can stay empty if no contract clears live quality.</span>
+            <div>
+              <strong>Abstain First</strong>
+              <span>The board stays empty if no contract clears live quality thresholds.</span>
+            </div>
           </div>
           <div class="rule">
             <span class="rule-rune">II</span>
-            <strong>Limit Orders Only</strong>
-            <span>Tradier requests are staged as explicit limit orders, not blind market orders.</span>
+            <div>
+              <strong>Limit Orders Only</strong>
+              <span>All Tradier requests are staged as explicit limit orders, never blind market orders.</span>
+            </div>
           </div>
           <div class="rule">
             <span class="rule-rune">III</span>
-            <strong>Live Requires Council</strong>
-            <span>In live mode, only current live-board contracts and fresh signals can transmit.</span>
+            <div>
+              <strong>Live Requires Council</strong>
+              <span>In live mode, only current live-board contracts with fresh signals can transmit.</span>
+            </div>
+          </div>
+          <div class="rule">
+            <span class="rule-rune">IV</span>
+            <div>
+              <strong>Preview Before Execute</strong>
+              <span>Always preview the order cost from Tradier before committing to a live or sandbox fill.</span>
+            </div>
           </div>
         </div>
       </section>
+
     </main>
 
-    <template id="card-template">
-      <article class="pick-card">
-        <div class="card-crest" aria-hidden="true">
-          <div class="card-crest-inner">
-            <span class="crest-letter"></span>
-            <span class="crest-side"></span>
-          </div>
+    <!-- ── Order Preview Modal ── -->
+    <div id="preview-modal" class="modal-backdrop" aria-modal="true" role="dialog" aria-labelledby="modal-title" hidden>
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modal-title">Order Preview</h3>
+          <button id="modal-close-btn" class="mini-action" type="button" aria-label="Close preview">✕</button>
         </div>
-        <div class="pick-body">
-          <div class="pick-head">
-            <div>
-              <p class="card-kicker">Harbor Contract</p>
-              <h3 class="title"></h3>
-            </div>
-            <span class="side"></span>
-          </div>
-          <p class="contract"></p>
-          <p class="meta"></p>
-          <div class="stats"></div>
-          <p class="notes"></p>
+        <div id="modal-body" class="modal-body"></div>
+        <div class="modal-footer">
+          <button id="modal-execute-btn" class="primary-action" type="button" disabled>Execute Trade</button>
+          <button id="modal-cancel-btn" class="secondary-action" type="button">Cancel</button>
         </div>
-      </article>
-    </template>
+        <p id="modal-message" class="muted modal-message"></p>
+      </div>
+    </div>
 
-    <script type="module" src="./app.js"></script>
+    <script type="module" src="/app.js"></script>
   </body>
 </html>

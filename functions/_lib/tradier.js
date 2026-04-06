@@ -608,18 +608,16 @@ export async function fetchOptionQuote(config, optionSymbol) {
   };
 }
 
-export function buildOrderEnvelope(candidate, quantity, mode, quote) {
+export function buildOrderEnvelope(candidate, quantity, mode, quote, side = "buy_to_open") {
   const liveAsk = asNumber(quote?.ask, null);
   const liveBid = asNumber(quote?.bid, null);
   const fallbackAsk = asNumber(candidate?.ask, null);
   const fallbackBid = asNumber(candidate?.bid, null);
-  const referencePrice =
-    liveAsk ||
-    fallbackAsk ||
-    liveBid ||
-    fallbackBid ||
-    asNumber(candidate?.premium, 0.01) ||
-    0.01;
+
+  const referencePrice = side === "sell_to_close"
+    ? (liveBid || fallbackBid || asNumber(candidate?.premium, 0.01) || 0.01)
+    : (liveAsk || fallbackAsk || liveBid || fallbackBid || asNumber(candidate?.premium, 0.01) || 0.01);
+
   return {
     class: "option",
     symbol: String(candidate.symbol || "")
@@ -628,7 +626,7 @@ export function buildOrderEnvelope(candidate, quantity, mode, quote) {
     option_symbol: String(candidate.contract_symbol || "")
       .trim()
       .toUpperCase(),
-    side: "buy_to_open",
+    side,
     quantity: parsePositiveInt(
       quantity,
       mode === "live" ? 1 : 1,
@@ -657,7 +655,7 @@ export function buildEligibility({ config, lane, snapshotInfo }) {
   };
 }
 
-export function validateSubmission({ config, session, lane, snapshotInfo }) {
+export function validateSubmission({ config, session, lane, snapshotInfo, side = "buy_to_open" }) {
   if (!session) {
     return { ok: false, status: 401, error: "Authenticated session required." };
   }
@@ -675,20 +673,24 @@ export function validateSubmission({ config, session, lane, snapshotInfo }) {
       error: "Tradier credentials are not configured.",
     };
   }
-  if (!snapshotInfo?.is_fresh) {
-    return {
-      ok: false,
-      status: 409,
-      error: snapshotInfo?.reason || "Signal snapshot is stale.",
-    };
-  }
-  if (config.mode === "live" && lane !== "live") {
-    return {
-      ok: false,
-      status: 409,
-      error:
-        "Live mode only allows contracts currently promoted to the live council board.",
-    };
+
+  // Bypassed for closing positions because manual exit does not depend on AI radar freshness
+  if (side === "buy_to_open") {
+    if (!snapshotInfo?.is_fresh) {
+      return {
+        ok: false,
+        status: 409,
+        error: snapshotInfo?.reason || "Signal snapshot is stale.",
+      };
+    }
+    if (config.mode === "live" && lane !== "live") {
+      return {
+        ok: false,
+        status: 409,
+        error:
+          "Live mode only allows contracts currently promoted to the live council board.",
+      };
+    }
   }
   return { ok: true };
 }
