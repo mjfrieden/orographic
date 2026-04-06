@@ -215,9 +215,9 @@ def forge_candidates_as_of(
     as_of: date,
     options_provider: HistoricalOptionsProvider,
     *,
-    min_abs_delta: float = 0.18,
-    max_abs_delta: float = 0.45,
-    max_premium: float = 2.00,
+    min_abs_delta: float = 0.50,
+    max_abs_delta: float = 0.85,
+    max_premium: float = 20.00,
 ) -> list[ContractCandidate]:
     """
     Generate ContractCandidate objects using real historical chains.
@@ -248,7 +248,6 @@ def forge_candidates_as_of(
 
         if ask <= 0.05 or bid <= 0.0:
             continue
-        # User Constraint: Only pick options < $200 total cost
         if ask > max_premium:
             continue
         if abs(delta) < min_abs_delta or abs(delta) > max_abs_delta:

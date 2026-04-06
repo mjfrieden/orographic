@@ -35,9 +35,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 DEFAULT_SYMBOLS = [
-    "SPY", "QQQ", "IWM",
-    "NVDA", "AMD", "TSLA",
-    "META", "AAPL", "MSFT", "AMZN",
+    "SPY", "QQQ", "IWM", "DIA", "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
+    "META", "TSLA", "BRK-B", "LLY", "AVGO", "JPM", "UNH", "V", "XOM", "MA",
+    "JNJ", "PG", "COST", "HD", "ABBV", "CVX", "CRM", "NFLX", "WMT", "KO",
+    "BAC", "PEP", "IBM", "ORCL", "CSCO", "ACN", "ADBE", "QCOM", "INTC",
+    "TXN", "AMD", "MCD", "DIS", "NKE", "BA", "GS"
 ]
 
 

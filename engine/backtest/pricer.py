@@ -22,7 +22,7 @@ from engine.backtest.options_provider import HistoricalOptionsProvider
 
 log = logging.getLogger(__name__)
 
-BUDGET_PER_TRADE = 100.0   # USD — user-specified fixed allocation
+BUDGET_PER_TRADE = 500.0   # USD — User-specified max position size
 
 
 def _normal_cdf(x: float) -> float:
@@ -126,6 +126,12 @@ def price_trade(
         ]
         if not match.empty:
             exit_price = float(match.iloc[0].get("bid", 0.0))
+        else:
+            # Synthetic chaining bug fallback: at expiration (Friday), assume Intrinsic Value if exact strike is missing
+            if candidate.option_type == "call":
+                exit_price = max(0.0, exit_spot - float(candidate.strike))
+            else:
+                exit_price = max(0.0, float(candidate.strike) - exit_spot)
 
     expired_worthless = exit_price < 0.01
     exit_value = exit_price * 100.0 * contracts

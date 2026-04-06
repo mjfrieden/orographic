@@ -113,6 +113,14 @@ def build_signal(symbol: str, regime: MarketRegime, frame: pd.DataFrame, z_score
     )
     regime_bonus = 0.0
     direction = "call" if technical_score >= 0 else "put"
+    
+    # --- Hard Regime Alignment Veto ---
+    # We never swim entirely against the prevailing macro drift
+    if regime.mode == "risk_on" and direction == "put":
+        return None
+    if regime.mode == "risk_off" and direction == "call":
+        return None
+
     if regime.mode == "risk_on" and direction == "call":
         regime_bonus = 0.08
     elif regime.mode == "risk_off" and direction == "put":

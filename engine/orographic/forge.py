@@ -52,8 +52,8 @@ def rank_contracts(
     max_spread_pct: float = 0.18,
     min_open_interest: int = 150,
     min_volume: int = 25,
-    min_abs_delta: float = 0.18,
-    max_abs_delta: float = 0.45,
+    min_abs_delta: float = 0.50,
+    max_abs_delta: float = 0.85,
     risk_free_rate: float = 0.04,
 ) -> list[ContractCandidate]:
     candidates: list[ContractCandidate] = []
@@ -112,8 +112,9 @@ def rank_contracts(
 
             strike = float(row["strike"])
             option_type = signal.direction
+            # Structural shift: Target ITM to ATM options rather than OTM lotteries
             moneyness = _candidate_moneyness(option_type, signal.spot, strike)
-            if moneyness < -0.01 or moneyness > 0.10:
+            if moneyness < -0.05 or moneyness > 0.03:
                 continue
 
             projected_value = _intrinsic(option_type, projected_spot, strike)

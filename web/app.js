@@ -598,9 +598,9 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
 
   try {
     const price = Number(ask) || 0.01;
-    // Volatility-Scaled position sizing (target $100 base budget)
+    // Volatility-Scaled position sizing (max $500 per position)
     const weight = Number(allocWeight) || 1.0;
-    const scaledBudget = 100.0 * weight;
+    const scaledBudget = 500.0 * weight;
     const qty = Math.max(1, Math.floor(scaledBudget / (price * 100.0)));
 
     const r = await fetch("/api/tradier/orders", {

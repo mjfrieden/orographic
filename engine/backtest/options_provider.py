@@ -84,7 +84,7 @@ class HistoricalOptionsProvider:
 
         rows = []
         for direction in ["call", "put"]:
-            for pct in [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08]:
+            for pct in [-0.08, -0.06, -0.04, -0.02, 0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08]:
                 strike = spot * (1 + pct) if direction == "call" else spot * (1 - pct)
                 strike = round(strike, 2)
                 mid = _bs_price(spot, strike, tte, vol, 0.04, direction)
