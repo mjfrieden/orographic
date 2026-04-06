@@ -59,6 +59,7 @@ class ContractCandidate:
     scout_score: float
     forge_score: float
     allocation_weight: float = 1.0
+    iv_rank: float = 0.5          # IV Rank percentile [0, 1]; 0=IV low, 1=IV high-cycle
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

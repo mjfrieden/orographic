@@ -8,9 +8,68 @@ from typing import Iterable
 import pandas as pd
 import yfinance as yf
 
+# Session-level cache for the risk-free rate (fetched once per process)
+_RF_RATE_CACHE: float | None = None
+
 
 def normal_cdf(x: float) -> float:
     return 0.5 * (1.0 + erf(x / sqrt(2.0)))
+
+
+def fetch_risk_free_rate() -> float:
+    """
+    Returns the current annualised risk-free rate sourced from the
+    3-month US T-Bill yield (^IRX, reported as a percentage by yfinance).
+    Result is cached for the life of the process. Falls back to 0.043
+    if the data feed is unavailable.
+    """
+    global _RF_RATE_CACHE
+    if _RF_RATE_CACHE is not None:
+        return _RF_RATE_CACHE
+    try:
+        irx = yf.Ticker("^IRX").history(period="5d", interval="1d", auto_adjust=False)
+        if isinstance(irx.columns, pd.MultiIndex):
+            irx.columns = [c[0] if isinstance(c, tuple) else c for c in irx.columns]
+        close = pd.to_numeric(irx["Close"], errors="coerce").dropna()
+        if not close.empty:
+            # ^IRX is quoted as a percentage (e.g. 4.85 means 4.85%)
+            _RF_RATE_CACHE = round(float(close.iloc[-1]) / 100.0, 5)
+            return _RF_RATE_CACHE
+    except Exception:
+        pass
+    _RF_RATE_CACHE = 0.043   # Sensible fallback (approx current FF rate)
+    return _RF_RATE_CACHE
+
+
+def compute_iv_rank(symbol: str, iv_now: float, lookback_days: int = 252) -> float:
+    """
+    Compute IV Rank (IVR) for `symbol`: the percentile of `iv_now` relative
+    to the range of implied-volatility proxy values over the past `lookback_days`.
+
+    We approximate historical IV via the rolling 20-day realised volatility of
+    the underlying (no subscription required). IVR = 0 means IV at its low;
+    IVR = 1 means IV at its cycle high.
+    """
+    try:
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(period="1y", interval="1d", auto_adjust=False)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+        close = pd.to_numeric(df["Close"], errors="coerce").dropna()
+        if len(close) < 30:
+            return 0.5
+        # Rolling 20d realised vol as IV proxy (annualised)
+        rv_series = close.pct_change().rolling(20).std() * (252 ** 0.5)
+        rv_series = rv_series.dropna().tail(lookback_days)
+        if rv_series.empty:
+            return 0.5
+        iv_min = float(rv_series.min())
+        iv_max = float(rv_series.max())
+        if iv_max <= iv_min:
+            return 0.5
+        return round((iv_now - iv_min) / (iv_max - iv_min), 4)
+    except Exception:
+        return 0.5
 
 
 def black_scholes_delta(

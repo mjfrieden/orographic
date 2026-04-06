@@ -46,6 +46,27 @@ def _bs_price(
     return max(0.0, strike * exp(-rf * tte) * _normal_cdf(-d2) - spot * _normal_cdf(-d1))
 
 
+def _normal_cdf(x: float) -> float:
+    return 0.5 * (1.0 + erf(x / sqrt(2.0)))
+
+
+def _bs_price(
+    spot: float,
+    strike: float,
+    tte: float,
+    vol: float,
+    rf: float = 0.04,
+    option_type: str = "call",
+) -> float:
+    if spot <= 0 or strike <= 0 or tte <= 0 or vol <= 0:
+        return 0.0
+    d1 = (math_log(spot / strike) + (rf + 0.5 * vol * vol) * tte) / (vol * sqrt(tte))
+    d2 = d1 - vol * sqrt(tte)
+    if option_type == "call":
+        return spot * _normal_cdf(d1) - strike * exp(-rf * tte) * _normal_cdf(d2)
+    return strike * exp(-rf * tte) * _normal_cdf(-d2) - spot * _normal_cdf(-d1)
+
+
 @dataclass
 class TradeLeg:
     symbol: str
@@ -127,11 +148,18 @@ def price_trade(
         if not match.empty:
             exit_price = float(match.iloc[0].get("bid", 0.0))
         else:
-            # Synthetic chaining bug fallback: at expiration (Friday), assume Intrinsic Value if exact strike is missing
-            if candidate.option_type == "call":
-                exit_price = max(0.0, exit_spot - float(candidate.strike))
-            else:
-                exit_price = max(0.0, float(candidate.strike) - exit_spot)
+            # RUTHLESS REASONING: On Friday close, weeklys are essentially at zero TTE.
+            # We use 1e-6 to avoid numerical division errors while stripping away the 'free' 2-day theta.
+            tte_exit = 1e-6
+            exit_price_mid = _bs_price(
+                exit_spot, 
+                float(candidate.strike), 
+                tte_exit, 
+                candidate.implied_volatility, 
+                0.04, 
+                candidate.option_type
+            )
+            exit_price = exit_price_mid * 0.95 # 5% Liquidity Haircut
 
     expired_worthless = exit_price < 0.01
     exit_value = exit_price * 100.0 * contracts

@@ -5,7 +5,14 @@ from typing import Iterable
 
 import pandas as pd
 
-from .market_data import black_scholes_delta, next_expiry, option_chain, option_expiries
+from .market_data import (
+    black_scholes_delta,
+    compute_iv_rank,
+    fetch_risk_free_rate,
+    next_expiry,
+    option_chain,
+    option_expiries,
+)
 from .schemas import ContractCandidate, MarketRegime, ScoutSignal
 
 
@@ -54,10 +61,13 @@ def rank_contracts(
     min_volume: int = 25,
     min_abs_delta: float = 0.50,
     max_abs_delta: float = 0.85,
-    risk_free_rate: float = 0.04,
+    ivr_gate: float = 0.70,   # IVR above this threshold receives a scaled penalty
 ) -> list[ContractCandidate]:
     candidates: list[ContractCandidate] = []
     today = date.today()
+
+    # Fetch risk-free rate once per call (cached at session level)
+    risk_free_rate = fetch_risk_free_rate()
 
     for signal in signals:
         expiry = next_expiry(
@@ -126,6 +136,10 @@ def rank_contracts(
             target_iv = 0.35
             allocation_weight = round(min(max(target_iv / iv, 0.25), 3.0), 4)
 
+            # IV Rank — penalise contracts where we're buying vol at its cycle high
+            ivr = compute_iv_rank(signal.symbol, iv)
+            ivr_penalty = max(ivr - ivr_gate, 0.0) * 0.4
+
             delta = black_scholes_delta(
                 spot=signal.spot,
                 strike=strike,
@@ -155,6 +169,7 @@ def rank_contracts(
                 + 0.10 * (1.0 - min(extrinsic_ratio, 1.0))
                 - 0.15 * max(extrinsic_ratio - 0.90, 0.0) / 0.10
                 - vrp_penalty
+                - ivr_penalty
             )
             forge_score = _clip(
                 0.45 * ((signal.scout_score + 1.0) / 2.0)
@@ -168,6 +183,8 @@ def rank_contracts(
                 notes.append("time-value burden is acceptable")
             if vrp_penalty > 0.05:
                 notes.append(f"VRP penalty applied: IV is highly elevated over RV")
+            if ivr_penalty > 0.0:
+                notes.append(f"IVR penalty applied: IV rank {ivr:.0%} above gate")
             if delta is not None and 0.20 <= abs(delta) <= 0.45:
                 notes.append("delta sits in the preferred weekly range")
 
@@ -196,6 +213,7 @@ def rank_contracts(
                     scout_score=signal.scout_score,
                     forge_score=round(forge_score, 4),
                     allocation_weight=allocation_weight,
+                    iv_rank=round(ivr, 4),
                     notes=notes,
                 )
             )

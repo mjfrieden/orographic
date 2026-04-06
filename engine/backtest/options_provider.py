@@ -82,13 +82,28 @@ class HistoricalOptionsProvider:
         expire_date = as_of + pd.Timedelta(days=days_ahead)
         tte = max(days_ahead / 365.0, 1.0/365.0)
 
+        # Fixed strike increments ensure Monday/Friday lookups match exactly
+        if spot < 50:
+            step = 1.0
+        elif spot < 150:
+            step = 2.5
+        else:
+            step = 5.0
+
+        base_strike = round(spot / step) * step
+        
         rows = []
         for direction in ["call", "put"]:
-            for pct in [-0.08, -0.06, -0.04, -0.02, 0.0, 0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.08]:
-                strike = spot * (1 + pct) if direction == "call" else spot * (1 - pct)
-                strike = round(strike, 2)
+            # Generate a wide enough range (-15 to +15 steps) to catch most weekly moves
+            for offset in range(-15, 16):
+                strike = base_strike + (offset * step)
+                if strike <= 0:
+                    continue
+                
                 mid = _bs_price(spot, strike, tte, vol, 0.04, direction)
-                if mid < 0.05: continue
+                if mid < 0.01:
+                    continue
+                
                 spread = max(0.05, mid * 0.10)
                 ask = mid + spread / 2
                 bid = max(0.01, mid - spread / 2)
