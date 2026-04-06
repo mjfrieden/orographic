@@ -236,7 +236,9 @@ def infer_market_regime() -> MarketRegime:
     vix_5     = float(vix_close.iloc[-1] / vix_close.iloc[-6] - 1.0)
     bias = _clip((spy_5 * 6.0) + (spy_20 * 4.0) - (vix_5 * 0.8) - ((vix_level - 20.0) / 35.0))
 
-    if bias >= 0.18:
+    if vix_level > 30.0 or vix_5 > 0.25:
+        mode = "extreme_vol"
+    elif bias >= 0.18:
         mode = "risk_on"
     elif bias <= -0.18:
         mode = "risk_off"
@@ -298,6 +300,8 @@ def build_signal(
         raw_score = None   # will be set after regime_bonus
 
     # ── Hard Regime Alignment Veto ──
+    if regime.mode == "extreme_vol":
+        return None
     if regime.mode == "risk_on"  and direction == "put":
         return None
     if regime.mode == "risk_off" and direction == "call":

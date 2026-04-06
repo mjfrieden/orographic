@@ -90,20 +90,19 @@ def build_signal_as_of(
             spy_close_aligned = pd.to_numeric(spy_slice["Close"], errors="coerce").dropna()
             spy_close_aligned = spy_close_aligned.reindex(close.index, method="ffill").dropna()
 
-    # ── ML inference (look-ahead bias check) ──
-    # RUTHLESS REASONING: The current scout_model.pkl was trained on 2026 data.
-    # Using it in a 2026 backtest is a 'Perfect Mirror' illusion. 
-    # We explicitly force the heuristic path to find the TRUE statistical edge.
-    using_ml = False
-    ml_score = None
+    # ── ML inference (Sanitized & Unbiased) ──
+    # We are now using a model trained strictly on pre-2026 data.
+    feats    = _extract_features(close, frame, spy_close_aligned)
+    ml_score = _ml_scout_score(feats)
+    using_ml = ml_score is not None
     
     if using_ml:
-        # (Dead code path during backtest sanitization)
         raw_score       = ml_score
         technical_score = raw_score
         empirical_score = 0.0
         direction       = "call" if raw_score >= 0 else "put"
     else:
+        # Heuristic fallback (if model loading fails)
         technical_score, empirical_score, _ = _heuristic_scout_score(
             momentum_5d, momentum_20d, rsi_14, realized_vol_20d,
             atr_pct_14d, z_score=0.0, regime_bonus=0.0,

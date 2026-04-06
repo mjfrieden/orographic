@@ -35,12 +35,13 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 DEFAULT_SYMBOLS = [
-    "SPY", "QQQ", "IWM", "DIA", "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
-    "META", "TSLA", "BRK-B", "LLY", "AVGO", "JPM", "UNH", "V", "XOM", "MA",
-    "JNJ", "PG", "COST", "HD", "ABBV", "CVX", "CRM", "NFLX", "WMT", "KO",
-    "BAC", "PEP", "IBM", "ORCL", "CSCO", "ACN", "ADBE", "QCOM", "INTC",
-    "TXN", "AMD", "MCD", "DIS", "NKE", "BA", "GS"
+    "SPY", "QQQ", "IWM", "DIA", "AAPL", "AMD", "NVDA", "GOOGL", "AMZN",
+    "TSLA", "JPM", "BAC", "V", "XOM", "JNJ", "PG", "HD", "ABBV", "CVX", 
+    "CRM", "NFLX", "WMT", "KO", "PEP", "IBM", "ORCL", "CSCO", "ACN", 
+    "QCOM", "INTC", "TXN", "MCD", "DIS", "NKE", "BA", "GS"
 ]
+# Removed: LLY, AVGO, UNH, ADBE, COST, MSFT, META (all > $250-300+) 
+# They are too expensive for a $500 position size limit.
 
 
 def _load_universe(path: Path | None) -> list[str]:

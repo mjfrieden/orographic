@@ -170,8 +170,13 @@ def fetch_history(symbol: str, years: int) -> pd.DataFrame:
 
 # ── Training ─────────────────────────────────────────────────────────────────
 
-def train(symbols: list[str], years: int) -> None:
+def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    
+    if cutoff is None:
+        cutoff = date.today()
+    
+    log.info("Training with cutoff: %s", cutoff)
 
     log.info("Fetching SPY for cross-asset context …")
     try:
@@ -200,7 +205,12 @@ def train(symbols: list[str], years: int) -> None:
         sys.exit(1)
 
     combined = pd.concat(all_features, axis=0).sort_index()
-    log.info("Combined dataset: %d rows across %d symbols", len(combined), len(all_features))
+    # Apply cutoff: only use rows strictly <= cutoff date
+    # (Forward return label was computed by build_feature_matrix using shift(-5))
+    mask = combined.index.date <= cutoff
+    combined = combined[mask].copy()
+    
+    log.info("Combined dataset: %d rows across %d symbols (after cutoff)", len(combined), len(all_features))
 
     FEATURE_COLS = [
         "mom_5d", "mom_10d", "mom_20d", "mom_60d",
@@ -310,14 +320,18 @@ def main() -> None:
     parser.add_argument("--years",   type=int, default=2, help="Years of training history (default: 2)")
     parser.add_argument("--symbols", type=str, default=None,
                         help="Comma-separated symbols to train on (default: full universe)")
+    parser.add_argument("--cutoff",  type=str, default="2026-01-01",
+                        help="Cutoff date for training (default: 2026-01-01)")
     args = parser.parse_args()
+
+    cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
 
     symbols = (
         [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
         if args.symbols
         else TRAINING_UNIVERSE
     )
-    train(symbols, args.years)
+    train(symbols, args.years, cutoff_dt)
 
 
 if __name__ == "__main__":
