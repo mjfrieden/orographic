@@ -157,6 +157,34 @@ def rank_contracts(
                 - 0.35 * min(spread_pct / max_spread_pct, 1.0)
             )
             
+            # ── Vertical Spread Search ──
+            # Target a short leg with Delta ~0.30 (or ~0.70 difference from Long)
+            short_leg = None
+            target_short_delta = 0.30 if option_type == "call" else -0.30
+            # Look for a strike further OTM
+            potential_shorts = clean[
+                (clean["strike"] > strike if option_type == "call" else clean["strike"] < strike) &
+                (clean["bid"] > 0)
+            ].copy()
+            
+            if not potential_shorts.empty:
+                # Approximate delta for potential shorts to find the nearest to 0.30
+                # (We don't want to run B-S for every single row, so we just take the one ~10-15% OTM)
+                potential_shorts["dist"] = (potential_shorts["strike"] - (signal.spot * (1.05 if option_type == "call" else 0.95))).abs()
+                short_row = potential_shorts.sort_values("dist").iloc[0]
+                short_leg = {
+                    "strike": float(short_row["strike"]),
+                    "bid": float(short_row["bid"]),
+                    "ask": float(short_row["ask"])
+                }
+
+            is_spread = short_leg is not None
+            actual_premium = premium - (short_leg["bid"] if is_spread else 0.0)
+            if actual_premium <= 0.05: # Minimum spread cost
+                actual_premium = premium
+                is_spread = False
+                short_leg = None
+
             # Variance Risk Premium (VRP) Check
             # If the option's Implied Volatility is massively higher than the underlying's Realized Volatility, 
             # it means the market maker is charging a huge premium. We heavily penalize this.
@@ -214,6 +242,11 @@ def rank_contracts(
                     forge_score=round(forge_score, 4),
                     allocation_weight=allocation_weight,
                     iv_rank=round(ivr, 4),
+                    is_spread=is_spread,
+                    spread_cost=round(actual_premium, 4) if actual_premium else None,
+                    short_strike=round(short_leg["strike"], 4) if short_leg else None,
+                    short_ask=round(short_leg["ask"], 4) if short_leg else None,
+                    short_bid=round(short_leg["bid"], 4) if short_leg else None,
                     notes=notes,
                 )
             )

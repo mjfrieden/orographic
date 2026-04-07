@@ -58,6 +58,11 @@ class ContractCandidate:
     extrinsic_ratio: float
     scout_score: float
     forge_score: float
+    short_strike: float | None = None
+    short_ask: float | None = None
+    short_bid: float | None = None
+    is_spread: bool = False
+    spread_cost: float | None = None
     allocation_weight: float = 1.0
     iv_rank: float = 0.5          # IV Rank percentile [0, 1]; 0=IV low, 1=IV high-cycle
     notes: list[str] = field(default_factory=list)

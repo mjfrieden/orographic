@@ -43,6 +43,17 @@ function formatTs(value) {
   }).format(d);
 }
 
+function timeAgo(date) {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
 function toneClass(value) {
   return String(value).toLowerCase() === "call" ? "is-call" : "is-put";
 }
@@ -393,12 +404,30 @@ function summaryItemHtml(label, value) {
 }
 
 async function renderBoard(payload) {
+  if (!payload || !payload.council) {
+    throw new Error("Invalid or missing council data in snapshot.");
+  }
+
   const live   = payload.council.live_board || [];
   const shadow = payload.council.shadow_board || [];
+  const summary = payload.council.summary || payload.summary || {};
+  const generatedAt = payload.generated_at_utc || payload.timestamp;
 
-  // Header / meta
-  setText("board-status",      payload.council.abstain ? "Council abstained" : live.length ? "Harbor live" : "Live board quiet");
-  setText("board-status-note", sentenceList(payload.council.summary?.notes, "No council notes."));
+  // Stale check (4 hours)
+  const isStale = generatedAt && (Date.now() - new Date(generatedAt)) > (4 * 60 * 60 * 1000);
+  const boardStatusEl = document.getElementById("board-status");
+  if (boardStatusEl) {
+    boardStatusEl.textContent = payload.council.abstain ? "Council abstained" : live.length ? "Harbor live" : "Live board quiet";
+    if (isStale) {
+      boardStatusEl.classList.add("is-stale-text");
+      boardStatusEl.title = "Warning: This data is more than 4 hours old.";
+    } else {
+      boardStatusEl.classList.remove("is-stale-text");
+      boardStatusEl.title = "";
+    }
+  }
+
+  setText("board-status-note", sentenceList(summary.notes, "No council notes."));
   setText("live-count-hud",    integer(payload.council.summary?.live_count));
   setText("shadow-count-hud",  integer(payload.council.summary?.shadow_count));
 
@@ -416,7 +445,12 @@ async function renderBoard(payload) {
   }
   const dispatchTag = document.getElementById("dispatch-tag");
   if (dispatchTag) {
-    dispatchTag.textContent = `Last dispatch: ${formatTs(payload.generated_at_utc)}`;
+    const ago = generatedAt ? ` (${timeAgo(generatedAt)})` : "";
+    dispatchTag.textContent = `Last dispatch: ${formatTs(generatedAt)}${ago}`;
+    if (isStale) {
+      dispatchTag.style.color = "var(--amber)";
+      dispatchTag.style.fontWeight = "600";
+    }
   }
 
   // Prefetch live quotes for all contracts

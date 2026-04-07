@@ -115,21 +115,28 @@ def option_chain(symbol: str, expiry: str) -> tuple[pd.DataFrame, pd.DataFrame]:
 def next_expiry(
     expiries: Iterable[str],
     *,
-    minimum_days: int = 2,
-    maximum_days: int = 8,
+    minimum_days: int = 1,
+    maximum_days: int = 10,
     today: date | None = None,
 ) -> str | None:
     today = today or date.today()
     parsed: list[tuple[str, int]] = []
     for raw in expiries:
         try:
-            days = (date.fromisoformat(raw) - today).days
-        except ValueError:
+            # Ensure we're comparing date objects correctly across timezones/clock-skew
+            expiry_date = date.fromisoformat(raw)
+            days = (expiry_date - today).days
+        except (ValueError, TypeError):
             continue
-        if minimum_days <= days <= maximum_days:
+        
+        # Only consider future expiries within the window
+        if days >= minimum_days and days <= maximum_days:
             parsed.append((raw, days))
+            
     if not parsed:
         return None
+        
+    # Sort by proximity and return the earliest valid expiry
     parsed.sort(key=lambda item: item[1])
     return parsed[0][0]
 

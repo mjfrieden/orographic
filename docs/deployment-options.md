@@ -114,8 +114,24 @@ For Orographic, I recommend:
 3. `Self-hosted GitHub Actions runner` if the repo is private and you want to stay at $0.
 4. Add a `Cloudflare Worker` later only if we want a thin API facade.
 
-## Important operational gotcha
+## Live Trading Setup (Tradier)
 
-GitHub notes that scheduled workflows in public repositories may be automatically disabled after `60` days of no repository activity: [Disable and enable workflows](https://docs.github.com/en/enterprise-server%403.14/actions/how-tos/manage-workflow-runs/disable-and-enable-workflows)
+To activate live trading, you must provide your Tradier credentials to the Cloudflare Pages environment. These should be set as **Secrets** in the Cloudflare Dashboard (or via `wrangler pages secret put`).
 
-That means if you choose scheduled GitHub Actions, the repo still needs occasional activity or a manual re-enable.
+### Required Secrets
+
+| Variable | Description |
+| :--- | :--- |
+| `TRADIER_ACCESS_TOKEN` | Your production Tradier API token. |
+| `TRADIER_ACCOUNT_ID` | Your production Tradier account number. |
+| `TRADIER_LIVE_TRADING_ENABLED` | Set to `true` to enable the 'Execute' button. |
+| `TRADIER_SANDBOX_MODE` | Set to `false` for live trading. |
+| `OROGRAPHIC_SESSION_SECRET` | A long random string for signing session cookies. |
+
+### Safety Rails
+
+Even with live trading "activated", the system includes several safety rails:
+1. **Admin Only**: Only users with the `admin` role in `OROGRAPHIC_AUTH_USERS_JSON` can see or use the Execute buttons.
+2. **Confirmation Phrase**: Every live order requires the exact phrase `EXECUTE LIVE TRADE` to be typed into the modal before submission.
+3. **Price Protection**: All orders are submitted as **Limit Orders** using the current Ask (for buys) or Bid (for sells) as the ceiling/floor.
+4. **Freshness Gate**: Orders will be rejected if the underlying signal snapshot (`latest_run.json`) is older than the configured `maxSignalAgeMinutes` (default 4 hours).

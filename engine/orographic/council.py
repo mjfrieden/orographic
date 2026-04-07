@@ -33,10 +33,16 @@ log = logging.getLogger(__name__)
 
 # ── Markowitz helpers ─────────────────────────────────────────────────────────
 
-def _fetch_corr_matrix(symbols: list[str], lookback_days: int = 60) -> np.ndarray | None:
+def _fetch_corr_matrix(
+    symbols: list[str], 
+    lookback_days: int = 60, 
+    as_of: date | None = None,
+    history_cache: dict[str, pd.DataFrame] | None = None
+) -> np.ndarray | None:
     """
     Build a correlation matrix of the underlying symbols using the past
-    `lookback_days` of daily returns via yfinance. Returns None on failure.
+    `lookback_days` of daily returns. In backtests, uses history_cache or 
+    date-aware yfinance fetching to avoid look-ahead bias.
     """
     try:
         import yfinance as yf
@@ -46,15 +52,32 @@ def _fetch_corr_matrix(symbols: list[str], lookback_days: int = 60) -> np.ndarra
 
         dfs = []
         for sym in unique:
-            df = yf.Ticker(sym).history(period="3mo", interval="1d", auto_adjust=False)
+            if history_cache and sym in history_cache:
+                df = history_cache[sym]
+            else:
+                ticker = yf.Ticker(sym)
+                if as_of:
+                    start_dt = as_of - timedelta(days=lookback_days + 30)
+                    df = ticker.history(start=start_dt, end=as_of, interval="1d", auto_adjust=False)
+                else:
+                    df = ticker.history(period="3mo", interval="1d", auto_adjust=False)
+            
             if isinstance(df.columns, pd.MultiIndex):
                 df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+            
+            # Slice to as_of if provided
+            if as_of:
+                df = df[df.index.date <= as_of]
+                
             close = pd.to_numeric(df.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
-            if len(close) < 20:
-                return None
+            if len(close) < 15:
+                continue
             rets = close.pct_change().dropna().tail(lookback_days)
             dfs.append(rets.rename(sym))
 
+        if len(dfs) < 2:
+            return None
+            
         combined = pd.concat(dfs, axis=1).dropna()
         if len(combined) < 10:
             return None
@@ -151,6 +174,8 @@ def select_board(
     minimum_live_score: float = 0.57,
     max_same_side_share: float = 0.67,
     max_live_extrinsic_ratio: float = 0.96,
+    as_of: date | None = None,
+    history_cache: dict[str, pd.DataFrame] | None = None,
 ) -> CouncilResult:
     notes: list[str] = []
 
@@ -179,7 +204,7 @@ def select_board(
 
     if len(unique_eligible) >= 2:
         syms = [c.symbol for c in unique_eligible]
-        corr = _fetch_corr_matrix(syms)
+        corr = _fetch_corr_matrix(syms, as_of=as_of, history_cache=history_cache)
 
         if corr is not None and corr.shape == (len(syms), len(syms)):
             exp_rets = np.array([(c.scout_score + 1.0) / 2.0 for c in unique_eligible])

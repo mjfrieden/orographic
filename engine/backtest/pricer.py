@@ -121,12 +121,17 @@ def price_trade(
     if entry_spot is None or exit_spot is None:
         return None
 
-    entry_price = candidate.ask
+    # Entry: For spreads, use net debit. For naked, use ask.
+    entry_price = candidate.spread_cost if (candidate.is_spread and candidate.spread_cost) else candidate.ask
     if entry_price <= 0:
         return None
 
     # Contracts: how many fit in the dynamically volatility-scaled budget (minimum 1)
-    actual_budget = budget * candidate.allocation_weight
+    # RUTHLESS REASONING: We now scale the $500 max by the ML scout_score (Confidence Sizing)
+    # Map score [-1, 1] to a [0.2, 1.0] multiplier for the budget.
+    confidence_scale = max(0.2, (candidate.scout_score + 1.0) / 2.0)
+    actual_budget = budget * candidate.allocation_weight * confidence_scale
+    
     cost_per_contract = entry_price * 100.0
     contracts = max(1, int(actual_budget // cost_per_contract))
     cost_basis = cost_per_contract * contracts
@@ -159,7 +164,22 @@ def price_trade(
                 0.04, 
                 candidate.option_type
             )
-            exit_price = exit_price_mid * 0.95 # 5% Liquidity Haircut
+            exit_price_long = exit_price_mid * 0.95 # 5% Liquidity Haircut (Long Bid)
+
+            exit_price_short = 0.0
+            if candidate.is_spread and candidate.short_strike:
+                # Value the short leg at Friday close (Exit Ask)
+                short_mid = _bs_price(
+                    exit_spot,
+                    float(candidate.short_strike),
+                    tte_exit,
+                    candidate.implied_volatility,
+                    0.04,
+                    candidate.option_type
+                )
+                exit_price_short = short_mid * 1.05 # 5% Liquidity Premium (Short Ask to close)
+                
+            exit_price = max(0.0, exit_price_long - exit_price_short)
 
     expired_worthless = exit_price < 0.01
     exit_value = exit_price * 100.0 * contracts
