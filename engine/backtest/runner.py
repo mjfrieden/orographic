@@ -26,8 +26,6 @@ from engine.backtest.pricer import price_trade
 from engine.backtest.replay import replay_week
 from engine.backtest.results import build_results, print_summary, save_results, DEFAULT_OUTPUT
 from engine.backtest.options_provider import HistoricalOptionsProvider
-from engine.orographic.schemas import ContractCandidate, MarketRegime, ScoutSignal
-from engine.orographic.council import select_board
 
 logging.basicConfig(
     level=logging.INFO,
@@ -110,21 +108,10 @@ def run(
             log.warning("  replay_week failed: %s", exc)
             continue
 
-        # ── Council Selection (Vector F) ──
-        # Reduce the candidate pool using the Markowitz optimizer (Max 10 slots)
-        council_result = select_board(
-            week.candidates, 
-            week.regime, 
-            live_size=10, 
-            as_of=monday,
-            history_cache=user_histories
-        )
-        selected_candidates = council_result.live_board
+        log.info("  %d signal(s), %d candidate(s), regime=%s",
+                 len(week.signals), len(week.candidates), week.regime.mode)
 
-        log.info("  %d signal(s), %d candidate(s) → %d selected, regime=%s",
-                 len(week.signals), len(week.candidates), len(selected_candidates), week.regime.mode)
-
-        for candidate in selected_candidates:
+        for candidate in week.candidates:
             hist = user_histories.get(candidate.symbol)
             if hist is None:
                 continue
