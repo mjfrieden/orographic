@@ -182,7 +182,7 @@ def _ml_scout_score(feats: dict[str, float]) -> float | None:
         row_scaled = scaler.transform(row)
         prob_bull = float(model.predict_proba(row_scaled)[0][1])
 
-    # Map [0, 1] → [-1, +1] so existing downstream code is unchanged
+    # Map [0, 1] \u2192 [-1, +1] so existing downstream code is unchanged
     return _clip((prob_bull - 0.5) * 2.0)
 
 
@@ -211,7 +211,7 @@ def _heuristic_scout_score(
     return technical_score, empirical_score, scout_score
 
 
-# ── Regime inference ─────────────────────────────────────────────────────────
+# \u2500\u2500 Regime inference \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 def infer_market_regime() -> MarketRegime:
     try:
@@ -225,8 +225,9 @@ def infer_market_regime() -> MarketRegime:
             notes=[f"Cross-asset fetch degraded: {exc}"],
         )
 
-    spy_close = pd.to_numeric(spy["Close"], errors="coerce").dropna()
-    vix_close = pd.to_numeric(vix["Close"], errors="coerce").dropna()
+    spy_close = pd.to_numeric(spy.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
+    vix_close = pd.to_numeric(vix.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
+    
     if len(spy_close) < 21 or len(vix_close) < 6:
         return MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY")
 
@@ -247,7 +248,7 @@ def infer_market_regime() -> MarketRegime:
     return MarketRegime(mode=mode, bias=round(bias, 4), source_symbol="SPY")
 
 
-# ── Signal builder ────────────────────────────────────────────────────────────
+# \u2500\u2500 Signal builder \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 def build_signal(
     symbol: str,
@@ -267,18 +268,14 @@ def build_signal(
     rsi_14            = _rsi(close, period=14)
     atr_pct_14d       = _atr_pct(frame, period=14)
 
-    # ── Regime alignment ──
+    # \u2500\u2500 Regime alignment \u2500\u2500
     # Compute regime_bonus before we know direction (for heuristic path)
-    # Direction will be inferred from the score sign
-    regime_bonus = 0.0  # provisional; updated below once direction is known
+    regime_bonus = 0.0 
 
-    # ── ML inference path ──
+    # \u2500\u2500 ML inference path \u2500\u2500
     spy_close = None
     if spy_frame is not None:
-        if isinstance(spy_frame.columns, pd.MultiIndex):
-            spy_frame = spy_frame.copy()
-            spy_frame.columns = [c[0] if isinstance(c, tuple) else c for c in spy_frame.columns]
-        spy_close = pd.to_numeric(spy_frame["Close"], errors="coerce").dropna()
+        spy_close = pd.to_numeric(spy_frame.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
         spy_close = spy_close.reindex(close.index, method="ffill").dropna()
 
     feats = _extract_features(close, frame, spy_close)
@@ -291,15 +288,15 @@ def build_signal(
         empirical_score = z_score * 0.3  # still blend in cross-sectional rank
         direction = "call" if raw_score >= 0 else "put"
     else:
-        # Heuristic fallback — compute preliminary direction for regime veto
+        # Heuristic fallback \u2014 compute preliminary direction for regime veto
         technical_score, empirical_score, _ = _heuristic_scout_score(
             momentum_5d, momentum_20d, rsi_14, realized_vol_20d,
             atr_pct_14d, z_score, 0.0,
         )
         direction = "call" if technical_score >= 0 else "put"
-        raw_score = None   # will be set after regime_bonus
+        raw_score = None   
 
-    # ── Hard Regime Alignment Veto ──
+    # \u2500\u2500 Hard Regime Alignment Veto \u2500\u2500
     if regime.mode == "extreme_vol":
         return None
     if regime.mode == "risk_on"  and direction == "put":
@@ -322,7 +319,7 @@ def build_signal(
             atr_pct_14d, z_score, regime_bonus,
         )
 
-    # ── AI Sentinel overlay ──
+    # \u2500\u2500 AI Sentinel overlay \u2500\u2500
     ai_score = fetch_ai_multiplier(symbol)
     scout_score = _clip(scout_score * ai_score.multiplier)
 
@@ -333,7 +330,7 @@ def build_signal(
         notes.append("heuristic fallback active (model not found)")
     if ai_score.multiplier != 1.0:
         notes.append(
-            f"AI Sentinel ({ai_score.multiplier}x: {ai_score.catalyst}) — {ai_score.rationale}"
+            f"AI Sentinel ({ai_score.multiplier}x: {ai_score.catalyst}) \u2014 {ai_score.rationale}"
         )
     if abs(momentum_5d) > 0.035:
         notes.append("short-term momentum is strong")
@@ -360,32 +357,35 @@ def build_signal(
     )
 
 
-# ── Universe scanner ─────────────────────────────────────────────────────────
+# \u2500\u2500 Universe scanner \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal]]:
+    symbol_list = list(symbols)
+    log.info("Starting scan for %d symbols", len(symbol_list))
     regime = infer_market_regime()
+    log.info("Inferred market regime: %s (bias: %.4f)", regime.mode, regime.bias)
+    
     signals: list[ScoutSignal] = []
-
     universe_data: dict[str, pd.DataFrame] = {}
     momentum_metrics: dict[str, float] = {}
 
     # Fetch SPY once for cross-asset features in ML model
-    spy_frame = None
-    try:
-        spy_frame = history("SPY", period="6mo")
-    except Exception:
-        pass
+    spy_frame = history("SPY", period="6mo")
+    if spy_frame.empty:
+        log.warning("SPY history unavailable; cross-asset features will be disabled.")
+        spy_frame = None
 
     # Pre-fetch and compute metrics for cross-sectional Z-scoring
-    for symbol in symbols:
+    for symbol in symbol_list:
         cleaned = symbol.strip().upper()
         if not cleaned:
             continue
         try:
             frame = history(cleaned, period="6mo")
-            if isinstance(frame.columns, pd.MultiIndex):
-                frame.columns = [c[0] if isinstance(c, tuple) else c for c in frame.columns]
-            close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+            if frame.empty:
+                continue
+                
+            close = pd.to_numeric(frame.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
             if len(close) < 62:
                 continue
             spot = float(close.iloc[-1])
@@ -395,19 +395,23 @@ def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal
 
             universe_data[cleaned]      = frame
             momentum_metrics[cleaned]   = vol_adj_momentum
-        except Exception:
+        except Exception as exc:
+            log.debug("Skipping %s due to error: %s", cleaned, exc)
             continue
 
+    log.info("Successfully fetched data for %d/%d symbols.", len(universe_data), len(symbol_list))
     z_scores = _calculate_z_scores(momentum_metrics)
 
     for cleaned, frame in universe_data.items():
         z_score = z_scores.get(cleaned, 0.0)
         try:
             signal = build_signal(cleaned, regime, frame, z_score, spy_frame)
-        except Exception:
+        except Exception as exc:
+            log.debug("Building signal failed for %s: %s", cleaned, exc)
             signal = None
         if signal is not None:
             signals.append(signal)
 
     signals.sort(key=lambda row: abs(row.scout_score), reverse=True)
+    log.info("Generated %d valid scout signals.", len(signals))
     return regime, signals

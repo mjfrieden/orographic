@@ -96,10 +96,18 @@ def black_scholes_delta(
 
 
 def history(symbol: str, period: str = "6mo") -> pd.DataFrame:
-    frame = yf.Ticker(symbol).history(period=period, interval="1d", auto_adjust=False)
-    if frame.empty:
-        raise RuntimeError(f"No history returned for {symbol}")
-    return frame
+    try:
+        frame = yf.Ticker(symbol).history(period=period, interval="1d", auto_adjust=False)
+        if frame.empty:
+            return pd.DataFrame()
+        
+        # Consistent MultiIndex normalization
+        if isinstance(frame.columns, pd.MultiIndex):
+            frame.columns = [c[0] if isinstance(c, tuple) else c for c in frame.columns]
+            
+        return frame
+    except Exception:
+        return pd.DataFrame()
 
 
 def option_expiries(symbol: str) -> list[str]:

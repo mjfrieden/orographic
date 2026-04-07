@@ -4,6 +4,7 @@ import json
 import urllib.request
 import urllib.error
 import yfinance as yf
+import os
 from dataclasses import dataclass
 
 @dataclass
@@ -19,6 +20,11 @@ def fetch_ai_multiplier(symbol: str) -> SentinelScore:
     """
     default_score = SentinelScore(multiplier=1.0, catalyst="none", rationale="No AI intelligence gathered.")
     
+    # ── Configuration ──
+    # Default to the production Cloudflare Pages endpoint so it runs in both local and CI environments.
+    # Can still be overridden by OROGRAPHIC_SENTINEL_URL if needed.
+    url = os.getenv("OROGRAPHIC_SENTINEL_URL") or "https://orographic.pages.dev/api/ai/sentinel"
+
     try:
         # 1. Grab breaking news from yfinance
         news_items = yf.Ticker(symbol).news
@@ -35,8 +41,7 @@ def fetch_ai_multiplier(symbol: str) -> SentinelScore:
         if not headlines:
             return default_score
 
-        # 2. Dispatch to Cloudflare Workers AI local/remote endpoint
-        url = "http://127.0.0.1:8792/api/ai/sentinel"
+        # 2. Dispatch to Cloudflare Workers AI endpoint
         payload = json.dumps({"symbol": symbol, "headlines": headlines}).encode("utf-8")
         req = urllib.request.Request(
             url, 

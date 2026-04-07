@@ -31,37 +31,57 @@ class PipelineConfig:
     shadow_size: int = 3
 
 
+import logging
+
+log = logging.getLogger(__name__)
+
 def run_scan(config: PipelineConfig) -> dict[str, Any]:
-    regime, scout_signals = scan_symbols(config.universe)
-    forge_candidates = rank_contracts(scout_signals[: min(len(scout_signals), 6)], regime)
-    council = select_board(
-        forge_candidates,
-        regime,
-        live_size=config.live_size,
-        shadow_size=config.shadow_size,
-    )
+    log.info("Orographic pipeline started with universe of %d symbols.", len(config.universe))
+    try:
+        regime, scout_signals = scan_symbols(config.universe)
+        log.info("Scout signal generation complete. Evaluating candidates...")
+        
+        forge_candidates = rank_contracts(scout_signals[: min(len(scout_signals), 6)], regime)
+        log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
+        
+        council = select_board(
+            forge_candidates,
+            regime,
+            live_size=config.live_size,
+            shadow_size=config.shadow_size,
+        )
+        log.info("Council selection complete. Abstain: %s", council.abstain)
 
-    live_avg_score = (
-        round(sum(row.forge_score for row in council.live_board) / len(council.live_board), 4)
-        if council.live_board
-        else 0.0
-    )
+        live_avg_score = (
+            round(sum(row.forge_score for row in council.live_board) / len(council.live_board), 4)
+            if council.live_board
+            else 0.0
+        )
 
-    return {
-        "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-        "product": "Orographic",
-        "regime": regime.to_dict(),
-        "scout_signals": [row.to_dict() for row in scout_signals[:8]],
-        "forge_candidates": [row.to_dict() for row in forge_candidates[:10]],
-        "council": council.to_dict(),
-        "summary": {
-            "universe_size": len(config.universe),
-            "scout_signal_count": len(scout_signals),
-            "forge_candidate_count": len(forge_candidates),
-            "abstain": council.abstain,
-            "live_avg_score": live_avg_score,
-        },
-    }
+        return {
+            "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "product": "Orographic",
+            "regime": regime.to_dict(),
+            "scout_signals": [row.to_dict() for row in scout_signals[:8]],
+            "forge_candidates": [row.to_dict() for row in forge_candidates[:10]],
+            "council": council.to_dict(),
+            "summary": {
+                "universe_size": len(config.universe),
+                "scout_signal_count": len(scout_signals),
+                "forge_candidate_count": len(forge_candidates),
+                "abstain": council.abstain,
+                "live_avg_score": live_avg_score,
+            },
+        }
+    except Exception as exc:
+        log.error("Pipeline crashed: %s", exc, exc_info=True)
+        # Return a safe "abstain" payload so Cloudflare still receives a status update
+        return {
+            "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+            "product": "Orographic",
+            "error": str(exc),
+            "summary": { "abstain": True, "error": True }
+        }
 
 
 def load_universe(universe_file: str | None) -> list[str]:

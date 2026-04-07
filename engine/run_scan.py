@@ -1,8 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import logging
+import sys
 
 from orographic.pipeline import PipelineConfig, load_universe, run_scan, write_snapshot
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s  %(levelname)-7s  %(message)s",
+    datefmt="%H:%M:%S",
+    stream=sys.stdout,
+)
+log = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
