@@ -415,12 +415,22 @@ function ratioOrDash(numerator, denominator, digits = 1) {
   return `${((num / den) * 100).toFixed(digits)}%`;
 }
 
+function estimateTradeValue(order, fallbackQty, fallbackPrice) {
+  const explicit = Number(order?.order_cost ?? order?.cost);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const qty = Number(order?.quantity ?? fallbackQty);
+  const price = Number(order?.price ?? fallbackPrice);
+  if (!Number.isFinite(qty) || !Number.isFinite(price)) return null;
+  return qty * price * 100;
+}
+
 function renderForgeDiagnostics(payload) {
   const waterfallEl = document.getElementById("forge-waterfall");
   const bottlenecksEl = document.getElementById("forge-bottlenecks");
   const forgeDiag = payload?.diagnostics?.forge || {};
   const waterfall = forgeDiag.waterfall || {};
   const perSymbol = Array.isArray(forgeDiag.per_symbol) ? forgeDiag.per_symbol : [];
+  const passedSignals = perSymbol.filter((row) => Number(row.final_candidates) > 0).length;
 
   if (waterfallEl) {
     if (!Object.keys(waterfall).length) {
@@ -434,7 +444,8 @@ function renderForgeDiagnostics(payload) {
         summaryItemHtml("Liquidity", `${integer(waterfall.rows_passing_liquidity)} rows`),
         summaryItemHtml("Delta Band", `${integer(waterfall.rows_passing_delta)} rows`),
         summaryItemHtml("Net Debit", `${integer(waterfall.rows_passing_net_debit)} rows`),
-        summaryItemHtml("Conversion", ratioOrDash(waterfall.final_candidates, waterfall.signals_considered)),
+        summaryItemHtml("Candidates", integer(waterfall.final_candidates)),
+        summaryItemHtml("Pass Rate", ratioOrDash(passedSignals, waterfall.signals_considered)),
       ].join("");
     }
   }
@@ -721,6 +732,13 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
     const isAdmin = SESSION?.session?.role === "admin";
     const warned = (elig.warnings || []).length;
     const canExec = isAdmin && !warned;
+    const estCost = estimateTradeValue(order, qty, price);
+    const hasCommission = order.commission !== null
+      && order.commission !== undefined
+      && Number.isFinite(Number(order.commission));
+    const commissionText = hasCommission
+      ? money(Number(order.commission))
+      : "Pending broker preview";
 
     const warningHtml = (elig.warnings || []).map((w) =>
       `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
@@ -733,8 +751,8 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
         ${summaryItemHtml("Vol Scaling", weight.toFixed(2) + "x")}
         ${summaryItemHtml("Quantity",    order.quantity || qty)}
         ${summaryItemHtml("Limit Price", money(order.price || price))}
-        ${summaryItemHtml("Est. Cost",   money(order.order_cost ?? order.cost))}
-        ${summaryItemHtml("Commission",  money(order.commission))}
+        ${summaryItemHtml("Est. Cost",   estCost !== null ? money(estCost) : "—")}
+        ${summaryItemHtml("Commission",  commissionText)}
         ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
         ${summaryItemHtml("Lane",        lane)}
       </div>
@@ -805,6 +823,13 @@ async function handleClosePosition(contractSymbol, qty) {
     const isAdmin = SESSION?.session?.role === "admin";
     const warned = (elig.warnings || []).length;
     const canExec = isAdmin && !warned;
+    const estProceeds = estimateTradeValue(order, qty, price);
+    const hasCommission = order.commission !== null
+      && order.commission !== undefined
+      && Number.isFinite(Number(order.commission));
+    const commissionText = hasCommission
+      ? money(Number(order.commission))
+      : "Pending broker preview";
 
     const warningHtml = (elig.warnings || []).map((w) =>
       `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
@@ -816,8 +841,8 @@ async function handleClosePosition(contractSymbol, qty) {
         ${summaryItemHtml("Side",        "Sell to Close · Limit")}
         ${summaryItemHtml("Quantity",    order.quantity || qty)}
         ${summaryItemHtml("Limit Price", money(order.price || price))}
-        ${summaryItemHtml("Est. Proceeds", money(Math.abs(order.order_cost ?? order.cost)))}
-        ${summaryItemHtml("Commission",  money(order.commission))}
+        ${summaryItemHtml("Est. Proceeds", estProceeds !== null ? money(Math.abs(estProceeds)) : "—")}
+        ${summaryItemHtml("Commission",  commissionText)}
         ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
       </div>
       ${warningHtml}
