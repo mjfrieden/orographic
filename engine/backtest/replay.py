@@ -75,6 +75,38 @@ def _numeric_series(frame: pd.DataFrame, *names: str, fill_value: float | None =
     return series.fillna(fill_value) if fill_value is not None else series
 
 
+def historical_corr_matrix_as_of(
+    symbols: list[str],
+    equity_histories: dict[str, pd.DataFrame],
+    as_of: date,
+    lookback_days: int = 60,
+) -> np.ndarray | None:
+    """
+    Build a historical correlation matrix using only prices available on `as_of`.
+    This keeps replay-time Council selection from peeking at current correlations.
+    """
+    unique = list(dict.fromkeys(symbols))
+    if len(unique) < 2:
+        return None
+
+    rets: list[pd.Series] = []
+    for sym in unique:
+        hist = equity_histories.get(sym)
+        if hist is None:
+            return None
+        frame = _flatten_columns(hist)
+        mask = frame.index.date <= as_of
+        close = pd.to_numeric(frame.loc[mask, "Close"], errors="coerce").dropna()
+        if len(close) < 20:
+            return None
+        rets.append(close.pct_change().dropna().tail(lookback_days).rename(sym))
+
+    combined = pd.concat(rets, axis=1).dropna()
+    if combined.shape[1] != len(unique) or len(combined) < 10:
+        return None
+    return combined.corr().values
+
+
 def build_signal_as_of(
     symbol: str,
     as_of: date,
