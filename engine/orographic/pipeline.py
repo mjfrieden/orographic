@@ -7,7 +7,7 @@ from typing import Any
 import json
 
 from .council import select_board
-from .forge import rank_contracts
+from .forge import rank_contracts_with_diagnostics
 from .scout import scan_symbols
 
 
@@ -41,7 +41,10 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         regime, scout_signals = scan_symbols(config.universe)
         log.info("Scout signal generation complete. Evaluating candidates...")
         
-        forge_candidates = rank_contracts(scout_signals[: min(len(scout_signals), 6)], regime)
+        forge_candidates, forge_diagnostics = rank_contracts_with_diagnostics(
+            scout_signals[: min(len(scout_signals), 6)],
+            regime,
+        )
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
         
         council = select_board(
@@ -65,12 +68,16 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "scout_signals": [row.to_dict() for row in scout_signals[:8]],
             "forge_candidates": [row.to_dict() for row in forge_candidates[:10]],
             "council": council.to_dict(),
+            "diagnostics": {
+                "forge": forge_diagnostics,
+            },
             "summary": {
                 "universe_size": len(config.universe),
                 "scout_signal_count": len(scout_signals),
                 "forge_candidate_count": len(forge_candidates),
                 "abstain": council.abstain,
                 "live_avg_score": live_avg_score,
+                "forge_waterfall": forge_diagnostics.get("waterfall", {}),
             },
         }
     except Exception as exc:
@@ -102,4 +109,3 @@ def write_snapshot(path: str, payload: dict[str, Any]) -> None:
     output = Path(path)
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-

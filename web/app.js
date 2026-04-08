@@ -403,6 +403,77 @@ function summaryItemHtml(label, value) {
   return `<div class="summary-item"><span class="summary-label">${label}</span><span class="summary-value">${value}</span></div>`;
 }
 
+function pctOrDash(value, digits = 1) {
+  const num = Number(value);
+  return Number.isFinite(num) ? `${(num * 100).toFixed(digits)}%` : "—";
+}
+
+function ratioOrDash(numerator, denominator, digits = 1) {
+  const num = Number(numerator);
+  const den = Number(denominator);
+  if (!Number.isFinite(num) || !Number.isFinite(den) || den === 0) return "—";
+  return `${((num / den) * 100).toFixed(digits)}%`;
+}
+
+function estimateTradeValue(order, fallbackQty, fallbackPrice) {
+  const explicit = Number(order?.order_cost ?? order?.cost);
+  if (Number.isFinite(explicit) && explicit > 0) return explicit;
+  const qty = Number(order?.quantity ?? fallbackQty);
+  const price = Number(order?.price ?? fallbackPrice);
+  if (!Number.isFinite(qty) || !Number.isFinite(price)) return null;
+  return qty * price * 100;
+}
+
+function renderForgeDiagnostics(payload) {
+  const waterfallEl = document.getElementById("forge-waterfall");
+  const bottlenecksEl = document.getElementById("forge-bottlenecks");
+  const forgeDiag = payload?.diagnostics?.forge || {};
+  const waterfall = forgeDiag.waterfall || {};
+  const perSymbol = Array.isArray(forgeDiag.per_symbol) ? forgeDiag.per_symbol : [];
+  const passedSignals = perSymbol.filter((row) => Number(row.final_candidates) > 0).length;
+
+  if (waterfallEl) {
+    if (!Object.keys(waterfall).length) {
+      waterfallEl.innerHTML = summaryItemHtml("Status", "No forge diagnostics yet");
+    } else {
+      waterfallEl.innerHTML = [
+        summaryItemHtml("Signals", integer(waterfall.signals_considered)),
+        summaryItemHtml("Chains", `${integer(waterfall.signals_with_chain)} / ${integer(waterfall.signals_with_expiry)}`),
+        summaryItemHtml("Long-Leg Cap", `${integer(waterfall.rows_within_long_leg_cap)} rows`),
+        summaryItemHtml("Spread Cap", `${integer(waterfall.rows_within_spread_cap)} rows`),
+        summaryItemHtml("Liquidity", `${integer(waterfall.rows_passing_liquidity)} rows`),
+        summaryItemHtml("Delta Band", `${integer(waterfall.rows_passing_delta)} rows`),
+        summaryItemHtml("Net Debit", `${integer(waterfall.rows_passing_net_debit)} rows`),
+        summaryItemHtml("Candidates", integer(waterfall.final_candidates)),
+        summaryItemHtml("Pass Rate", ratioOrDash(passedSignals, waterfall.signals_considered)),
+      ].join("");
+    }
+  }
+
+  if (bottlenecksEl) {
+    if (!perSymbol.length) {
+      bottlenecksEl.innerHTML = summaryItemHtml("Status", "No symbol diagnostics yet");
+    } else {
+      const reasonCounts = perSymbol.reduce((acc, row) => {
+        const reason = row.rejection_reason || (Number(row.final_candidates) > 0 ? "passed" : "unknown");
+        if (reason === "passed") return acc;
+        acc[reason] = (acc[reason] || 0) + 1;
+        return acc;
+      }, {});
+      const topReasons = Object.entries(reasonCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([reason, count]) => summaryItemHtml(reason.replaceAll("_", " "), `${count} symbol${count === 1 ? "" : "s"}`));
+      const topPasses = perSymbol
+        .filter((row) => Number(row.final_candidates) > 0)
+        .sort((a, b) => Number(b.final_candidates || 0) - Number(a.final_candidates || 0))
+        .slice(0, 2)
+        .map((row) => summaryItemHtml(`${row.symbol} passed`, `${integer(row.final_candidates)} candidate${Number(row.final_candidates) === 1 ? "" : "s"}`));
+      bottlenecksEl.innerHTML = [...topReasons, ...topPasses].join("");
+    }
+  }
+}
+
 async function renderBoard(payload) {
   if (!payload || !payload.council) {
     throw new Error("Invalid or missing council data in snapshot.");
@@ -518,6 +589,8 @@ async function renderBoard(payload) {
       summaryItemHtml("Notes",      sentenceList(payload.council.summary?.notes, "No extra notes.")),
     ].join("");
   }
+
+  renderForgeDiagnostics(payload);
 
   // Bind card buttons
   bindCardButtons();
@@ -659,6 +732,13 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
     const isAdmin = SESSION?.session?.role === "admin";
     const warned = (elig.warnings || []).length;
     const canExec = isAdmin && !warned;
+    const estCost = estimateTradeValue(order, qty, price);
+    const hasCommission = order.commission !== null
+      && order.commission !== undefined
+      && Number.isFinite(Number(order.commission));
+    const commissionText = hasCommission
+      ? money(Number(order.commission))
+      : "Pending broker preview";
 
     const warningHtml = (elig.warnings || []).map((w) =>
       `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
@@ -671,8 +751,8 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
         ${summaryItemHtml("Vol Scaling", weight.toFixed(2) + "x")}
         ${summaryItemHtml("Quantity",    order.quantity || qty)}
         ${summaryItemHtml("Limit Price", money(order.price || price))}
-        ${summaryItemHtml("Est. Cost",   money(order.order_cost ?? order.cost))}
-        ${summaryItemHtml("Commission",  money(order.commission))}
+        ${summaryItemHtml("Est. Cost",   estCost !== null ? money(estCost) : "—")}
+        ${summaryItemHtml("Commission",  commissionText)}
         ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
         ${summaryItemHtml("Lane",        lane)}
       </div>
@@ -743,6 +823,13 @@ async function handleClosePosition(contractSymbol, qty) {
     const isAdmin = SESSION?.session?.role === "admin";
     const warned = (elig.warnings || []).length;
     const canExec = isAdmin && !warned;
+    const estProceeds = estimateTradeValue(order, qty, price);
+    const hasCommission = order.commission !== null
+      && order.commission !== undefined
+      && Number.isFinite(Number(order.commission));
+    const commissionText = hasCommission
+      ? money(Number(order.commission))
+      : "Pending broker preview";
 
     const warningHtml = (elig.warnings || []).map((w) =>
       `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
@@ -754,8 +841,8 @@ async function handleClosePosition(contractSymbol, qty) {
         ${summaryItemHtml("Side",        "Sell to Close · Limit")}
         ${summaryItemHtml("Quantity",    order.quantity || qty)}
         ${summaryItemHtml("Limit Price", money(order.price || price))}
-        ${summaryItemHtml("Est. Proceeds", money(Math.abs(order.order_cost ?? order.cost)))}
-        ${summaryItemHtml("Commission",  money(order.commission))}
+        ${summaryItemHtml("Est. Proceeds", estProceeds !== null ? money(Math.abs(estProceeds)) : "—")}
+        ${summaryItemHtml("Commission",  commissionText)}
         ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
       </div>
       ${warningHtml}
@@ -940,6 +1027,10 @@ function renderBacktest(bt) {
   if (!bt) {
     const noData = document.getElementById("bt-no-data");
     if (noData) noData.hidden = false;
+    const sizingPolicy = document.getElementById("bt-sizing-policy");
+    const researchNotes = document.getElementById("bt-research-notes");
+    if (sizingPolicy) sizingPolicy.innerHTML = summaryItemHtml("Status", "No backtest sizing data");
+    if (researchNotes) researchNotes.innerHTML = summaryItemHtml("Status", "No backtest methodology data");
     return;
   }
 
@@ -960,6 +1051,19 @@ function renderBacktest(bt) {
   const avgWin       = Number(bt.avg_winner_pct || 0);
   const avgLoss      = Number(bt.avg_loser_pct || 0);
   const trades       = Number(bt.total_trades || 0);
+  const sizingPolicy = bt.sizing_policy || {};
+  const sizingPolicyEl = document.getElementById("bt-sizing-policy");
+  const researchNotesEl = document.getElementById("bt-research-notes");
+  const subtitleEl = document.getElementById("bt-section-sub");
+
+  if (subtitleEl) {
+    subtitleEl.textContent = [
+      "3-month backtest",
+      "All Forge candidates",
+      `base $${Number(bt.budget_per_trade_usd || 0).toFixed(0)} / trade`,
+      sizingPolicy.skip_when_underfunded ? "underfunded trades skipped" : "forced minimum 1 contract",
+    ].join(" · ");
+  }
 
   setVal("bt-win-rate",    `${(winRate * 100).toFixed(1)}%`,      winRate >= 0.5);
   setVal("bt-total-pnl",  `${totalPnl >= 0 ? "+" : ""}$${totalPnl.toFixed(2)}`, totalPnl >= 0);
@@ -969,6 +1073,26 @@ function renderBacktest(bt) {
   setVal("bt-avg-loss",   `${(avgLoss * 100).toFixed(1)}%`,       false);
   setVal("bt-trades",     trades.toLocaleString(),                null);
   setVal("bt-net-return", `${netReturn >= 0 ? "+" : ""}${(netReturn * 100).toFixed(1)}%`, netReturn >= 0);
+
+  if (sizingPolicyEl) {
+    sizingPolicyEl.innerHTML = [
+      summaryItemHtml("Base Budget", money(bt.budget_per_trade_usd || 0)),
+      summaryItemHtml("Allocation Weight", Array.isArray(sizingPolicy.allocation_weight_range) ? `${sizingPolicy.allocation_weight_range[0]}x to ${sizingPolicy.allocation_weight_range[1]}x` : "—"),
+      summaryItemHtml("Confidence Scale", Array.isArray(sizingPolicy.confidence_scale_range) ? `${sizingPolicy.confidence_scale_range[0]}x to ${sizingPolicy.confidence_scale_range[1]}x` : "—"),
+      summaryItemHtml("Underfunded Trade", sizingPolicy.skip_when_underfunded ? "Skip" : "Force 1 contract"),
+      summaryItemHtml("Max Observed Cost", money(sizingPolicy.max_observed_cost_basis_usd || 0)),
+    ].join("");
+  }
+
+  if (researchNotesEl) {
+    researchNotesEl.innerHTML = [
+      summaryItemHtml("Window", `${bt.backtest_start} to ${bt.backtest_end}`),
+      summaryItemHtml("Trades", integer(bt.total_trades)),
+      summaryItemHtml("Win Rate", pctOrDash(bt.win_rate)),
+      summaryItemHtml("Sharpe", Number.isFinite(sharpe) ? sharpe.toFixed(2) : "—"),
+      summaryItemHtml("Drawdown", pctOrDash(bt.max_drawdown)),
+    ].join("");
+  }
 
   // Equity curve
   const canvas = document.getElementById("equity-curve-chart");

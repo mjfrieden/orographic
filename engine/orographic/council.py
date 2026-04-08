@@ -154,6 +154,8 @@ def select_board(
     minimum_live_score: float = 0.57,
     max_same_side_share: float = 0.67,
     max_live_extrinsic_ratio: float = 0.96,
+    corr_matrix: np.ndarray | None = None,
+    fetch_live_corr: bool = True,
 ) -> CouncilResult:
     notes: list[str] = []
 
@@ -182,7 +184,9 @@ def select_board(
 
     if len(unique_eligible) >= 2:
         syms = [c.symbol for c in unique_eligible]
-        corr = _fetch_corr_matrix(syms)
+        corr = corr_matrix
+        if corr is None and fetch_live_corr:
+            corr = _fetch_corr_matrix(syms)
 
         if corr is not None and corr.shape == (len(syms), len(syms)):
             exp_rets = np.array([(c.scout_score + 1.0) / 2.0 for c in unique_eligible])

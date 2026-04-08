@@ -16,7 +16,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .pricer import TradeLeg
+from .pricer import BUDGET_PER_TRADE, TradeLeg
 
 # Default output location — sits alongside latest_run.json
 DEFAULT_OUTPUT = Path(__file__).parents[2] / "web" / "data" / "backtest_results.json"
@@ -146,7 +146,14 @@ def build_results(trades: list[TradeLeg], start_date: date, end_date: date) -> d
         "generated_at": date.today().isoformat(),
         "backtest_start": start_date.isoformat(),
         "backtest_end": end_date.isoformat(),
-        "budget_per_trade_usd": 100.0,
+        "budget_per_trade_usd": BUDGET_PER_TRADE,
+        "sizing_policy": {
+            "base_budget_per_trade_usd": BUDGET_PER_TRADE,
+            "allocation_weight_range": [0.25, 3.0],
+            "confidence_scale_range": [0.2, 1.0],
+            "skip_when_underfunded": True,
+            "max_observed_cost_basis_usd": round(max((t.cost_basis for t in trades), default=0.0), 2),
+        },
         "total_trades": len(trades),
         "winners": len(winners),
         "losers": len(losers),
@@ -194,7 +201,14 @@ def _empty_results(start_date: date, end_date: date) -> dict[str, Any]:
         "generated_at": date.today().isoformat(),
         "backtest_start": start_date.isoformat(),
         "backtest_end": end_date.isoformat(),
-        "budget_per_trade_usd": 100.0,
+        "budget_per_trade_usd": BUDGET_PER_TRADE,
+        "sizing_policy": {
+            "base_budget_per_trade_usd": BUDGET_PER_TRADE,
+            "allocation_weight_range": [0.25, 3.0],
+            "confidence_scale_range": [0.2, 1.0],
+            "skip_when_underfunded": True,
+            "max_observed_cost_basis_usd": 0.0,
+        },
         "total_trades": 0,
         "win_rate": 0.0,
         "total_pnl": 0.0,
