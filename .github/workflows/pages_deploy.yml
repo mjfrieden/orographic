@@ -3,8 +3,6 @@ name: Deploy Orographic Pages
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
     paths:
       - ".github/workflows/pages_deploy.yml"
       - "functions/**"
@@ -40,6 +38,6 @@ jobs:
         run: |
           npx wrangler pages deploy web \
             --project-name orographic \
-            --branch main \
+            --branch "${GITHUB_REF_NAME}" \
             --commit-hash "${GITHUB_SHA}" \
             --commit-message "${GITHUB_SHA}"
