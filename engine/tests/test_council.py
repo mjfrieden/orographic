@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
-from orographic.council import select_board
-from orographic.schemas import ContractCandidate, MarketRegime
+from engine.orographic.council import select_board
+from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 
 def _candidate(symbol: str, option_type: str, score: float) -> ContractCandidate:
@@ -49,15 +50,15 @@ class CouncilTests(unittest.TestCase):
             _candidate("MSFT", "call", 0.88),
             _candidate("NVDA", "put", 0.86),
         ]
-        result = select_board(
-            candidates,
-            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
-            live_size=2,
-        )
+        with mock.patch("engine.orographic.council._fetch_corr_matrix", return_value=None):
+            result = select_board(
+                candidates,
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                live_size=2,
+            )
         self.assertEqual(len(result.live_board), 2)
         self.assertEqual({row.option_type for row in result.live_board}, {"call", "put"})
 
 
 if __name__ == "__main__":
     unittest.main()
-

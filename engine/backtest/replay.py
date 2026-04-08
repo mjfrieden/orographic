@@ -24,6 +24,16 @@ import numpy as np
 import pandas as pd
 
 from engine.orographic.schemas import ContractCandidate, MarketRegime, ScoutSignal
+from engine.orographic.forge import (
+    _breakeven_move_pct,
+    _candidate_moneyness,
+    _find_short_leg,
+    _intrinsic,
+    _long_leg_cap,
+    _net_debit_cap,
+    _projected_move_pct,
+    _spread_cap,
+)
 from engine.orographic.scout import (
     _extract_features,
     _ml_scout_score,
@@ -33,6 +43,7 @@ from engine.orographic.scout import (
     _clip,
     _load_model,
 )
+from engine.orographic.market_data import compute_iv_rank, fetch_risk_free_rate
 from engine.backtest.fetcher import (
     fetch_equity_history,
     friday_of_week,
@@ -53,6 +64,15 @@ def _flatten_columns(df: pd.DataFrame) -> pd.DataFrame:
         df = df.copy()
         df.columns = [col[0] if isinstance(col, tuple) else col for col in df.columns]
     return df
+
+
+def _numeric_series(frame: pd.DataFrame, *names: str, fill_value: float | None = None) -> pd.Series:
+    for name in names:
+        if name in frame.columns:
+            series = pd.to_numeric(frame[name], errors="coerce")
+            return series.fillna(fill_value) if fill_value is not None else series
+    series = pd.Series(index=frame.index, dtype=float)
+    return series.fillna(fill_value) if fill_value is not None else series
 
 
 def build_signal_as_of(
@@ -194,18 +214,27 @@ def forge_candidates_as_of(
     as_of: date,
     options_provider: HistoricalOptionsProvider,
     *,
-    min_abs_delta: float = 0.50,
-    max_abs_delta: float = 0.85,
-    max_premium: float = 20.00,
+    min_abs_delta: float = 0.25,
+    max_abs_delta: float = 0.75,
+    max_premium: float = 4.50,
 ) -> list[ContractCandidate]:
     """
     Generate ContractCandidate objects using real historical chains.
-    Enforces the 'less than $200 total cost' constraint (ask <= 2.00).
+    Reconstructs a live-like Forge pass against historical option chains,
+    including spread-aware debit selection and feasibility filters.
     """
     candidates: list[ContractCandidate] = []
     expiry = friday_of_week(as_of)
     spot = signal.spot
     direction = signal.option_type if hasattr(signal, "option_type") else signal.direction
+    risk_free_rate = fetch_risk_free_rate()
+    net_debit_cap = _net_debit_cap(spot, max_premium)
+    long_leg_cap = _long_leg_cap(net_debit_cap)
+    effective_spread_cap = _spread_cap(spot, 0.18)
+    projected_move = _projected_move_pct(signal, MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"))
+    projected_spot = spot * (1 + projected_move) if direction == "call" else spot * (1 - projected_move)
+    days_to_expiry = max((expiry - as_of).days, 1)
+    time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
 
     chain = options_provider.get_chain(signal.symbol, as_of, fallback_spot=spot, fallback_vol=signal.realized_vol_20d or 0.35)
     if chain.empty:
@@ -216,48 +245,141 @@ def forge_candidates_as_of(
     valid_opts = chain[
         (chain["option_type"] == opt_type_char) &
         (pd.to_datetime(chain["expire_date"]).dt.date == expiry)
-    ]
+    ].copy()
+    if valid_opts.empty:
+        return []
+
+    valid_opts["bid"] = _numeric_series(valid_opts, "bid")
+    valid_opts["ask"] = _numeric_series(valid_opts, "ask")
+    valid_opts["strike"] = _numeric_series(valid_opts, "strike")
+    valid_opts["delta"] = _numeric_series(valid_opts, "delta")
+    valid_opts["impliedVolatility"] = _numeric_series(
+        valid_opts,
+        "implied_volatility",
+        "impliedVolatility",
+        fill_value=signal.realized_vol_20d or 0.35,
+    )
+    valid_opts["open_interest"] = _numeric_series(
+        valid_opts,
+        "open_interest",
+        "openInterest",
+        fill_value=500,
+    )
+    valid_opts["trade_volume"] = _numeric_series(
+        valid_opts,
+        "trade_volume",
+        "volume",
+        fill_value=100,
+    )
+    valid_opts = valid_opts.dropna(subset=["bid", "ask", "strike"]).copy()
+    valid_opts = valid_opts[(valid_opts["bid"] > 0) & (valid_opts["ask"] > 0)].copy()
+    if valid_opts.empty:
+        return []
+
+    short_pool = valid_opts.copy()
+    valid_opts = valid_opts[valid_opts["ask"] <= long_leg_cap].copy()
+    if valid_opts.empty:
+        return []
+
+    mid = (valid_opts["bid"] + valid_opts["ask"]) / 2.0
+    valid_opts = valid_opts[mid > 0].copy()
+    valid_opts["spread_pct"] = (valid_opts["ask"] - valid_opts["bid"]) / ((valid_opts["bid"] + valid_opts["ask"]) / 2.0)
+    valid_opts = valid_opts[valid_opts["spread_pct"] <= effective_spread_cap].copy()
+    if valid_opts.empty:
+        return []
+
+    valid_opts = valid_opts[
+        (valid_opts["open_interest"] >= 150)
+        & (valid_opts["trade_volume"] >= 25)
+    ].copy()
+    if valid_opts.empty:
+        return []
+
+    valid_opts["moneyness"] = valid_opts["strike"].apply(
+        lambda strike: _candidate_moneyness(direction, spot, float(strike))
+    )
+    valid_opts = valid_opts[(valid_opts["moneyness"] >= -0.05) & (valid_opts["moneyness"] <= 0.03)].copy()
+    if valid_opts.empty:
+        return []
+
+    valid_opts["delta"] = valid_opts.apply(
+        lambda row: float(row["delta"]) if pd.notna(row["delta"]) else black_scholes_delta(
+            spot=spot,
+            strike=float(row["strike"]),
+            time_to_expiry_years=time_to_expiry_years,
+            risk_free_rate=risk_free_rate,
+            volatility=max(float(row["impliedVolatility"]), 0.10),
+            option_type=direction,
+        ),
+        axis=1,
+    )
+    valid_opts = valid_opts[valid_opts["delta"].notna()].copy()
+    valid_opts = valid_opts[valid_opts["delta"].abs().between(min_abs_delta, max_abs_delta)].copy()
+    if valid_opts.empty:
+        return []
 
     for _, row in valid_opts.iterrows():
-        ask = float(row.get("ask", 0.0))
-        bid = float(row.get("bid", 0.0))
-        delta = float(row.get("delta", 0.0))
-        vol = float(row.get("implied_volatility", 0.35))
-        strike = float(row.get("strike", 0.0))
+        ask = float(row["ask"])
+        bid = float(row["bid"])
+        delta = float(row["delta"])
+        vol = max(float(row["impliedVolatility"]), 0.10)
+        strike = float(row["strike"])
 
-        if ask <= 0.05 or bid <= 0.0:
-            continue
-        if ask > max_premium:
-            continue
-        if abs(delta) < min_abs_delta or abs(delta) > max_abs_delta:
+        short_leg = _find_short_leg(
+            short_pool,
+            option_type=direction,
+            long_strike=strike,
+            long_delta=delta,
+            spot=spot,
+            time_to_expiry_years=time_to_expiry_years,
+            risk_free_rate=risk_free_rate,
+            max_spread_pct=effective_spread_cap,
+        )
+
+        is_spread = False
+        actual_premium = ask
+        if short_leg is not None:
+            spread_debit = ask - short_leg["bid"]
+            if 0.05 < spread_debit <= net_debit_cap:
+                is_spread = True
+                actual_premium = spread_debit
+        if not is_spread and ask > net_debit_cap:
             continue
 
-        premium = ask
-        mid = (bid + ask) / 2.0
-        spread_pct = (ask - bid) / mid if mid > 0 else 0.20
-        target_iv = 0.35
-        allocation_weight = round(min(max(target_iv / vol, 0.25), 3.0), 4)
+        projected_value = _intrinsic(direction, projected_spot, strike)
+        intrinsic_now = _intrinsic(direction, spot, strike)
+        if is_spread and short_leg is not None:
+            projected_value = max(
+                projected_value - _intrinsic(direction, projected_spot, short_leg["strike"]),
+                0.0,
+            )
+            intrinsic_now = max(
+                intrinsic_now - _intrinsic(direction, spot, short_leg["strike"]),
+                0.0,
+            )
 
-        # Variance Risk Premium (VRP) Check
+        spread_pct = float(row["spread_pct"])
+        expected_return_pct = projected_value / actual_premium - 1.0
+        breakeven_move = _breakeven_move_pct(direction, spot, strike, actual_premium)
+        extrinsic_ratio = max(actual_premium - intrinsic_now, 0.0) / actual_premium if actual_premium > 0 else 1.0
+        allocation_weight = round(min(max(0.35 / vol, 0.25), 3.0), 4)
+        ivr = compute_iv_rank(signal.symbol, vol)
+        ivr_penalty = max(ivr - 0.70, 0.0) * 0.4
         vrp_penalty = max(vol - signal.realized_vol_20d - 0.10, 0.0) * 2.0
-
-        # Forge-style scoring
-        moneyness = (strike / spot - 1.0) if direction == "call" else (1.0 - strike / spot)
-        breakeven_move = ((strike + premium) / spot - 1.0) if direction == "call" else (1.0 - (strike - premium) / spot)
-        projected_move = max(abs(signal.momentum_5d), signal.atr_pct_14d * 1.15, 0.018)
-        intrinsic_now = max(spot - strike, 0.0) if direction == "call" else max(strike - spot, 0.0)
-        extrinsic_ratio = max(premium - intrinsic_now, 0.0) / premium if premium > 0 else 1.0
-        projected_spot = spot * (1 + projected_move) if direction == "call" else spot * (1 - projected_move)
-        projected_value = max(projected_spot - strike, 0.0) if direction == "call" else max(strike - projected_spot, 0.0)
-        expected_return_pct = projected_value / premium - 1.0
-
-        liquidity_score = max(0.0, min(1.0, 0.65 - 0.35 * min(spread_pct / 0.18, 1.0)))
+        liquidity_score = max(0.0, min(1.0,
+            0.45
+            + 0.18 * min(float(row["open_interest"]) / 800.0, 1.0)
+            + 0.18 * min(float(row["trade_volume"]) / 300.0, 1.0)
+            - 0.35 * min(spread_pct / effective_spread_cap, 1.0)
+        ))
         economics_score = max(0.0, min(1.0,
             0.50
             + 0.25 * min(expected_return_pct / 1.5, 1.0)
             + 0.15 * min((projected_move - breakeven_move) / 0.05, 1.0)
             + 0.10 * (1.0 - min(extrinsic_ratio, 1.0))
+            - 0.15 * max(extrinsic_ratio - 0.90, 0.0) / 0.10
             - vrp_penalty
+            - ivr_penalty
         ))
         forge_score = max(0.0, min(1.0,
             0.45 * ((signal.scout_score + 1.0) / 2.0)
@@ -265,7 +387,12 @@ def forge_candidates_as_of(
             + 0.25 * economics_score
         ))
 
-        contract_symbol = f"{signal.symbol}{expiry.strftime('%y%m%d')}{opt_type_char}{int(strike * 1000):08d}"
+        contract_symbol = str(row.get("contractSymbol", "")) or f"{signal.symbol}{expiry.strftime('%y%m%d')}{opt_type_char}{int(strike * 1000):08d}"
+        notes = ["Sourced via OptionsDX Loader"]
+        if is_spread and short_leg is not None:
+            notes.append(
+                f"debit spread selected: {strike:.2f}/{short_leg['strike']:.2f} for premium control"
+            )
 
         candidates.append(ContractCandidate(
             symbol=signal.symbol,
@@ -275,23 +402,29 @@ def forge_candidates_as_of(
             strike=strike,
             bid=bid,
             ask=ask,
-            last=mid,
-            premium=premium,
-            contract_cost=round(premium * 100.0, 2),
+            last=round((bid + ask) / 2.0, 4),
+            premium=ask,
+            contract_cost=round(actual_premium * 100.0, 2),
             spread_pct=round(spread_pct, 4),
-            open_interest=int(row.get("open_interest", 500)),
-            volume=int(row.get("trade_volume", 100)),
+            open_interest=int(float(row["open_interest"])),
+            volume=int(float(row["trade_volume"])),
             implied_volatility=round(vol, 4),
             delta=round(delta, 4),
-            moneyness=round(moneyness, 4),
+            moneyness=round(float(row["moneyness"]), 4),
             projected_move_pct=round(projected_move, 4),
             breakeven_move_pct=round(breakeven_move, 4),
             expected_return_pct=round(expected_return_pct, 4),
             extrinsic_ratio=round(extrinsic_ratio, 4),
             scout_score=signal.scout_score,
             forge_score=round(forge_score, 4),
+            short_strike=round(short_leg["strike"], 4) if short_leg else None,
+            short_ask=round(short_leg["ask"], 4) if short_leg else None,
+            short_bid=round(short_leg["bid"], 4) if short_leg else None,
+            is_spread=is_spread,
+            spread_cost=round(actual_premium, 4),
             allocation_weight=allocation_weight,
-            notes=["Sourced via OptionsDX Loader"],
+            iv_rank=round(ivr, 4),
+            notes=notes,
         ))
 
     candidates.sort(key=lambda c: c.forge_score, reverse=True)

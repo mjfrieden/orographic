@@ -38,27 +38,6 @@ def _bs_price(
     option_type: str = "call",
 ) -> float:
     if spot <= 0 or strike <= 0 or tte <= 0 or vol <= 0:
-        return max(0.0, spot - strike if option_type == "call" else strike - spot)
-    d1 = (math_log(spot / strike) + (rf + 0.5 * vol * vol) * tte) / (vol * sqrt(tte))
-    d2 = d1 - vol * sqrt(tte)
-    if option_type == "call":
-        return max(0.0, spot * _normal_cdf(d1) - strike * exp(-rf * tte) * _normal_cdf(d2))
-    return max(0.0, strike * exp(-rf * tte) * _normal_cdf(-d2) - spot * _normal_cdf(-d1))
-
-
-def _normal_cdf(x: float) -> float:
-    return 0.5 * (1.0 + erf(x / sqrt(2.0)))
-
-
-def _bs_price(
-    spot: float,
-    strike: float,
-    tte: float,
-    vol: float,
-    rf: float = 0.04,
-    option_type: str = "call",
-) -> float:
-    if spot <= 0 or strike <= 0 or tte <= 0 or vol <= 0:
         return 0.0
     d1 = (math_log(spot / strike) + (rf + 0.5 * vol * vol) * tte) / (vol * sqrt(tte))
     d2 = d1 - vol * sqrt(tte)
@@ -133,7 +112,9 @@ def price_trade(
     actual_budget = budget * candidate.allocation_weight * confidence_scale
     
     cost_per_contract = entry_price * 100.0
-    contracts = max(1, int(actual_budget // cost_per_contract))
+    contracts = int(actual_budget // cost_per_contract)
+    if contracts < 1:
+        return None
     cost_basis = cost_per_contract * contracts
 
     # Fetch Friday options chain to find the exit Bid
@@ -152,6 +133,25 @@ def price_trade(
         ]
         if not match.empty:
             exit_price = float(match.iloc[0].get("bid", 0.0))
+            if candidate.is_spread and candidate.short_strike:
+                short_match = chain[
+                    (chain["option_type"] == opt_type_char) &
+                    (pd.to_datetime(chain["expire_date"]).dt.date == expiry_date) &
+                    (round(chain["strike"], 2) == round(float(candidate.short_strike), 2))
+                ]
+                if not short_match.empty:
+                    exit_price = max(0.0, exit_price - float(short_match.iloc[0].get("ask", 0.0)))
+                else:
+                    tte_exit = 1e-6
+                    short_mid = _bs_price(
+                        exit_spot,
+                        float(candidate.short_strike),
+                        tte_exit,
+                        candidate.implied_volatility,
+                        0.04,
+                        candidate.option_type
+                    )
+                    exit_price = max(0.0, exit_price - (short_mid * 1.05))
         else:
             # RUTHLESS REASONING: On Friday close, weeklys are essentially at zero TTE.
             # We use 1e-6 to avoid numerical division errors while stripping away the 'free' 2-day theta.

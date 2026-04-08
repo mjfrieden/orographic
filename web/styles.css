@@ -1317,6 +1317,12 @@ section + section { margin-top: 24px; }
   gap: 24px;
   margin-top: 4px;
 }
+.ops-diagnostics {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 24px;
+  margin-top: 20px;
+}
 .panel-war-table { margin-top: 24px; }
 
 /* ── Rules section ── */
@@ -1492,8 +1498,19 @@ section + section { margin-top: 24px; }
   gap: 12px;
   margin: 20px 0;
 }
+.bt-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin: 0 0 20px;
+}
 @media (max-width: 700px) {
   .bt-stats { grid-template-columns: repeat(2, 1fr); }
+  .bt-meta-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 900px) {
+  .pipeline-grid,
+  .ops-diagnostics { grid-template-columns: 1fr; }
 }
 .bt-stat {
   background: var(--glass-bg);
@@ -1545,6 +1562,9 @@ section + section { margin-top: 24px; }
   font-size: 0.85rem;
   text-align: center;
   padding: 24px;
+}
+.bt-no-data[hidden] {
+  display: none;
 }
 .bt-no-data code {
   background: rgba(255,255,255,0.06);
