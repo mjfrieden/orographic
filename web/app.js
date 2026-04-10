@@ -232,9 +232,15 @@ function renderOrders() {
   tbody.innerHTML = rows
     .map((o) => {
       const isBuy = String(o.side || "").includes("buy");
+      const rejectionReason = String(
+        o.reason_description || o.message || "",
+      ).trim();
+      const contractMeta = rejectionReason
+        ? `<div class="order-status-note" title="${escapeHtml(rejectionReason)}">${escapeHtml(rejectionReason)}</div>`
+        : "";
       return `<tr>
       <td><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
-      <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}</td>
+      <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
       <td class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
       <td class="is-num">${integer(o.quantity)}</td>
       <td class="is-num">${o.price ? money(o.price) : "--"}</td>
