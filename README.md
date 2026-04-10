@@ -114,7 +114,8 @@ The Tradier workflow in this repo currently supports:
 2. Server-side account snapshot via the status route
 3. Server-side option quote refresh for the arena contracts
 4. Server-side option order preview using `preview=true`
-5. Admin-only limit-order live placement gated by explicit confirmation, current live-board membership, and fresh snapshot timing
+5. Admin-only limit-order placement for both entries and manual exits
+6. Live entry placement gated by explicit confirmation phrase, current live-board membership, and fresh snapshot timing
 
 ## Recommended free deployment
 

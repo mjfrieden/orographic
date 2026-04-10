@@ -71,6 +71,15 @@ function sentenceList(notes, fallback) {
   return fallback;
 }
 
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
 // ── Session & Auth ──────────────────────────────────────────────────────────
 
 let SESSION = null;
@@ -625,15 +634,81 @@ async function loadCardRationale(candidate, regime) {
 
 let PENDING_ORDER = null;
 
-function openModal(title, bodyHtml, executeEnabled, orderData) {
+function syncModalExecuteState() {
+  const execBtn = document.getElementById("modal-execute-btn");
+  if (!execBtn) return;
+  if (!PENDING_ORDER) {
+    execBtn.disabled = true;
+    return;
+  }
+  const baseEnabled = Boolean(PENDING_ORDER.executeEnabled);
+  if (!baseEnabled) {
+    execBtn.disabled = true;
+    return;
+  }
+  if (!PENDING_ORDER.requiresLiveConfirmation) {
+    execBtn.disabled = false;
+    return;
+  }
+  const input = document.getElementById("modal-live-confirm-input");
+  const typed = String(input?.value || "").trim();
+  execBtn.disabled = typed !== String(PENDING_ORDER.liveConfirmationPhrase || "").trim();
+}
+
+function executionNotice(submission, isAdmin) {
+  if (!isAdmin) {
+    return "Admin session required to execute broker orders.";
+  }
+  if (submission?.reason) {
+    return submission.reason;
+  }
+  if (submission?.requires_live_confirmation && submission?.live_confirmation_phrase) {
+    return `Type ${submission.live_confirmation_phrase} to transmit this live order.`;
+  }
+  return null;
+}
+
+function submissionDetailHtml(submission, isAdmin) {
+  const note = executionNotice(submission, isAdmin);
+  if (!note) return "";
+  const tone = submission?.allowed && isAdmin ? "var(--teal)" : "var(--text-muted)";
+  return `<p style="font-family:var(--font-data);font-size:.72rem;color:${tone};margin-top:12px;">${escapeHtml(note)}</p>`;
+}
+
+function liveConfirmationHtml(submission, isAdmin) {
+  if (!submission?.requires_live_confirmation || !submission?.allowed || !isAdmin) {
+    return "";
+  }
+  const phrase = escapeHtml(submission.live_confirmation_phrase || "");
+  return `
+    <label class="portal-field" style="margin-top:12px;">
+      <span>Live confirmation phrase</span>
+      <input id="modal-live-confirm-input" type="text" autocomplete="off" spellcheck="false" placeholder="${phrase}" />
+    </label>
+  `;
+}
+
+function openModal(title, bodyHtml, executeEnabled, orderData, options = {}) {
   setText("modal-title", title);
   const body = document.getElementById("modal-body");
   if (body) body.innerHTML = bodyHtml;
   const execBtn = document.getElementById("modal-execute-btn");
-  if (execBtn) execBtn.disabled = !executeEnabled;
+  if (execBtn) {
+    execBtn.textContent = options.executeLabel || "Execute Trade";
+  }
   const msg = document.getElementById("modal-message");
   if (msg) msg.textContent = "";
-  PENDING_ORDER = orderData || null;
+  PENDING_ORDER = orderData
+    ? {
+        ...orderData,
+        executeEnabled,
+        requiresLiveConfirmation: Boolean(options.requiresLiveConfirmation),
+        liveConfirmationPhrase: options.liveConfirmationPhrase || "",
+      }
+    : null;
+  const confirmInput = document.getElementById("modal-live-confirm-input");
+  confirmInput?.addEventListener("input", syncModalExecuteState);
+  syncModalExecuteState();
   const modal = document.getElementById("preview-modal");
   if (modal) modal.hidden = false;
   document.body.style.overflow = "hidden";
@@ -665,7 +740,20 @@ function bindModal() {
       const r = await fetch("/api/tradier/orders", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ ...PENDING_ORDER, preview: false, confirm_live: true }),
+        body: JSON.stringify({
+          option_symbol: PENDING_ORDER.option_symbol,
+          symbol: PENDING_ORDER.symbol,
+          side: PENDING_ORDER.side,
+          quantity: PENDING_ORDER.quantity,
+          type: PENDING_ORDER.type,
+          duration: PENDING_ORDER.duration,
+          price: PENDING_ORDER.price,
+          preview: false,
+          confirm_live: PENDING_ORDER.requiresLiveConfirmation ? true : undefined,
+          live_confirm_phrase: PENDING_ORDER.requiresLiveConfirmation
+            ? String(document.getElementById("modal-live-confirm-input")?.value || "").trim()
+            : undefined,
+        }),
       });
       const data = await r.json();
       if (!r.ok || !data.ok) throw new Error(data.error || `Order failed (${r.status})`);
@@ -685,7 +773,8 @@ function bindModal() {
           ${summaryItemHtml("Price",    money(order.price || PENDING_ORDER.price))}
         </div>`,
         false,
-        null
+        null,
+        { executeLabel: "Execute Trade" }
       );
       // Refresh account after a brief delay
       setTimeout(loadAccount, 1800);
@@ -696,7 +785,12 @@ function bindModal() {
         msg.style.color = "var(--crimson)";
       }
       btn.disabled = false;
-      btn.textContent = "Execute Trade";
+      btn.textContent = PENDING_ORDER?.requiresLiveConfirmation
+        ? "Transmit Live Order"
+        : PENDING_ORDER?.side === "sell_to_close"
+          ? "Close Position"
+          : "Execute Trade";
+      syncModalExecuteState();
     }
   });
 }
@@ -734,9 +828,9 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
 
     const order = data.order || {};
     const elig  = data.eligibility || {};
+    const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
-    const warned = (elig.warnings || []).length;
-    const canExec = isAdmin && !warned;
+    const canExec = Boolean(isAdmin && submission.allowed);
     const estCost = estimateTradeValue(order, qty, price);
     const hasCommission = order.commission !== null
       && order.commission !== undefined
@@ -762,7 +856,8 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
         ${summaryItemHtml("Lane",        lane)}
       </div>
       ${warningHtml}
-      ${!isAdmin ? `<p style="font-family:var(--font-data);font-size:.72rem;color:var(--text-muted);margin-top:12px;">Admin session required to execute.</p>` : ""}
+      ${submissionDetailHtml(submission, isAdmin)}
+      ${liveConfirmationHtml(submission, isAdmin)}
     `;
 
     // Store the pending order so Execute can fire it
@@ -773,16 +868,21 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
       quantity: qty,
       type: "limit",
       duration: "day",
-      price,
+      price: order.price || price,
     };
 
-    openModal("Order Preview", bodyHtml, canExec, pendingOrder);
+    openModal("Order Preview", bodyHtml, canExec, pendingOrder, {
+      executeLabel: submission.requires_live_confirmation ? "Transmit Live Order" : "Execute Trade",
+      requiresLiveConfirmation: submission.requires_live_confirmation,
+      liveConfirmationPhrase: submission.live_confirmation_phrase,
+    });
   } catch (err) {
     openModal(
       "Preview Failed",
       `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
       false,
-      null
+      null,
+      { executeLabel: "Execute Trade" }
     );
   }
 }
@@ -825,9 +925,9 @@ async function handleClosePosition(contractSymbol, qty) {
 
     const order = data.order || {};
     const elig  = data.eligibility || {};
+    const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
-    const warned = (elig.warnings || []).length;
-    const canExec = isAdmin && !warned;
+    const canExec = Boolean(isAdmin && submission.allowed);
     const estProceeds = estimateTradeValue(order, qty, price);
     const hasCommission = order.commission !== null
       && order.commission !== undefined
@@ -851,7 +951,8 @@ async function handleClosePosition(contractSymbol, qty) {
         ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
       </div>
       ${warningHtml}
-      ${!isAdmin ? `<p style="font-family:var(--font-data);font-size:.72rem;color:var(--text-muted);margin-top:12px;">Admin session required to execute.</p>` : ""}
+      ${submissionDetailHtml(submission, isAdmin)}
+      ${liveConfirmationHtml(submission, isAdmin)}
     `;
 
     const pendingOrder = {
@@ -864,13 +965,18 @@ async function handleClosePosition(contractSymbol, qty) {
       price: order.price || price,
     };
 
-    openModal("Close Position Preview", bodyHtml, canExec, pendingOrder);
+    openModal("Close Position Preview", bodyHtml, canExec, pendingOrder, {
+      executeLabel: submission.requires_live_confirmation ? "Transmit Live Order" : "Close Position",
+      requiresLiveConfirmation: submission.requires_live_confirmation,
+      liveConfirmationPhrase: submission.live_confirmation_phrase,
+    });
   } catch (err) {
     openModal(
       "Preview Failed",
       `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
       false,
-      null
+      null,
+      { executeLabel: "Close Position" }
     );
   }
 }
