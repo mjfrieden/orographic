@@ -39,8 +39,10 @@ function formatTs(value) {
   const d = new Date(value);
   if (isNaN(d.getTime())) return String(value);
   return new Intl.DateTimeFormat(undefined, {
-    month: "short", day: "numeric",
-    hour: "numeric", minute: "2-digit",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
     timeZoneName: "short",
   }).format(d);
 }
@@ -61,7 +63,7 @@ function toneClass(value) {
 }
 
 function regimeToneClass(mode) {
-  if (String(mode).toLowerCase() === "risk_on")  return "is-call";
+  if (String(mode).toLowerCase() === "risk_on") return "is-call";
   if (String(mode).toLowerCase() === "risk_off") return "is-put";
   return "is-neutral";
 }
@@ -101,7 +103,10 @@ function bindLogout() {
     btn.disabled = true;
     btn.textContent = "Signing out…";
     try {
-      await fetch("/api/logout", { method: "POST", headers: { "content-type": "application/json" } });
+      await fetch("/api/logout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      });
       window.location.href = "/login";
     } catch (e) {
       btn.disabled = false;
@@ -128,13 +133,13 @@ async function loadAccount() {
     if (data.ok && data.broker) {
       BROKER_STATE = {
         ...BROKER_STATE,
-        configured:         data.broker.configured,
-        mode:               data.broker.mode || data.broker.environment || "offline",
+        configured: data.broker.configured,
+        mode: data.broker.mode || data.broker.environment || "offline",
         liveTradingEnabled: data.broker.liveTradingEnabled,
-        balances:           data.balances || data.broker.balances || null,
-        positions:          data.positions || data.broker.positions || [],
-        orders:             data.orders || data.broker.orders || [],
-        maxContracts:       data.broker.maxContracts || 3,
+        balances: data.balances || data.broker.balances || null,
+        positions: data.positions || data.broker.positions || [],
+        orders: data.orders || data.broker.orders || [],
+        maxContracts: data.broker.maxContracts || 3,
       };
     }
   } catch {
@@ -148,14 +153,15 @@ async function loadAccount() {
 
 function renderRibbon() {
   const bal = BROKER_STATE.balances || {};
-  setText("ribbon-equity",    money(bal.total_equity));
-  setText("ribbon-obp",       money(bal.option_buying_power));
-  setText("ribbon-cash",      money(bal.total_cash));
+  setText("ribbon-equity", money(bal.total_equity));
+  setText("ribbon-obp", money(bal.option_buying_power));
+  setText("ribbon-cash", money(bal.total_cash));
   const pl = bal.close_pl ?? bal.open_pl ?? null;
   const plEl = document.getElementById("ribbon-pl");
   if (plEl) {
     plEl.textContent = pl !== null ? signed(pl) : "--";
-    plEl.className = "ribbon-stat-value" +
+    plEl.className =
+      "ribbon-stat-value" +
       (pl > 0 ? " is-positive" : pl < 0 ? " is-negative" : "");
   }
   setText("ribbon-positions", String(BROKER_STATE.positions.length));
@@ -164,12 +170,18 @@ function renderRibbon() {
   if (modeEl) {
     const m = BROKER_STATE.mode || "offline";
     const label = BROKER_STATE.configured
-      ? (m === "live" ? "LIVE" : "SANDBOX")
+      ? m === "live"
+        ? "LIVE"
+        : "SANDBOX"
       : "OFFLINE";
     modeEl.textContent = label;
-    modeEl.className = "ribbon-mode-pill" +
-      (m === "live" && BROKER_STATE.configured ? " is-live" :
-       BROKER_STATE.configured ? " is-sandbox" : " is-offline");
+    modeEl.className =
+      "ribbon-mode-pill" +
+      (m === "live" && BROKER_STATE.configured
+        ? " is-live"
+        : BROKER_STATE.configured
+          ? " is-sandbox"
+          : " is-offline");
   }
 }
 
@@ -181,17 +193,22 @@ function renderPositions() {
     tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
     return;
   }
-  tbody.innerHTML = rows.map((pos) => {
-    const cv  = pos.current_value ?? null;
-    const cb  = pos.cost_basis ?? null;
-    const pl  = cv !== null && cb !== null ? cv - cb : null;
-    const sym = String(pos.symbol || "");
-    const isOpt = sym.length > 6;
-    const tone = isOpt ? (sym.includes("C") ? "is-call-cell" : "is-put-cell") : "";
-    const actionCell = isOpt
-      ? `<button class="mini-action close-position-btn" type="button" data-contract="${sym}" data-qty="${pos.quantity}">Close</button>`
-      : ``;
-    return `<tr>
+  tbody.innerHTML = rows
+    .map((pos) => {
+      const cv = pos.current_value ?? null;
+      const cb = pos.cost_basis ?? null;
+      const pl = cv !== null && cb !== null ? cv - cb : null;
+      const sym = String(pos.symbol || "");
+      const isOpt = sym.length > 6;
+      const tone = isOpt
+        ? sym.includes("C")
+          ? "is-call-cell"
+          : "is-put-cell"
+        : "";
+      const actionCell = isOpt
+        ? `<button class="mini-action close-position-btn" type="button" data-contract="${sym}" data-qty="${pos.quantity}">Close</button>`
+        : ``;
+      return `<tr>
       <td class="${tone}">${sym}</td>
       <td>${integer(pos.quantity)}</td>
       <td class="is-num">${money(cb)}</td>
@@ -200,7 +217,8 @@ function renderPositions() {
       <td>${pos.date_acquired ? pos.date_acquired.slice(0, 10) : "--"}</td>
       <td style="text-align:right;">${actionCell}</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 }
 
 function renderOrders() {
@@ -211,9 +229,10 @@ function renderOrders() {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No recent orders found.</td></tr>`;
     return;
   }
-  tbody.innerHTML = rows.map((o) => {
-    const isBuy = String(o.side || "").includes("buy");
-    return `<tr>
+  tbody.innerHTML = rows
+    .map((o) => {
+      const isBuy = String(o.side || "").includes("buy");
+      return `<tr>
       <td><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
       <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}</td>
       <td class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
@@ -222,7 +241,8 @@ function renderOrders() {
       <td class="is-num">${o.avg_fill_price ? money(o.avg_fill_price) : "--"}</td>
       <td style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
     </tr>`;
-  }).join("");
+    })
+    .join("");
 }
 
 // ── Snapshot / Board ────────────────────────────────────────────────────────
@@ -273,20 +293,55 @@ function scoreBarWidth(score) {
   return `${Math.round(s * 100)}%`;
 }
 
+function brokerMaxContracts() {
+  return Math.max(1, Number(BROKER_STATE.maxContracts) || 1);
+}
+
+function clampQuantity(
+  value,
+  fallback = 1,
+  maxContracts = brokerMaxContracts(),
+) {
+  const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed)) {
+    return Math.min(Math.max(fallback, 1), maxContracts);
+  }
+  return Math.min(Math.max(parsed, 1), maxContracts);
+}
+
+function suggestedEntryQuantity(price, allocWeight) {
+  const contractPrice = Number(price);
+  if (!Number.isFinite(contractPrice) || contractPrice <= 0) {
+    return 1;
+  }
+  const weight = Number(allocWeight) || 1.0;
+  const scaledBudget = Math.min(
+    BASE_BUDGET_USD * weight,
+    HARD_COST_CEILING_USD,
+  );
+  const rawQty = Math.floor(scaledBudget / (contractPrice * 100.0));
+  return clampQuantity(rawQty || 1, 1);
+}
+
 function buildTradeCard(candidate, regime, lane) {
-  const role       = SESSION?.session?.role || "viewer";
-  const isAdmin    = role === "admin";
-  const isLive     = lane === "live";
-  const tone       = toneClass(candidate.option_type);
-  const dir        = candidate.option_type?.toUpperCase();
-  const liveQuote  = LIVE_QUOTES.get(candidate.contract_symbol);
+  const role = SESSION?.session?.role || "viewer";
+  const isAdmin = role === "admin";
+  const isLive = lane === "live";
+  const tone = toneClass(candidate.option_type);
+  const dir = candidate.option_type?.toUpperCase();
+  const liveQuote = LIVE_QUOTES.get(candidate.contract_symbol);
   const displayBid = liveQuote?.bid ?? candidate.bid;
   const displayAsk = liveQuote?.ask ?? candidate.ask ?? candidate.premium;
-  const displayIv  = liveQuote?.greeks?.mid_iv
+  const displayIv = liveQuote?.greeks?.mid_iv
     ? Number(liveQuote.greeks.mid_iv * 100).toFixed(0) + "%"
     : candidate.implied_volatility
       ? Number(candidate.implied_volatility * 100).toFixed(0) + "%"
       : "--";
+  const maxContracts = brokerMaxContracts();
+  const suggestedQty = suggestedEntryQuantity(
+    displayAsk,
+    candidate.allocation_weight || 1.0,
+  );
 
   const card = document.createElement("div");
   card.className = `trade-card ${tone}${!isLive ? " is-shadow" : ""}`;
@@ -358,6 +413,27 @@ function buildTradeCard(candidate, regime, lane) {
         Asking the Council…
       </div>
 
+      <div class="card-order-config">
+        <div class="card-order-copy">
+          <span class="card-stat-label">Order Qty</span>
+          <span class="card-order-note">Cap ${integer(maxContracts)} contract${maxContracts === 1 ? "" : "s"}</span>
+        </div>
+        <div class="card-qty-control">
+          <button class="mini-action card-qty-step" type="button" data-step="-1" aria-label="Decrease quantity">−</button>
+          <input
+            class="card-qty-input"
+            type="number"
+            inputmode="numeric"
+            min="1"
+            max="${maxContracts}"
+            step="1"
+            value="${suggestedQty}"
+            aria-label="Order quantity"
+          />
+          <button class="mini-action card-qty-step" type="button" data-step="1" aria-label="Increase quantity">+</button>
+        </div>
+      </div>
+
       <div class="card-actions">
         <button
           class="primary-action ${tone} card-preview-btn"
@@ -370,7 +446,9 @@ function buildTradeCard(candidate, regime, lane) {
           ${!isLive && BROKER_STATE.mode === "live" ? "disabled title='Live mode only accepts live-board contracts'" : ""}
         >Preview Trade</button>
 
-        ${isAdmin ? `
+        ${
+          isAdmin
+            ? `
         <button
           class="danger-action card-execute-btn"
           type="button"
@@ -381,12 +459,18 @@ function buildTradeCard(candidate, regime, lane) {
           data-alloc="${candidate.allocation_weight || 1.0}"
           ${!isLive && BROKER_STATE.mode === "live" ? "disabled title='Live mode only'" : ""}
         >Execute Trade</button>
-        ` : ""}
+        `
+            : ""
+        }
       </div>
 
-      ${candidate.notes?.length ? `
+      ${
+        candidate.notes?.length
+          ? `
         <p class="card-notes">${candidate.notes.join(" · ")}</p>
-      ` : ""}
+      `
+          : ""
+      }
     </div>
   `;
 
@@ -440,33 +524,66 @@ function renderForgeDiagnostics(payload) {
   const bottlenecksEl = document.getElementById("forge-bottlenecks");
   const forgeDiag = payload?.diagnostics?.forge || {};
   const waterfall = forgeDiag.waterfall || {};
-  const perSymbol = Array.isArray(forgeDiag.per_symbol) ? forgeDiag.per_symbol : [];
-  const passedSignals = perSymbol.filter((row) => Number(row.final_candidates) > 0).length;
+  const perSymbol = Array.isArray(forgeDiag.per_symbol)
+    ? forgeDiag.per_symbol
+    : [];
+  const passedSignals = perSymbol.filter(
+    (row) => Number(row.final_candidates) > 0,
+  ).length;
 
   if (waterfallEl) {
     if (!Object.keys(waterfall).length) {
-      waterfallEl.innerHTML = summaryItemHtml("Status", "No forge diagnostics yet");
+      waterfallEl.innerHTML = summaryItemHtml(
+        "Status",
+        "No forge diagnostics yet",
+      );
     } else {
       waterfallEl.innerHTML = [
         summaryItemHtml("Signals", integer(waterfall.signals_considered)),
-        summaryItemHtml("Chains", `${integer(waterfall.signals_with_chain)} / ${integer(waterfall.signals_with_expiry)}`),
-        summaryItemHtml("Long-Leg Cap", `${integer(waterfall.rows_within_long_leg_cap)} rows`),
-        summaryItemHtml("Spread Cap", `${integer(waterfall.rows_within_spread_cap)} rows`),
-        summaryItemHtml("Liquidity", `${integer(waterfall.rows_passing_liquidity)} rows`),
-        summaryItemHtml("Delta Band", `${integer(waterfall.rows_passing_delta)} rows`),
-        summaryItemHtml("Net Debit", `${integer(waterfall.rows_passing_net_debit)} rows`),
+        summaryItemHtml(
+          "Chains",
+          `${integer(waterfall.signals_with_chain)} / ${integer(waterfall.signals_with_expiry)}`,
+        ),
+        summaryItemHtml(
+          "Long-Leg Cap",
+          `${integer(waterfall.rows_within_long_leg_cap)} rows`,
+        ),
+        summaryItemHtml(
+          "Spread Cap",
+          `${integer(waterfall.rows_within_spread_cap)} rows`,
+        ),
+        summaryItemHtml(
+          "Liquidity",
+          `${integer(waterfall.rows_passing_liquidity)} rows`,
+        ),
+        summaryItemHtml(
+          "Delta Band",
+          `${integer(waterfall.rows_passing_delta)} rows`,
+        ),
+        summaryItemHtml(
+          "Net Debit",
+          `${integer(waterfall.rows_passing_net_debit)} rows`,
+        ),
         summaryItemHtml("Candidates", integer(waterfall.final_candidates)),
-        summaryItemHtml("Pass Rate", ratioOrDash(passedSignals, waterfall.signals_considered)),
+        summaryItemHtml(
+          "Pass Rate",
+          ratioOrDash(passedSignals, waterfall.signals_considered),
+        ),
       ].join("");
     }
   }
 
   if (bottlenecksEl) {
     if (!perSymbol.length) {
-      bottlenecksEl.innerHTML = summaryItemHtml("Status", "No symbol diagnostics yet");
+      bottlenecksEl.innerHTML = summaryItemHtml(
+        "Status",
+        "No symbol diagnostics yet",
+      );
     } else {
       const reasonCounts = perSymbol.reduce((acc, row) => {
-        const reason = row.rejection_reason || (Number(row.final_candidates) > 0 ? "passed" : "unknown");
+        const reason =
+          row.rejection_reason ||
+          (Number(row.final_candidates) > 0 ? "passed" : "unknown");
         if (reason === "passed") return acc;
         acc[reason] = (acc[reason] || 0) + 1;
         return acc;
@@ -474,12 +591,25 @@ function renderForgeDiagnostics(payload) {
       const topReasons = Object.entries(reasonCounts)
         .sort((a, b) => b[1] - a[1])
         .slice(0, 4)
-        .map(([reason, count]) => summaryItemHtml(reason.replaceAll("_", " "), `${count} symbol${count === 1 ? "" : "s"}`));
+        .map(([reason, count]) =>
+          summaryItemHtml(
+            reason.replaceAll("_", " "),
+            `${count} symbol${count === 1 ? "" : "s"}`,
+          ),
+        );
       const topPasses = perSymbol
         .filter((row) => Number(row.final_candidates) > 0)
-        .sort((a, b) => Number(b.final_candidates || 0) - Number(a.final_candidates || 0))
+        .sort(
+          (a, b) =>
+            Number(b.final_candidates || 0) - Number(a.final_candidates || 0),
+        )
         .slice(0, 2)
-        .map((row) => summaryItemHtml(`${row.symbol} passed`, `${integer(row.final_candidates)} candidate${Number(row.final_candidates) === 1 ? "" : "s"}`));
+        .map((row) =>
+          summaryItemHtml(
+            `${row.symbol} passed`,
+            `${integer(row.final_candidates)} candidate${Number(row.final_candidates) === 1 ? "" : "s"}`,
+          ),
+        );
       bottlenecksEl.innerHTML = [...topReasons, ...topPasses].join("");
     }
   }
@@ -490,16 +620,21 @@ async function renderBoard(payload) {
     throw new Error("Invalid or missing council data in snapshot.");
   }
 
-  const live   = payload.council.live_board || [];
+  const live = payload.council.live_board || [];
   const shadow = payload.council.shadow_board || [];
   const summary = payload.council.summary || payload.summary || {};
   const generatedAt = payload.generated_at_utc || payload.timestamp;
 
   // Stale check (4 hours)
-  const isStale = generatedAt && (Date.now() - new Date(generatedAt)) > (4 * 60 * 60 * 1000);
+  const isStale =
+    generatedAt && Date.now() - new Date(generatedAt) > 4 * 60 * 60 * 1000;
   const boardStatusEl = document.getElementById("board-status");
   if (boardStatusEl) {
-    boardStatusEl.textContent = payload.council.abstain ? "Council abstained" : live.length ? "Harbor live" : "Live board quiet";
+    boardStatusEl.textContent = payload.council.abstain
+      ? "Council abstained"
+      : live.length
+        ? "Harbor live"
+        : "Live board quiet";
     if (isStale) {
       boardStatusEl.classList.add("is-stale-text");
       boardStatusEl.title = "Warning: This data is more than 4 hours old.";
@@ -509,17 +644,26 @@ async function renderBoard(payload) {
     }
   }
 
-  setText("board-status-note", sentenceList(summary.notes, "No council notes."));
-  setText("live-count-hud",    integer(payload.council.summary?.live_count));
-  setText("shadow-count-hud",  integer(payload.council.summary?.shadow_count));
+  setText(
+    "board-status-note",
+    sentenceList(summary.notes, "No council notes."),
+  );
+  setText("live-count-hud", integer(payload.council.summary?.live_count));
+  setText("shadow-count-hud", integer(payload.council.summary?.shadow_count));
 
   const regimePill = document.getElementById("regime-pill");
   if (regimePill) {
     regimePill.textContent = `${String(payload.regime.mode).replace("_", " ").toUpperCase()} · bias ${payload.regime.bias}`;
     regimePill.className = `hud-value ${regimeToneClass(payload.regime.mode) === "is-call" ? "" : regimeToneClass(payload.regime.mode)}`;
   }
-  setText("regime-source",      payload.regime.source_symbol || "SPY");
-  setText("regime-source-note", sentenceList(payload.regime.notes, `Watching ${payload.regime.source_symbol || "the market"}.`));
+  setText("regime-source", payload.regime.source_symbol || "SPY");
+  setText(
+    "regime-source-note",
+    sentenceList(
+      payload.regime.notes,
+      `Watching ${payload.regime.source_symbol || "the market"}.`,
+    ),
+  );
 
   const regimeTag = document.getElementById("regime-tag");
   if (regimeTag) {
@@ -536,7 +680,9 @@ async function renderBoard(payload) {
   }
 
   // Prefetch live quotes for all contracts
-  const allContracts = [...live, ...shadow].map((c) => c.contract_symbol).filter(Boolean);
+  const allContracts = [...live, ...shadow]
+    .map((c) => c.contract_symbol)
+    .filter(Boolean);
   await refreshQuotes(allContracts);
 
   // Render live picks
@@ -544,12 +690,19 @@ async function renderBoard(payload) {
   if (liveGrid) {
     liveGrid.innerHTML = "";
     if (!live.length) {
-      liveGrid.appendChild(buildEmptyCard(
-        "Council Abstained",
-        sentenceList(payload.council.summary?.notes, "No contract cleared the live board threshold for this run.")
-      ));
+      liveGrid.appendChild(
+        buildEmptyCard(
+          "Council Abstained",
+          sentenceList(
+            payload.council.summary?.notes,
+            "No contract cleared the live board threshold for this run.",
+          ),
+        ),
+      );
     } else {
-      live.forEach((c) => liveGrid.appendChild(buildTradeCard(c, payload.regime, "live")));
+      live.forEach((c) =>
+        liveGrid.appendChild(buildTradeCard(c, payload.regime, "live")),
+      );
     }
   }
 
@@ -558,46 +711,69 @@ async function renderBoard(payload) {
   if (shadowGrid) {
     shadowGrid.innerHTML = "";
     if (!shadow.length) {
-      shadowGrid.appendChild(buildEmptyCard("Shadow Lane Quiet", "No shadow contracts available for this run."));
+      shadowGrid.appendChild(
+        buildEmptyCard(
+          "Shadow Lane Quiet",
+          "No shadow contracts available for this run.",
+        ),
+      );
     } else {
-      shadow.forEach((c) => shadowGrid.appendChild(buildTradeCard(c, payload.regime, "shadow")));
+      shadow.forEach((c) =>
+        shadowGrid.appendChild(buildTradeCard(c, payload.regime, "shadow")),
+      );
     }
   }
 
   // Scout / Forge / Council pipeline tables
   const scoutBoard = document.getElementById("scout-board");
   if (scoutBoard) {
-    scoutBoard.innerHTML = (payload.scout_signals || []).slice(0, 5).map((row, i) =>
-      rowHtml(
-        `${row.symbol} ${String(row.direction).toUpperCase()} · ${row.scout_score}`,
-        `m5 ${pct(row.momentum_5d)} · m20 ${pct(row.momentum_20d)} · RSI ${row.rsi_14}`,
-        toneClass(row.direction),
-        `Scout ${String(i + 1).padStart(2, "0")}`
-      )
-    ).join("") || `<div class="muted" style="padding:12px;font-family:var(--font-data);font-size:.75rem">No scout signals.</div>`;
+    scoutBoard.innerHTML =
+      (payload.scout_signals || [])
+        .slice(0, 5)
+        .map((row, i) =>
+          rowHtml(
+            `${row.symbol} ${String(row.direction).toUpperCase()} · ${row.scout_score}`,
+            `m5 ${pct(row.momentum_5d)} · m20 ${pct(row.momentum_20d)} · RSI ${row.rsi_14}`,
+            toneClass(row.direction),
+            `Scout ${String(i + 1).padStart(2, "0")}`,
+          ),
+        )
+        .join("") ||
+      `<div class="muted" style="padding:12px;font-family:var(--font-data);font-size:.75rem">No scout signals.</div>`;
   }
 
   const forgeBoard = document.getElementById("forge-board");
   if (forgeBoard) {
-    forgeBoard.innerHTML = (payload.forge_candidates || []).slice(0, 5).map((row, i) =>
-      rowHtml(
-        `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
-        `ask ${money(row.ask ?? row.premium)} · exp ${pct(row.expected_return_pct)} · OI ${integer(row.open_interest)}`,
-        toneClass(row.option_type),
-        `Forge ${String(i + 1).padStart(2, "0")}`
-      )
-    ).join("") || `<div class="muted" style="padding:12px;font-family:var(--font-data);font-size:.75rem">No forge candidates.</div>`;
+    forgeBoard.innerHTML =
+      (payload.forge_candidates || [])
+        .slice(0, 5)
+        .map((row, i) =>
+          rowHtml(
+            `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
+            `ask ${money(row.ask ?? row.premium)} · exp ${pct(row.expected_return_pct)} · OI ${integer(row.open_interest)}`,
+            toneClass(row.option_type),
+            `Forge ${String(i + 1).padStart(2, "0")}`,
+          ),
+        )
+        .join("") ||
+      `<div class="muted" style="padding:12px;font-family:var(--font-data);font-size:.75rem">No forge candidates.</div>`;
   }
 
   const councilSummary = document.getElementById("council-summary");
   if (councilSummary) {
     councilSummary.innerHTML = [
-      summaryItemHtml("Abstain",    payload.council.abstain ? "Yes" : "No"),
-      summaryItemHtml("Live",       integer(payload.council.summary?.live_count)),
-      summaryItemHtml("Shadow",     integer(payload.council.summary?.shadow_count)),
-      summaryItemHtml("Candidates", integer(payload.council.summary?.candidate_count)),
-      summaryItemHtml("Regime",     String(payload.regime.mode).replace("_", " ")),
-      summaryItemHtml("Notes",      sentenceList(payload.council.summary?.notes, "No extra notes.")),
+      summaryItemHtml("Abstain", payload.council.abstain ? "Yes" : "No"),
+      summaryItemHtml("Live", integer(payload.council.summary?.live_count)),
+      summaryItemHtml("Shadow", integer(payload.council.summary?.shadow_count)),
+      summaryItemHtml(
+        "Candidates",
+        integer(payload.council.summary?.candidate_count),
+      ),
+      summaryItemHtml("Regime", String(payload.regime.mode).replace("_", " ")),
+      summaryItemHtml(
+        "Notes",
+        sentenceList(payload.council.summary?.notes, "No extra notes."),
+      ),
     ].join("");
   }
 
@@ -617,22 +793,35 @@ async function renderBoard(payload) {
 }
 
 async function loadCardRationale(candidate, regime) {
-  const id  = `rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}`;
-  const el  = document.getElementById(id);
+  const id = `rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}`;
+  const el = document.getElementById(id);
   if (!el) return;
   const rationale = await fetchRationale(candidate, regime);
   if (el) {
     el.classList.remove("is-loading");
-    el.textContent = rationale || sentenceList(
-      candidate.notes,
-      `${candidate.symbol} ${candidate.option_type} — Forge score ${Number(candidate.forge_score || 0).toFixed(2)}.`
-    );
+    el.textContent =
+      rationale ||
+      sentenceList(
+        candidate.notes,
+        `${candidate.symbol} ${candidate.option_type} — Forge score ${Number(candidate.forge_score || 0).toFixed(2)}.`,
+      );
   }
 }
 
 // ── Order Flow (Preview → Execute) ─────────────────────────────────────────
 
 let PENDING_ORDER = null;
+
+function selectedCardQuantity(button) {
+  const card = button.closest(".trade-card");
+  const input = card?.querySelector(".card-qty-input");
+  if (!input) {
+    return 1;
+  }
+  const qty = clampQuantity(input.value, input.value || 1);
+  input.value = String(qty);
+  return qty;
+}
 
 function syncModalExecuteState() {
   const execBtn = document.getElementById("modal-execute-btn");
@@ -652,7 +841,8 @@ function syncModalExecuteState() {
   }
   const input = document.getElementById("modal-live-confirm-input");
   const typed = String(input?.value || "").trim();
-  execBtn.disabled = typed !== String(PENDING_ORDER.liveConfirmationPhrase || "").trim();
+  execBtn.disabled =
+    typed !== String(PENDING_ORDER.liveConfirmationPhrase || "").trim();
 }
 
 function executionNotice(submission, isAdmin) {
@@ -662,7 +852,10 @@ function executionNotice(submission, isAdmin) {
   if (submission?.reason) {
     return submission.reason;
   }
-  if (submission?.requires_live_confirmation && submission?.live_confirmation_phrase) {
+  if (
+    submission?.requires_live_confirmation &&
+    submission?.live_confirmation_phrase
+  ) {
     return `Type ${submission.live_confirmation_phrase} to transmit this live order.`;
   }
   return null;
@@ -671,12 +864,17 @@ function executionNotice(submission, isAdmin) {
 function submissionDetailHtml(submission, isAdmin) {
   const note = executionNotice(submission, isAdmin);
   if (!note) return "";
-  const tone = submission?.allowed && isAdmin ? "var(--teal)" : "var(--text-muted)";
+  const tone =
+    submission?.allowed && isAdmin ? "var(--teal)" : "var(--text-muted)";
   return `<p style="font-family:var(--font-data);font-size:.72rem;color:${tone};margin-top:12px;">${escapeHtml(note)}</p>`;
 }
 
 function liveConfirmationHtml(submission, isAdmin) {
-  if (!submission?.requires_live_confirmation || !submission?.allowed || !isAdmin) {
+  if (
+    !submission?.requires_live_confirmation ||
+    !submission?.allowed ||
+    !isAdmin
+  ) {
     return "";
   }
   const phrase = escapeHtml(submission.live_confirmation_phrase || "");
@@ -722,92 +920,113 @@ function closeModal() {
 }
 
 function bindModal() {
-  document.getElementById("modal-close-btn")?.addEventListener("click", closeModal);
-  document.getElementById("modal-cancel-btn")?.addEventListener("click", closeModal);
+  document
+    .getElementById("modal-close-btn")
+    ?.addEventListener("click", closeModal);
+  document
+    .getElementById("modal-cancel-btn")
+    ?.addEventListener("click", closeModal);
   document.getElementById("preview-modal")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeModal();
   });
 
-  document.getElementById("modal-execute-btn")?.addEventListener("click", async () => {
-    if (!PENDING_ORDER) return;
-    const btn = document.getElementById("modal-execute-btn");
-    const msg = document.getElementById("modal-message");
-    btn.disabled = true;
-    btn.textContent = "Submitting…";
-    if (msg) msg.textContent = "";
+  document
+    .getElementById("modal-execute-btn")
+    ?.addEventListener("click", async () => {
+      if (!PENDING_ORDER) return;
+      const btn = document.getElementById("modal-execute-btn");
+      const msg = document.getElementById("modal-message");
+      btn.disabled = true;
+      btn.textContent = "Submitting…";
+      if (msg) msg.textContent = "";
 
-    try {
-      const r = await fetch("/api/tradier/orders", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          option_symbol: PENDING_ORDER.option_symbol,
-          symbol: PENDING_ORDER.symbol,
-          side: PENDING_ORDER.side,
-          quantity: PENDING_ORDER.quantity,
-          type: PENDING_ORDER.type,
-          duration: PENDING_ORDER.duration,
-          price: PENDING_ORDER.price,
-          preview: false,
-          confirm_live: PENDING_ORDER.requiresLiveConfirmation ? true : undefined,
-          live_confirm_phrase: PENDING_ORDER.requiresLiveConfirmation
-            ? String(document.getElementById("modal-live-confirm-input")?.value || "").trim()
-            : undefined,
-        }),
-      });
-      const data = await r.json();
-      if (!r.ok || !data.ok) throw new Error(data.error || `Order failed (${r.status})`);
+      try {
+        const r = await fetch("/api/tradier/orders", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            option_symbol: PENDING_ORDER.option_symbol,
+            symbol: PENDING_ORDER.symbol,
+            side: PENDING_ORDER.side,
+            quantity: PENDING_ORDER.quantity,
+            type: PENDING_ORDER.type,
+            duration: PENDING_ORDER.duration,
+            price: PENDING_ORDER.price,
+            preview: false,
+            confirm_live: PENDING_ORDER.requiresLiveConfirmation
+              ? true
+              : undefined,
+            live_confirm_phrase: PENDING_ORDER.requiresLiveConfirmation
+              ? String(
+                  document.getElementById("modal-live-confirm-input")?.value ||
+                    "",
+                ).trim()
+              : undefined,
+          }),
+        });
+        const data = await r.json();
+        if (!r.ok || !data.ok)
+          throw new Error(data.error || `Order failed (${r.status})`);
 
-      const order = data.order || {};
-      if (msg) {
-        msg.textContent = "";
-        msg.style.color = "var(--teal)";
-      }
-      openModal(
-        "Order Submitted",
-        `<div class="summary-box">
-          ${summaryItemHtml("Status",  order.status || "submitted")}
+        const order = data.order || {};
+        if (msg) {
+          msg.textContent = "";
+          msg.style.color = "var(--teal)";
+        }
+        openModal(
+          "Order Submitted",
+          `<div class="summary-box">
+          ${summaryItemHtml("Status", order.status || "submitted")}
           ${summaryItemHtml("Order ID", order.id || "--")}
           ${summaryItemHtml("Contract", data.envelope?.option_symbol || PENDING_ORDER.option_symbol)}
-          ${summaryItemHtml("Qty",      order.quantity || PENDING_ORDER.quantity)}
-          ${summaryItemHtml("Price",    money(order.price || PENDING_ORDER.price))}
+          ${summaryItemHtml("Qty", order.quantity || PENDING_ORDER.quantity)}
+          ${summaryItemHtml("Price", money(order.price || PENDING_ORDER.price))}
         </div>`,
-        false,
-        null,
-        { executeLabel: "Execute Trade" }
-      );
-      // Refresh account after a brief delay
-      setTimeout(loadAccount, 1800);
-    } catch (err) {
-      const msg = document.getElementById("modal-message");
-      if (msg) {
-        msg.textContent = String(err.message || err);
-        msg.style.color = "var(--crimson)";
+          false,
+          null,
+          { executeLabel: "Execute Trade" },
+        );
+        // Refresh account after a brief delay
+        setTimeout(loadAccount, 1800);
+      } catch (err) {
+        const msg = document.getElementById("modal-message");
+        if (msg) {
+          msg.textContent = String(err.message || err);
+          msg.style.color = "var(--crimson)";
+        }
+        btn.disabled = false;
+        btn.textContent = PENDING_ORDER?.requiresLiveConfirmation
+          ? "Transmit Live Order"
+          : PENDING_ORDER?.side === "sell_to_close"
+            ? "Close Position"
+            : "Execute Trade";
+        syncModalExecuteState();
       }
-      btn.disabled = false;
-      btn.textContent = PENDING_ORDER?.requiresLiveConfirmation
-        ? "Transmit Live Order"
-        : PENDING_ORDER?.side === "sell_to_close"
-          ? "Close Position"
-          : "Execute Trade";
-      syncModalExecuteState();
-    }
-  });
+    });
 }
 
-async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocWeight) {
-  const msg = document.getElementById("modal-message");
-  openModal("Requesting Preview…", `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`, false, null);
+async function handlePreview(
+  contractSymbol,
+  underlyingSymbol,
+  lane,
+  ask,
+  allocWeight,
+  requestedQty,
+) {
+  openModal(
+    "Requesting Preview…",
+    `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`,
+    false,
+    null,
+  );
 
   try {
     const price = Number(ask) || 0.01;
-    // Volatility-scaled position sizing with a separate hard ceiling.
     const weight = Number(allocWeight) || 1.0;
-    const scaledBudget = Math.min(BASE_BUDGET_USD * weight, HARD_COST_CEILING_USD);
-    const qty = Math.floor(scaledBudget / (price * 100.0));
-    if (qty < 1) {
-      throw new Error(`Contract exceeds the current sizing envelope (${money(scaledBudget)} max).`);
-    }
+    const qty = clampQuantity(
+      requestedQty,
+      suggestedEntryQuantity(price, weight),
+    );
 
     const r = await fetch("/api/tradier/orders", {
       method: "POST",
@@ -824,36 +1043,41 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
       }),
     });
     const data = await r.json();
-    if (!r.ok || !data.ok) throw new Error(data.error || `Preview failed (${r.status})`);
+    if (!r.ok || !data.ok)
+      throw new Error(data.error || `Preview failed (${r.status})`);
 
     const order = data.order || {};
-    const elig  = data.eligibility || {};
+    const elig = data.eligibility || {};
     const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
     const canExec = Boolean(isAdmin && submission.allowed);
     const estCost = estimateTradeValue(order, qty, price);
-    const hasCommission = order.commission !== null
-      && order.commission !== undefined
-      && Number.isFinite(Number(order.commission));
+    const hasCommission =
+      order.commission !== null &&
+      order.commission !== undefined &&
+      Number.isFinite(Number(order.commission));
     const commissionText = hasCommission
       ? money(Number(order.commission))
       : "Pending broker preview";
 
-    const warningHtml = (elig.warnings || []).map((w) =>
-      `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
-    ).join("");
+    const warningHtml = (elig.warnings || [])
+      .map(
+        (w) =>
+          `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`,
+      )
+      .join("");
 
     const bodyHtml = `
       <div class="summary-box">
-        ${summaryItemHtml("Contract",    data.envelope?.option_symbol || contractSymbol)}
-        ${summaryItemHtml("Side",        "Buy to Open · Limit")}
+        ${summaryItemHtml("Contract", data.envelope?.option_symbol || contractSymbol)}
+        ${summaryItemHtml("Side", "Buy to Open · Limit")}
         ${summaryItemHtml("Vol Scaling", weight.toFixed(2) + "x")}
-        ${summaryItemHtml("Quantity",    order.quantity || qty)}
+        ${summaryItemHtml("Quantity", order.quantity || qty)}
         ${summaryItemHtml("Limit Price", money(order.price || price))}
-        ${summaryItemHtml("Est. Cost",   estCost !== null ? money(estCost) : "—")}
-        ${summaryItemHtml("Commission",  commissionText)}
-        ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
-        ${summaryItemHtml("Lane",        lane)}
+        ${summaryItemHtml("Est. Cost", estCost !== null ? money(estCost) : "—")}
+        ${summaryItemHtml("Commission", commissionText)}
+        ${summaryItemHtml("Mode", BROKER_STATE.mode?.toUpperCase() || "--")}
+        ${summaryItemHtml("Lane", lane)}
       </div>
       ${warningHtml}
       ${submissionDetailHtml(submission, isAdmin)}
@@ -872,7 +1096,9 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
     };
 
     openModal("Order Preview", bodyHtml, canExec, pendingOrder, {
-      executeLabel: submission.requires_live_confirmation ? "Transmit Live Order" : "Execute Trade",
+      executeLabel: submission.requires_live_confirmation
+        ? "Transmit Live Order"
+        : "Execute Trade",
       requiresLiveConfirmation: submission.requires_live_confirmation,
       liveConfirmationPhrase: submission.live_confirmation_phrase,
     });
@@ -882,14 +1108,28 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
       `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
       false,
       null,
-      { executeLabel: "Execute Trade" }
+      { executeLabel: "Execute Trade" },
     );
   }
 }
 
-async function handleDirectExecute(contractSymbol, underlyingSymbol, lane, ask, allocWeight) {
+async function handleDirectExecute(
+  contractSymbol,
+  underlyingSymbol,
+  lane,
+  ask,
+  allocWeight,
+  requestedQty,
+) {
   // Direct execute: still shows the modal with pre-confirmed execute button
-  await handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocWeight);
+  await handlePreview(
+    contractSymbol,
+    underlyingSymbol,
+    lane,
+    ask,
+    allocWeight,
+    requestedQty,
+  );
   // Auto-enable execute if not already blocked
   const execBtn = document.getElementById("modal-execute-btn");
   if (execBtn && !execBtn.disabled) {
@@ -902,7 +1142,12 @@ async function handleClosePosition(contractSymbol, qty) {
   const underlyingSymbol = match ? match[0] : contractSymbol;
 
   const msg = document.getElementById("modal-message");
-  openModal("Closing Position…", `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`, false, null);
+  openModal(
+    "Closing Position…",
+    `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`,
+    false,
+    null,
+  );
 
   try {
     const price = 0.01; // Will be resolved to bid price on backend
@@ -921,34 +1166,39 @@ async function handleClosePosition(contractSymbol, qty) {
       }),
     });
     const data = await r.json();
-    if (!r.ok || !data.ok) throw new Error(data.error || `Preview failed (${r.status})`);
+    if (!r.ok || !data.ok)
+      throw new Error(data.error || `Preview failed (${r.status})`);
 
     const order = data.order || {};
-    const elig  = data.eligibility || {};
+    const elig = data.eligibility || {};
     const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
     const canExec = Boolean(isAdmin && submission.allowed);
     const estProceeds = estimateTradeValue(order, qty, price);
-    const hasCommission = order.commission !== null
-      && order.commission !== undefined
-      && Number.isFinite(Number(order.commission));
+    const hasCommission =
+      order.commission !== null &&
+      order.commission !== undefined &&
+      Number.isFinite(Number(order.commission));
     const commissionText = hasCommission
       ? money(Number(order.commission))
       : "Pending broker preview";
 
-    const warningHtml = (elig.warnings || []).map((w) =>
-      `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`
-    ).join("");
+    const warningHtml = (elig.warnings || [])
+      .map(
+        (w) =>
+          `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`,
+      )
+      .join("");
 
     const bodyHtml = `
       <div class="summary-box">
-        ${summaryItemHtml("Contract",    data.envelope?.option_symbol || contractSymbol)}
-        ${summaryItemHtml("Side",        "Sell to Close · Limit")}
-        ${summaryItemHtml("Quantity",    order.quantity || qty)}
+        ${summaryItemHtml("Contract", data.envelope?.option_symbol || contractSymbol)}
+        ${summaryItemHtml("Side", "Sell to Close · Limit")}
+        ${summaryItemHtml("Quantity", order.quantity || qty)}
         ${summaryItemHtml("Limit Price", money(order.price || price))}
         ${summaryItemHtml("Est. Proceeds", estProceeds !== null ? money(Math.abs(estProceeds)) : "—")}
-        ${summaryItemHtml("Commission",  commissionText)}
-        ${summaryItemHtml("Mode",        BROKER_STATE.mode?.toUpperCase() || "--")}
+        ${summaryItemHtml("Commission", commissionText)}
+        ${summaryItemHtml("Mode", BROKER_STATE.mode?.toUpperCase() || "--")}
       </div>
       ${warningHtml}
       ${submissionDetailHtml(submission, isAdmin)}
@@ -966,7 +1216,9 @@ async function handleClosePosition(contractSymbol, qty) {
     };
 
     openModal("Close Position Preview", bodyHtml, canExec, pendingOrder, {
-      executeLabel: submission.requires_live_confirmation ? "Transmit Live Order" : "Close Position",
+      executeLabel: submission.requires_live_confirmation
+        ? "Transmit Live Order"
+        : "Close Position",
       requiresLiveConfirmation: submission.requires_live_confirmation,
       liveConfirmationPhrase: submission.live_confirmation_phrase,
     });
@@ -976,7 +1228,7 @@ async function handleClosePosition(contractSymbol, qty) {
       `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
       false,
       null,
-      { executeLabel: "Close Position" }
+      { executeLabel: "Close Position" },
     );
   }
 }
@@ -991,6 +1243,25 @@ function bindPositionsTable() {
 }
 
 function bindCardButtons() {
+  document.querySelectorAll(".card-qty-step").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const card = btn.closest(".trade-card");
+      const input = card?.querySelector(".card-qty-input");
+      if (!input) return;
+      const current = Number.parseInt(String(input.value || "1"), 10) || 1;
+      const step = Number(btn.dataset.step) || 0;
+      input.value = String(clampQuantity(current + step, current));
+    });
+  });
+
+  document.querySelectorAll(".card-qty-input").forEach((input) => {
+    input.addEventListener("click", (e) => e.stopPropagation());
+    input.addEventListener("change", () => {
+      input.value = String(clampQuantity(input.value, input.value || 1));
+    });
+  });
+
   document.querySelectorAll(".card-preview-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -999,7 +1270,8 @@ function bindCardButtons() {
         btn.dataset.symbol,
         btn.dataset.lane,
         btn.dataset.ask,
-        btn.dataset.alloc
+        btn.dataset.alloc,
+        selectedCardQuantity(btn),
       );
     });
   });
@@ -1012,7 +1284,8 @@ function bindCardButtons() {
         btn.dataset.symbol,
         btn.dataset.lane,
         btn.dataset.ask,
-        btn.dataset.alloc
+        btn.dataset.alloc,
+        selectedCardQuantity(btn),
       );
     });
   });
@@ -1046,7 +1319,7 @@ function renderEquityCurve(canvas, curve) {
   // Retina / high-DPI
   const dpr = window.devicePixelRatio || 1;
   const rect = canvas.getBoundingClientRect();
-  canvas.width  = rect.width  * dpr;
+  canvas.width = rect.width * dpr;
   canvas.height = rect.height * dpr;
   ctx.scale(dpr, dpr);
 
@@ -1054,15 +1327,19 @@ function renderEquityCurve(canvas, curve) {
   const H = rect.height;
   const PAD = { top: 16, right: 24, bottom: 32, left: 52 };
   const plotW = W - PAD.left - PAD.right;
-  const plotH = H - PAD.top  - PAD.bottom;
+  const plotH = H - PAD.top - PAD.bottom;
 
-  const values = curve.map(pt => pt.cumulative_pnl);
+  const values = curve.map((pt) => pt.cumulative_pnl);
   const minVal = Math.min(0, ...values);
   const maxVal = Math.max(0, ...values);
-  const range  = maxVal - minVal || 1;
+  const range = maxVal - minVal || 1;
 
-  function xOf(i)   { return PAD.left + (i / (values.length - 1)) * plotW; }
-  function yOf(val) { return PAD.top  + plotH - ((val - minVal) / range) * plotH; }
+  function xOf(i) {
+    return PAD.left + (i / (values.length - 1)) * plotW;
+  }
+  function yOf(val) {
+    return PAD.top + plotH - ((val - minVal) / range) * plotH;
+  }
 
   // Zero line
   const zeroY = yOf(0);
@@ -1080,11 +1357,11 @@ function renderEquityCurve(canvas, curve) {
   const grad = ctx.createLinearGradient(0, PAD.top, 0, H - PAD.bottom);
   const positive = lastVal >= 0;
   if (positive) {
-    grad.addColorStop(0,   "rgba(74,216,162,0.35)");
-    grad.addColorStop(1,   "rgba(74,216,162,0.02)");
+    grad.addColorStop(0, "rgba(74,216,162,0.35)");
+    grad.addColorStop(1, "rgba(74,216,162,0.02)");
   } else {
-    grad.addColorStop(0,   "rgba(220,53,69,0.02)");
-    grad.addColorStop(1,   "rgba(220,53,69,0.35)");
+    grad.addColorStop(0, "rgba(220,53,69,0.02)");
+    grad.addColorStop(1, "rgba(220,53,69,0.35)");
   }
 
   ctx.beginPath();
@@ -1102,7 +1379,9 @@ function renderEquityCurve(canvas, curve) {
   ctx.strokeStyle = positive ? "#4ad8a2" : "#dc3545";
   ctx.lineJoin = "round";
   for (let i = 0; i < values.length; i++) {
-    i === 0 ? ctx.moveTo(xOf(i), yOf(values[i])) : ctx.lineTo(xOf(i), yOf(values[i]));
+    i === 0
+      ? ctx.moveTo(xOf(i), yOf(values[i]))
+      : ctx.lineTo(xOf(i), yOf(values[i]));
   }
   ctx.stroke();
 
@@ -1121,8 +1400,12 @@ function renderEquityCurve(canvas, curve) {
   const steps = 4;
   for (let s = 0; s <= steps; s++) {
     const val = minVal + (range / steps) * s;
-    const y   = yOf(val);
-    ctx.fillText(`$${val >= 0 ? "+" : ""}${val.toFixed(0)}`, PAD.left - 6, y + 4);
+    const y = yOf(val);
+    ctx.fillText(
+      `$${val >= 0 ? "+" : ""}${val.toFixed(0)}`,
+      PAD.left - 6,
+      y + 4,
+    );
   }
 
   // X-axis dates (show first and last only)
@@ -1140,8 +1423,16 @@ function renderBacktest(bt) {
     if (noData) noData.hidden = false;
     const sizingPolicy = document.getElementById("bt-sizing-policy");
     const researchNotes = document.getElementById("bt-research-notes");
-    if (sizingPolicy) sizingPolicy.innerHTML = summaryItemHtml("Status", "No backtest sizing data");
-    if (researchNotes) researchNotes.innerHTML = summaryItemHtml("Status", "No backtest methodology data");
+    if (sizingPolicy)
+      sizingPolicy.innerHTML = summaryItemHtml(
+        "Status",
+        "No backtest sizing data",
+      );
+    if (researchNotes)
+      researchNotes.innerHTML = summaryItemHtml(
+        "Status",
+        "No backtest methodology data",
+      );
     return;
   }
 
@@ -1150,18 +1441,18 @@ function renderBacktest(bt) {
     const el = document.getElementById(id);
     if (!el) return;
     el.textContent = text;
-    if (positive === true)  el.classList.add("positive");
+    if (positive === true) el.classList.add("positive");
     if (positive === false) el.classList.add("negative");
   };
 
-  const totalPnl     = Number(bt.total_pnl || 0);
-  const netReturn    = Number(bt.net_return_pct || 0);
-  const sharpe       = Number(bt.sharpe_ratio || 0);
-  const maxDD        = Number(bt.max_drawdown || 0);
-  const winRate      = Number(bt.win_rate || 0);
-  const avgWin       = Number(bt.avg_winner_pct || 0);
-  const avgLoss      = Number(bt.avg_loser_pct || 0);
-  const trades       = Number(bt.total_trades || 0);
+  const totalPnl = Number(bt.total_pnl || 0);
+  const netReturn = Number(bt.net_return_pct || 0);
+  const sharpe = Number(bt.sharpe_ratio || 0);
+  const maxDD = Number(bt.max_drawdown || 0);
+  const winRate = Number(bt.win_rate || 0);
+  const avgWin = Number(bt.avg_winner_pct || 0);
+  const avgLoss = Number(bt.avg_loser_pct || 0);
+  const trades = Number(bt.total_trades || 0);
   const sizingPolicy = bt.sizing_policy || {};
   const coveragePolicy = bt.coverage_policy || {};
   const optionsCoverage = bt.options_data_coverage || {};
@@ -1174,28 +1465,59 @@ function renderBacktest(bt) {
       "3-month backtest",
       "All Forge candidates",
       `base $${Number(bt.budget_per_trade_usd || 0).toFixed(0)} / trade`,
-      bt.hard_cost_ceiling_usd ? `hard cap $${Number(bt.hard_cost_ceiling_usd).toFixed(0)}` : "hard cap disabled",
-      sizingPolicy.skip_when_underfunded ? "underfunded trades skipped" : "forced minimum 1 contract",
+      bt.hard_cost_ceiling_usd
+        ? `hard cap $${Number(bt.hard_cost_ceiling_usd).toFixed(0)}`
+        : "hard cap disabled",
+      sizingPolicy.skip_when_underfunded
+        ? "underfunded trades skipped"
+        : "forced minimum 1 contract",
     ].join(" · ");
   }
 
-  setVal("bt-win-rate",    `${(winRate * 100).toFixed(1)}%`,      winRate >= 0.5);
-  setVal("bt-total-pnl",  `${totalPnl >= 0 ? "+" : ""}$${totalPnl.toFixed(2)}`, totalPnl >= 0);
-  setVal("bt-sharpe",     sharpe.toFixed(2),                      sharpe >= 1.0);
-  setVal("bt-drawdown",   `${(maxDD * 100).toFixed(1)}%`,         maxDD >= -0.10);
-  setVal("bt-avg-win",    `+${(avgWin * 100).toFixed(1)}%`,       true);
-  setVal("bt-avg-loss",   `${(avgLoss * 100).toFixed(1)}%`,       false);
-  setVal("bt-trades",     trades.toLocaleString(),                null);
-  setVal("bt-net-return", `${netReturn >= 0 ? "+" : ""}${(netReturn * 100).toFixed(1)}%`, netReturn >= 0);
+  setVal("bt-win-rate", `${(winRate * 100).toFixed(1)}%`, winRate >= 0.5);
+  setVal(
+    "bt-total-pnl",
+    `${totalPnl >= 0 ? "+" : ""}$${totalPnl.toFixed(2)}`,
+    totalPnl >= 0,
+  );
+  setVal("bt-sharpe", sharpe.toFixed(2), sharpe >= 1.0);
+  setVal("bt-drawdown", `${(maxDD * 100).toFixed(1)}%`, maxDD >= -0.1);
+  setVal("bt-avg-win", `+${(avgWin * 100).toFixed(1)}%`, true);
+  setVal("bt-avg-loss", `${(avgLoss * 100).toFixed(1)}%`, false);
+  setVal("bt-trades", trades.toLocaleString(), null);
+  setVal(
+    "bt-net-return",
+    `${netReturn >= 0 ? "+" : ""}${(netReturn * 100).toFixed(1)}%`,
+    netReturn >= 0,
+  );
 
   if (sizingPolicyEl) {
     sizingPolicyEl.innerHTML = [
       summaryItemHtml("Base Budget", money(bt.budget_per_trade_usd || 0)),
-      summaryItemHtml("Hard Ceiling", bt.hard_cost_ceiling_usd ? money(bt.hard_cost_ceiling_usd) : "Disabled"),
-      summaryItemHtml("Allocation Weight", Array.isArray(sizingPolicy.allocation_weight_range) ? `${sizingPolicy.allocation_weight_range[0]}x to ${sizingPolicy.allocation_weight_range[1]}x` : "—"),
-      summaryItemHtml("Confidence Scale", Array.isArray(sizingPolicy.confidence_scale_range) ? `${sizingPolicy.confidence_scale_range[0]}x to ${sizingPolicy.confidence_scale_range[1]}x` : "—"),
-      summaryItemHtml("Underfunded Trade", sizingPolicy.skip_when_underfunded ? "Skip" : "Force 1 contract"),
-      summaryItemHtml("Max Observed Cost", money(sizingPolicy.max_observed_cost_basis_usd || 0)),
+      summaryItemHtml(
+        "Hard Ceiling",
+        bt.hard_cost_ceiling_usd ? money(bt.hard_cost_ceiling_usd) : "Disabled",
+      ),
+      summaryItemHtml(
+        "Allocation Weight",
+        Array.isArray(sizingPolicy.allocation_weight_range)
+          ? `${sizingPolicy.allocation_weight_range[0]}x to ${sizingPolicy.allocation_weight_range[1]}x`
+          : "—",
+      ),
+      summaryItemHtml(
+        "Confidence Scale",
+        Array.isArray(sizingPolicy.confidence_scale_range)
+          ? `${sizingPolicy.confidence_scale_range[0]}x to ${sizingPolicy.confidence_scale_range[1]}x`
+          : "—",
+      ),
+      summaryItemHtml(
+        "Underfunded Trade",
+        sizingPolicy.skip_when_underfunded ? "Skip" : "Force 1 contract",
+      ),
+      summaryItemHtml(
+        "Max Observed Cost",
+        money(sizingPolicy.max_observed_cost_basis_usd || 0),
+      ),
     ].join("");
   }
 
@@ -1204,11 +1526,23 @@ function renderBacktest(bt) {
       summaryItemHtml("Window", `${bt.backtest_start} to ${bt.backtest_end}`),
       summaryItemHtml("Trades", integer(bt.total_trades)),
       summaryItemHtml("Win Rate", pctOrDash(bt.win_rate)),
-      summaryItemHtml("Sharpe", Number.isFinite(sharpe) ? sharpe.toFixed(2) : "—"),
+      summaryItemHtml(
+        "Sharpe",
+        Number.isFinite(sharpe) ? sharpe.toFixed(2) : "—",
+      ),
       summaryItemHtml("Drawdown", pctOrDash(bt.max_drawdown)),
-      summaryItemHtml("Coverage Gate", coveragePolicy.coverage_failed ? "Failed" : "Passed"),
-      summaryItemHtml("Entry Real", pctOrDash(optionsCoverage.entry_real_trade_pct)),
-      summaryItemHtml("Exit Real", pctOrDash(optionsCoverage.exit_real_trade_pct)),
+      summaryItemHtml(
+        "Coverage Gate",
+        coveragePolicy.coverage_failed ? "Failed" : "Passed",
+      ),
+      summaryItemHtml(
+        "Entry Real",
+        pctOrDash(optionsCoverage.entry_real_trade_pct),
+      ),
+      summaryItemHtml(
+        "Exit Real",
+        pctOrDash(optionsCoverage.exit_real_trade_pct),
+      ),
     ].join("");
   }
 
@@ -1229,9 +1563,10 @@ function renderBacktest(bt) {
     const grid = document.getElementById("bt-symbol-grid");
     if (wrap && grid) {
       wrap.hidden = false;
-      grid.innerHTML = bt.symbol_breakdown.map(row => {
-        const pnlPos = row.total_pnl >= 0;
-        return `
+      grid.innerHTML = bt.symbol_breakdown
+        .map((row) => {
+          const pnlPos = row.total_pnl >= 0;
+          return `
           <div class="bt-sym-card">
             <span class="bt-sym-label">${row.symbol}</span>
             <span class="bt-sym-meta">${row.trades} trades · ${(row.win_rate * 100).toFixed(0)}% win</span>
@@ -1239,7 +1574,8 @@ function renderBacktest(bt) {
               ${pnlPos ? "+" : ""}$${row.total_pnl.toFixed(2)}
             </span>
           </div>`;
-      }).join("");
+        })
+        .join("");
     }
   }
 
@@ -1250,9 +1586,10 @@ function renderBacktest(bt) {
     if (wrap && tbody) {
       wrap.hidden = false;
       const shown = [...bt.all_trades].reverse().slice(0, 30);
-      tbody.innerHTML = shown.map(t => {
-        const pnlPos = t.pnl >= 0;
-        return `
+      tbody.innerHTML = shown
+        .map((t) => {
+          const pnlPos = t.pnl >= 0;
+          return `
           <tr>
             <td>${t.entry_date}</td>
             <td>${t.symbol}</td>
@@ -1263,7 +1600,8 @@ function renderBacktest(bt) {
             <td style="color:${pnlPos ? "var(--green)" : "var(--red)"}">${pnlPos ? "+" : ""}$${t.pnl.toFixed(2)}</td>
             <td style="color:${pnlPos ? "var(--green)" : "var(--red)"}">${(t.pnl_pct * 100).toFixed(0)}%</td>
           </tr>`;
-      }).join("");
+        })
+        .join("");
     }
   }
 }
@@ -1276,9 +1614,10 @@ async function main() {
   SESSION = sessionPayload;
   const userLabel = document.getElementById("session-user");
   if (userLabel) {
-    userLabel.textContent = sessionPayload.authenticated && sessionPayload.session
-      ? `${sessionPayload.session.username} · ${String(sessionPayload.session.role).toUpperCase()}`
-      : "Local preview";
+    userLabel.textContent =
+      sessionPayload.authenticated && sessionPayload.session
+        ? `${sessionPayload.session.username} · ${String(sessionPayload.session.role).toUpperCase()}`
+        : "Local preview";
   }
   bindLogout();
   bindModal();
@@ -1298,7 +1637,9 @@ async function main() {
   }
 
   // Load backtest results (non-blocking — shows placeholder if not yet generated)
-  loadBacktest().then(bt => renderBacktest(bt)).catch(() => {});
+  loadBacktest()
+    .then((bt) => renderBacktest(bt))
+    .catch(() => {});
 }
 
 main();
