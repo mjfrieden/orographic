@@ -23,9 +23,9 @@ from typing import Any
 
 from engine.backtest.fetcher import fetch_equity_history, mondays_in_range
 from engine.backtest.options_provider import HistoricalOptionsProvider
-from engine.backtest.pricer import BUDGET_PER_TRADE, TradeLeg, price_trade
+from engine.backtest.pricer import BUDGET_PER_TRADE, HARD_COST_CEILING_USD, TradeLeg, price_trade
 from engine.backtest.replay import historical_corr_matrix_as_of, replay_week
-from engine.backtest.results import build_results
+from engine.backtest.results import apply_coverage_policy, build_results
 from engine.backtest.runner import _load_universe
 from engine.orographic.council import select_board
 from engine.orographic.schemas import ContractCandidate
@@ -60,26 +60,32 @@ class SymbolPrior:
     score: float
 
 
-VARIANTS: list[VariantConfig] = [
-    VariantConfig(name="baseline_all_candidates", council_only=False),
-    VariantConfig(name="council_only", council_only=True),
-    VariantConfig(name="council_cost_cap", council_only=True, max_estimated_cost_basis=500.0),
-    VariantConfig(
-        name="council_cost_cap_symbol_priors",
-        council_only=True,
-        max_estimated_cost_basis=500.0,
-        use_symbol_priors=True,
-    ),
-]
+def build_variants(cost_cap_usd: float | None) -> list[VariantConfig]:
+    return [
+        VariantConfig(name="baseline_all_candidates", council_only=False),
+        VariantConfig(name="council_only", council_only=True),
+        VariantConfig(name="council_cost_cap", council_only=True, max_estimated_cost_basis=cost_cap_usd),
+        VariantConfig(
+            name="council_cost_cap_symbol_priors",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            use_symbol_priors=True,
+        ),
+    ]
 
 
-def estimated_cost_basis(candidate: ContractCandidate, budget: float = BUDGET_PER_TRADE) -> float | None:
+def estimated_cost_basis(
+    candidate: ContractCandidate,
+    budget: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
+) -> float | None:
     entry_price = candidate.spread_cost if (candidate.is_spread and candidate.spread_cost) else candidate.ask
     if not entry_price or entry_price <= 0:
         return None
 
     confidence_scale = max(0.2, (candidate.scout_score + 1.0) / 2.0)
-    actual_budget = budget * candidate.allocation_weight * confidence_scale
+    target_budget = budget * candidate.allocation_weight * confidence_scale
+    actual_budget = min(target_budget, hard_cost_ceiling) if hard_cost_ceiling is not None else target_budget
     contracts = int(actual_budget // (entry_price * 100.0))
     if contracts < 1:
         return None
@@ -89,6 +95,9 @@ def estimated_cost_basis(candidate: ContractCandidate, budget: float = BUDGET_PE
 def filter_by_cost_basis(
     candidates: list[ContractCandidate],
     max_cost_basis: float | None,
+    *,
+    budget: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
 ) -> tuple[list[ContractCandidate], dict[str, Any]]:
     if max_cost_basis is None:
         return list(candidates), {
@@ -100,7 +109,11 @@ def filter_by_cost_basis(
     kept: list[ContractCandidate] = []
     dropped = 0
     for candidate in candidates:
-        est_cost = estimated_cost_basis(candidate)
+        est_cost = estimated_cost_basis(
+            candidate,
+            budget=budget,
+            hard_cost_ceiling=hard_cost_ceiling,
+        )
         if est_cost is None or est_cost > max_cost_basis:
             dropped += 1
             continue
@@ -205,13 +218,26 @@ def _price_candidates(
     friday: date,
     equity_histories: dict[str, Any],
     options_provider: HistoricalOptionsProvider,
+    *,
+    budget: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
+    strict_options_data: bool = False,
 ) -> list[TradeLeg]:
     legs: list[TradeLeg] = []
     for candidate in candidates:
         hist = equity_histories.get(candidate.symbol)
         if hist is None:
             continue
-        leg = price_trade(candidate, monday, friday, hist, options_provider)
+        leg = price_trade(
+            candidate,
+            monday,
+            friday,
+            hist,
+            options_provider,
+            budget=budget,
+            hard_cost_ceiling=hard_cost_ceiling,
+            strict_options_data=strict_options_data,
+        )
         if leg is not None:
             legs.append(leg)
     return legs
@@ -223,6 +249,11 @@ def run_experiment(
     symbols: list[str],
     output_path: Path,
     force_refresh: bool = False,
+    strict_options_data: bool = False,
+    min_real_coverage_pct: float = 0.0,
+    base_budget_usd: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
+    cost_cap_usd: float | None = HARD_COST_CEILING_USD,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -254,12 +285,21 @@ def run_experiment(
     user_histories = {s: equity_histories[s] for s in symbols if s in equity_histories}
     mondays = mondays_in_range(start_date, end_date)
 
-    variant_trades: dict[str, list[TradeLeg]] = {variant.name: [] for variant in VARIANTS}
-    weekly_diagnostics: dict[str, list[dict[str, Any]]] = {variant.name: [] for variant in VARIANTS}
+    variants = build_variants(cost_cap_usd)
+    variant_trades: dict[str, list[TradeLeg]] = {variant.name: [] for variant in variants}
+    weekly_diagnostics: dict[str, list[dict[str, Any]]] = {variant.name: [] for variant in variants}
     research_trade_history: list[TradeLeg] = []
 
     for monday in mondays:
-        week = replay_week(monday, symbols, user_histories, spy_history, vix_history, options_provider)
+        week = replay_week(
+            monday,
+            symbols,
+            user_histories,
+            spy_history,
+            vix_history,
+            options_provider,
+            strict_options_data=strict_options_data,
+        )
         log.info(
             "Week %s → %d signal(s), %d candidate(s), regime=%s",
             monday,
@@ -268,10 +308,15 @@ def run_experiment(
             week.regime.mode,
         )
 
-        research_candidates, _ = filter_by_cost_basis(week.candidates, 500.0)
+        research_candidates, _ = filter_by_cost_basis(
+            week.candidates,
+            cost_cap_usd,
+            budget=base_budget_usd,
+            hard_cost_ceiling=hard_cost_ceiling_usd,
+        )
         research_priors = build_symbol_priors(research_trade_history, monday)
 
-        for variant in VARIANTS:
+        for variant in variants:
             candidate_pool = list(week.candidates)
             cost_diag = {"kept": len(candidate_pool), "dropped": 0, "max_estimated_cost_basis": None}
             prior_diag = {"boosted_symbols": [], "excluded_symbols": [], "available_priors": 0}
@@ -279,6 +324,8 @@ def run_experiment(
             candidate_pool, cost_diag = filter_by_cost_basis(
                 candidate_pool,
                 variant.max_estimated_cost_basis,
+                budget=base_budget_usd,
+                hard_cost_ceiling=hard_cost_ceiling_usd,
             )
 
             if variant.use_symbol_priors:
@@ -320,6 +367,9 @@ def run_experiment(
                 week.friday,
                 user_histories,
                 options_provider,
+                budget=base_budget_usd,
+                hard_cost_ceiling=hard_cost_ceiling_usd,
+                strict_options_data=strict_options_data,
             )
             variant_trades[variant.name].extend(priced)
 
@@ -349,12 +399,25 @@ def run_experiment(
                 week.friday,
                 user_histories,
                 options_provider,
+                budget=base_budget_usd,
+                hard_cost_ceiling=hard_cost_ceiling_usd,
+                strict_options_data=strict_options_data,
             )
         )
 
     variant_results = {
-        variant.name: build_results(variant_trades[variant.name], start_date, end_date)
-        for variant in VARIANTS
+        variant.name: apply_coverage_policy(
+            build_results(
+                variant_trades[variant.name],
+                start_date,
+                end_date,
+                budget_per_trade_usd=base_budget_usd,
+                hard_cost_ceiling_usd=hard_cost_ceiling_usd,
+            ),
+            strict_options_data=strict_options_data,
+            min_real_coverage_pct=min_real_coverage_pct,
+        )
+        for variant in variants
     }
     summaries = {
         name: {
@@ -375,13 +438,16 @@ def run_experiment(
         "months": months,
         "symbols": symbols,
         "config": {
-            "budget_per_trade_usd": BUDGET_PER_TRADE,
-            "cost_cap_usd": 500.0,
+            "budget_per_trade_usd": base_budget_usd,
+            "hard_cost_ceiling_usd": hard_cost_ceiling_usd,
+            "cost_cap_usd": cost_cap_usd,
             "rolling_prior_lookback_weeks": 12,
             "rolling_prior_min_trades": 5,
             "rolling_prior_top_n": 5,
             "rolling_prior_bottom_n": 5,
             "rolling_prior_boost": 0.03,
+            "strict_options_data": strict_options_data,
+            "min_real_coverage_pct": min_real_coverage_pct,
         },
         "variant_summaries": summaries,
         "variant_results": variant_results,
@@ -419,6 +485,35 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT, help=f"Output JSON path (default: {DEFAULT_OUTPUT})")
     parser.add_argument("--refresh", action="store_true", help="Force re-download of cached equity history")
     parser.add_argument("--end-date", type=str, default=None, help="Override end date (YYYY-MM-DD). Defaults to today.")
+    parser.add_argument(
+        "--strict-options-data",
+        action="store_true",
+        help="Skip trades when real historical option-chain data is unavailable.",
+    )
+    parser.add_argument(
+        "--min-real-coverage-pct",
+        type=float,
+        default=0.0,
+        help="Minimum required fraction of trades priced from real chains at both entry and exit.",
+    )
+    parser.add_argument(
+        "--base-budget-usd",
+        type=float,
+        default=BUDGET_PER_TRADE,
+        help=f"Base per-trade budget before scaling (default: {BUDGET_PER_TRADE:.0f})",
+    )
+    parser.add_argument(
+        "--hard-cost-ceiling-usd",
+        type=float,
+        default=HARD_COST_CEILING_USD,
+        help=f"True hard max cost basis per trade; set <= 0 to disable (default: {HARD_COST_CEILING_USD:.0f})",
+    )
+    parser.add_argument(
+        "--cost-cap-usd",
+        type=float,
+        default=HARD_COST_CEILING_USD,
+        help=f"Estimated cost cap for capped experiment variants; set <= 0 to disable (default: {HARD_COST_CEILING_USD:.0f})",
+    )
     return parser.parse_args()
 
 
@@ -436,6 +531,11 @@ def main() -> None:
         symbols=symbols,
         output_path=args.output,
         force_refresh=args.refresh,
+        strict_options_data=args.strict_options_data,
+        min_real_coverage_pct=max(0.0, min(args.min_real_coverage_pct, 1.0)),
+        base_budget_usd=max(args.base_budget_usd, 0.0),
+        hard_cost_ceiling_usd=args.hard_cost_ceiling_usd if args.hard_cost_ceiling_usd > 0 else None,
+        cost_cap_usd=args.cost_cap_usd if args.cost_cap_usd > 0 else None,
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

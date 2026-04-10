@@ -41,6 +41,26 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
+Build the local historical options store and coverage manifest:
+
+```bash
+./.venv/bin/python -m engine.backtest.options_store --data-dir engine/data/optionsdx --force
+```
+
+The store builder accepts raw `.csv`, `.csv.gz`, `.gz`, and `.zip` archives dropped into `engine/data/optionsdx`.
+
+Run a strict replay that only accepts real historical option-chain data:
+
+```bash
+./.venv/bin/python -m engine.backtest.runner --months 3 --base-budget-usd 300 --hard-cost-ceiling-usd 600 --strict-options-data --min-real-coverage-pct 0.9
+```
+
+Run the walk-forward alpha experiment with the same sizing policy:
+
+```bash
+./.venv/bin/python -m engine.backtest.alpha_experiment --months 12 --base-budget-usd 300 --hard-cost-ceiling-usd 600 --cost-cap-usd 600 --strict-options-data --min-real-coverage-pct 0.9
+```
+
 Preview the game board:
 
 ```bash

@@ -4,6 +4,8 @@
  */
 
 const SNAPSHOT_SOURCE = "./data/latest_run.json";
+const BASE_BUDGET_USD = 300.0;
+const HARD_COST_CEILING_USD = 600.0;
 
 // ── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -705,10 +707,13 @@ async function handlePreview(contractSymbol, underlyingSymbol, lane, ask, allocW
 
   try {
     const price = Number(ask) || 0.01;
-    // Volatility-Scaled position sizing (max $500 per position)
+    // Volatility-scaled position sizing with a separate hard ceiling.
     const weight = Number(allocWeight) || 1.0;
-    const scaledBudget = 500.0 * weight;
-    const qty = Math.max(1, Math.floor(scaledBudget / (price * 100.0)));
+    const scaledBudget = Math.min(BASE_BUDGET_USD * weight, HARD_COST_CEILING_USD);
+    const qty = Math.floor(scaledBudget / (price * 100.0));
+    if (qty < 1) {
+      throw new Error(`Contract exceeds the current sizing envelope (${money(scaledBudget)} max).`);
+    }
 
     const r = await fetch("/api/tradier/orders", {
       method: "POST",
@@ -1052,6 +1057,8 @@ function renderBacktest(bt) {
   const avgLoss      = Number(bt.avg_loser_pct || 0);
   const trades       = Number(bt.total_trades || 0);
   const sizingPolicy = bt.sizing_policy || {};
+  const coveragePolicy = bt.coverage_policy || {};
+  const optionsCoverage = bt.options_data_coverage || {};
   const sizingPolicyEl = document.getElementById("bt-sizing-policy");
   const researchNotesEl = document.getElementById("bt-research-notes");
   const subtitleEl = document.getElementById("bt-section-sub");
@@ -1061,6 +1068,7 @@ function renderBacktest(bt) {
       "3-month backtest",
       "All Forge candidates",
       `base $${Number(bt.budget_per_trade_usd || 0).toFixed(0)} / trade`,
+      bt.hard_cost_ceiling_usd ? `hard cap $${Number(bt.hard_cost_ceiling_usd).toFixed(0)}` : "hard cap disabled",
       sizingPolicy.skip_when_underfunded ? "underfunded trades skipped" : "forced minimum 1 contract",
     ].join(" · ");
   }
@@ -1077,6 +1085,7 @@ function renderBacktest(bt) {
   if (sizingPolicyEl) {
     sizingPolicyEl.innerHTML = [
       summaryItemHtml("Base Budget", money(bt.budget_per_trade_usd || 0)),
+      summaryItemHtml("Hard Ceiling", bt.hard_cost_ceiling_usd ? money(bt.hard_cost_ceiling_usd) : "Disabled"),
       summaryItemHtml("Allocation Weight", Array.isArray(sizingPolicy.allocation_weight_range) ? `${sizingPolicy.allocation_weight_range[0]}x to ${sizingPolicy.allocation_weight_range[1]}x` : "—"),
       summaryItemHtml("Confidence Scale", Array.isArray(sizingPolicy.confidence_scale_range) ? `${sizingPolicy.confidence_scale_range[0]}x to ${sizingPolicy.confidence_scale_range[1]}x` : "—"),
       summaryItemHtml("Underfunded Trade", sizingPolicy.skip_when_underfunded ? "Skip" : "Force 1 contract"),
@@ -1091,6 +1100,9 @@ function renderBacktest(bt) {
       summaryItemHtml("Win Rate", pctOrDash(bt.win_rate)),
       summaryItemHtml("Sharpe", Number.isFinite(sharpe) ? sharpe.toFixed(2) : "—"),
       summaryItemHtml("Drawdown", pctOrDash(bt.max_drawdown)),
+      summaryItemHtml("Coverage Gate", coveragePolicy.coverage_failed ? "Failed" : "Passed"),
+      summaryItemHtml("Entry Real", pctOrDash(optionsCoverage.entry_real_trade_pct)),
+      summaryItemHtml("Exit Real", pctOrDash(optionsCoverage.exit_real_trade_pct)),
     ].join("");
   }
 

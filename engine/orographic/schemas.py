@@ -65,6 +65,8 @@ class ContractCandidate:
     spread_cost: float | None = None
     allocation_weight: float = 1.0
     iv_rank: float = 0.5          # IV Rank percentile [0, 1]; 0=IV low, 1=IV high-cycle
+    entry_data_source: str = "real_chain"
+    entry_quote_type: str = "ask"
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -85,4 +87,3 @@ class CouncilResult:
             "abstain": self.abstain,
             "summary": self.summary,
         }
-

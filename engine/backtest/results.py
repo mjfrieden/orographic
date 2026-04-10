@@ -9,6 +9,7 @@ Aggregates TradeLeg records from the backtest into:
 """
 from __future__ import annotations
 
+from collections import Counter
 import json
 import math
 from dataclasses import asdict
@@ -16,7 +17,7 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
-from .pricer import BUDGET_PER_TRADE, TradeLeg
+from .pricer import BUDGET_PER_TRADE, HARD_COST_CEILING_USD, TradeLeg
 
 # Default output location — sits alongside latest_run.json
 DEFAULT_OUTPUT = Path(__file__).parents[2] / "web" / "data" / "backtest_results.json"
@@ -63,15 +64,48 @@ def _max_drawdown(equity_curve: list[float]) -> float:
     return round(max_dd, 4)
 
 
+def apply_coverage_policy(
+    results: dict[str, Any],
+    *,
+    strict_options_data: bool = False,
+    min_real_coverage_pct: float = 0.0,
+) -> dict[str, Any]:
+    coverage = results.get("options_data_coverage", {})
+    entry_real_trade_pct = float(coverage.get("entry_real_trade_pct", 0.0))
+    exit_real_trade_pct = float(coverage.get("exit_real_trade_pct", 0.0))
+    coverage_failed = (
+        min_real_coverage_pct > 0
+        and (entry_real_trade_pct < min_real_coverage_pct or exit_real_trade_pct < min_real_coverage_pct)
+    )
+    results["coverage_policy"] = {
+        "strict_options_data": strict_options_data,
+        "min_real_coverage_pct": min_real_coverage_pct,
+        "coverage_failed": coverage_failed,
+    }
+    return results
+
+
 # ── Main aggregator ─────────────────────────────────────────────────────────
 
-def build_results(trades: list[TradeLeg], start_date: date, end_date: date) -> dict[str, Any]:
+def build_results(
+    trades: list[TradeLeg],
+    start_date: date,
+    end_date: date,
+    *,
+    budget_per_trade_usd: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
+) -> dict[str, Any]:
     """
     Convert a flat list of TradeLeg records into a rich results dict suitable
     for JSON serialisation and dashboard display.
     """
     if not trades:
-        return _empty_results(start_date, end_date)
+        return _empty_results(
+            start_date,
+            end_date,
+            budget_per_trade_usd=budget_per_trade_usd,
+            hard_cost_ceiling_usd=hard_cost_ceiling_usd,
+        )
 
     # ── Top-level stats ──
     winners = [t for t in trades if t.pnl > 0]
@@ -114,8 +148,9 @@ def build_results(trades: list[TradeLeg], start_date: date, end_date: date) -> d
             "weekly_return_pct": round(weekly_return, 4),
         })
 
-    # Raw cumulative equity for drawdown calc
-    raw_equity = [0.0] + [pt["cumulative_pnl"] for pt in equity_curve]
+    compounded_equity = [1.0]
+    for weekly_return in weekly_returns:
+        compounded_equity.append(compounded_equity[-1] * (1.0 + weekly_return))
 
     # ── Best / worst trades ──
     sorted_by_pnl = sorted(trades, key=lambda t: t.pnl, reverse=True)
@@ -141,14 +176,25 @@ def build_results(trades: list[TradeLeg], start_date: date, end_date: date) -> d
         }
         for sym, v in sorted(symbol_stats.items(), key=lambda kv: kv[1]["total_pnl"], reverse=True)
     ]
+    entry_source_counts = Counter(t.entry_data_source for t in trades)
+    exit_source_counts = Counter(t.exit_data_source for t in trades)
+    avg_options_data_coverage_pct = _mean([t.options_data_coverage_pct for t in trades])
+    entry_real_trade_pct = sum(1 for t in trades if t.entry_data_source == "real_chain") / len(trades)
+    exit_real_trade_pct = sum(1 for t in trades if t.exit_data_source == "real_chain") / len(trades)
+    fully_real_trade_pct = sum(
+        1 for t in trades
+        if t.entry_data_source == "real_chain" and t.exit_data_source == "real_chain"
+    ) / len(trades)
 
     return {
         "generated_at": date.today().isoformat(),
         "backtest_start": start_date.isoformat(),
         "backtest_end": end_date.isoformat(),
-        "budget_per_trade_usd": BUDGET_PER_TRADE,
+        "budget_per_trade_usd": round(budget_per_trade_usd, 2),
+        "hard_cost_ceiling_usd": round(hard_cost_ceiling_usd, 2) if hard_cost_ceiling_usd is not None else None,
         "sizing_policy": {
-            "base_budget_per_trade_usd": BUDGET_PER_TRADE,
+            "base_budget_per_trade_usd": round(budget_per_trade_usd, 2),
+            "hard_cost_ceiling_usd": round(hard_cost_ceiling_usd, 2) if hard_cost_ceiling_usd is not None else None,
             "allocation_weight_range": [0.25, 3.0],
             "confidence_scale_range": [0.2, 1.0],
             "skip_when_underfunded": True,
@@ -165,7 +211,15 @@ def build_results(trades: list[TradeLeg], start_date: date, end_date: date) -> d
         "total_deployed": round(total_deployed, 2),
         "net_return_pct": round(net_return_pct, 4),
         "sharpe_ratio": _sharpe(weekly_returns),
-        "max_drawdown": _max_drawdown(raw_equity),
+        "max_drawdown": _max_drawdown(compounded_equity),
+        "options_data_coverage": {
+            "avg_options_data_coverage_pct": round(avg_options_data_coverage_pct, 4),
+            "entry_real_trade_pct": round(entry_real_trade_pct, 4),
+            "exit_real_trade_pct": round(exit_real_trade_pct, 4),
+            "fully_real_trade_pct": round(fully_real_trade_pct, 4),
+            "entry_source_counts": dict(sorted(entry_source_counts.items())),
+            "exit_source_counts": dict(sorted(exit_source_counts.items())),
+        },
         "equity_curve": equity_curve,
         "symbol_breakdown": symbol_breakdown,
         "best_trades": best_trades,
@@ -193,27 +247,55 @@ def _trade_to_dict(t: TradeLeg) -> dict[str, Any]:
         "pnl_pct": t.pnl_pct,
         "expired_worthless": t.expired_worthless,
         "forge_score": t.forge_score,
+        "entry_data_source": t.entry_data_source,
+        "exit_data_source": t.exit_data_source,
+        "entry_quote_type": t.entry_quote_type,
+        "exit_quote_type": t.exit_quote_type,
+        "options_data_coverage_pct": t.options_data_coverage_pct,
     }
 
 
-def _empty_results(start_date: date, end_date: date) -> dict[str, Any]:
+def _empty_results(
+    start_date: date,
+    end_date: date,
+    *,
+    budget_per_trade_usd: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
+) -> dict[str, Any]:
     return {
         "generated_at": date.today().isoformat(),
         "backtest_start": start_date.isoformat(),
         "backtest_end": end_date.isoformat(),
-        "budget_per_trade_usd": BUDGET_PER_TRADE,
+        "budget_per_trade_usd": round(budget_per_trade_usd, 2),
+        "hard_cost_ceiling_usd": round(hard_cost_ceiling_usd, 2) if hard_cost_ceiling_usd is not None else None,
         "sizing_policy": {
-            "base_budget_per_trade_usd": BUDGET_PER_TRADE,
+            "base_budget_per_trade_usd": round(budget_per_trade_usd, 2),
+            "hard_cost_ceiling_usd": round(hard_cost_ceiling_usd, 2) if hard_cost_ceiling_usd is not None else None,
             "allocation_weight_range": [0.25, 3.0],
             "confidence_scale_range": [0.2, 1.0],
             "skip_when_underfunded": True,
             "max_observed_cost_basis_usd": 0.0,
         },
         "total_trades": 0,
+        "winners": 0,
+        "losers": 0,
+        "expired_worthless": 0,
         "win_rate": 0.0,
+        "avg_winner_pct": 0.0,
+        "avg_loser_pct": 0.0,
         "total_pnl": 0.0,
+        "total_deployed": 0.0,
+        "net_return_pct": 0.0,
         "sharpe_ratio": 0.0,
         "max_drawdown": 0.0,
+        "options_data_coverage": {
+            "avg_options_data_coverage_pct": 0.0,
+            "entry_real_trade_pct": 0.0,
+            "exit_real_trade_pct": 0.0,
+            "fully_real_trade_pct": 0.0,
+            "entry_source_counts": {},
+            "exit_source_counts": {},
+        },
         "equity_curve": [],
         "symbol_breakdown": [],
         "best_trades": [],
@@ -243,6 +325,9 @@ def print_summary(results: dict[str, Any]) -> None:
     print(f"  Net return:    {results.get('net_return_pct', 0):.1%}")
     print(f"  Sharpe ratio:  {results['sharpe_ratio']:.2f}")
     print(f"  Max drawdown:  {results['max_drawdown']:.1%}")
+    coverage = results.get("options_data_coverage", {})
+    print(f"  Entry real:    {coverage.get('entry_real_trade_pct', 0):.1%}")
+    print(f"  Exit real:     {coverage.get('exit_real_trade_pct', 0):.1%}")
     print()
     if results.get("symbol_breakdown"):
         print("  By symbol:")

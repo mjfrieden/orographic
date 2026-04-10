@@ -1,9 +1,16 @@
 import logging
-import ast
 from datetime import date
 from pathlib import Path
 import pandas as pd
 from math import erf, exp, log as math_log, sqrt
+
+from engine.backtest.options_store import (
+    build_partitioned_store,
+    load_coverage_manifest,
+    manifest_path,
+    partition_file_path,
+    partition_root,
+)
 
 log = logging.getLogger(__name__)
 
@@ -35,13 +42,61 @@ class HistoricalOptionsProvider:
     def __init__(self, data_dir: str | Path):
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
-        self._chain_cache: dict[tuple[date, str], pd.DataFrame | None] = {}
+        self._chain_cache: dict[tuple[date, str], tuple[pd.DataFrame, str]] = {}
+        self.partition_root = partition_root(self.data_dir)
+        self._coverage_manifest = load_coverage_manifest(self.data_dir)
         log.info(f"Initialized HistoricalOptionsProvider at {self.data_dir}")
 
+    def rebuild_store(self, *, force: bool = False) -> dict:
+        manifest = build_partitioned_store(self.data_dir, force=force)
+        self._coverage_manifest = manifest
+        self._chain_cache.clear()
+        return manifest
+
+    def coverage_manifest(self) -> dict | None:
+        if self._coverage_manifest is None and manifest_path(self.data_dir).exists():
+            self._coverage_manifest = load_coverage_manifest(self.data_dir)
+        return self._coverage_manifest
+
+    def has_real_coverage(self, symbol: str, as_of: date) -> bool:
+        manifest = self.coverage_manifest()
+        symbol = symbol.upper()
+        if manifest is not None:
+            date_key = as_of.isoformat()
+            if date_key in manifest.get("quote_dates", {}):
+                return symbol in manifest["quote_dates"][date_key].get("symbols", [])
+            return False
+        return partition_file_path(self.data_dir, as_of, symbol).exists()
+
     def get_chain(self, symbol: str, as_of: date, fallback_spot: float = 0, fallback_vol: float = 0.35) -> pd.DataFrame:
+        chain, _ = self.get_chain_with_source(
+            symbol,
+            as_of,
+            fallback_spot=fallback_spot,
+            fallback_vol=fallback_vol,
+        )
+        return chain
+
+    def get_chain_with_source(
+        self,
+        symbol: str,
+        as_of: date,
+        fallback_spot: float = 0,
+        fallback_vol: float = 0.35,
+    ) -> tuple[pd.DataFrame, str]:
         key = (as_of, symbol)
         if key in self._chain_cache:
-            return self._chain_cache[key]
+            cached_chain, cached_source = self._chain_cache[key]
+            return cached_chain.copy(), cached_source
+
+        partition_path = partition_file_path(self.data_dir, as_of, symbol)
+        if partition_path.exists():
+            try:
+                result = pd.read_parquet(partition_path)
+                self._chain_cache[key] = (result.copy(), "real_chain")
+                return result, "real_chain"
+            except Exception as e:
+                log.warning(f"Failed to read partitioned options data {partition_path}: {e}")
 
         # Look for OptionsDX format CSVs containing this date
         # Expected naming: optionsdx_{symbol}.csv or spydx_2026.csv etc
@@ -63,14 +118,18 @@ class HistoricalOptionsProvider:
 
         if frames:
             result = pd.concat(frames)
-            self._chain_cache[key] = result
-            return result
+            self._chain_cache[key] = (result.copy(), "real_chain")
+            return result, "real_chain"
         
         # If no real data, generate a synthetic B-S fallback chain
         if fallback_spot > 0:
-            return self._generate_synthetic_chain(symbol, as_of, fallback_spot, fallback_vol)
+            result = self._generate_synthetic_chain(symbol, as_of, fallback_spot, fallback_vol)
+            self._chain_cache[key] = (result.copy(), "synthetic_chain")
+            return result, "synthetic_chain"
 
-        return pd.DataFrame()
+        empty = pd.DataFrame()
+        self._chain_cache[key] = (empty.copy(), "missing")
+        return empty, "missing"
 
     def _generate_synthetic_chain(self, symbol: str, as_of: date, spot: float, vol: float) -> pd.DataFrame:
         """Synthesizes a chain when real OptionsDX data is absent."""
@@ -122,5 +181,4 @@ class HistoricalOptionsProvider:
                 })
 
         df = pd.DataFrame(rows)
-        self._chain_cache[(as_of, symbol)] = df
         return df
