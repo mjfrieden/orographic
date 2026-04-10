@@ -134,4 +134,4 @@ Even with live trading "activated", the system includes several safety rails:
 1. **Admin Only**: Only users with the `admin` role in `OROGRAPHIC_AUTH_USERS_JSON` can see or use the Execute buttons.
 2. **Confirmation Phrase**: Every live order requires the exact phrase `EXECUTE LIVE TRADE` to be typed into the modal before submission.
 3. **Price Protection**: All orders are submitted as **Limit Orders** using the current Ask (for buys) or Bid (for sells) as the ceiling/floor.
-4. **Freshness Gate**: Orders will be rejected if the underlying signal snapshot (`latest_run.json`) is older than the configured `maxSignalAgeMinutes` (default 4 hours).
+4. **Freshness Gate**: New entries will be rejected if the underlying signal snapshot (`latest_run.json`) is older than the configured `maxSignalAgeMinutes` (default 4 hours). Manual exits remain allowed so positions are not trapped behind stale AI radar.

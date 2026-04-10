@@ -1,6 +1,7 @@
 import {
   buildEligibility,
   buildOrderEnvelope,
+  buildSubmissionPreview,
   describeSnapshot,
   fetchOptionQuote,
   findCandidate,
@@ -21,15 +22,18 @@ import {
  *   preview (bool, required)     – true = preview only, false = place live/sandbox order
  *   option_symbol (string)       – OCC option symbol, e.g. AAPL250411C00185000
  *   symbol (string)              – underlying equity symbol
- *   side (string)                – "buy_to_open" (only supported side)
+ *   side (string)                – "buy_to_open" or "sell_to_close"
  *   quantity (int)               – number of option contracts (capped by env config)
  *   type (string)                – "limit" only
  *   duration (string)            – "day" or "gtc"
  *   price (number)               – limit price
  *   confirm_live (bool)          – must be true for live (non-sandbox) order placement
+ *   live_confirm_phrase (string) – exact phrase required for live order placement
  *
  * Preview: any authenticated session, no snapshot freshness gate.
- * Placement: admin-only, snapshot must be fresh, live mode requires live-board contract.
+ * Placement: admin-only. New entries require a fresh snapshot and, in live mode,
+ * must still be on the live board. Manual exits stay available even if the
+ * snapshot has gone stale.
  */
 export async function onRequestPost(context) {
   const auth = await requireSession(context);
@@ -55,6 +59,7 @@ export async function onRequestPost(context) {
     duration = "day",
     price,
     confirm_live: confirmLive,
+    live_confirm_phrase: liveConfirmPhrase,
   } = body || {};
 
   if (!optionSymbol) {
@@ -97,6 +102,13 @@ export async function onRequestPost(context) {
   const { lane = "unknown", candidate = null } = found || {};
 
   const eligibility = buildEligibility({ config, lane, snapshotInfo });
+  const submission = buildSubmissionPreview({
+    config,
+    session,
+    lane,
+    snapshotInfo,
+    side,
+  });
 
   // ----- PREVIEW path (any authenticated user) -----
   if (isPreview) {
@@ -112,7 +124,7 @@ export async function onRequestPost(context) {
     const envelope = buildOrderEnvelope(
       candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
       quantity,
-      config.mode,
+      config,
       liveQuote,
       side
     );
@@ -125,6 +137,7 @@ export async function onRequestPost(context) {
         order: result.order,
         envelope,
         eligibility,
+        submission,
         rate_limits: result.rateLimits,
       });
     } catch (error) {
@@ -139,7 +152,7 @@ export async function onRequestPost(context) {
   const validation = validateSubmission({ config, session, lane, snapshotInfo, side });
   if (!validation.ok) {
     return jsonResponse(
-      { ok: false, error: validation.error, eligibility },
+      { ok: false, error: validation.error, eligibility, submission },
       validation.status,
     );
   }
@@ -151,6 +164,19 @@ export async function onRequestPost(context) {
         ok: false,
         error: "Live order blocked: confirm_live must be true for live-mode placement.",
         eligibility,
+        submission,
+      },
+      409,
+    );
+  }
+
+  if (config.mode === "live" && String(liveConfirmPhrase || "").trim() !== config.liveConfirmPhrase) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: `Live order blocked: type the exact confirmation phrase "${config.liveConfirmPhrase}".`,
+        eligibility,
+        submission,
       },
       409,
     );
@@ -162,6 +188,7 @@ export async function onRequestPost(context) {
         ok: false,
         error: "Live trading is not enabled. Set TRADIER_LIVE_TRADING_ENABLED=true to arm live orders.",
         eligibility,
+        submission,
       },
       412,
     );
@@ -179,7 +206,7 @@ export async function onRequestPost(context) {
   const envelope = buildOrderEnvelope(
     candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
     quantity,
-    config.mode,
+    config,
     liveQuote,
     side
   );
@@ -193,6 +220,7 @@ export async function onRequestPost(context) {
       confirmation: result.confirmation,
       envelope,
       eligibility,
+      submission,
       rate_limits: result.rateLimits,
     });
   } catch (error) {

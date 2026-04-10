@@ -608,7 +608,9 @@ export async function fetchOptionQuote(config, optionSymbol) {
   };
 }
 
-export function buildOrderEnvelope(candidate, quantity, mode, quote, side = "buy_to_open") {
+export function buildOrderEnvelope(candidate, quantity, config, quote, side = "buy_to_open") {
+  const mode = String(config?.mode || "disabled").toLowerCase();
+  const maxContracts = parsePositiveInt(config?.maxContracts, mode === "live" ? 1 : 3, 1, 10);
   const liveAsk = asNumber(quote?.ask, null);
   const liveBid = asNumber(quote?.bid, null);
   const fallbackAsk = asNumber(candidate?.ask, null);
@@ -629,14 +631,45 @@ export function buildOrderEnvelope(candidate, quantity, mode, quote, side = "buy
     side,
     quantity: parsePositiveInt(
       quantity,
-      mode === "live" ? 1 : 1,
       1,
-      mode === "live" ? 1 : 3,
+      1,
+      maxContracts,
     ),
     type: "limit",
     duration: "day",
     price: Number(referencePrice).toFixed(2),
     tag: `orographic-${mode}-${String(candidate.symbol || "").toLowerCase()}`,
+  };
+}
+
+export function buildSubmissionPreview({
+  config,
+  session,
+  lane,
+  snapshotInfo,
+  side = "buy_to_open",
+}) {
+  const validation = validateSubmission({ config, session, lane, snapshotInfo, side });
+  let allowed = validation.ok;
+  let reason = validation.ok ? null : validation.error;
+
+  if (allowed && config.mode === "live" && !config.liveTradingEnabled) {
+    allowed = false;
+    reason = "Live trading is not enabled. Set TRADIER_LIVE_TRADING_ENABLED=true to arm live orders.";
+  }
+
+  return {
+    allowed,
+    reason,
+    status: validation.ok
+      ? (allowed ? 200 : 412)
+      : validation.status,
+    requires_admin: true,
+    requires_live_confirmation: config.mode === "live",
+    live_confirmation_phrase: config.mode === "live" ? config.liveConfirmPhrase : null,
+    max_contracts: config.maxContracts,
+    mode: config.mode,
+    side,
   };
 }
 

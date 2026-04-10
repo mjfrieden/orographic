@@ -55,6 +55,30 @@ from engine.backtest.options_provider import HistoricalOptionsProvider
 log = logging.getLogger(__name__)
 
 
+def _get_chain_with_source(
+    options_provider: HistoricalOptionsProvider,
+    symbol: str,
+    as_of: date,
+    *,
+    fallback_spot: float,
+    fallback_vol: float,
+) -> tuple[pd.DataFrame, str]:
+    getter = getattr(options_provider, "get_chain_with_source", None)
+    if callable(getter):
+        return getter(
+            symbol,
+            as_of,
+            fallback_spot=fallback_spot,
+            fallback_vol=fallback_vol,
+        )
+    return options_provider.get_chain(
+        symbol,
+        as_of,
+        fallback_spot=fallback_spot,
+        fallback_vol=fallback_vol,
+    ), "real_chain"
+
+
 # ── Column flattening helper ─────────────────────────────────────────────────
 
 
@@ -249,6 +273,7 @@ def forge_candidates_as_of(
     min_abs_delta: float = 0.25,
     max_abs_delta: float = 0.75,
     max_premium: float = 4.50,
+    strict_options_data: bool = False,
 ) -> list[ContractCandidate]:
     """
     Generate ContractCandidate objects using real historical chains.
@@ -268,7 +293,15 @@ def forge_candidates_as_of(
     days_to_expiry = max((expiry - as_of).days, 1)
     time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
 
-    chain = options_provider.get_chain(signal.symbol, as_of, fallback_spot=spot, fallback_vol=signal.realized_vol_20d or 0.35)
+    chain, chain_source = _get_chain_with_source(
+        options_provider,
+        signal.symbol,
+        as_of,
+        fallback_spot=spot,
+        fallback_vol=signal.realized_vol_20d or 0.35,
+    )
+    if strict_options_data and chain_source != "real_chain":
+        return []
     if chain.empty:
         return []
 
@@ -420,7 +453,10 @@ def forge_candidates_as_of(
         ))
 
         contract_symbol = str(row.get("contractSymbol", "")) or f"{signal.symbol}{expiry.strftime('%y%m%d')}{opt_type_char}{int(strike * 1000):08d}"
-        notes = ["Sourced via OptionsDX Loader"]
+        if chain_source == "real_chain":
+            notes = ["Sourced via historical option chain"]
+        else:
+            notes = ["Sourced via synthetic Black-Scholes fallback chain"]
         if is_spread and short_leg is not None:
             notes.append(
                 f"debit spread selected: {strike:.2f}/{short_leg['strike']:.2f} for premium control"
@@ -456,6 +492,8 @@ def forge_candidates_as_of(
             spread_cost=round(actual_premium, 4),
             allocation_weight=allocation_weight,
             iv_rank=round(ivr, 4),
+            entry_data_source=chain_source,
+            entry_quote_type="ask" if chain_source == "real_chain" else "modeled",
             notes=notes,
         ))
 
@@ -479,6 +517,8 @@ def replay_week(
     spy_history: pd.DataFrame,
     vix_history: pd.DataFrame,
     options_provider: HistoricalOptionsProvider,
+    *,
+    strict_options_data: bool = False,
 ) -> WeekReplay:
     """
     Reconstruct what Scout + Forge would have produced on the given Monday.
@@ -504,7 +544,12 @@ def replay_week(
     candidates: list[ContractCandidate] = []
     for sig in signals:
         try:
-            cands = forge_candidates_as_of(sig, monday, options_provider)
+            cands = forge_candidates_as_of(
+                sig,
+                monday,
+                options_provider,
+                strict_options_data=strict_options_data,
+            )
         except Exception as exc:
             log.warning("Forge replay failed for %s on %s: %s", sig.symbol, monday, exc)
             cands = []

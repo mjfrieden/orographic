@@ -22,7 +22,43 @@ from engine.backtest.options_provider import HistoricalOptionsProvider
 
 log = logging.getLogger(__name__)
 
-BUDGET_PER_TRADE = 500.0   # USD — User-specified max position size
+BUDGET_PER_TRADE = 300.0
+HARD_COST_CEILING_USD = 600.0
+
+
+def _source_score(source: str) -> float:
+    return {
+        "real_chain": 1.0,
+        "hybrid": 0.5,
+    }.get(source, 0.0)
+
+
+def _coverage_pct(entry_source: str, exit_source: str) -> float:
+    return round((_source_score(entry_source) + _source_score(exit_source)) / 2.0, 4)
+
+
+def _get_chain_with_source(
+    options_provider: HistoricalOptionsProvider,
+    symbol: str,
+    as_of: date,
+    *,
+    fallback_spot: float,
+    fallback_vol: float,
+) -> tuple[pd.DataFrame, str]:
+    getter = getattr(options_provider, "get_chain_with_source", None)
+    if callable(getter):
+        return getter(
+            symbol,
+            as_of,
+            fallback_spot=fallback_spot,
+            fallback_vol=fallback_vol,
+        )
+    return options_provider.get_chain(
+        symbol,
+        as_of,
+        fallback_spot=fallback_spot,
+        fallback_vol=fallback_vol,
+    ), "real_chain"
 
 
 def _normal_cdf(x: float) -> float:
@@ -72,6 +108,11 @@ class TradeLeg:
     forge_score: float
     scout_score: float
     implied_volatility: float
+    entry_data_source: str = "real_chain"
+    exit_data_source: str = "real_chain"
+    entry_quote_type: str = "ask"
+    exit_quote_type: str = "bid"
+    options_data_coverage_pct: float = 1.0
 
 
 def price_trade(
@@ -81,7 +122,9 @@ def price_trade(
     history_df: pd.DataFrame,
     options_provider: HistoricalOptionsProvider,
     *,
-    budget: float = BUDGET_PER_TRADE,
+    budget: float | None = None,
+    hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
+    strict_options_data: bool = False,
 ) -> TradeLeg | None:
     """
     Compute the P&L for entering a candidate on `monday` and exiting on `friday`.
@@ -104,13 +147,22 @@ def price_trade(
     entry_price = candidate.spread_cost if (candidate.is_spread and candidate.spread_cost) else candidate.ask
     if entry_price <= 0:
         return None
+    entry_data_source = getattr(candidate, "entry_data_source", "real_chain")
+    entry_quote_type = getattr(candidate, "entry_quote_type", "ask")
+    if strict_options_data and entry_data_source != "real_chain":
+        return None
 
     # Contracts: how many fit in the dynamically volatility-scaled budget (minimum 1)
     # RUTHLESS REASONING: We now scale the $500 max by the ML scout_score (Confidence Sizing)
     # Map score [-1, 1] to a [0.2, 1.0] multiplier for the budget.
     confidence_scale = max(0.2, (candidate.scout_score + 1.0) / 2.0)
-    actual_budget = budget * candidate.allocation_weight * confidence_scale
-    
+    base_budget = BUDGET_PER_TRADE if budget is None else max(float(budget), 0.0)
+    effective_hard_ceiling = hard_cost_ceiling
+    if effective_hard_ceiling is not None and effective_hard_ceiling <= 0:
+        effective_hard_ceiling = None
+    target_budget = base_budget * candidate.allocation_weight * confidence_scale
+    actual_budget = min(target_budget, effective_hard_ceiling) if effective_hard_ceiling is not None else target_budget
+
     cost_per_contract = entry_price * 100.0
     contracts = int(actual_budget // cost_per_contract)
     if contracts < 1:
@@ -120,9 +172,20 @@ def price_trade(
     # Fetch Friday options chain to find the exit Bid
     # We fallback to 0.0 (expired worthless) if anything goes wrong
     exit_price = 0.0
-    chain = options_provider.get_chain(candidate.symbol, exit_date, fallback_spot=exit_spot, fallback_vol=candidate.implied_volatility)
+    exit_data_source = "missing"
+    exit_quote_type = "missing"
+    chain, chain_source = _get_chain_with_source(
+        options_provider,
+        candidate.symbol,
+        exit_date,
+        fallback_spot=exit_spot,
+        fallback_vol=candidate.implied_volatility,
+    )
+    if strict_options_data and chain_source != "real_chain":
+        return None
     
     if not chain.empty:
+        exit_data_source = chain_source
         opt_type_char = "C" if candidate.option_type == "call" else "P"
         expiry_date = pd.to_datetime(candidate.expiry).date()
         
@@ -133,6 +196,7 @@ def price_trade(
         ]
         if not match.empty:
             exit_price = float(match.iloc[0].get("bid", 0.0))
+            exit_quote_type = "bid" if chain_source == "real_chain" else "modeled"
             if candidate.is_spread and candidate.short_strike:
                 short_match = chain[
                     (chain["option_type"] == opt_type_char) &
@@ -141,6 +205,7 @@ def price_trade(
                 ]
                 if not short_match.empty:
                     exit_price = max(0.0, exit_price - float(short_match.iloc[0].get("ask", 0.0)))
+                    exit_quote_type = "net_bid_ask" if chain_source == "real_chain" else "modeled"
                 else:
                     tte_exit = 1e-6
                     short_mid = _bs_price(
@@ -152,6 +217,8 @@ def price_trade(
                         candidate.option_type
                     )
                     exit_price = max(0.0, exit_price - (short_mid * 1.05))
+                    exit_data_source = "hybrid" if chain_source == "real_chain" else chain_source
+                    exit_quote_type = "modeled"
         else:
             # RUTHLESS REASONING: On Friday close, weeklys are essentially at zero TTE.
             # We use 1e-6 to avoid numerical division errors while stripping away the 'free' 2-day theta.
@@ -180,11 +247,14 @@ def price_trade(
                 exit_price_short = short_mid * 1.05 # 5% Liquidity Premium (Short Ask to close)
                 
             exit_price = max(0.0, exit_price_long - exit_price_short)
+            exit_data_source = "hybrid" if chain_source == "real_chain" else chain_source
+            exit_quote_type = "modeled"
 
     expired_worthless = exit_price < 0.01
     exit_value = exit_price * 100.0 * contracts
     pnl = exit_value - cost_basis
     pnl_pct = pnl / cost_basis
+    options_data_coverage_pct = _coverage_pct(entry_data_source, exit_data_source)
 
     return TradeLeg(
         symbol=candidate.symbol,
@@ -207,4 +277,9 @@ def price_trade(
         forge_score=candidate.forge_score,
         scout_score=candidate.scout_score,
         implied_volatility=candidate.implied_volatility,
+        entry_data_source=entry_data_source,
+        exit_data_source=exit_data_source,
+        entry_quote_type=entry_quote_type,
+        exit_quote_type=exit_quote_type,
+        options_data_coverage_pct=options_data_coverage_pct,
     )

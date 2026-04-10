@@ -81,11 +81,19 @@ class AlphaExperimentTests(unittest.TestCase):
             scout_score=1.0,
         )
 
-        kept, diag = filter_by_cost_basis([cheap, expensive], 500.0)
+        kept, diag = filter_by_cost_basis(
+            [cheap, expensive],
+            500.0,
+            budget=300.0,
+            hard_cost_ceiling=600.0,
+        )
 
         self.assertEqual([row.symbol for row in kept], ["CHEAP"])
         self.assertEqual(diag["dropped"], 1)
-        self.assertEqual(estimated_cost_basis(expensive), 1500.0)
+        self.assertEqual(
+            estimated_cost_basis(expensive, budget=300.0, hard_cost_ceiling=600.0),
+            600.0,
+        )
 
     def test_apply_symbol_priors_boosts_winners_and_excludes_losers(self) -> None:
         monday = date(2026, 4, 14)

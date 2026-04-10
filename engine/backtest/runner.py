@@ -22,9 +22,15 @@ from engine.backtest.fetcher import (
     fetch_equity_history,
     mondays_in_range,
 )
-from engine.backtest.pricer import price_trade
+from engine.backtest.pricer import BUDGET_PER_TRADE, HARD_COST_CEILING_USD, price_trade
 from engine.backtest.replay import replay_week
-from engine.backtest.results import build_results, print_summary, save_results, DEFAULT_OUTPUT
+from engine.backtest.results import (
+    DEFAULT_OUTPUT,
+    apply_coverage_policy,
+    build_results,
+    print_summary,
+    save_results,
+)
 from engine.backtest.options_provider import HistoricalOptionsProvider
 
 logging.basicConfig(
@@ -62,6 +68,10 @@ def run(
     symbols: list[str],
     output_path: Path,
     force_refresh: bool = False,
+    strict_options_data: bool = False,
+    min_real_coverage_pct: float = 0.0,
+    base_budget_usd: float = BUDGET_PER_TRADE,
+    hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
 ) -> None:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Backtest window: %s → %s (%d months)", start_date, end_date, months)
@@ -103,7 +113,15 @@ def run(
     for monday in mondays:
         log.info("Replaying week of %s …", monday)
         try:
-            week = replay_week(monday, symbols, user_histories, spy_history, vix_history, options_provider)
+            week = replay_week(
+                monday,
+                symbols,
+                user_histories,
+                spy_history,
+                vix_history,
+                options_provider,
+                strict_options_data=strict_options_data,
+            )
         except Exception as exc:
             log.warning("  replay_week failed: %s", exc)
             continue
@@ -116,7 +134,16 @@ def run(
             if hist is None:
                 continue
             try:
-                leg = price_trade(candidate, monday, week.friday, hist, options_provider)
+                leg = price_trade(
+                    candidate,
+                    monday,
+                    week.friday,
+                    hist,
+                    options_provider,
+                    budget=base_budget_usd,
+                    hard_cost_ceiling=hard_cost_ceiling_usd,
+                    strict_options_data=strict_options_data,
+                )
             except Exception as exc:
                 log.warning("  pricer failed for %s: %s", candidate.symbol, exc)
                 leg = None
@@ -130,7 +157,18 @@ def run(
 
     log.info("Backtest complete — %d trades across %d weeks", len(all_trades), len(mondays))
 
-    results = build_results(all_trades, start_date, end_date)
+    results = build_results(
+        all_trades,
+        start_date,
+        end_date,
+        budget_per_trade_usd=base_budget_usd,
+        hard_cost_ceiling_usd=hard_cost_ceiling_usd,
+    )
+    results = apply_coverage_policy(
+        results,
+        strict_options_data=strict_options_data,
+        min_real_coverage_pct=min_real_coverage_pct,
+    )
     print_summary(results)
     save_results(results, output_path)
 
@@ -148,6 +186,29 @@ def main() -> None:
                         help="Force re-download of cached equity history")
     parser.add_argument("--end-date", type=str, default=None,
                         help="Override end date (YYYY-MM-DD). Defaults to today.")
+    parser.add_argument(
+        "--strict-options-data",
+        action="store_true",
+        help="Skip trades when real historical option-chain data is unavailable.",
+    )
+    parser.add_argument(
+        "--min-real-coverage-pct",
+        type=float,
+        default=0.0,
+        help="Minimum required fraction of trades priced from real chains at both entry and exit.",
+    )
+    parser.add_argument(
+        "--base-budget-usd",
+        type=float,
+        default=BUDGET_PER_TRADE,
+        help=f"Base per-trade budget before scaling (default: {BUDGET_PER_TRADE:.0f})",
+    )
+    parser.add_argument(
+        "--hard-cost-ceiling-usd",
+        type=float,
+        default=HARD_COST_CEILING_USD,
+        help=f"True hard max cost basis per trade; set <= 0 to disable (default: {HARD_COST_CEILING_USD:.0f})",
+    )
     args = parser.parse_args()
 
     end_date = date.fromisoformat(args.end_date) if args.end_date else date.today()
@@ -163,6 +224,10 @@ def main() -> None:
         symbols=symbols,
         output_path=args.output,
         force_refresh=args.refresh,
+        strict_options_data=args.strict_options_data,
+        min_real_coverage_pct=max(0.0, min(args.min_real_coverage_pct, 1.0)),
+        base_budget_usd=max(args.base_budget_usd, 0.0),
+        hard_cost_ceiling_usd=args.hard_cost_ceiling_usd if args.hard_cost_ceiling_usd > 0 else None,
     )
 
 

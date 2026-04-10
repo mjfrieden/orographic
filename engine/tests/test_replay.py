@@ -10,11 +10,21 @@ from engine.orographic.schemas import ScoutSignal
 
 
 class _ReplayProvider:
-    def __init__(self, chain: pd.DataFrame) -> None:
+    def __init__(self, chain: pd.DataFrame, source: str = "real_chain") -> None:
         self.chain = chain
+        self.source = source
 
     def get_chain(self, symbol: str, as_of: date, fallback_spot: float = 0, fallback_vol: float = 0.35) -> pd.DataFrame:
         return self.chain.copy()
+
+    def get_chain_with_source(
+        self,
+        symbol: str,
+        as_of: date,
+        fallback_spot: float = 0,
+        fallback_vol: float = 0.35,
+    ) -> tuple[pd.DataFrame, str]:
+        return self.chain.copy(), self.source
 
 
 def _signal() -> ScoutSignal:
@@ -75,6 +85,32 @@ class ReplayTests(unittest.TestCase):
         self.assertAlmostEqual(candidate.spread_cost or 0.0, 1.8, places=4)
         self.assertEqual(candidate.short_strike, 105.0)
         self.assertEqual(candidate.contract_cost, 180.0)
+        self.assertEqual(candidate.entry_data_source, "real_chain")
+        self.assertEqual(candidate.entry_quote_type, "ask")
+
+    def test_replay_strict_mode_skips_synthetic_chain(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 100.0,
+                    "bid": 5.8,
+                    "ask": 6.0,
+                    "delta": 0.55,
+                    "implied_volatility": 0.30,
+                    "open_interest": 1200,
+                    "trade_volume": 400,
+                }
+            ]
+        )
+        candidates = forge_candidates_as_of(
+            _signal(),
+            date(2026, 4, 6),
+            _ReplayProvider(chain, source="synthetic_chain"),
+            strict_options_data=True,
+        )
+        self.assertEqual(candidates, [])
 
 
 if __name__ == "__main__":

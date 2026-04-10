@@ -15,11 +15,21 @@ class _EmptyChainProvider:
 
 
 class _SpreadQuoteProvider:
-    def __init__(self, chain: pd.DataFrame) -> None:
+    def __init__(self, chain: pd.DataFrame, source: str = "real_chain") -> None:
         self.chain = chain
+        self.source = source
 
     def get_chain(self, symbol: str, as_of: date, fallback_spot: float = 0, fallback_vol: float = 0.35) -> pd.DataFrame:
         return self.chain.copy()
+
+    def get_chain_with_source(
+        self,
+        symbol: str,
+        as_of: date,
+        fallback_spot: float = 0,
+        fallback_vol: float = 0.35,
+    ) -> tuple[pd.DataFrame, str]:
+        return self.chain.copy(), self.source
 
 
 def _history() -> pd.DataFrame:
@@ -73,6 +83,21 @@ class PricerTests(unittest.TestCase):
         )
         self.assertIsNone(leg)
 
+    def test_price_trade_respects_true_hard_cost_ceiling(self) -> None:
+        leg = price_trade(
+            _candidate(ask=1.0, premium=1.0, contract_cost=100.0, allocation_weight=3.0),
+            date(2026, 4, 6),
+            date(2026, 4, 10),
+            _history(),
+            _SpreadQuoteProvider(pd.DataFrame()),
+            budget=300.0,
+            hard_cost_ceiling=600.0,
+        )
+        self.assertIsNotNone(leg)
+        assert leg is not None
+        self.assertEqual(leg.contracts, 6)
+        self.assertAlmostEqual(leg.cost_basis, 600.0, places=2)
+
     def test_price_trade_marks_spread_exit_net_of_short_leg(self) -> None:
         chain = pd.DataFrame(
             [
@@ -110,9 +135,34 @@ class PricerTests(unittest.TestCase):
         )
         self.assertIsNotNone(leg)
         assert leg is not None
-        self.assertEqual(leg.contracts, 3)
+        self.assertEqual(leg.contracts, 2)
         self.assertAlmostEqual(leg.exit_price, 4.5, places=4)
-        self.assertAlmostEqual(leg.exit_value, 1350.0, places=2)
+        self.assertAlmostEqual(leg.exit_value, 900.0, places=2)
+        self.assertEqual(leg.entry_data_source, "real_chain")
+        self.assertEqual(leg.exit_data_source, "real_chain")
+        self.assertEqual(leg.options_data_coverage_pct, 1.0)
+
+    def test_price_trade_strict_mode_skips_synthetic_exit_data(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 100.0,
+                    "bid": 10.0,
+                    "ask": 10.3,
+                },
+            ]
+        )
+        leg = price_trade(
+            _candidate(ask=2.0, premium=2.0, contract_cost=200.0),
+            date(2026, 4, 6),
+            date(2026, 4, 10),
+            _history(),
+            _SpreadQuoteProvider(chain, source="synthetic_chain"),
+            strict_options_data=True,
+        )
+        self.assertIsNone(leg)
 
 
 if __name__ == "__main__":

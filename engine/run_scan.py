@@ -3,8 +3,12 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from pathlib import Path
 
-from orographic.pipeline import PipelineConfig, load_universe, run_scan, write_snapshot
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from engine.orographic.pipeline import PipelineConfig, load_universe, run_scan, write_snapshot
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,4 +61,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-
