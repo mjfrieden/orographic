@@ -42,18 +42,23 @@ log = logging.getLogger(__name__)
 MODEL_DIR = Path(__file__).parent / "orographic" / "models"
 MODEL_PATH = MODEL_DIR / "scout_model.pkl"
 SCALER_PATH = MODEL_DIR / "scout_scaler.pkl"
+TRAINING_UNIVERSE_FILE = Path(__file__).with_name("sample_universe.txt")
 
-TRAINING_UNIVERSE = [
-    "SPY", "QQQ", "IWM", "AAPL", "MSFT", "NVDA", "GOOGL", "AMZN",
-    "META", "TSLA", "JPM", "BAC", "GS", "V", "MA",
-    "AVGO", "AMD", "INTC", "QCOM", "TXN",
-    "LLY", "UNH", "JNJ", "ABBV", "PFE",
-    "XOM", "CVX", "COP",
-    "COST", "HD", "WMT", "MCD", "NKE",
-    "CRM", "ORCL", "ADBE", "CSCO", "IBM",
-    "BRK-B", "PG", "KO", "PEP",
-    "NFLX", "DIS", "BA", "GE",
-]
+
+def _load_training_universe() -> list[str]:
+    if not TRAINING_UNIVERSE_FILE.exists():
+        raise FileNotFoundError(f"Training universe file not found: {TRAINING_UNIVERSE_FILE}")
+    symbols: list[str] = []
+    for line in TRAINING_UNIVERSE_FILE.read_text(encoding="utf-8").splitlines():
+        cleaned = line.strip().upper()
+        if cleaned and not cleaned.startswith("#"):
+            symbols.append(cleaned)
+    if not symbols:
+        raise ValueError(f"Training universe file is empty: {TRAINING_UNIVERSE_FILE}")
+    return symbols
+
+
+TRAINING_UNIVERSE = _load_training_universe()
 
 
 # ── Feature engineering ──────────────────────────────────────────────────────
@@ -319,7 +324,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train the Orographic Scout ML model")
     parser.add_argument("--years",   type=int, default=2, help="Years of training history (default: 2)")
     parser.add_argument("--symbols", type=str, default=None,
-                        help="Comma-separated symbols to train on (default: full universe)")
+                        help="Comma-separated symbols to train on (default: engine/sample_universe.txt)")
     parser.add_argument("--cutoff",  type=str, default="2026-01-01",
                         help="Cutoff date for training (default: 2026-01-01)")
     args = parser.parse_args()

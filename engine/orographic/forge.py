@@ -125,6 +125,112 @@ def _find_short_leg(
     }
 
 
+def select_signals_for_forge(
+    signals: Iterable[ScoutSignal],
+    *,
+    target_count: int = 6,
+    minimum_days_to_expiry: int = 2,
+    maximum_days_to_expiry: int = 8,
+    max_premium: float = 1.6,
+    max_spread_pct: float = 0.18,
+    min_open_interest: int = 150,
+    min_volume: int = 25,
+    today: date | None = None,
+) -> tuple[list[ScoutSignal], dict[str, object]]:
+    selected: list[ScoutSignal] = []
+    rejections: list[dict[str, object]] = []
+    evaluated = 0
+    signals = list(signals)
+    today = today or date.today()
+
+    for signal in signals:
+        if len(selected) >= target_count:
+            break
+
+        evaluated += 1
+        net_debit_cap = _net_debit_cap(signal.spot, max_premium)
+        long_leg_cap = _long_leg_cap(net_debit_cap)
+        effective_spread_cap = _spread_cap(signal.spot, max_spread_pct)
+        try:
+            expiry = next_expiry(
+                option_expiries(signal.symbol),
+                minimum_days=minimum_days_to_expiry,
+                maximum_days=maximum_days_to_expiry,
+                today=today,
+            )
+            if not expiry:
+                rejections.append({"symbol": signal.symbol, "reason": "no_expiry"})
+                continue
+
+            calls, puts = option_chain(signal.symbol, expiry)
+            frame = calls if signal.direction == "call" else puts
+            if frame.empty:
+                rejections.append({"symbol": signal.symbol, "reason": "empty_chain", "expiry": expiry})
+                continue
+
+            clean = frame.copy()
+            clean["bid"] = pd.to_numeric(clean.get("bid"), errors="coerce")
+            clean["ask"] = pd.to_numeric(clean.get("ask"), errors="coerce")
+            clean["strike"] = pd.to_numeric(clean.get("strike"), errors="coerce")
+            clean["openInterest"] = pd.to_numeric(clean.get("openInterest"), errors="coerce").fillna(0)
+            clean["volume"] = pd.to_numeric(clean.get("volume"), errors="coerce").fillna(0)
+            clean = clean.dropna(subset=["bid", "ask", "strike"])
+            clean = clean[(clean["bid"] > 0) & (clean["ask"] > 0)].copy()
+            clean = clean[clean["ask"] <= long_leg_cap].copy()
+            if clean.empty:
+                rejections.append({"symbol": signal.symbol, "reason": "premium_cap", "expiry": expiry})
+                continue
+
+            mid = (clean["bid"] + clean["ask"]) / 2.0
+            clean = clean[mid > 0].copy()
+            clean["spread_pct"] = (clean["ask"] - clean["bid"]) / ((clean["bid"] + clean["ask"]) / 2.0)
+            clean = clean[clean["spread_pct"] <= effective_spread_cap].copy()
+            clean = clean[
+                (clean["openInterest"] >= min_open_interest)
+                & (clean["volume"] >= min_volume)
+            ].copy()
+            clean["moneyness"] = clean["strike"].apply(
+                lambda strike: _candidate_moneyness(signal.direction, signal.spot, float(strike))
+            )
+            clean = clean[(clean["moneyness"] >= -0.05) & (clean["moneyness"] <= 0.03)].copy()
+
+            tradable_rows = len(clean)
+            if tradable_rows == 0:
+                rejections.append(
+                    {
+                        "symbol": signal.symbol,
+                        "reason": "liquidity_gate",
+                        "expiry": expiry,
+                        "long_leg_cap": round(long_leg_cap, 4),
+                        "spread_cap": round(effective_spread_cap, 4),
+                    }
+                )
+                continue
+        except Exception as exc:
+            rejections.append({"symbol": signal.symbol, "reason": "chain_error", "error": str(exc)})
+            continue
+
+        selected.append(signal)
+
+    diagnostics = {
+        "signals_available": len(signals),
+        "signals_evaluated": evaluated,
+        "signals_selected": len(selected),
+        "selected_symbols": [signal.symbol for signal in selected],
+        "rejections": rejections,
+        "settings": {
+            "target_count": target_count,
+            "minimum_days_to_expiry": minimum_days_to_expiry,
+            "maximum_days_to_expiry": maximum_days_to_expiry,
+            "base_max_premium": max_premium,
+            "base_max_spread_pct": max_spread_pct,
+            "min_open_interest": min_open_interest,
+            "min_volume": min_volume,
+        },
+    }
+    return selected, diagnostics
+
+
 def rank_contracts_with_diagnostics(
     signals: Iterable[ScoutSignal],
     regime: MarketRegime,

@@ -7,11 +7,25 @@ from typing import Any
 import json
 
 from .council import select_board
-from .forge import rank_contracts_with_diagnostics
+from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
 from .scout import scan_symbols
 
 
-DEFAULT_UNIVERSE = [
+DEFAULT_UNIVERSE_FILE = Path(__file__).resolve().parents[1] / "sample_universe.txt"
+
+
+def _read_universe_file(path: Path) -> list[str]:
+    if not path.exists():
+        return []
+    symbols: list[str] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        cleaned = line.strip().upper()
+        if cleaned and not cleaned.startswith("#"):
+            symbols.append(cleaned)
+    return symbols
+
+
+DEFAULT_UNIVERSE = _read_universe_file(DEFAULT_UNIVERSE_FILE) or [
     "SPY",
     "QQQ",
     "IWM",
@@ -29,6 +43,7 @@ class PipelineConfig:
     universe: list[str]
     live_size: int = 3
     shadow_size: int = 3
+    forge_intake: int = 6
 
 
 import logging
@@ -40,13 +55,23 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
     try:
         regime, scout_signals = scan_symbols(config.universe)
         log.info("Scout signal generation complete. Evaluating candidates...")
-        
+
+        forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
+            scout_signals,
+            target_count=max(int(config.forge_intake), 1),
+        )
+        log.info(
+            "Pre-Forge liquidity gate selected %d/%d signals for contract ranking.",
+            len(forge_input_signals),
+            len(scout_signals),
+        )
+
         forge_candidates, forge_diagnostics = rank_contracts_with_diagnostics(
-            scout_signals[: min(len(scout_signals), 6)],
+            forge_input_signals,
             regime,
         )
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
-        
+
         council = select_board(
             forge_candidates,
             regime,
@@ -69,14 +94,17 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "forge_candidates": [row.to_dict() for row in forge_candidates[:10]],
             "council": council.to_dict(),
             "diagnostics": {
+                "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
             },
             "summary": {
                 "universe_size": len(config.universe),
                 "scout_signal_count": len(scout_signals),
+                "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
                 "abstain": council.abstain,
                 "live_avg_score": live_avg_score,
+                "forge_input_symbols": [row.symbol for row in forge_input_signals],
                 "forge_waterfall": forge_diagnostics.get("waterfall", {}),
             },
         }
@@ -97,11 +125,7 @@ def load_universe(universe_file: str | None) -> list[str]:
     path = Path(universe_file)
     if not path.exists():
         raise FileNotFoundError(f"Universe file not found: {path}")
-    symbols: list[str] = []
-    for line in path.read_text(encoding="utf-8").splitlines():
-        cleaned = line.strip().upper()
-        if cleaned and not cleaned.startswith("#"):
-            symbols.append(cleaned)
+    symbols = _read_universe_file(path)
     return symbols or list(DEFAULT_UNIVERSE)
 
 
