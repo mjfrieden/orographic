@@ -107,13 +107,23 @@
 
       <!-- ── AI Picks — Live Board ── -->
       <section class="panel picks-section" aria-label="Live AI trade recommendations">
-        <div class="section-head">
-          <p class="section-kicker">Captain's Table · Live Board</p>
-          <h2>AI Trade Recommendations</h2>
-          <p class="muted">
-            Council-cleared contracts with AI-generated rationale. Preview before executing.
-            Previews are open to all authenticated users. Order execution requires an admin session.
-          </p>
+        <div class="section-head section-head-split">
+          <div>
+            <p class="section-kicker">Captain's Table · Live Board</p>
+            <h2>AI Trade Recommendations</h2>
+            <p class="muted positions-subhead">
+              Council-cleared contracts with AI-generated rationale. Preview before executing.
+              Previews are open to all authenticated users. Order execution requires an admin session.
+            </p>
+          </div>
+          <div class="positions-toolbar">
+            <div id="board-sync-status" class="positions-sync-status" aria-live="polite">
+              Loading latest board…
+            </div>
+            <button id="board-refresh-btn" class="secondary-action positions-refresh-btn" type="button">
+              Refresh Live Board
+            </button>
+          </div>
         </div>
         <div id="live-picks-grid" class="picks-grid">
           <div class="card-placeholder muted" style="padding:32px;text-align:center;font-family:var(--font-data);font-size:.8rem;">

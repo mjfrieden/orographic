@@ -416,15 +416,83 @@ function bindPositionsControls() {
   });
 }
 
+function bindBoardControls() {
+  const refreshBtn = document.getElementById("board-refresh-btn");
+  if (!refreshBtn || refreshBtn.dataset.bound === "true") return;
+  refreshBtn.dataset.bound = "true";
+  refreshBtn.addEventListener("click", () => {
+    refreshBoard().catch(() => {});
+  });
+}
+
 // ── Snapshot / Board ────────────────────────────────────────────────────────
 
 let SNAPSHOT = null;
 let LIVE_QUOTES = new Map();
+let BOARD_STATE = {
+  loading: false,
+  lastLoadedAt: null,
+  lastError: null,
+};
+
+function renderBoardMeta() {
+  const syncEl = document.getElementById("board-sync-status");
+  const refreshBtn = document.getElementById("board-refresh-btn");
+  if (syncEl) {
+    let text = "Waiting for latest board snapshot.";
+    let className = "positions-sync-status";
+    if (BOARD_STATE.loading) {
+      text = "Refreshing latest AI board…";
+      className += " is-loading";
+    } else if (BOARD_STATE.lastError) {
+      text = `Board refresh failed: ${BOARD_STATE.lastError}`;
+      className += " is-error";
+    } else if (BOARD_STATE.lastLoadedAt) {
+      text = `Board synced ${formatTs(BOARD_STATE.lastLoadedAt)} · ${timeAgo(BOARD_STATE.lastLoadedAt)}`;
+      className += " is-live";
+    }
+    syncEl.textContent = text;
+    syncEl.className = className;
+  }
+  if (refreshBtn) {
+    refreshBtn.disabled = BOARD_STATE.loading;
+    refreshBtn.textContent = BOARD_STATE.loading
+      ? "Refreshing…"
+      : "Refresh Live Board";
+  }
+}
 
 async function loadSnapshot() {
   const r = await fetch(SNAPSHOT_SOURCE, { cache: "no-store" });
   SNAPSHOT = await r.json();
   return SNAPSHOT;
+}
+
+async function refreshBoard() {
+  BOARD_STATE = {
+    ...BOARD_STATE,
+    loading: true,
+  };
+  renderBoardMeta();
+  try {
+    const payload = await loadSnapshot();
+    await renderBoard(payload);
+    BOARD_STATE = {
+      loading: false,
+      lastLoadedAt: new Date().toISOString(),
+      lastError: null,
+    };
+    renderBoardMeta();
+    return payload;
+  } catch (error) {
+    BOARD_STATE = {
+      ...BOARD_STATE,
+      loading: false,
+      lastError: String(error.message || error),
+    };
+    renderBoardMeta();
+    throw error;
+  }
 }
 
 async function refreshQuotes(contractSymbols) {
@@ -1784,14 +1852,14 @@ async function main() {
   bindLogout();
   bindModal();
   bindPositionsControls();
+  bindBoardControls();
 
   // Load account (non-blocking so board renders even if Tradier is offline)
   loadAccount().catch(() => {});
 
   // Load snapshot and render board
   try {
-    const payload = await loadSnapshot();
-    await renderBoard(payload);
+    await refreshBoard();
   } catch (err) {
     const liveGrid = document.getElementById("live-picks-grid");
     if (liveGrid) {
