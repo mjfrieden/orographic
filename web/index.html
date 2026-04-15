@@ -138,15 +138,29 @@
 
       <!-- ── Open Positions ── -->
       <section class="panel positions-section" aria-label="Open positions">
-        <div class="section-head">
-          <p class="section-kicker">Tradier · Portfolio</p>
-          <h2>Open Positions</h2>
+        <div class="section-head section-head-split positions-head">
+          <div>
+            <p class="section-kicker">Tradier · Portfolio</p>
+            <h2>Open Positions</h2>
+            <p class="muted positions-subhead">
+              Live Tradier inventory with mark-source status and manual refresh.
+            </p>
+          </div>
+          <div class="positions-toolbar">
+            <div id="positions-sync-status" class="positions-sync-status" aria-live="polite">
+              Connecting to Tradier…
+            </div>
+            <button id="positions-refresh-btn" class="secondary-action positions-refresh-btn" type="button">
+              Refresh Tradier
+            </button>
+          </div>
         </div>
         <div id="positions-table-wrap">
-          <table class="data-table" id="positions-table">
+          <table class="data-table data-table-responsive" id="positions-table">
             <thead>
               <tr>
                 <th>Symbol</th>
+                <th>Status</th>
                 <th>Qty</th>
                 <th class="is-num">Cost Basis</th>
                 <th class="is-num">Market Value</th>
@@ -156,7 +170,7 @@
               </tr>
             </thead>
             <tbody id="positions-tbody">
-              <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Loading positions…</td></tr>
+              <tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Loading positions…</td></tr>
             </tbody>
           </table>
         </div>
@@ -169,7 +183,7 @@
           <h2>Recent Orders</h2>
         </div>
         <div id="orders-table-wrap">
-          <table class="data-table" id="orders-table">
+          <table class="data-table data-table-responsive" id="orders-table">
             <thead>
               <tr>
                 <th>Status</th>

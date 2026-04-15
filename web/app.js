@@ -124,9 +124,109 @@ let BROKER_STATE = {
   balances: null,
   positions: [],
   orders: [],
+  loading: false,
+  lastLoadedAt: null,
+  lastError: null,
 };
 
+function optionContractMeta(symbol) {
+  const text = String(symbol || "")
+    .trim()
+    .toUpperCase();
+  const rootMatch = text.match(/^([A-Z]{1,6})/);
+  const sideMatch = text.match(/\d{6}([CP])\d{8}$/);
+  return {
+    symbol: text,
+    root: rootMatch ? rootMatch[1] : text,
+    side: sideMatch ? (sideMatch[1] === "C" ? "call" : "put") : null,
+  };
+}
+
+function positionMarkMeta(position) {
+  const source = String(position?.current_value_source || "").toLowerCase();
+  const markSource = String(position?.mark_source || "").toLowerCase();
+  if (source === "broker") {
+    return {
+      label: "Broker mark",
+      toneClass: "is-neutral",
+      detail: "Value supplied directly by Tradier.",
+    };
+  }
+  if (markSource === "mid") {
+    return {
+      label: "Live mid",
+      toneClass: "is-positive",
+      detail: "Value derived from bid/ask midpoint.",
+    };
+  }
+  if (markSource === "last") {
+    return {
+      label: "Last trade",
+      toneClass: "is-neutral",
+      detail: "Value derived from the most recent trade.",
+    };
+  }
+  if (markSource === "close") {
+    return {
+      label: "Prev close",
+      toneClass: "is-warning",
+      detail: "Value derived from the previous close.",
+    };
+  }
+  if (markSource === "bid") {
+    return {
+      label: "Bid mark",
+      toneClass: "is-warning",
+      detail: "Value derived from the live bid.",
+    };
+  }
+  if (markSource === "ask") {
+    return {
+      label: "Ask mark",
+      toneClass: "is-warning",
+      detail: "Value derived from the live ask.",
+    };
+  }
+  return {
+    label: "Awaiting mark",
+    toneClass: "is-muted",
+    detail: "Refresh Tradier to pull the latest quote-backed value.",
+  };
+}
+
+function renderPositionsMeta() {
+  const syncEl = document.getElementById("positions-sync-status");
+  const refreshBtn = document.getElementById("positions-refresh-btn");
+  if (syncEl) {
+    let text = "Waiting for Tradier account data.";
+    let className = "positions-sync-status";
+    if (BROKER_STATE.loading) {
+      text = "Refreshing live Tradier account…";
+      className += " is-loading";
+    } else if (BROKER_STATE.lastError) {
+      text = `Refresh failed: ${BROKER_STATE.lastError}`;
+      className += " is-error";
+    } else if (BROKER_STATE.lastLoadedAt) {
+      text = `Synced ${formatTs(BROKER_STATE.lastLoadedAt)} · ${timeAgo(BROKER_STATE.lastLoadedAt)}`;
+      className += " is-live";
+    }
+    syncEl.textContent = text;
+    syncEl.className = className;
+  }
+  if (refreshBtn) {
+    refreshBtn.disabled = BROKER_STATE.loading;
+    refreshBtn.textContent = BROKER_STATE.loading
+      ? "Refreshing…"
+      : "Refresh Tradier";
+  }
+}
+
 async function loadAccount() {
+  BROKER_STATE = {
+    ...BROKER_STATE,
+    loading: true,
+  };
+  renderPositionsMeta();
   try {
     const r = await fetch("/api/tradier/account", { cache: "no-store" });
     const data = await r.json();
@@ -140,12 +240,26 @@ async function loadAccount() {
         positions: data.positions || data.broker.positions || [],
         orders: data.orders || data.broker.orders || [],
         maxContracts: data.broker.maxContracts || 3,
+        loading: false,
+        lastLoadedAt: new Date().toISOString(),
+        lastError: null,
+      };
+    } else {
+      BROKER_STATE = {
+        ...BROKER_STATE,
+        loading: false,
+        lastError: data.error || "Tradier account request failed.",
       };
     }
-  } catch {
-    // Leave defaults; ribbon will show --
+  } catch (error) {
+    BROKER_STATE = {
+      ...BROKER_STATE,
+      loading: false,
+      lastError: String(error.message || error),
+    };
   }
   renderRibbon();
+  renderPositionsMeta();
   renderPositions();
   renderOrders();
   bindPositionsTable();
@@ -190,32 +304,74 @@ function renderPositions() {
   if (!tbody) return;
   const rows = BROKER_STATE.positions || [];
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
     return;
   }
   tbody.innerHTML = rows
     .map((pos) => {
       const cv = pos.current_value ?? null;
       const cb = pos.cost_basis ?? null;
-      const pl = cv !== null && cb !== null ? cv - cb : null;
-      const sym = String(pos.symbol || "");
-      const isOpt = sym.length > 6;
-      const tone = isOpt
-        ? sym.includes("C")
+      const pl = pos.open_pl ?? (cv !== null && cb !== null ? cv - cb : null);
+      const plPct = pl !== null && cb ? pl / cb : null;
+      const contract = optionContractMeta(pos.symbol);
+      const sym = contract.symbol;
+      const isOpt = Boolean(contract.side);
+      const tone =
+        contract.side === "call"
           ? "is-call-cell"
-          : "is-put-cell"
-        : "";
+          : contract.side === "put"
+            ? "is-put-cell"
+            : "";
+      const markMeta = positionMarkMeta(pos);
+      const markPrice = Number.isFinite(Number(pos.mark_price))
+        ? money(pos.mark_price)
+        : null;
+      const instrumentChip = contract.side
+        ? `<span class="position-chip ${contract.side === "call" ? "is-call" : "is-put"}">${contract.side.toUpperCase()}</span>`
+        : `<span class="position-chip is-neutral">EQUITY</span>`;
+      const statusChip = `<span class="position-chip ${markMeta.toneClass}">${escapeHtml(markMeta.label)}</span>`;
       const actionCell = isOpt
         ? `<button class="mini-action close-position-btn" type="button" data-contract="${sym}" data-qty="${pos.quantity}">Close</button>`
         : ``;
-      return `<tr>
-      <td class="${tone}">${sym}</td>
-      <td>${integer(pos.quantity)}</td>
-      <td class="is-num">${money(cb)}</td>
-      <td class="is-num">${money(cv)}</td>
-      <td class="is-num ${pl !== null ? (pl >= 0 ? "is-positive" : "is-negative") : ""}">${pl !== null ? signed(pl) : "--"}</td>
-      <td>${pos.date_acquired ? pos.date_acquired.slice(0, 10) : "--"}</td>
-      <td style="text-align:right;">${actionCell}</td>
+      return `<tr class="position-row ${cv === null ? "is-mark-pending" : "is-marked"}">
+      <td data-label="Symbol" class="position-cell-symbol ${tone}">
+        <div class="position-symbol-stack">
+          <strong class="position-symbol">${escapeHtml(sym)}</strong>
+          <span class="position-underlier">${escapeHtml(contract.root)}</span>
+        </div>
+      </td>
+      <td data-label="Status" class="position-cell-status">
+        <div class="position-status-stack">
+          <div class="position-chip-row">${instrumentChip}${statusChip}</div>
+          <span class="position-detail">${escapeHtml(markMeta.detail)}</span>
+        </div>
+      </td>
+      <td data-label="Qty">${integer(pos.quantity)}</td>
+      <td data-label="Cost Basis" class="is-num">
+        <div class="position-value-stack">
+          <strong class="position-primary-value">${money(cb)}</strong>
+          <span class="position-detail">${cb !== null ? "Capital committed" : "Waiting on basis"}</span>
+        </div>
+      </td>
+      <td data-label="Market Value" class="is-num">
+        <div class="position-value-stack">
+          <strong class="position-primary-value">${money(cv)}</strong>
+          <span class="position-detail">${markPrice ? `Mark ${markPrice}` : "No live mark yet"}</span>
+        </div>
+      </td>
+      <td data-label="P&L" class="is-num ${pl !== null ? (pl >= 0 ? "is-positive" : "is-negative") : ""}">
+        <div class="position-value-stack">
+          <strong class="position-primary-value">${pl !== null ? signed(pl) : "--"}</strong>
+          <span class="position-detail ${pl !== null ? (pl >= 0 ? "is-positive" : "is-negative") : ""}">${plPct !== null ? pct(plPct) : "Pending mark"}</span>
+        </div>
+      </td>
+      <td data-label="Acquired">
+        <div class="position-value-stack">
+          <strong class="position-primary-value">${pos.date_acquired ? pos.date_acquired.slice(0, 10) : "--"}</strong>
+          <span class="position-detail">Trade date</span>
+        </div>
+      </td>
+      <td data-label="Action" class="position-cell-actions" style="text-align:right;">${actionCell}</td>
     </tr>`;
     })
     .join("");
@@ -239,16 +395,25 @@ function renderOrders() {
         ? `<div class="order-status-note" title="${escapeHtml(rejectionReason)}">${escapeHtml(rejectionReason)}</div>`
         : "";
       return `<tr>
-      <td><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
-      <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
-      <td class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
-      <td class="is-num">${integer(o.quantity)}</td>
-      <td class="is-num">${o.price ? money(o.price) : "--"}</td>
-      <td class="is-num">${o.avg_fill_price ? money(o.avg_fill_price) : "--"}</td>
-      <td style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
+      <td data-label="Status"><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
+      <td data-label="Contract" style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
+      <td data-label="Side" class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
+      <td data-label="Qty" class="is-num">${integer(o.quantity)}</td>
+      <td data-label="Price" class="is-num">${o.price ? money(o.price) : "--"}</td>
+      <td data-label="Fill" class="is-num">${o.avg_fill_price ? money(o.avg_fill_price) : "--"}</td>
+      <td data-label="Date" style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
     </tr>`;
     })
     .join("");
+}
+
+function bindPositionsControls() {
+  const refreshBtn = document.getElementById("positions-refresh-btn");
+  if (!refreshBtn || refreshBtn.dataset.bound === "true") return;
+  refreshBtn.dataset.bound = "true";
+  refreshBtn.addEventListener("click", () => {
+    loadAccount().catch(() => {});
+  });
 }
 
 // ── Snapshot / Board ────────────────────────────────────────────────────────
@@ -1618,6 +1783,7 @@ async function main() {
   }
   bindLogout();
   bindModal();
+  bindPositionsControls();
 
   // Load account (non-blocking so board renders even if Tradier is offline)
   loadAccount().catch(() => {});
