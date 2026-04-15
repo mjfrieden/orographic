@@ -8,7 +8,13 @@ from pathlib import Path
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from engine.orographic.pipeline import PipelineConfig, load_universe, run_scan, write_snapshot
+from engine.orographic.pipeline import (
+    PipelineConfig,
+    load_universe,
+    run_scan,
+    write_forge_rejection_waterfall_artifacts,
+    write_snapshot,
+)
 from engine.orographic.positions import append_position_history, fetch_position_snapshot
 
 logging.basicConfig(
@@ -68,6 +74,12 @@ def main() -> int:
         )
     )
     write_snapshot(args.output, payload)
+    diagnostic_paths = write_forge_rejection_waterfall_artifacts(args.output, payload)
+    log.info(
+        "Wrote Forge rejection waterfall artifacts to %s and %s.",
+        diagnostic_paths[0],
+        diagnostic_paths[1],
+    )
 
     if args.positions_log_output.strip():
         try:

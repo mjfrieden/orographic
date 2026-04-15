@@ -41,6 +41,11 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
+Each scan also writes a Forge bottleneck artifact beside the snapshot:
+
+- `web/data/diagnostics/forge_rejection_waterfall_latest.json`
+- `web/data/diagnostics/forge_rejection_waterfall_YYYY-MM-DD.json`
+
 Optionally capture standing-position value on each run into a private local file:
 
 ```bash
