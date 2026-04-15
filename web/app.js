@@ -431,7 +431,8 @@ let SNAPSHOT = null;
 let LIVE_QUOTES = new Map();
 let BOARD_STATE = {
   loading: false,
-  lastLoadedAt: null,
+  fetchedAt: null,
+  snapshotGeneratedAt: null,
   lastError: null,
 };
 
@@ -447,8 +448,18 @@ function renderBoardMeta() {
     } else if (BOARD_STATE.lastError) {
       text = `Board refresh failed: ${BOARD_STATE.lastError}`;
       className += " is-error";
-    } else if (BOARD_STATE.lastLoadedAt) {
-      text = `Board synced ${formatTs(BOARD_STATE.lastLoadedAt)} · ${timeAgo(BOARD_STATE.lastLoadedAt)}`;
+    } else if (BOARD_STATE.snapshotGeneratedAt) {
+      const snapshotAge = timeAgo(BOARD_STATE.snapshotGeneratedAt);
+      const fetchedNote = BOARD_STATE.fetchedAt
+        ? ` · checked ${timeAgo(BOARD_STATE.fetchedAt)}`
+        : "";
+      text = `Snapshot ${formatTs(BOARD_STATE.snapshotGeneratedAt)} · ${snapshotAge}${fetchedNote}`;
+      const isStale =
+        Date.now() - new Date(BOARD_STATE.snapshotGeneratedAt) >
+        4 * 60 * 60 * 1000;
+      className += isStale ? " is-warning" : " is-live";
+    } else if (BOARD_STATE.fetchedAt) {
+      text = `Board checked ${formatTs(BOARD_STATE.fetchedAt)} · ${timeAgo(BOARD_STATE.fetchedAt)}`;
       className += " is-live";
     }
     syncEl.textContent = text;
@@ -479,7 +490,8 @@ async function refreshBoard() {
     await renderBoard(payload);
     BOARD_STATE = {
       loading: false,
-      lastLoadedAt: new Date().toISOString(),
+      fetchedAt: new Date().toISOString(),
+      snapshotGeneratedAt: payload?.generated_at_utc || payload?.timestamp || null,
       lastError: null,
     };
     renderBoardMeta();
@@ -915,6 +927,9 @@ async function renderBoard(payload) {
     if (isStale) {
       dispatchTag.style.color = "var(--amber)";
       dispatchTag.style.fontWeight = "600";
+    } else {
+      dispatchTag.style.color = "";
+      dispatchTag.style.fontWeight = "";
     }
   }
 
