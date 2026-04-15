@@ -832,23 +832,7 @@ function selectedCardQuantity(button) {
 function syncModalExecuteState() {
   const execBtn = document.getElementById("modal-execute-btn");
   if (!execBtn) return;
-  if (!PENDING_ORDER) {
-    execBtn.disabled = true;
-    return;
-  }
-  const baseEnabled = Boolean(PENDING_ORDER.executeEnabled);
-  if (!baseEnabled) {
-    execBtn.disabled = true;
-    return;
-  }
-  if (!PENDING_ORDER.requiresLiveConfirmation) {
-    execBtn.disabled = false;
-    return;
-  }
-  const input = document.getElementById("modal-live-confirm-input");
-  const typed = String(input?.value || "").trim();
-  execBtn.disabled =
-    typed !== String(PENDING_ORDER.liveConfirmationPhrase || "").trim();
+  execBtn.disabled = !Boolean(PENDING_ORDER?.executeEnabled);
 }
 
 function executionNotice(submission, isAdmin) {
@@ -858,11 +842,8 @@ function executionNotice(submission, isAdmin) {
   if (submission?.reason) {
     return submission.reason;
   }
-  if (
-    submission?.requires_live_confirmation &&
-    submission?.live_confirmation_phrase
-  ) {
-    return `Type ${submission.live_confirmation_phrase} to transmit this live order.`;
+  if (submission?.allowed && submission?.mode === "live") {
+    return "Live order will be transmitted immediately.";
   }
   return null;
 }
@@ -873,23 +854,6 @@ function submissionDetailHtml(submission, isAdmin) {
   const tone =
     submission?.allowed && isAdmin ? "var(--teal)" : "var(--text-muted)";
   return `<p style="font-family:var(--font-data);font-size:.72rem;color:${tone};margin-top:12px;">${escapeHtml(note)}</p>`;
-}
-
-function liveConfirmationHtml(submission, isAdmin) {
-  if (
-    !submission?.requires_live_confirmation ||
-    !submission?.allowed ||
-    !isAdmin
-  ) {
-    return "";
-  }
-  const phrase = escapeHtml(submission.live_confirmation_phrase || "");
-  return `
-    <label class="portal-field" style="margin-top:12px;">
-      <span>Live confirmation phrase</span>
-      <input id="modal-live-confirm-input" type="text" autocomplete="off" spellcheck="false" placeholder="${phrase}" />
-    </label>
-  `;
 }
 
 function openModal(title, bodyHtml, executeEnabled, orderData, options = {}) {
@@ -906,12 +870,9 @@ function openModal(title, bodyHtml, executeEnabled, orderData, options = {}) {
     ? {
         ...orderData,
         executeEnabled,
-        requiresLiveConfirmation: Boolean(options.requiresLiveConfirmation),
-        liveConfirmationPhrase: options.liveConfirmationPhrase || "",
+        isLiveOrder: Boolean(options.isLiveOrder),
       }
     : null;
-  const confirmInput = document.getElementById("modal-live-confirm-input");
-  confirmInput?.addEventListener("input", syncModalExecuteState);
   syncModalExecuteState();
   const modal = document.getElementById("preview-modal");
   if (modal) modal.hidden = false;
@@ -959,15 +920,7 @@ function bindModal() {
             duration: PENDING_ORDER.duration,
             price: PENDING_ORDER.price,
             preview: false,
-            confirm_live: PENDING_ORDER.requiresLiveConfirmation
-              ? true
-              : undefined,
-            live_confirm_phrase: PENDING_ORDER.requiresLiveConfirmation
-              ? String(
-                  document.getElementById("modal-live-confirm-input")?.value ||
-                    "",
-                ).trim()
-              : undefined,
+            confirm_live: PENDING_ORDER.isLiveOrder ? true : undefined,
           }),
         });
         const data = await r.json();
@@ -1001,7 +954,7 @@ function bindModal() {
           msg.style.color = "var(--crimson)";
         }
         btn.disabled = false;
-        btn.textContent = PENDING_ORDER?.requiresLiveConfirmation
+        btn.textContent = PENDING_ORDER?.isLiveOrder
           ? "Transmit Live Order"
           : PENDING_ORDER?.side === "sell_to_close"
             ? "Close Position"
@@ -1087,7 +1040,6 @@ async function handlePreview(
       </div>
       ${warningHtml}
       ${submissionDetailHtml(submission, isAdmin)}
-      ${liveConfirmationHtml(submission, isAdmin)}
     `;
 
     // Store the pending order so Execute can fire it
@@ -1102,11 +1054,9 @@ async function handlePreview(
     };
 
     openModal("Order Preview", bodyHtml, canExec, pendingOrder, {
-      executeLabel: submission.requires_live_confirmation
-        ? "Transmit Live Order"
-        : "Execute Trade",
-      requiresLiveConfirmation: submission.requires_live_confirmation,
-      liveConfirmationPhrase: submission.live_confirmation_phrase,
+      executeLabel:
+        submission.mode === "live" ? "Transmit Live Order" : "Execute Trade",
+      isLiveOrder: submission.mode === "live",
     });
   } catch (err) {
     openModal(
@@ -1208,7 +1158,6 @@ async function handleClosePosition(contractSymbol, qty) {
       </div>
       ${warningHtml}
       ${submissionDetailHtml(submission, isAdmin)}
-      ${liveConfirmationHtml(submission, isAdmin)}
     `;
 
     const pendingOrder = {
@@ -1222,11 +1171,9 @@ async function handleClosePosition(contractSymbol, qty) {
     };
 
     openModal("Close Position Preview", bodyHtml, canExec, pendingOrder, {
-      executeLabel: submission.requires_live_confirmation
-        ? "Transmit Live Order"
-        : "Close Position",
-      requiresLiveConfirmation: submission.requires_live_confirmation,
-      liveConfirmationPhrase: submission.live_confirmation_phrase,
+      executeLabel:
+        submission.mode === "live" ? "Transmit Live Order" : "Close Position",
+      isLiveOrder: submission.mode === "live",
     });
   } catch (err) {
     openModal(
@@ -1311,7 +1258,12 @@ async function loadBacktest() {
     const r = await fetch("/api/backtest/summary", { cache: "no-store" });
     if (!r.ok) throw new Error("not found");
     const data = await r.json();
-    if (data.ok && data.backtest) return data.backtest;
+    if (data.ok && data.backtest) {
+      return {
+        ...data.backtest,
+        study_kind: data.kind || data.backtest.study_type || "backtest",
+      };
+    }
   } catch {
     /* silently degrade — show "no data" placeholder */
   }
@@ -1432,12 +1384,12 @@ function renderBacktest(bt) {
     if (sizingPolicy)
       sizingPolicy.innerHTML = summaryItemHtml(
         "Status",
-        "No backtest sizing data",
+        "No validation sizing data",
       );
     if (researchNotes)
       researchNotes.innerHTML = summaryItemHtml(
         "Status",
-        "No backtest methodology data",
+        "No validation methodology data",
       );
     return;
   }
@@ -1465,19 +1417,42 @@ function renderBacktest(bt) {
   const sizingPolicyEl = document.getElementById("bt-sizing-policy");
   const researchNotesEl = document.getElementById("bt-research-notes");
   const subtitleEl = document.getElementById("bt-section-sub");
+  const sectionTitleEl = document.getElementById("bt-section-title");
+  const studyKind = String(bt.study_kind || bt.study_type || "backtest");
+  const isWalkForward = studyKind === "walk_forward";
+  const config = bt.config || {};
+  const variantLabel = String(bt.variant_label || "").trim();
+
+  if (sectionTitleEl) {
+    sectionTitleEl.textContent = isWalkForward
+      ? "Walk-Forward Validation"
+      : "Historical Performance";
+  }
 
   if (subtitleEl) {
-    subtitleEl.textContent = [
-      "3-month backtest",
-      "All Forge candidates",
-      `base $${Number(bt.budget_per_trade_usd || 0).toFixed(0)} / trade`,
-      bt.hard_cost_ceiling_usd
-        ? `hard cap $${Number(bt.hard_cost_ceiling_usd).toFixed(0)}`
-        : "hard cap disabled",
-      sizingPolicy.skip_when_underfunded
-        ? "underfunded trades skipped"
-        : "forced minimum 1 contract",
-    ].join(" · ");
+    subtitleEl.textContent = isWalkForward
+      ? [
+          bt.months ? `${bt.months}-month walk-forward` : "Walk-forward study",
+          variantLabel || "Deployable council variant",
+          `base $${Number(bt.budget_per_trade_usd || config.budget_per_trade_usd || 0).toFixed(0)} / trade`,
+          (bt.hard_cost_ceiling_usd || config.hard_cost_ceiling_usd || config.cost_cap_usd)
+            ? `hard cap $${Number(bt.hard_cost_ceiling_usd || config.hard_cost_ceiling_usd || config.cost_cap_usd).toFixed(0)}`
+            : "hard cap disabled",
+          sizingPolicy.skip_when_underfunded
+            ? "underfunded trades skipped"
+            : "forced minimum 1 contract",
+        ].join(" · ")
+      : [
+          "3-month backtest",
+          "All Forge candidates",
+          `base $${Number(bt.budget_per_trade_usd || 0).toFixed(0)} / trade`,
+          bt.hard_cost_ceiling_usd
+            ? `hard cap $${Number(bt.hard_cost_ceiling_usd).toFixed(0)}`
+            : "hard cap disabled",
+          sizingPolicy.skip_when_underfunded
+            ? "underfunded trades skipped"
+            : "forced minimum 1 contract",
+        ].join(" · ");
   }
 
   setVal("bt-win-rate", `${(winRate * 100).toFixed(1)}%`, winRate >= 0.5);
@@ -1549,7 +1524,23 @@ function renderBacktest(bt) {
         "Exit Real",
         pctOrDash(optionsCoverage.exit_real_trade_pct),
       ),
-    ].join("");
+      isWalkForward
+        ? summaryItemHtml(
+            "Prior Lookback",
+            config.rolling_prior_lookback_weeks
+              ? `${config.rolling_prior_lookback_weeks} weeks`
+              : "—",
+          )
+        : "",
+      isWalkForward
+        ? summaryItemHtml(
+            "Universe",
+            bt.symbols_count ? `${integer(bt.symbols_count)} symbols` : "—",
+          )
+        : "",
+    ]
+      .filter(Boolean)
+      .join("");
   }
 
   // Equity curve

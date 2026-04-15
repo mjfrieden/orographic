@@ -41,7 +41,7 @@ TODO
 - April 2, 2026: Rebuilt the main dashboard into a playable canvas game called "Tradier Harbor Run" while preserving the existing Orographic snapshot feed and login model.
 - Added a deterministic browser game loop with `window.render_game_to_text` and `window.advanceTime(ms)` so the Playwright web-game workflow can inspect and step the arena reliably.
 - Added a new Pages Functions Tradier bridge for authenticated status, admin-only account snapshots, order previews, and gated order placement.
-- Tradier order submission is paper-first by default: sandbox mode is the intended starting point, and live mode still requires admin auth plus the exact confirmation phrase.
+- Tradier order submission is paper-first by default: sandbox mode is the intended starting point, and live mode still requires admin auth plus explicit live-trading arming.
 - Used Cloudflare account inspection to confirm the existing `orographic` Pages project is live, has Functions enabled, and is already storing the auth secrets needed by the current login flow.
 
 TODO

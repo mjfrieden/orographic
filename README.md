@@ -41,6 +41,16 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
+Optionally capture standing-position value on each run into a private local file:
+
+```bash
+./.venv/bin/python engine/run_scan.py \
+  --output web/data/latest_run.json \
+  --positions-log-output .local/position_history.json
+```
+
+Use a non-public path such as `.local/position_history.json`. Do not point position history at a git-tracked file or anything under `web/`.
+
 Build the local historical options store and coverage manifest:
 
 ```bash
@@ -101,6 +111,7 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_SANDBOX_MODE`: `true` for paper trading, `false` for production base URLs
 - `TRADIER_LIVE_TRADING_ENABLED`: `true` only when you explicitly want production order submission enabled
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
+- `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
 
 Recommended default:
 
@@ -113,9 +124,21 @@ The Tradier workflow in this repo currently supports:
 1. Server-side status check
 2. Server-side account snapshot via the status route
 3. Server-side option quote refresh for the arena contracts
-4. Server-side option order preview using `preview=true`
-5. Admin-only limit-order placement for both entries and manual exits
-6. Live entry placement gated by explicit confirmation phrase, current live-board membership, and fresh snapshot timing
+4. Quote-derived market value fallback for option positions when the broker omits `current_value`
+5. Server-side option order preview using `preview=true`
+6. Admin-only limit-order placement for both entries and manual exits
+7. Optional private per-run position history capture during Python scan runs
+8. Live entry placement gated by admin access, current live-board membership, and fresh snapshot timing
+
+## Hosted Position History
+
+Hosted runs can persist private position snapshots in Cloudflare D1 without committing brokerage history into the repo.
+
+- D1 binding: `POSITIONS_DB`
+- Private capture route: `POST /api/internal/positions/capture`
+- Admin read route: `GET /api/admin/positions-history?limit=20`
+
+The scheduled GitHub Actions scan now posts to the private capture route after each run. The route is protected by `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`, which should exist in both Cloudflare Pages secrets and the GitHub repo secrets.
 
 ## Recommended free deployment
 

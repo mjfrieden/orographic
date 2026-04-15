@@ -4,7 +4,6 @@ const DEFAULT_LIVE_BASE_URL = "https://api.tradier.com/v1";
 const DEFAULT_SANDBOX_BASE_URL = "https://sandbox.tradier.com/v1";
 const DEFAULT_MAX_SIGNAL_AGE_MINUTES = 240;
 const DEFAULT_PREVIEW_TTL_SECONDS = 300;
-const DEFAULT_LIVE_CONFIRM_PHRASE = "EXECUTE LIVE TRADE";
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 
 function boolFromEnv(value) {
@@ -91,12 +90,96 @@ function normalizeQuoteCollection(payload) {
 
 function normalizePositions(payload) {
   return toList(payload?.positions?.position).map((position) => ({
-    symbol: String(position.symbol || ""),
+    symbol: String(position.symbol || "")
+      .trim()
+      .toUpperCase(),
     quantity: asNumber(position.quantity, 0),
     cost_basis: asNumber(position.cost_basis, null),
     current_value: asNumber(position.current_value, null),
     date_acquired: String(position.date_acquired || ""),
   }));
+}
+
+function isOptionContractSymbol(value) {
+  return /^[A-Z]{1,6}\d{6}[CP]\d{8}$/.test(
+    String(value || "")
+      .trim()
+      .toUpperCase(),
+  );
+}
+
+function pickQuoteMark(quote) {
+  const bid = asNumber(quote?.bid, null);
+  const ask = asNumber(quote?.ask, null);
+  const last = asNumber(quote?.last, null);
+  const close = asNumber(quote?.close, null);
+
+  if (bid !== null && bid > 0 && ask !== null && ask > 0) {
+    return {
+      price: Number(((bid + ask) / 2).toFixed(4)),
+      source: "mid",
+    };
+  }
+  if (last !== null && last > 0) {
+    return { price: last, source: "last" };
+  }
+  if (close !== null && close > 0) {
+    return { price: close, source: "close" };
+  }
+  if (bid !== null && bid > 0) {
+    return { price: bid, source: "bid" };
+  }
+  if (ask !== null && ask > 0) {
+    return { price: ask, source: "ask" };
+  }
+  return { price: null, source: null };
+}
+
+function enrichPositionsWithQuotes(positions, quotes) {
+  const quotesBySymbol = new Map(
+    toList(quotes).map((quote) => [
+      String(quote?.symbol || "")
+        .trim()
+        .toUpperCase(),
+      quote,
+    ]),
+  );
+
+  return positions.map((position) => {
+    const enriched = { ...position };
+    const symbol = String(position.symbol || "")
+      .trim()
+      .toUpperCase();
+
+    if (enriched.current_value !== null) {
+      enriched.current_value_source = "broker";
+    }
+
+    if (isOptionContractSymbol(symbol)) {
+      const quote = quotesBySymbol.get(symbol) || null;
+      const { price, source } = pickQuoteMark(quote);
+      if (price !== null) {
+        enriched.mark_price = price;
+        enriched.mark_source = source;
+        if (enriched.current_value === null) {
+          enriched.current_value = Number(
+            (Number(enriched.quantity || 0) * 100 * price).toFixed(2),
+          );
+          enriched.current_value_source = `quote_${source}`;
+        }
+      }
+    }
+
+    if (enriched.current_value !== null && enriched.cost_basis !== null) {
+      enriched.open_pl = Number(
+        (enriched.current_value - enriched.cost_basis).toFixed(2),
+      );
+    } else {
+      enriched.open_pl = null;
+    }
+
+    return enriched;
+  });
 }
 
 function normalizeProfile(payload, accountId) {
@@ -277,11 +360,6 @@ export function getTradierSettings(env) {
       60,
       3600,
     ),
-    liveConfirmPhrase: String(
-      env.TRADIER_LIVE_CONFIRM_PHRASE ||
-        env.OROGRAPHIC_TRADIER_LIVE_CONFIRM_PHRASE ||
-        DEFAULT_LIVE_CONFIRM_PHRASE,
-    ).trim(),
   };
 }
 
@@ -424,16 +502,51 @@ export async function fetchBrokerStatus(env) {
     }
   }
 
+  let positions = normalizePositions(positionsResponse.data);
+  const missingOptionMarks = positions
+    .filter(
+      (position) =>
+        isOptionContractSymbol(position.symbol) && position.current_value === null,
+    )
+    .map((position) => position.symbol);
+
+  let quoteRateLimits = null;
+  if (missingOptionMarks.length) {
+    try {
+      const quotesResponse = await tradierRequest(env, {
+        path: "/markets/quotes",
+        query: {
+          symbols: missingOptionMarks.join(","),
+          greeks: "false",
+        },
+      });
+      if (quotesResponse.ok) {
+        positions = enrichPositionsWithQuotes(
+          positions,
+          normalizeQuoteCollection(quotesResponse.data),
+        );
+        quoteRateLimits = quotesResponse.rateLimits;
+      } else {
+        positions = enrichPositionsWithQuotes(positions, []);
+      }
+    } catch {
+      positions = enrichPositionsWithQuotes(positions, []);
+    }
+  } else {
+    positions = enrichPositionsWithQuotes(positions, []);
+  }
+
   return {
     ...publicTradierConfig(settings),
     profile: normalizeProfile(profileResponse.data, settings.accountId),
     balances: normalizeBalances(balanceResponse.data),
-    positions: normalizePositions(positionsResponse.data),
+    positions,
     orders: normalizeOrders(ordersResponse.data),
     rateLimits: {
       balances: balanceResponse.rateLimits,
       positions: positionsResponse.rateLimits,
       orders: ordersResponse.rateLimits,
+      quotes: quoteRateLimits,
     },
   };
 }
@@ -686,9 +799,6 @@ export function buildSubmissionPreview({
     reason,
     status: validation.ok ? (allowed ? 200 : 412) : validation.status,
     requires_admin: true,
-    requires_live_confirmation: config.mode === "live",
-    live_confirmation_phrase:
-      config.mode === "live" ? config.liveConfirmPhrase : null,
     max_contracts: config.maxContracts,
     mode: config.mode,
     side,

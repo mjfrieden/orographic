@@ -6,7 +6,8 @@ function isPublicPath(pathname) {
     pathname === "/login/" ||
     pathname === "/styles.css" ||
     pathname === "/api/login" ||
-    pathname === "/api/logout"
+    pathname === "/api/logout" ||
+    pathname === "/api/internal/positions/capture"
   );
 }
 

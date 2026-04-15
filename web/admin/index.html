@@ -26,31 +26,77 @@
         </div>
         <div class="hero-copy">
           <p class="eyebrow">Orographic Admin</p>
-          <h1>Harbor Control</h1>
-          <p class="subhead">This route is still restricted to the admin role. The presentation now matches the main board.</p>
+          <h1>Position History</h1>
+          <p class="subhead">
+            Private run-by-run valuation snapshots for standing positions, captured
+            after scheduled Orographic scans and stored outside the public repo.
+          </p>
         </div>
       </header>
+
       <section class="panel">
         <div class="section-head">
-          <p class="section-kicker">Command Deck</p>
-          <h2>Admin Notes</h2>
-          <p class="muted">This remains the staging area for replay controls, run metadata, manual overrides, and audit review.</p>
+          <p class="section-kicker">History Pulse</p>
+          <h2>Run Overview</h2>
+          <p class="muted">
+            This panel summarizes the most recent hosted captures from the private
+            D1 history store.
+          </p>
         </div>
-        <div class="admin-grid">
+        <div class="admin-grid admin-overview-grid" id="admin-overview-grid">
           <article class="summary-item admin-card">
-            <span class="summary-label">Role Gate</span>
-            <span class="summary-value">Role-based routing is active and unchanged underneath the new artwork.</span>
-          </article>
-          <article class="summary-item admin-card">
-            <span class="summary-label">Future Panel</span>
-            <span class="summary-value">Replay controls, manual overrides, and deployment health still belong here when they are implemented.</span>
-          </article>
-          <article class="summary-item admin-card">
-            <span class="summary-label">Audit Lane</span>
-            <span class="summary-value">This page is ready for richer admin instrumentation without changing the current access model.</span>
+            <span class="summary-label">Loading</span>
+            <span class="summary-value">Fetching position history…</span>
           </article>
         </div>
       </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <p class="section-kicker">Equity Wake</p>
+          <h2>Portfolio Value Trend</h2>
+          <p class="muted">
+            Total marked value of open positions across recent captures.
+          </p>
+        </div>
+        <div class="admin-trend-panel" id="admin-trend-panel">
+          <div class="admin-trend-empty">Waiting for captured history…</div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="section-head">
+          <p class="section-kicker">Harbor Ledger</p>
+          <h2>Recent Captures</h2>
+          <p class="muted">
+            Each row shows the run timestamp, total marked value, aggregate P&amp;L,
+            and the contracts held at that moment.
+          </p>
+        </div>
+        <div class="admin-history-table-wrap">
+          <table class="data-table admin-history-table">
+            <thead>
+              <tr>
+                <th>Captured</th>
+                <th>Source</th>
+                <th class="is-num">Positions</th>
+                <th class="is-num">Cost Basis</th>
+                <th class="is-num">Market Value</th>
+                <th class="is-num">P&amp;L</th>
+                <th>Contracts</th>
+              </tr>
+            </thead>
+            <tbody id="admin-history-tbody">
+              <tr>
+                <td colspan="7" class="admin-history-loading">
+                  Fetching history…
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
     </main>
+    <script src="/admin/admin.js" defer></script>
   </body>
 </html>

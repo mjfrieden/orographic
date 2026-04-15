@@ -16,7 +16,9 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
+      OROGRAPHIC_SITE_URL: https://orographic.pages.dev
       PYTHONPATH: engine
     steps:
       - name: Checkout
@@ -65,3 +67,29 @@ jobs:
             --branch "${GITHUB_REF_NAME}" \
             --commit-hash "$(git rev-parse HEAD)" \
             --commit-message "snapshot refresh (${GITHUB_REF_NAME})"
+
+      - name: Capture hosted position snapshot
+        if: ${{ env.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN != '' }}
+        run: |
+          RUN_GENERATED_AT_UTC="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path('web/data/latest_run.json').read_text(encoding='utf-8'))
+          print(payload.get('generated_at_utc', ''))
+          PY
+          )"
+          export RUN_GENERATED_AT_UTC
+          python - <<'PY' > /tmp/orographic-position-capture.json
+          import json
+          import os
+          print(json.dumps({
+              "run_generated_at_utc": os.environ.get("RUN_GENERATED_AT_UTC", ""),
+              "source": "github_actions_orographic_scan",
+          }))
+          PY
+          curl --fail --show-error --silent \
+            --request POST \
+            --url "${OROGRAPHIC_SITE_URL}/api/internal/positions/capture" \
+            --header "Authorization: Bearer ${OROGRAPHIC_INTERNAL_CAPTURE_TOKEN}" \
+            --header "Content-Type: application/json" \
+            --data @/tmp/orographic-position-capture.json

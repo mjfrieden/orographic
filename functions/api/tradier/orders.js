@@ -28,7 +28,6 @@ import {
  *   duration (string)            – "day" or "gtc"
  *   price (number)               – limit price
  *   confirm_live (bool)          – must be true for live (non-sandbox) order placement
- *   live_confirm_phrase (string) – exact phrase required for live order placement
  *
  * Preview: any authenticated session, no snapshot freshness gate.
  * Placement: admin-only. New entries require a fresh snapshot and, in live mode,
@@ -59,7 +58,6 @@ export async function onRequestPost(context) {
     duration = "day",
     price,
     confirm_live: confirmLive,
-    live_confirm_phrase: liveConfirmPhrase,
   } = body || {};
 
   if (!optionSymbol) {
@@ -163,18 +161,6 @@ export async function onRequestPost(context) {
       {
         ok: false,
         error: "Live order blocked: confirm_live must be true for live-mode placement.",
-        eligibility,
-        submission,
-      },
-      409,
-    );
-  }
-
-  if (config.mode === "live" && String(liveConfirmPhrase || "").trim() !== config.liveConfirmPhrase) {
-    return jsonResponse(
-      {
-        ok: false,
-        error: `Live order blocked: type the exact confirmation phrase "${config.liveConfirmPhrase}".`,
         eligibility,
         submission,
       },

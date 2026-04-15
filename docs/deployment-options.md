@@ -127,11 +127,22 @@ To activate live trading, you must provide your Tradier credentials to the Cloud
 | `TRADIER_LIVE_TRADING_ENABLED` | Set to `true` to enable the 'Execute' button. |
 | `TRADIER_SANDBOX_MODE` | Set to `false` for live trading. |
 | `OROGRAPHIC_SESSION_SECRET` | A long random string for signing session cookies. |
+| `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN` | Shared secret for the private hosted position-history capture endpoint. |
 
 ### Safety Rails
 
 Even with live trading "activated", the system includes several safety rails:
 1. **Admin Only**: Only users with the `admin` role in `OROGRAPHIC_AUTH_USERS_JSON` can see or use the Execute buttons.
-2. **Confirmation Phrase**: Every live order requires the exact phrase `EXECUTE LIVE TRADE` to be typed into the modal before submission.
+2. **Live Arming**: Every live order still requires live-mode arming (`TRADIER_LIVE_TRADING_ENABLED=true`) before submission is allowed.
 3. **Price Protection**: All orders are submitted as **Limit Orders** using the current Ask (for buys) or Bid (for sells) as the ceiling/floor.
 4. **Freshness Gate**: New entries will be rejected if the underlying signal snapshot (`latest_run.json`) is older than the configured `maxSignalAgeMinutes` (default 4 hours). Manual exits remain allowed so positions are not trapped behind stale AI radar.
+
+## Hosted Position History
+
+To persist standing-position values from scheduled runs without committing them into git:
+
+1. Bind a private D1 database to Pages Functions as `POSITIONS_DB`.
+2. Add `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN` to both Cloudflare Pages secrets and GitHub Actions secrets.
+3. Let the scheduled scan call `POST /api/internal/positions/capture` after each run.
+
+The capture endpoint stores each run in D1, and admins can inspect recent entries through `GET /api/admin/positions-history`.
