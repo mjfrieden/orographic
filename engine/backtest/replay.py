@@ -35,6 +35,7 @@ from engine.orographic.forge import (
     _spread_cap,
 )
 from engine.orographic.scout import (
+    _apply_regime_alignment,
     _extract_features,
     _ml_scout_score,
     _heuristic_scout_score,
@@ -176,38 +177,35 @@ def build_signal_as_of(
         raw_score       = ml_score
         technical_score = raw_score
         empirical_score = 0.0
+        base_scout_score = raw_score
         direction       = "call" if raw_score >= 0 else "put"
     else:
         # Heuristic fallback (if model loading fails)
-        technical_score, empirical_score, _ = _heuristic_scout_score(
+        technical_score, empirical_score, base_scout_score = _heuristic_scout_score(
             momentum_5d, momentum_20d, rsi_14, realized_vol_20d,
             atr_pct_14d, z_score=0.0, regime_bonus=0.0,
         )
         direction = "call" if technical_score >= 0 else "put"
         raw_score = None
 
-    # Hard regime veto (same as live path)
-    if regime.mode == "risk_on"  and direction == "put":  return None
-    if regime.mode == "risk_off" and direction == "call": return None
+    conviction_score = raw_score if using_ml else technical_score
+    passed_alignment, regime_adjustment, _, alignment_note = _apply_regime_alignment(
+        direction=direction,
+        conviction_score=float(conviction_score),
+        regime=regime,
+    )
+    if not passed_alignment:
+        return None
 
-    regime_bonus = 0.0
-    if   regime.mode == "risk_on"  and direction == "call": regime_bonus =  0.08
-    elif regime.mode == "risk_off" and direction == "put":  regime_bonus =  0.08
-    elif regime.mode != "neutral":                          regime_bonus = -0.08
-
-    if using_ml:
-        scout_score = _clip(raw_score + regime_bonus)
-    else:
-        _, _, scout_score = _heuristic_scout_score(
-            momentum_5d, momentum_20d, rsi_14, realized_vol_20d,
-            atr_pct_14d, z_score=0.0, regime_bonus=regime_bonus,
-        )
+    scout_score = _clip(base_scout_score + regime_adjustment)
 
     notes: list[str] = []
     if using_ml:
         notes.append(f"ML model active (prob_bull={raw_score/2+0.5:.2%})")
     else:
         notes.append("heuristic fallback (model not found)")
+    if alignment_note:
+        notes.append(alignment_note)
     if abs(momentum_5d) > 0.035:
         notes.append("short-term momentum is strong")
     if 40.0 <= rsi_14 <= 60.0:
@@ -508,6 +506,7 @@ class WeekReplay:
     regime: MarketRegime
     signals: list[ScoutSignal]
     candidates: list[ContractCandidate]
+    scout_diagnostics: dict[str, Any]
 
 
 def replay_week(
@@ -527,10 +526,40 @@ def replay_week(
     regime = infer_regime_as_of(spy_history, vix_history, monday)
 
     signals: list[ScoutSignal] = []
+    scout_diagnostics: dict[str, Any] = {
+        "pre_veto_direction_counts": {"call": 0, "put": 0},
+        "final_direction_counts": {"call": 0, "put": 0},
+        "counter_regime_filtered": 0,
+    }
     for symbol in symbols:
         hist = equity_histories.get(symbol)
         if hist is None:
             continue
+        try:
+            hist = _flatten_columns(hist)
+            frame = hist[hist.index.date <= monday].copy()
+            close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+            if len(close) >= 62:
+                feats = _extract_features(close, frame)
+                ml_score = _ml_scout_score(feats)
+                direction_hint = None
+                if ml_score is not None:
+                    direction_hint = "call" if ml_score >= 0 else "put"
+                else:
+                    technical_score, _, _ = _heuristic_scout_score(
+                        float(close.iloc[-1] / close.iloc[-6] - 1.0),
+                        float(close.iloc[-1] / close.iloc[-21] - 1.0),
+                        _rsi(close, period=14),
+                        float(close.pct_change().rolling(20).std().iloc[-1] * (252 ** 0.5)),
+                        _atr_pct(frame, period=14),
+                        z_score=0.0,
+                        regime_bonus=0.0,
+                    )
+                    direction_hint = "call" if technical_score >= 0 else "put"
+                if direction_hint in scout_diagnostics["pre_veto_direction_counts"]:
+                    scout_diagnostics["pre_veto_direction_counts"][direction_hint] += 1
+        except Exception:
+            pass
         try:
             sig = build_signal_as_of(symbol, monday, hist, regime, spy_history)
         except Exception as exc:
@@ -538,8 +567,14 @@ def replay_week(
             sig = None
         if sig is not None:
             signals.append(sig)
+            scout_diagnostics["final_direction_counts"][sig.direction] += 1
 
     signals.sort(key=lambda s: abs(s.scout_score), reverse=True)
+    scout_diagnostics["counter_regime_filtered"] = max(
+        sum(scout_diagnostics["pre_veto_direction_counts"].values())
+        - sum(scout_diagnostics["final_direction_counts"].values()),
+        0,
+    )
 
     candidates: list[ContractCandidate] = []
     for sig in signals:
@@ -563,4 +598,5 @@ def replay_week(
         regime=regime,
         signals=signals,
         candidates=candidates,
+        scout_diagnostics=scout_diagnostics,
     )

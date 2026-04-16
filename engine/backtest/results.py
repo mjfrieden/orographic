@@ -85,6 +85,49 @@ def apply_coverage_policy(
     return results
 
 
+def _build_side_breakdown(trades: list[TradeLeg]) -> list[dict[str, Any]]:
+    side_stats: dict[str, dict[str, float | int]] = {}
+    for trade in trades:
+        side = str(trade.option_type).lower()
+        if side not in {"call", "put"}:
+            continue
+        if side not in side_stats:
+            side_stats[side] = {
+                "trades": 0,
+                "wins": 0,
+                "expired_worthless": 0,
+                "total_pnl": 0.0,
+                "sum_pnl_pct": 0.0,
+                "total_cost_basis": 0.0,
+            }
+        bucket = side_stats[side]
+        bucket["trades"] += 1
+        bucket["total_pnl"] += trade.pnl
+        bucket["sum_pnl_pct"] += trade.pnl_pct
+        bucket["total_cost_basis"] += trade.cost_basis
+        if trade.pnl > 0:
+            bucket["wins"] += 1
+        if trade.expired_worthless:
+            bucket["expired_worthless"] += 1
+
+    breakdown: list[dict[str, Any]] = []
+    for side in ["call", "put"]:
+        bucket = side_stats.get(side)
+        if not bucket:
+            continue
+        trades_count = int(bucket["trades"])
+        breakdown.append({
+            "option_type": side,
+            "trades": trades_count,
+            "win_rate": round(int(bucket["wins"]) / trades_count, 4) if trades_count else 0.0,
+            "expired_worthless": int(bucket["expired_worthless"]),
+            "total_pnl": round(float(bucket["total_pnl"]), 2),
+            "avg_pnl_pct": round(float(bucket["sum_pnl_pct"]) / trades_count, 4) if trades_count else 0.0,
+            "avg_cost_basis": round(float(bucket["total_cost_basis"]) / trades_count, 2) if trades_count else 0.0,
+        })
+    return breakdown
+
+
 # ── Main aggregator ─────────────────────────────────────────────────────────
 
 def build_results(
@@ -176,6 +219,7 @@ def build_results(
         }
         for sym, v in sorted(symbol_stats.items(), key=lambda kv: kv[1]["total_pnl"], reverse=True)
     ]
+    side_breakdown = _build_side_breakdown(trades)
     entry_source_counts = Counter(t.entry_data_source for t in trades)
     exit_source_counts = Counter(t.exit_data_source for t in trades)
     avg_options_data_coverage_pct = _mean([t.options_data_coverage_pct for t in trades])
@@ -221,6 +265,7 @@ def build_results(
             "exit_source_counts": dict(sorted(exit_source_counts.items())),
         },
         "equity_curve": equity_curve,
+        "side_breakdown": side_breakdown,
         "symbol_breakdown": symbol_breakdown,
         "best_trades": best_trades,
         "worst_trades": worst_trades,
@@ -297,6 +342,7 @@ def _empty_results(
             "exit_source_counts": {},
         },
         "equity_curve": [],
+        "side_breakdown": [],
         "symbol_breakdown": [],
         "best_trades": [],
         "worst_trades": [],

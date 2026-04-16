@@ -377,7 +377,12 @@ def run_experiment(
                 "monday": week.monday.isoformat(),
                 "regime": week.regime.mode,
                 "signals": len(week.signals),
+                "signal_side_mix": week.scout_diagnostics.get("final_direction_counts", {}),
                 "raw_candidates": len(week.candidates),
+                "candidate_side_mix": {
+                    "call": sum(1 for row in week.candidates if row.option_type == "call"),
+                    "put": sum(1 for row in week.candidates if row.option_type == "put"),
+                },
                 "post_cost_cap_candidates": cost_diag["kept"],
                 "cost_cap_dropped": cost_diag["dropped"],
                 "available_priors": prior_diag["available_priors"],

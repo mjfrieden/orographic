@@ -65,6 +65,8 @@ class ResultsTests(unittest.TestCase):
         self.assertEqual(coverage["exit_source_counts"]["synthetic_chain"], 1)
         self.assertAlmostEqual(coverage["entry_real_trade_pct"], 2 / 3, places=4)
         self.assertAlmostEqual(coverage["fully_real_trade_pct"], 1 / 3, places=4)
+        self.assertEqual(results["side_breakdown"][0]["option_type"], "call")
+        self.assertEqual(results["side_breakdown"][0]["trades"], 3)
 
     def test_apply_coverage_policy_flags_shortfall(self) -> None:
         results = build_results(
@@ -90,6 +92,42 @@ class ResultsTests(unittest.TestCase):
         )
 
         self.assertEqual(results["max_drawdown"], -1.0)
+
+    def test_build_results_reports_put_side_breakdown(self) -> None:
+        put_trade = _trade("HEDGE", "real_chain", "real_chain", 1.0, pnl=30.0, pnl_pct=0.3)
+        put_trade.option_type = "put"
+        results = build_results(
+            [
+                _trade("LONG", "real_chain", "real_chain", 1.0, pnl=-10.0, pnl_pct=-0.1),
+                put_trade,
+            ],
+            date(2026, 4, 1),
+            date(2026, 4, 30),
+        )
+
+        self.assertEqual(
+            results["side_breakdown"],
+            [
+                {
+                    "option_type": "call",
+                    "trades": 1,
+                    "win_rate": 0.0,
+                    "expired_worthless": 0,
+                    "total_pnl": -10.0,
+                    "avg_pnl_pct": -0.1,
+                    "avg_cost_basis": 100.0,
+                },
+                {
+                    "option_type": "put",
+                    "trades": 1,
+                    "win_rate": 1.0,
+                    "expired_worthless": 0,
+                    "total_pnl": 30.0,
+                    "avg_pnl_pct": 0.3,
+                    "avg_cost_basis": 100.0,
+                },
+            ],
+        )
 
 
 if __name__ == "__main__":

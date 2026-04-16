@@ -11,7 +11,7 @@ from zoneinfo import ZoneInfo
 
 from .council import select_board
 from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
-from .scout import scan_symbols
+from .scout import scan_symbols_with_diagnostics
 
 
 DEFAULT_UNIVERSE_FILE = Path(__file__).resolve().parents[1] / "sample_universe.txt"
@@ -101,6 +101,15 @@ def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]
     return compact
 
 
+def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
+    counts = {"call": 0, "put": 0}
+    for row in rows:
+        side = str(row.get(key) or "").strip().lower()
+        if side in counts:
+            counts[side] += 1
+    return counts
+
+
 def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[str, Any]:
     generated_at = _normalize_timestamp(payload.get("generated_at_utc"))
     generated_at_utc = generated_at.replace(microsecond=0).isoformat()
@@ -109,9 +118,11 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
     diagnostics = payload.get("diagnostics") if isinstance(payload.get("diagnostics"), dict) else {}
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
     council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    scout = diagnostics.get("scout") if isinstance(diagnostics.get("scout"), dict) else {}
     pre_forge = diagnostics.get("pre_forge") if isinstance(diagnostics.get("pre_forge"), dict) else {}
     forge = diagnostics.get("forge") if isinstance(diagnostics.get("forge"), dict) else {}
     per_symbol = forge.get("per_symbol") if isinstance(forge.get("per_symbol"), list) else []
+    scout_rejections = scout.get("rejections") if isinstance(scout.get("rejections"), list) else []
     pre_forge_rejections = pre_forge.get("rejections") if isinstance(pre_forge.get("rejections"), list) else []
     forge_rejections = [
         row for row in per_symbol
@@ -145,6 +156,17 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
             "live_count": _coerce_int(council_summary.get("live_count")),
             "shadow_count": _coerce_int(council_summary.get("shadow_count")),
             "abstain": bool(summary.get("abstain", council.get("abstain", False))),
+            "scout_pre_veto_direction_counts": scout.get("pre_veto_direction_counts", {}),
+            "scout_final_direction_counts": scout.get("final_direction_counts", {}),
+            "scout_counter_regime_survivors": _coerce_int(scout.get("counter_regime_survivors")),
+            "forge_candidate_side_mix": _count_side_mix(
+                payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else [],
+                key="option_type",
+            ),
+            "live_board_side_mix": _count_side_mix(
+                council.get("live_board") if isinstance(council.get("live_board"), list) else [],
+                key="option_type",
+            ),
         },
         "top_scout_names": [
             {
@@ -160,6 +182,14 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
             "settings": pre_forge.get("settings", {}),
             "rejection_counts": _sorted_reason_counts(pre_forge_rejections, reason_key="reason"),
             "rejections": pre_forge_rejections,
+        },
+        "scout": {
+            "settings": scout.get("settings", {}),
+            "pre_veto_direction_counts": scout.get("pre_veto_direction_counts", {}),
+            "final_direction_counts": scout.get("final_direction_counts", {}),
+            "counter_regime_survivors": _coerce_int(scout.get("counter_regime_survivors")),
+            "rejection_counts": _sorted_reason_counts(scout_rejections, reason_key="reason"),
+            "rejections": scout_rejections,
         },
         "forge": {
             "waterfall": forge.get("waterfall", {}),
@@ -199,7 +229,7 @@ def write_forge_rejection_waterfall_artifacts(snapshot_path: str, payload: dict[
 def run_scan(config: PipelineConfig) -> dict[str, Any]:
     log.info("Orographic pipeline started with universe of %d symbols.", len(config.universe))
     try:
-        regime, scout_signals = scan_symbols(config.universe)
+        regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
         log.info("Scout signal generation complete. Evaluating candidates...")
 
         forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
@@ -240,12 +270,16 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "forge_candidates": [row.to_dict() for row in forge_candidates[:10]],
             "council": council.to_dict(),
             "diagnostics": {
+                "scout": scout_diagnostics,
                 "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
             },
             "summary": {
                 "universe_size": len(config.universe),
                 "scout_signal_count": len(scout_signals),
+                "scout_pre_veto_direction_counts": scout_diagnostics.get("pre_veto_direction_counts", {}),
+                "scout_final_direction_counts": scout_diagnostics.get("final_direction_counts", {}),
+                "scout_counter_regime_survivors": scout_diagnostics.get("counter_regime_survivors", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
                 "abstain": council.abstain,

@@ -30,6 +30,9 @@ log = logging.getLogger(__name__)
 _MODEL_DIR = Path(__file__).parent / "models"
 _MODEL_PATH = _MODEL_DIR / "scout_model.pkl"
 _SCALER_PATH = _MODEL_DIR / "scout_scaler.pkl"
+REGIME_SAME_SIDE_BONUS = 0.08
+REGIME_COUNTERTREND_PENALTY = 0.18
+REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
 
 
 # ── Model loader (singleton, loaded once per process) ────────────────────────
@@ -63,6 +66,45 @@ def _load_model() -> tuple | None:
 
 def _clip(value: float, low: float = -1.0, high: float = 1.0) -> float:
     return max(low, min(high, value))
+
+
+def _empty_direction_counts() -> dict[str, int]:
+    return {"call": 0, "put": 0}
+
+
+def _apply_regime_alignment(
+    *,
+    direction: str,
+    conviction_score: float,
+    regime: MarketRegime,
+) -> tuple[bool, float, str | None, str | None]:
+    if regime.mode == "extreme_vol":
+        return False, 0.0, "extreme_vol", "regime veto: extreme volatility"
+
+    if regime.mode == "neutral":
+        return True, 0.0, None, None
+
+    aligned = (
+        (regime.mode == "risk_on" and direction == "call")
+        or (regime.mode == "risk_off" and direction == "put")
+    )
+    if aligned:
+        return True, REGIME_SAME_SIDE_BONUS, None, f"regime tailwind: {regime.mode}"
+
+    if abs(conviction_score) < REGIME_COUNTERTREND_MIN_ABS_SCORE:
+        return (
+            False,
+            -REGIME_COUNTERTREND_PENALTY,
+            "counter_regime_weak_conviction",
+            f"counter-regime setup rejected below {REGIME_COUNTERTREND_MIN_ABS_SCORE:.2f} conviction",
+        )
+
+    return (
+        True,
+        -REGIME_COUNTERTREND_PENALTY,
+        None,
+        f"counter-regime setup survived with penalty in {regime.mode}",
+    )
 
 
 def _calculate_z_scores(metrics: dict[str, float]) -> dict[str, float]:
@@ -256,10 +298,19 @@ def build_signal(
     frame: pd.DataFrame,
     z_score: float,
     spy_frame: pd.DataFrame | None = None,
-) -> ScoutSignal | None:
+    *,
+    return_diagnostics: bool = False,
+) -> ScoutSignal | tuple[ScoutSignal | None, dict[str, object]] | None:
     close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
+    diagnostics: dict[str, object] = {
+        "symbol": symbol,
+        "regime_mode": regime.mode,
+        "passed": False,
+        "reason": None,
+    }
     if len(close) < 62:   # need 62 bars for mom_60d + fwd window safety
-        return None
+        diagnostics["reason"] = "insufficient_history"
+        return (None, diagnostics) if return_diagnostics else None
 
     spot = float(close.iloc[-1])
     momentum_5d       = float(spot / close.iloc[-6]  - 1.0)
@@ -267,10 +318,6 @@ def build_signal(
     realized_vol_20d  = float(close.pct_change().rolling(20).std().iloc[-1] * (252 ** 0.5))
     rsi_14            = _rsi(close, period=14)
     atr_pct_14d       = _atr_pct(frame, period=14)
-
-    # \u2500\u2500 Regime alignment \u2500\u2500
-    # Compute regime_bonus before we know direction (for heuristic path)
-    regime_bonus = 0.0 
 
     # \u2500\u2500 ML inference path \u2500\u2500
     spy_close = None
@@ -286,38 +333,35 @@ def build_signal(
         raw_score = ml_score
         technical_score = raw_score      # expose as technical for schema compat
         empirical_score = z_score * 0.3  # still blend in cross-sectional rank
+        base_scout_score = raw_score
         direction = "call" if raw_score >= 0 else "put"
     else:
-        # Heuristic fallback \u2014 compute preliminary direction for regime veto
-        technical_score, empirical_score, _ = _heuristic_scout_score(
+        technical_score, empirical_score, base_scout_score = _heuristic_scout_score(
             momentum_5d, momentum_20d, rsi_14, realized_vol_20d,
             atr_pct_14d, z_score, 0.0,
         )
         direction = "call" if technical_score >= 0 else "put"
         raw_score = None   
 
-    # \u2500\u2500 Hard Regime Alignment Veto \u2500\u2500
-    if regime.mode == "extreme_vol":
-        return None
-    if regime.mode == "risk_on"  and direction == "put":
-        return None
-    if regime.mode == "risk_off" and direction == "call":
-        return None
+    conviction_score = raw_score if using_ml else technical_score
+    diagnostics["pre_veto_direction"] = direction
+    diagnostics["conviction_score"] = round(float(conviction_score), 4)
+    diagnostics["base_scout_score"] = round(float(base_scout_score), 4)
 
-    if regime.mode == "risk_on"  and direction == "call":
-        regime_bonus = 0.08
-    elif regime.mode == "risk_off" and direction == "put":
-        regime_bonus = 0.08
-    elif regime.mode != "neutral":
-        regime_bonus = -0.08
+    passed_alignment, regime_adjustment, rejection_reason, alignment_note = _apply_regime_alignment(
+        direction=direction,
+        conviction_score=float(conviction_score),
+        regime=regime,
+    )
+    diagnostics["regime_adjustment"] = round(regime_adjustment, 4)
+    diagnostics["counter_regime_survivor"] = bool(
+        passed_alignment and regime_adjustment < 0 and regime.mode in {"risk_on", "risk_off"}
+    )
+    if not passed_alignment:
+        diagnostics["reason"] = rejection_reason
+        return (None, diagnostics) if return_diagnostics else None
 
-    if using_ml:
-        scout_score = _clip(raw_score + regime_bonus)
-    else:
-        _, _, scout_score = _heuristic_scout_score(
-            momentum_5d, momentum_20d, rsi_14, realized_vol_20d,
-            atr_pct_14d, z_score, regime_bonus,
-        )
+    scout_score = _clip(base_scout_score + regime_adjustment)
 
     # \u2500\u2500 AI Sentinel overlay \u2500\u2500
     ai_score = fetch_ai_multiplier(symbol)
@@ -328,6 +372,8 @@ def build_signal(
         notes.append(f"ML model active (prob_bull={raw_score/2+0.5:.2%})")
     else:
         notes.append("heuristic fallback active (model not found)")
+    if alignment_note:
+        notes.append(alignment_note)
     if ai_score.multiplier != 1.0:
         notes.append(
             f"AI Sentinel ({ai_score.multiplier}x: {ai_score.catalyst}) \u2014 {ai_score.rationale}"
@@ -341,7 +387,7 @@ def build_signal(
     if z_score > 1.5:
         notes.append("volatility-adjusted relative strength outlier")
 
-    return ScoutSignal(
+    signal = ScoutSignal(
         symbol=symbol,
         direction=direction,
         spot=round(spot, 4),
@@ -355,11 +401,18 @@ def build_signal(
         scout_score=round(scout_score, 4),
         notes=notes,
     )
+    diagnostics["passed"] = True
+    diagnostics["reason"] = "selected"
+    diagnostics["final_direction"] = direction
+    diagnostics["final_scout_score"] = signal.scout_score
+    return (signal, diagnostics) if return_diagnostics else signal
 
 
 # \u2500\u2500 Universe scanner \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
-def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal]]:
+def scan_symbols_with_diagnostics(
+    symbols: Iterable[str],
+) -> tuple[MarketRegime, list[ScoutSignal], dict[str, object]]:
     symbol_list = list(symbols)
     log.info("Starting scan for %d symbols", len(symbol_list))
     regime = infer_market_regime()
@@ -368,6 +421,22 @@ def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal
     signals: list[ScoutSignal] = []
     universe_data: dict[str, pd.DataFrame] = {}
     momentum_metrics: dict[str, float] = {}
+    skipped_symbols: list[dict[str, object]] = []
+    rejection_reasons: dict[str, int] = {}
+    scout_diagnostics: dict[str, object] = {
+        "symbols_requested": len(symbol_list),
+        "symbols_with_history": 0,
+        "symbols_with_features": 0,
+        "pre_veto_direction_counts": _empty_direction_counts(),
+        "final_direction_counts": _empty_direction_counts(),
+        "counter_regime_survivors": 0,
+        "rejections": [],
+        "settings": {
+            "regime_same_side_bonus": REGIME_SAME_SIDE_BONUS,
+            "regime_countertrend_penalty": REGIME_COUNTERTREND_PENALTY,
+            "regime_countertrend_min_abs_score": REGIME_COUNTERTREND_MIN_ABS_SCORE,
+        },
+    }
 
     # Fetch SPY once for cross-asset features in ML model
     spy_frame = history("SPY", period="6mo")
@@ -383,10 +452,12 @@ def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal
         try:
             frame = history(cleaned, period="6mo")
             if frame.empty:
+                skipped_symbols.append({"symbol": cleaned, "reason": "empty_history"})
                 continue
                 
             close = pd.to_numeric(frame.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
             if len(close) < 62:
+                skipped_symbols.append({"symbol": cleaned, "reason": "insufficient_history"})
                 continue
             spot = float(close.iloc[-1])
             momentum_20d     = float(spot / close.iloc[-21] - 1.0)
@@ -397,21 +468,57 @@ def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal
             momentum_metrics[cleaned]   = vol_adj_momentum
         except Exception as exc:
             log.debug("Skipping %s due to error: %s", cleaned, exc)
+            skipped_symbols.append({"symbol": cleaned, "reason": "history_error", "error": str(exc)})
             continue
 
     log.info("Successfully fetched data for %d/%d symbols.", len(universe_data), len(symbol_list))
+    scout_diagnostics["symbols_with_history"] = len(universe_data)
+    scout_diagnostics["symbols_with_features"] = len(momentum_metrics)
     z_scores = _calculate_z_scores(momentum_metrics)
 
     for cleaned, frame in universe_data.items():
         z_score = z_scores.get(cleaned, 0.0)
         try:
-            signal = build_signal(cleaned, regime, frame, z_score, spy_frame)
+            signal, signal_diagnostics = build_signal(
+                cleaned,
+                regime,
+                frame,
+                z_score,
+                spy_frame,
+                return_diagnostics=True,
+            )
         except Exception as exc:
             log.debug("Building signal failed for %s: %s", cleaned, exc)
             signal = None
+            signal_diagnostics = {
+                "symbol": cleaned,
+                "passed": False,
+                "reason": "signal_error",
+                "error": str(exc),
+            }
+        pre_direction = signal_diagnostics.get("pre_veto_direction")
+        if pre_direction in {"call", "put"}:
+            scout_diagnostics["pre_veto_direction_counts"][str(pre_direction)] += 1
+        if signal_diagnostics.get("counter_regime_survivor"):
+            scout_diagnostics["counter_regime_survivors"] += 1
         if signal is not None:
             signals.append(signal)
+            scout_diagnostics["final_direction_counts"][signal.direction] += 1
+        else:
+            reason = str(signal_diagnostics.get("reason") or "unknown")
+            rejection_reasons[reason] = rejection_reasons.get(reason, 0) + 1
+            scout_diagnostics["rejections"].append(signal_diagnostics)
 
     signals.sort(key=lambda row: abs(row.scout_score), reverse=True)
+    scout_diagnostics["skipped_symbols"] = skipped_symbols
+    scout_diagnostics["rejection_counts"] = [
+        {"reason": reason, "count": count}
+        for reason, count in sorted(rejection_reasons.items(), key=lambda item: (-item[1], item[0]))
+    ]
     log.info("Generated %d valid scout signals.", len(signals))
+    return regime, signals, scout_diagnostics
+
+
+def scan_symbols(symbols: Iterable[str]) -> tuple[MarketRegime, list[ScoutSignal]]:
+    regime, signals, _ = scan_symbols_with_diagnostics(symbols)
     return regime, signals
