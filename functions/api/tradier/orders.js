@@ -2,6 +2,7 @@ import {
   buildEligibility,
   buildOrderEnvelope,
   buildSubmissionPreview,
+  buildSpreadExecutionBlock,
   describeSnapshot,
   fetchOptionQuote,
   findCandidate,
@@ -107,6 +108,19 @@ export async function onRequestPost(context) {
     snapshotInfo,
     side,
   });
+  const spreadBlock = buildSpreadExecutionBlock(candidate, side);
+  if (spreadBlock) {
+    return jsonResponse(
+      {
+        ok: false,
+        error: spreadBlock.error,
+        spread: spreadBlock.spread,
+        eligibility,
+        submission,
+      },
+      spreadBlock.status,
+    );
+  }
 
   // ----- PREVIEW path (any authenticated user) -----
   if (isPreview) {

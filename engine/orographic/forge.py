@@ -60,10 +60,6 @@ def _net_debit_cap(spot: float, base_cap: float) -> float:
     return max(base_cap, dynamic_cap)
 
 
-def _long_leg_cap(net_debit_cap: float) -> float:
-    return min(max(net_debit_cap * 4.0, 4.0), 20.0)
-
-
 def _spread_cap(spot: float, base_cap: float) -> float:
     dynamic_cap = 0.18
     if spot >= 500:
@@ -71,58 +67,6 @@ def _spread_cap(spot: float, base_cap: float) -> float:
     elif spot >= 300:
         dynamic_cap = 0.24
     return max(base_cap, dynamic_cap)
-
-
-def _find_short_leg(
-    short_pool: pd.DataFrame,
-    *,
-    option_type: str,
-    long_strike: float,
-    long_delta: float,
-    spot: float,
-    time_to_expiry_years: float,
-    risk_free_rate: float,
-    max_spread_pct: float,
-) -> dict[str, float] | None:
-    strike_filter = short_pool["strike"] > long_strike if option_type == "call" else short_pool["strike"] < long_strike
-    candidates = short_pool[strike_filter].copy()
-    if candidates.empty:
-        return None
-
-    mid = (candidates["bid"] + candidates["ask"]) / 2.0
-    candidates = candidates[mid > 0].copy()
-    if candidates.empty:
-        return None
-
-    candidates["spread_pct"] = (candidates["ask"] - candidates["bid"]) / ((candidates["bid"] + candidates["ask"]) / 2.0)
-    candidates = candidates[candidates["spread_pct"] <= max_spread_pct].copy()
-    if candidates.empty:
-        return None
-
-    candidates["delta"] = candidates.apply(
-        lambda row: black_scholes_delta(
-            spot=spot,
-            strike=float(row["strike"]),
-            time_to_expiry_years=time_to_expiry_years,
-            risk_free_rate=risk_free_rate,
-            volatility=max(float(row["impliedVolatility"]), 0.10),
-            option_type=option_type,
-        ),
-        axis=1,
-    )
-    candidates = candidates[candidates["delta"].notna()].copy()
-    if candidates.empty:
-        return None
-
-    target_abs_delta = max(0.10, min(0.30, abs(long_delta) * 0.55))
-    candidates["target_distance"] = (candidates["delta"].abs() - target_abs_delta).abs()
-    best = candidates.sort_values(["target_distance", "spread_pct", "ask"]).iloc[0]
-    return {
-        "strike": float(best["strike"]),
-        "bid": float(best["bid"]),
-        "ask": float(best["ask"]),
-        "delta": float(best["delta"]),
-    }
 
 
 def select_signals_for_forge(
@@ -149,7 +93,7 @@ def select_signals_for_forge(
 
         evaluated += 1
         net_debit_cap = _net_debit_cap(signal.spot, max_premium)
-        long_leg_cap = _long_leg_cap(net_debit_cap)
+        long_leg_cap = net_debit_cap
         effective_spread_cap = _spread_cap(signal.spot, max_spread_pct)
         try:
             expiry = next_expiry(
@@ -268,7 +212,7 @@ def rank_contracts_with_diagnostics(
     for signal in signals:
         stage_totals["signals_considered"] += 1
         net_debit_cap = _net_debit_cap(signal.spot, max_premium)
-        long_leg_cap = _long_leg_cap(net_debit_cap)
+        long_leg_cap = net_debit_cap
         effective_spread_cap = _spread_cap(signal.spot, max_spread_pct)
         symbol_diag: dict[str, object] = {
             "symbol": signal.symbol,
@@ -359,7 +303,6 @@ def rank_contracts_with_diagnostics(
             per_symbol.append(symbol_diag)
             continue
 
-        short_pool = clean.copy()
         clean["moneyness"] = clean["strike"].apply(
             lambda strike: _candidate_moneyness(signal.direction, signal.spot, float(strike))
         )
@@ -409,39 +352,13 @@ def rank_contracts_with_diagnostics(
             volume = int(float(row["volume"]))
             iv = max(float(row["impliedVolatility"]), 0.10)
 
-            short_leg = _find_short_leg(
-                short_pool,
-                option_type=option_type,
-                long_strike=strike,
-                long_delta=delta,
-                spot=signal.spot,
-                time_to_expiry_years=time_to_expiry_years,
-                risk_free_rate=risk_free_rate,
-                max_spread_pct=effective_spread_cap,
-            )
-
-            is_spread = False
             actual_premium = premium
-            if short_leg is not None:
-                spread_debit = premium - short_leg["bid"]
-                if 0.05 < spread_debit <= net_debit_cap:
-                    is_spread = True
-                    actual_premium = spread_debit
-            if not is_spread and premium > net_debit_cap:
+            if premium > net_debit_cap:
                 continue
 
             rows_passing_net_debit += 1
             projected_value = _intrinsic(option_type, projected_spot, strike)
             intrinsic_now = _intrinsic(option_type, signal.spot, strike)
-            if is_spread and short_leg is not None:
-                projected_value = max(
-                    projected_value - _intrinsic(option_type, projected_spot, short_leg["strike"]),
-                    0.0,
-                )
-                intrinsic_now = max(
-                    intrinsic_now - _intrinsic(option_type, signal.spot, short_leg["strike"]),
-                    0.0,
-                )
 
             expected_return_pct = projected_value / actual_premium - 1.0
             breakeven_move_pct = _breakeven_move_pct(option_type, signal.spot, strike, actual_premium)
@@ -473,10 +390,6 @@ def rank_contracts_with_diagnostics(
             )
 
             notes: list[str] = []
-            if is_spread and short_leg is not None:
-                notes.append(
-                    f"debit spread selected: {strike:.2f}/{short_leg['strike']:.2f} for premium control"
-                )
             if expected_return_pct > 1.0:
                 notes.append("projected payoff is asymmetric")
             if extrinsic_ratio < 0.8:
@@ -512,10 +425,10 @@ def rank_contracts_with_diagnostics(
                     extrinsic_ratio=round(extrinsic_ratio, 4),
                     scout_score=signal.scout_score,
                     forge_score=round(forge_score, 4),
-                    short_strike=round(short_leg["strike"], 4) if short_leg else None,
-                    short_ask=round(short_leg["ask"], 4) if short_leg else None,
-                    short_bid=round(short_leg["bid"], 4) if short_leg else None,
-                    is_spread=is_spread,
+                    short_strike=None,
+                    short_ask=None,
+                    short_bid=None,
+                    is_spread=False,
                     spread_cost=round(actual_premium, 4),
                     allocation_weight=allocation_weight,
                     iv_rank=round(ivr, 4),

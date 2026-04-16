@@ -388,9 +388,7 @@ function renderOrders() {
   tbody.innerHTML = rows
     .map((o) => {
       const isBuy = String(o.side || "").includes("buy");
-      const rejectionReason = String(
-        o.reason_description || o.message || "",
-      ).trim();
+      const rejectionReason = orderIssueText(o);
       const contractMeta = rejectionReason
         ? `<div class="order-status-note" title="${escapeHtml(rejectionReason)}">${escapeHtml(rejectionReason)}</div>`
         : "";
@@ -560,6 +558,30 @@ function clampQuantity(
   return Math.min(Math.max(parsed, 1), maxContracts);
 }
 
+function isSpreadPick(candidate) {
+  return Boolean(candidate?.is_spread);
+}
+
+function spreadPickLabel(candidate) {
+  const optionType = String(candidate?.option_type || "").toUpperCase();
+  const longStrike = Number(candidate?.strike);
+  const shortStrike = Number(candidate?.short_strike);
+  const netDebit = Number(candidate?.spread_cost);
+  const longText = Number.isFinite(longStrike) ? longStrike.toFixed(0) : "--";
+  const shortText = Number.isFinite(shortStrike) ? shortStrike.toFixed(0) : "--";
+  const debitText = Number.isFinite(netDebit) ? ` · Net debit ${money(netDebit)}` : "";
+  return `${optionType} debit spread ${longText}/${shortText}${debitText}`;
+}
+
+function orderIssueText(order) {
+  return String(
+    order?.broker_issue?.message ||
+      order?.reason_description ||
+      order?.message ||
+      "",
+  ).trim();
+}
+
 function suggestedEntryQuantity(price, allocWeight) {
   const contractPrice = Number(price);
   if (!Number.isFinite(contractPrice) || contractPrice <= 0) {
@@ -583,6 +605,10 @@ function buildTradeCard(candidate, regime, lane) {
   const liveQuote = LIVE_QUOTES.get(candidate.contract_symbol);
   const displayBid = liveQuote?.bid ?? candidate.bid;
   const displayAsk = liveQuote?.ask ?? candidate.ask ?? candidate.premium;
+  const isSpread = isSpreadPick(candidate);
+  const spreadNotice = isSpread
+    ? "Manual spread order required: Orographic will not transmit only the long leg."
+    : "";
   const displayIv = liveQuote?.greeks?.mid_iv
     ? Number(liveQuote.greeks.mid_iv * 100).toFixed(0) + "%"
     : candidate.implied_volatility
@@ -658,6 +684,16 @@ function buildTradeCard(candidate, regime, lane) {
           <span class="card-stat-label">Exp. Return</span>
           <span class="card-stat-value">${pct(candidate.expected_return_pct, 0)}</span>
         </div>
+        ${
+          isSpread
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Strategy</span>
+          <span class="card-stat-value">${spreadPickLabel(candidate)}</span>
+        </div>
+        `
+            : ""
+        }
       </div>
 
       <div id="rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}" class="card-rationale is-loading">
@@ -694,8 +730,14 @@ function buildTradeCard(candidate, regime, lane) {
           data-lane="${lane}"
           data-ask="${displayAsk || ""}"
           data-alloc="${candidate.allocation_weight || 1.0}"
-          ${!isLive && BROKER_STATE.mode === "live" ? "disabled title='Live mode only accepts live-board contracts'" : ""}
-        >Preview Trade</button>
+          ${
+            isSpread
+              ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
+              : !isLive && BROKER_STATE.mode === "live"
+                ? "disabled title='Live mode only accepts live-board contracts'"
+                : ""
+          }
+        >${isSpread ? "Manual Spread Required" : "Preview Trade"}</button>
 
         ${
           isAdmin
@@ -708,12 +750,26 @@ function buildTradeCard(candidate, regime, lane) {
           data-lane="${lane}"
           data-ask="${displayAsk || ""}"
           data-alloc="${candidate.allocation_weight || 1.0}"
-          ${!isLive && BROKER_STATE.mode === "live" ? "disabled title='Live mode only'" : ""}
-        >Execute Trade</button>
+          ${
+            isSpread
+              ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
+              : !isLive && BROKER_STATE.mode === "live"
+                ? "disabled title='Live mode only'"
+                : ""
+          }
+        >${isSpread ? "Manual Spread Required" : "Execute Trade"}</button>
         `
             : ""
         }
       </div>
+
+      ${
+        spreadNotice
+          ? `
+        <p class="card-notes">${spreadNotice}</p>
+      `
+          : ""
+      }
 
       ${
         candidate.notes?.length

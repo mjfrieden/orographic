@@ -55,6 +55,29 @@ function cleanMessage(value) {
     .trim();
 }
 
+export function classifyTradierIssue(value) {
+  const raw = cleanMessage(value);
+  if (!raw) {
+    return null;
+  }
+
+  const normalized = raw.toLowerCase();
+  if (
+    normalized.includes("fixmessagesender is not operational") ||
+    (normalized.includes("fix.4.2") && normalized.includes("not connected"))
+  ) {
+    return {
+      code: "broker_route_not_connected",
+      source: "tradier",
+      message:
+        "Broker routing unavailable: Tradier/Apex FIX connectivity is not operational. The contract reached the broker, but execution routing is disconnected. Retry after broker connectivity recovers or contact Tradier if it persists.",
+      raw,
+    };
+  }
+
+  return null;
+}
+
 function tradierErrorMessage(payload, status) {
   const fromPayload =
     payload?.fault?.faultstring ||
@@ -64,7 +87,8 @@ function tradierErrorMessage(payload, status) {
     payload?.message ||
     payload?.raw;
   if (fromPayload) {
-    return cleanMessage(fromPayload);
+    const message = cleanMessage(fromPayload);
+    return classifyTradierIssue(message)?.message || message;
   }
   return `Tradier request failed with status ${status}`;
 }
@@ -222,6 +246,8 @@ function normalizeBalances(payload) {
 
 function normalizeOrderPayload(payload) {
   const order = payload?.order || {};
+  const reasonDescription = cleanMessage(order.reason_description || "");
+  const message = cleanMessage(order.message || "");
   return {
     id: order.id ?? null,
     status: String(order.status || ""),
@@ -242,30 +268,52 @@ function normalizeOrderPayload(payload) {
     option_symbol: String(order.option_symbol || ""),
     class: String(order.class || ""),
     strategy: String(order.strategy || ""),
-    reason_description: cleanMessage(order.reason_description || ""),
-    message: cleanMessage(order.message || ""),
+    reason_description: reasonDescription,
+    message,
+    broker_issue: classifyTradierIssue(reasonDescription || message),
     raw: order,
   };
 }
 
 function normalizeOrders(payload) {
-  return toList(payload?.orders?.order).map((order) => ({
-    id: order.id ?? null,
-    symbol: String(order.symbol || ""),
-    option_symbol: String(order.option_symbol || ""),
-    status: String(order.status || ""),
-    side: String(order.side || ""),
-    type: String(order.type || ""),
-    duration: String(order.duration || ""),
-    quantity: asNumber(order.quantity, null),
-    remaining_quantity: asNumber(order.remaining_quantity, null),
-    create_date: String(order.create_date || ""),
-    avg_fill_price: asNumber(order.avg_fill_price, null),
-    price: asNumber(order.price, null),
-    tag: String(order.tag || ""),
-    reason_description: cleanMessage(order.reason_description || ""),
-    message: cleanMessage(order.message || ""),
-  }));
+  return toList(payload?.orders?.order)
+    .map((order) => ({
+      id: order.id ?? null,
+      symbol: String(order.symbol || ""),
+      option_symbol: String(order.option_symbol || ""),
+      status: String(order.status || ""),
+      side: String(order.side || ""),
+      type: String(order.type || ""),
+      duration: String(order.duration || ""),
+      quantity: asNumber(order.quantity, null),
+      remaining_quantity: asNumber(order.remaining_quantity, null),
+      create_date: String(order.create_date || ""),
+      avg_fill_price: asNumber(order.avg_fill_price, null),
+      price: asNumber(order.price, null),
+      tag: String(order.tag || ""),
+      reason_description: cleanMessage(order.reason_description || ""),
+      message: cleanMessage(order.message || ""),
+    }))
+    .map((order) => ({
+      ...order,
+      broker_issue: classifyTradierIssue(
+        order.reason_description || order.message,
+      ),
+    }));
+}
+
+function orderFailureMessage(
+  order,
+  fallbackMessage = "Tradier rejected the order.",
+) {
+  const rawReason = cleanMessage(
+    order?.reason_description || order?.message || "",
+  );
+  return order?.broker_issue?.message || rawReason || fallbackMessage;
+}
+
+function isRejectedOrder(order) {
+  return String(order?.status || "").trim().toLowerCase() === "rejected";
 }
 
 export function jsonResponse(payload, status = 200) {
@@ -593,7 +641,12 @@ export async function previewOrPlaceOrder(env, payload, { preview }) {
 
   const order = normalizeOrderPayload(response.data);
   if (order.result === false) {
-    throw new Error(tradierErrorMessage(response.data, response.status));
+    throw new Error(
+      orderFailureMessage(
+        order,
+        tradierErrorMessage(response.data, response.status),
+      ),
+    );
   }
 
   if (!preview && order.id) {
@@ -605,9 +658,13 @@ export async function previewOrPlaceOrder(env, payload, { preview }) {
         tradierErrorMessage(detailResponse.data, detailResponse.status),
       );
     }
+    const confirmation = normalizeOrderPayload(detailResponse.data);
+    if (isRejectedOrder(confirmation)) {
+      throw new Error(orderFailureMessage(confirmation));
+    }
     return {
       order,
-      confirmation: normalizeOrderPayload(detailResponse.data),
+      confirmation,
       rateLimits: detailResponse.rateLimits,
     };
   }
@@ -706,6 +763,50 @@ export function findCandidate(snapshot, contractSymbol) {
     }
   }
   return null;
+}
+
+export function describeSpreadCandidate(candidate) {
+  const optionType = String(candidate?.option_type || "").toLowerCase();
+  const legSuffix = optionType === "put" ? "P" : "C";
+  const longStrike = asNumber(candidate?.strike, null);
+  const shortStrike = asNumber(candidate?.short_strike, null);
+  const longPrice = asNumber(candidate?.ask ?? candidate?.premium, null);
+  const shortBid = asNumber(candidate?.short_bid, null);
+  const netDebit = asNumber(
+    candidate?.spread_cost,
+    longPrice !== null && shortBid !== null ? longPrice - shortBid : null,
+  );
+
+  return {
+    type: "debit_spread",
+    symbol: String(candidate?.symbol || "").trim().toUpperCase(),
+    option_type: optionType || null,
+    expiry: String(candidate?.expiry || ""),
+    long_contract: String(candidate?.contract_symbol || "").trim().toUpperCase(),
+    long_leg:
+      longStrike !== null ? `buy ${longStrike.toFixed(2)}${legSuffix}` : "buy long leg",
+    short_leg:
+      shortStrike !== null
+        ? `sell ${shortStrike.toFixed(2)}${legSuffix}`
+        : "sell short leg",
+    long_strike: longStrike,
+    short_strike: shortStrike,
+    net_debit: netDebit !== null ? Number(netDebit.toFixed(2)) : null,
+  };
+}
+
+export function buildSpreadExecutionBlock(candidate, side = "buy_to_open") {
+  if (side !== "buy_to_open" || !candidate?.is_spread) {
+    return null;
+  }
+
+  const spread = describeSpreadCandidate(candidate);
+  return {
+    status: 409,
+    error:
+      "This Orographic pick is a debit spread, but the current broker transmitter supports single-leg option orders only. To avoid accidentally buying only the long leg, open this as a manual debit spread in Tradier until multi-leg routing is implemented.",
+    spread,
+  };
 }
 
 export async function fetchOptionQuote(config, optionSymbol) {

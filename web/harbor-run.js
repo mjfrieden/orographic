@@ -57,6 +57,30 @@ function optionTone(optionType) {
   return String(optionType || "").toLowerCase() === "call" ? "is-call" : "is-put";
 }
 
+function isSpreadPick(contract) {
+  return Boolean(contract?.is_spread);
+}
+
+function spreadPickLabel(contract) {
+  const optionType = String(contract?.option_type || "").toUpperCase();
+  const longStrike = Number(contract?.strike);
+  const shortStrike = Number(contract?.short_strike);
+  const netDebit = Number(contract?.spread_cost);
+  const longText = Number.isFinite(longStrike) ? longStrike.toFixed(0) : "--";
+  const shortText = Number.isFinite(shortStrike) ? shortStrike.toFixed(0) : "--";
+  const debitText = Number.isFinite(netDebit) ? ` | Net debit ${money(netDebit)}` : "";
+  return `${optionType} debit spread ${longText}/${shortText}${debitText}`;
+}
+
+function orderIssueText(order) {
+  return String(
+    order?.broker_issue?.message ||
+      order?.reason_description ||
+      order?.message ||
+      "",
+  ).trim();
+}
+
 function buildTradeLink(contract, quantity, price) {
   const url = new URL("https://web.tradier.com/tradelink");
   url.searchParams.set("class", "option");
@@ -778,7 +802,12 @@ export function mountHarborRun({ payload, sessionPayload }) {
   }
 
   function previewEligible(contract) {
-    return Boolean(contract && contract.armed && contract.charge >= READY_CHARGE);
+    return Boolean(
+      contract &&
+        !isSpreadPick(contract) &&
+        contract.armed &&
+        contract.charge >= READY_CHARGE
+    );
   }
 
   function previewMessage(contract) {
@@ -791,6 +820,14 @@ export function mountHarborRun({ payload, sessionPayload }) {
       `<div class="summary-item"><span class="summary-label">Status</span><span class="summary-value">${contract.armed ? "Armed" : "Hunting sigil"}</span></div>`,
       `<div class="summary-item"><span class="summary-label">Charge</span><span class="summary-value">${contract.charge}%</span></div>`,
     ];
+    if (isSpreadPick(contract)) {
+      blocks.push(
+        `<div class="summary-item"><span class="summary-label">Strategy</span><span class="summary-value">${spreadPickLabel(contract)}</span></div>`
+      );
+      blocks.push(
+        '<div class="summary-item"><span class="summary-label">Execution</span><span class="summary-value">Manual multi-leg order required</span></div>'
+      );
+    }
     if (contract.preview) {
       blocks.push(
         `<div class="summary-item"><span class="summary-label">Preview Cost</span><span class="summary-value">${money(
@@ -820,8 +857,10 @@ export function mountHarborRun({ payload, sessionPayload }) {
       ? orders
           .slice(0, 5)
           .map(
-            (order) =>
-              `<div class="mini-row ${String(order.side || "").includes("buy") ? "is-call" : "is-put"}"><span class="mini-slot">${order.status || "open"}</span><strong>${order.option_symbol || order.symbol}</strong><span class="muted">${order.side} x${integer(order.quantity)} | ${order.create_date || "recent"}</span></div>`
+            (order) => {
+              const issue = orderIssueText(order);
+              return `<div class="mini-row ${String(order.side || "").includes("buy") ? "is-call" : "is-put"}"><span class="mini-slot">${order.status || "open"}</span><strong>${order.option_symbol || order.symbol}</strong><span class="muted">${issue || `${order.side} x${integer(order.quantity)} | ${order.create_date || "recent"}`}</span></div>`;
+            }
           )
           .join("")
       : '<div class="summary-item"><span class="summary-label">Recent Orders</span><span class="summary-value">No recent Tradier orders.</span></div>';
@@ -849,7 +888,9 @@ export function mountHarborRun({ payload, sessionPayload }) {
     }
     if (refs.selectedMeta) {
       refs.selectedMeta.textContent = contract
-        ? contract.armed
+        ? isSpreadPick(contract)
+          ? `${spreadPickLabel(contract)}. Enter manually in Tradier; app routing is single-leg only.`
+          : contract.armed
           ? `Premium ${money(quotePrice(contract))} | Forge ${Number(contract.forge_score || 0).toFixed(2)} | Break-even ${pct(contract.breakeven_move_pct)}`
           : `Capture the ${contract.symbol} sigil to arm this route, then chain matching scout intel to 100% charge.`
         : "Capture a live or shadow sigil in the arena, or tap a card below to arm a contract.";
@@ -859,7 +900,9 @@ export function mountHarborRun({ payload, sessionPayload }) {
     }
     if (refs.selectedRisk) {
       refs.selectedRisk.textContent = contract
-        ? !contract.armed
+        ? isSpreadPick(contract)
+          ? "This is a debit spread. Orographic will not transmit only the long leg."
+          : !contract.armed
           ? "Preview stays locked until you capture this contract's sigil in the arena."
           : previewEligible(contract)
           ? "Preview lane unlocked. Hazards can still drain charge before transmission."
@@ -910,6 +953,9 @@ export function mountHarborRun({ payload, sessionPayload }) {
       if (contract && contract.charge < READY_CHARGE) {
         warnings.push(`Charge ${contract.charge}%`);
       }
+      if (isSpreadPick(contract)) {
+        warnings.push("Manual spread entry required");
+      }
       if (state.broker.snapshot?.reason) {
         warnings.push(state.broker.snapshot.reason);
       }
@@ -923,6 +969,7 @@ export function mountHarborRun({ payload, sessionPayload }) {
 
     if (refs.previewButton) {
       refs.previewButton.disabled = !previewEligible(contract) || state.broker.loading;
+      refs.previewButton.textContent = isSpreadPick(contract) ? "Manual Spread Required" : "Preview Order";
     }
     if (refs.submitButton) {
       refs.submitButton.disabled =
@@ -930,7 +977,11 @@ export function mountHarborRun({ payload, sessionPayload }) {
         role !== "admin" ||
         state.broker.loading ||
         (state.broker.mode === "live" && contract?.lane !== "live");
-      refs.submitButton.textContent = state.broker.mode === "live" ? "Transmit Live Order" : "Send Sandbox Order";
+      refs.submitButton.textContent = isSpreadPick(contract)
+        ? "Manual Spread Required"
+        : state.broker.mode === "live"
+          ? "Transmit Live Order"
+          : "Send Sandbox Order";
     }
 
     renderOrders();
@@ -939,6 +990,11 @@ export function mountHarborRun({ payload, sessionPayload }) {
 
   async function requestPreview() {
     const contract = selectedContract();
+    if (isSpreadPick(contract)) {
+      setNotice("Manual spread order required: open both legs in Tradier rather than transmitting only the long leg.");
+      renderDom();
+      return;
+    }
     if (!previewEligible(contract)) {
       setNotice("Charge the selected contract to 100% before requesting a Tradier preview.");
       renderDom();
@@ -982,6 +1038,11 @@ export function mountHarborRun({ payload, sessionPayload }) {
 
   async function submitOrder() {
     const contract = selectedContract();
+    if (isSpreadPick(contract)) {
+      setNotice("Manual spread order required: Orographic blocks single-leg transmission for spread picks.");
+      renderDom();
+      return;
+    }
     if (!previewEligible(contract)) {
       setNotice("Preview stays locked until the selected contract reaches 100% charge.");
       renderDom();

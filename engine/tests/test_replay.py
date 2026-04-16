@@ -45,7 +45,50 @@ def _signal() -> ScoutSignal:
 
 
 class ReplayTests(unittest.TestCase):
-    def test_replay_constructs_debit_spread_candidate(self) -> None:
+    def test_replay_constructs_single_leg_candidate(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 100.0,
+                    "bid": 1.7,
+                    "ask": 1.8,
+                    "delta": 0.55,
+                    "implied_volatility": 0.30,
+                    "open_interest": 1200,
+                    "trade_volume": 400,
+                },
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 105.0,
+                    "bid": 0.7,
+                    "ask": 0.8,
+                    "delta": 0.24,
+                    "implied_volatility": 0.29,
+                    "open_interest": 900,
+                    "trade_volume": 300,
+                },
+            ]
+        )
+
+        candidates = forge_candidates_as_of(
+            _signal(),
+            date(2026, 4, 6),
+            _ReplayProvider(chain),
+        )
+
+        self.assertEqual(len(candidates), 1)
+        candidate = candidates[0]
+        self.assertFalse(candidate.is_spread)
+        self.assertAlmostEqual(candidate.spread_cost or 0.0, 1.8, places=4)
+        self.assertIsNone(candidate.short_strike)
+        self.assertEqual(candidate.contract_cost, 180.0)
+        self.assertEqual(candidate.entry_data_source, "real_chain")
+        self.assertEqual(candidate.entry_quote_type, "ask")
+
+    def test_replay_rejects_expensive_single_leg_instead_of_spreading(self) -> None:
         chain = pd.DataFrame(
             [
                 {
@@ -79,14 +122,7 @@ class ReplayTests(unittest.TestCase):
             _ReplayProvider(chain),
         )
 
-        self.assertEqual(len(candidates), 1)
-        candidate = candidates[0]
-        self.assertTrue(candidate.is_spread)
-        self.assertAlmostEqual(candidate.spread_cost or 0.0, 1.8, places=4)
-        self.assertEqual(candidate.short_strike, 105.0)
-        self.assertEqual(candidate.contract_cost, 180.0)
-        self.assertEqual(candidate.entry_data_source, "real_chain")
-        self.assertEqual(candidate.entry_quote_type, "ask")
+        self.assertEqual(candidates, [])
 
     def test_replay_strict_mode_skips_synthetic_chain(self) -> None:
         chain = pd.DataFrame(

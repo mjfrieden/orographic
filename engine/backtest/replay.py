@@ -27,9 +27,7 @@ from engine.orographic.schemas import ContractCandidate, MarketRegime, ScoutSign
 from engine.orographic.forge import (
     _breakeven_move_pct,
     _candidate_moneyness,
-    _find_short_leg,
     _intrinsic,
-    _long_leg_cap,
     _net_debit_cap,
     _projected_move_pct,
     _spread_cap,
@@ -276,7 +274,7 @@ def forge_candidates_as_of(
     """
     Generate ContractCandidate objects using real historical chains.
     Reconstructs a live-like Forge pass against historical option chains,
-    including spread-aware debit selection and feasibility filters.
+    using single-leg long call/put feasibility filters.
     """
     candidates: list[ContractCandidate] = []
     expiry = friday_of_week(as_of)
@@ -284,7 +282,7 @@ def forge_candidates_as_of(
     direction = signal.option_type if hasattr(signal, "option_type") else signal.direction
     risk_free_rate = fetch_risk_free_rate()
     net_debit_cap = _net_debit_cap(spot, max_premium)
-    long_leg_cap = _long_leg_cap(net_debit_cap)
+    long_leg_cap = net_debit_cap
     effective_spread_cap = _spread_cap(spot, 0.18)
     projected_move = _projected_move_pct(signal, MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"))
     projected_spot = spot * (1 + projected_move) if direction == "call" else spot * (1 - projected_move)
@@ -339,7 +337,6 @@ def forge_candidates_as_of(
     if valid_opts.empty:
         return []
 
-    short_pool = valid_opts.copy()
     valid_opts = valid_opts[valid_opts["ask"] <= long_leg_cap].copy()
     if valid_opts.empty:
         return []
@@ -388,38 +385,12 @@ def forge_candidates_as_of(
         vol = max(float(row["impliedVolatility"]), 0.10)
         strike = float(row["strike"])
 
-        short_leg = _find_short_leg(
-            short_pool,
-            option_type=direction,
-            long_strike=strike,
-            long_delta=delta,
-            spot=spot,
-            time_to_expiry_years=time_to_expiry_years,
-            risk_free_rate=risk_free_rate,
-            max_spread_pct=effective_spread_cap,
-        )
-
-        is_spread = False
         actual_premium = ask
-        if short_leg is not None:
-            spread_debit = ask - short_leg["bid"]
-            if 0.05 < spread_debit <= net_debit_cap:
-                is_spread = True
-                actual_premium = spread_debit
-        if not is_spread and ask > net_debit_cap:
+        if ask > net_debit_cap:
             continue
 
         projected_value = _intrinsic(direction, projected_spot, strike)
         intrinsic_now = _intrinsic(direction, spot, strike)
-        if is_spread and short_leg is not None:
-            projected_value = max(
-                projected_value - _intrinsic(direction, projected_spot, short_leg["strike"]),
-                0.0,
-            )
-            intrinsic_now = max(
-                intrinsic_now - _intrinsic(direction, spot, short_leg["strike"]),
-                0.0,
-            )
 
         spread_pct = float(row["spread_pct"])
         expected_return_pct = projected_value / actual_premium - 1.0
@@ -455,10 +426,6 @@ def forge_candidates_as_of(
             notes = ["Sourced via historical option chain"]
         else:
             notes = ["Sourced via synthetic Black-Scholes fallback chain"]
-        if is_spread and short_leg is not None:
-            notes.append(
-                f"debit spread selected: {strike:.2f}/{short_leg['strike']:.2f} for premium control"
-            )
 
         candidates.append(ContractCandidate(
             symbol=signal.symbol,
@@ -483,10 +450,10 @@ def forge_candidates_as_of(
             extrinsic_ratio=round(extrinsic_ratio, 4),
             scout_score=signal.scout_score,
             forge_score=round(forge_score, 4),
-            short_strike=round(short_leg["strike"], 4) if short_leg else None,
-            short_ask=round(short_leg["ask"], 4) if short_leg else None,
-            short_bid=round(short_leg["bid"], 4) if short_leg else None,
-            is_spread=is_spread,
+            short_strike=None,
+            short_ask=None,
+            short_bid=None,
+            is_spread=False,
             spread_cost=round(actual_premium, 4),
             allocation_weight=allocation_weight,
             iv_rank=round(ivr, 4),
