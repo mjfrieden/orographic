@@ -206,6 +206,8 @@ def price_trade(
                 if not short_match.empty:
                     exit_price = max(0.0, exit_price - float(short_match.iloc[0].get("ask", 0.0)))
                     exit_quote_type = "net_bid_ask" if chain_source == "real_chain" else "modeled"
+                elif strict_options_data:
+                    return None
                 else:
                     tte_exit = 1e-6
                     short_mid = _bs_price(
@@ -220,6 +222,8 @@ def price_trade(
                     exit_data_source = "hybrid" if chain_source == "real_chain" else chain_source
                     exit_quote_type = "modeled"
         else:
+            if strict_options_data:
+                return None
             # RUTHLESS REASONING: On Friday close, weeklys are essentially at zero TTE.
             # We use 1e-6 to avoid numerical division errors while stripping away the 'free' 2-day theta.
             tte_exit = 1e-6

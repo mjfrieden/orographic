@@ -5,7 +5,7 @@ import unittest
 
 import pandas as pd
 
-from engine.backtest.replay import forge_candidates_as_of
+from engine.backtest.replay import forge_candidates_as_of, select_expiry_from_chain
 from engine.orographic.schemas import ScoutSignal
 
 
@@ -147,6 +147,52 @@ class ReplayTests(unittest.TestCase):
             strict_options_data=True,
         )
         self.assertEqual(candidates, [])
+
+    def test_next_listed_weekly_uses_first_expiry_after_same_week_friday(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-17",
+                    "strike": 100.0,
+                    "bid": 1.7,
+                    "ask": 1.8,
+                    "delta": 0.55,
+                    "implied_volatility": 0.30,
+                    "open_interest": 1200,
+                    "trade_volume": 400,
+                }
+            ]
+        )
+
+        candidates = forge_candidates_as_of(
+            _signal(),
+            date(2026, 4, 6),
+            _ReplayProvider(chain),
+            expiry_policy="next_listed_weekly",
+        )
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0].expiry, "2026-04-17")
+
+    def test_target_dte_selects_expiry_inside_configured_window(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {"expire_date": "2026-04-10"},
+                {"expire_date": "2026-04-17"},
+                {"expire_date": "2026-04-24"},
+            ]
+        )
+
+        expiry = select_expiry_from_chain(
+            chain,
+            date(2026, 4, 6),
+            expiry_policy="target_dte",
+            target_dte_min=7,
+            target_dte_max=14,
+        )
+
+        self.assertEqual(expiry, date(2026, 4, 17))
 
 
 if __name__ == "__main__":

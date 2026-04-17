@@ -254,12 +254,16 @@ def run_experiment(
     base_budget_usd: float = BUDGET_PER_TRADE,
     hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
     cost_cap_usd: float | None = HARD_COST_CEILING_USD,
+    options_data_dir: Path | None = None,
+    expiry_policy: str = "same_week",
+    target_dte_min: int = 7,
+    target_dte_max: int = 14,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
     log.info("Universe: %s", ", ".join(symbols))
 
-    data_dir = Path(__file__).parents[2] / "engine" / "data" / "optionsdx"
+    data_dir = options_data_dir or Path(__file__).parents[2] / "engine" / "data" / "optionsdx"
     options_provider = HistoricalOptionsProvider(data_dir=data_dir)
 
     log.info("Fetching equity history …")
@@ -299,6 +303,9 @@ def run_experiment(
             vix_history,
             options_provider,
             strict_options_data=strict_options_data,
+            expiry_policy=expiry_policy,
+            target_dte_min=target_dte_min,
+            target_dte_max=target_dte_max,
         )
         log.info(
             "Week %s → %d signal(s), %d candidate(s), regime=%s",
@@ -453,6 +460,9 @@ def run_experiment(
             "rolling_prior_boost": 0.03,
             "strict_options_data": strict_options_data,
             "min_real_coverage_pct": min_real_coverage_pct,
+            "expiry_policy": expiry_policy,
+            "target_dte_min": target_dte_min,
+            "target_dte_max": target_dte_max,
         },
         "variant_summaries": summaries,
         "variant_results": variant_results,
@@ -519,6 +529,30 @@ def parse_args() -> argparse.Namespace:
         default=HARD_COST_CEILING_USD,
         help=f"Estimated cost cap for capped experiment variants; set <= 0 to disable (default: {HARD_COST_CEILING_USD:.0f})",
     )
+    parser.add_argument(
+        "--options-data-dir",
+        type=Path,
+        default=None,
+        help="Partitioned historical options store. Defaults to engine/data/optionsdx.",
+    )
+    parser.add_argument(
+        "--expiry-policy",
+        choices=["same_week", "next_listed_weekly", "target_dte"],
+        default="same_week",
+        help="Historical option expiry selection policy.",
+    )
+    parser.add_argument(
+        "--target-dte-min",
+        type=int,
+        default=7,
+        help="Minimum DTE when --expiry-policy=target_dte.",
+    )
+    parser.add_argument(
+        "--target-dte-max",
+        type=int,
+        default=14,
+        help="Maximum DTE when --expiry-policy=target_dte.",
+    )
     return parser.parse_args()
 
 
@@ -541,6 +575,10 @@ def main() -> None:
         base_budget_usd=max(args.base_budget_usd, 0.0),
         hard_cost_ceiling_usd=args.hard_cost_ceiling_usd if args.hard_cost_ceiling_usd > 0 else None,
         cost_cap_usd=args.cost_cap_usd if args.cost_cap_usd > 0 else None,
+        options_data_dir=args.options_data_dir,
+        expiry_policy=args.expiry_policy,
+        target_dte_min=max(args.target_dte_min, 0),
+        target_dte_max=max(args.target_dte_max, 0),
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

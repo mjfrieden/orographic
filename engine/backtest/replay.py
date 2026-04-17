@@ -18,7 +18,7 @@ import warnings
 from dataclasses import dataclass
 from datetime import date
 from math import erf, exp, log as math_log, sqrt
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import pandas as pd
@@ -52,6 +52,8 @@ from engine.backtest.fetcher import (
 from engine.backtest.options_provider import HistoricalOptionsProvider
 
 log = logging.getLogger(__name__)
+
+ExpiryPolicy = Literal["same_week", "next_listed_weekly", "target_dte"]
 
 
 def _get_chain_with_source(
@@ -96,6 +98,41 @@ def _numeric_series(frame: pd.DataFrame, *names: str, fill_value: float | None =
             return series.fillna(fill_value) if fill_value is not None else series
     series = pd.Series(index=frame.index, dtype=float)
     return series.fillna(fill_value) if fill_value is not None else series
+
+
+def select_expiry_from_chain(
+    chain: pd.DataFrame,
+    as_of: date,
+    *,
+    expiry_policy: ExpiryPolicy = "same_week",
+    target_dte_min: int = 7,
+    target_dte_max: int = 14,
+) -> date | None:
+    """Choose the option expiry used by historical replay."""
+    target_friday = friday_of_week(as_of)
+    if expiry_policy == "same_week":
+        return target_friday
+    if chain.empty or "expire_date" not in chain.columns:
+        return target_friday if expiry_policy == "same_week" else None
+
+    expiries = sorted(pd.to_datetime(chain["expire_date"], errors="coerce").dt.date.dropna().unique())
+    if not expiries:
+        return None
+
+    if expiry_policy == "next_listed_weekly":
+        future = [expiry for expiry in expiries if expiry >= target_friday]
+        return future[0] if future else None
+
+    if expiry_policy == "target_dte":
+        lower = min(target_dte_min, target_dte_max)
+        upper = max(target_dte_min, target_dte_max)
+        eligible = [expiry for expiry in expiries if lower <= (expiry - as_of).days <= upper]
+        if not eligible:
+            return None
+        midpoint = (lower + upper) / 2.0
+        return min(eligible, key=lambda expiry: (abs((expiry - as_of).days - midpoint), expiry))
+
+    raise ValueError(f"Unsupported expiry policy: {expiry_policy}")
 
 
 def historical_corr_matrix_as_of(
@@ -270,6 +307,9 @@ def forge_candidates_as_of(
     max_abs_delta: float = 0.75,
     max_premium: float = 4.50,
     strict_options_data: bool = False,
+    expiry_policy: ExpiryPolicy = "same_week",
+    target_dte_min: int = 7,
+    target_dte_max: int = 14,
 ) -> list[ContractCandidate]:
     """
     Generate ContractCandidate objects using real historical chains.
@@ -277,7 +317,6 @@ def forge_candidates_as_of(
     using single-leg long call/put feasibility filters.
     """
     candidates: list[ContractCandidate] = []
-    expiry = friday_of_week(as_of)
     spot = signal.spot
     direction = signal.option_type if hasattr(signal, "option_type") else signal.direction
     risk_free_rate = fetch_risk_free_rate()
@@ -286,8 +325,6 @@ def forge_candidates_as_of(
     effective_spread_cap = _spread_cap(spot, 0.18)
     projected_move = _projected_move_pct(signal, MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"))
     projected_spot = spot * (1 + projected_move) if direction == "call" else spot * (1 - projected_move)
-    days_to_expiry = max((expiry - as_of).days, 1)
-    time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
 
     chain, chain_source = _get_chain_with_source(
         options_provider,
@@ -301,7 +338,20 @@ def forge_candidates_as_of(
     if chain.empty:
         return []
 
-    # Filter to only the correct option type & expiry matching the same week
+    expiry = select_expiry_from_chain(
+        chain,
+        as_of,
+        expiry_policy=expiry_policy,
+        target_dte_min=target_dte_min,
+        target_dte_max=target_dte_max,
+    )
+    if expiry is None:
+        return []
+
+    days_to_expiry = max((expiry - as_of).days, 1)
+    time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
+
+    # Filter to only the correct option type and selected expiry policy.
     opt_type_char = 'C' if direction == "call" else 'P'
     valid_opts = chain[
         (chain["option_type"] == opt_type_char) &
@@ -423,9 +473,9 @@ def forge_candidates_as_of(
 
         contract_symbol = str(row.get("contractSymbol", "")) or f"{signal.symbol}{expiry.strftime('%y%m%d')}{opt_type_char}{int(strike * 1000):08d}"
         if chain_source == "real_chain":
-            notes = ["Sourced via historical option chain"]
+            notes = [f"Sourced via historical option chain ({expiry_policy})"]
         else:
-            notes = ["Sourced via synthetic Black-Scholes fallback chain"]
+            notes = [f"Sourced via synthetic Black-Scholes fallback chain ({expiry_policy})"]
 
         candidates.append(ContractCandidate(
             symbol=signal.symbol,
@@ -485,6 +535,9 @@ def replay_week(
     options_provider: HistoricalOptionsProvider,
     *,
     strict_options_data: bool = False,
+    expiry_policy: ExpiryPolicy = "same_week",
+    target_dte_min: int = 7,
+    target_dte_max: int = 14,
 ) -> WeekReplay:
     """
     Reconstruct what Scout + Forge would have produced on the given Monday.
@@ -551,6 +604,9 @@ def replay_week(
                 monday,
                 options_provider,
                 strict_options_data=strict_options_data,
+                expiry_policy=expiry_policy,
+                target_dte_min=target_dte_min,
+                target_dte_max=target_dte_max,
             )
         except Exception as exc:
             log.warning("Forge replay failed for %s on %s: %s", sig.symbol, monday, exc)

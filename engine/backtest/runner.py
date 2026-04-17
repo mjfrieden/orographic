@@ -72,13 +72,18 @@ def run(
     min_real_coverage_pct: float = 0.0,
     base_budget_usd: float = BUDGET_PER_TRADE,
     hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
+    options_data_dir: Path | None = None,
+    expiry_policy: str = "same_week",
+    target_dte_min: int = 7,
+    target_dte_max: int = 14,
 ) -> None:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Backtest window: %s → %s (%d months)", start_date, end_date, months)
     log.info("Universe: %s", ", ".join(symbols))
 
-    # Initialize Options Data Provider
-    data_dir = Path(__file__).parents[2] / "engine" / "data" / "optionsdx"
+    # Initialize historical options provider. The partition layout is shared
+    # across OptionsDX CSV imports and DoltHub/API-derived ingests.
+    data_dir = options_data_dir or Path(__file__).parents[2] / "engine" / "data" / "optionsdx"
     options_provider = HistoricalOptionsProvider(data_dir=data_dir)
 
     # ── Prefetch all equity histories ──────────────────────────────────────
@@ -121,6 +126,9 @@ def run(
                 vix_history,
                 options_provider,
                 strict_options_data=strict_options_data,
+                expiry_policy=expiry_policy,
+                target_dte_min=target_dte_min,
+                target_dte_max=target_dte_max,
             )
         except Exception as exc:
             log.warning("  replay_week failed: %s", exc)
@@ -209,6 +217,30 @@ def main() -> None:
         default=HARD_COST_CEILING_USD,
         help=f"True hard max cost basis per trade; set <= 0 to disable (default: {HARD_COST_CEILING_USD:.0f})",
     )
+    parser.add_argument(
+        "--options-data-dir",
+        type=Path,
+        default=None,
+        help="Partitioned historical options store. Defaults to engine/data/optionsdx.",
+    )
+    parser.add_argument(
+        "--expiry-policy",
+        choices=["same_week", "next_listed_weekly", "target_dte"],
+        default="same_week",
+        help="Historical option expiry selection policy.",
+    )
+    parser.add_argument(
+        "--target-dte-min",
+        type=int,
+        default=7,
+        help="Minimum DTE when --expiry-policy=target_dte.",
+    )
+    parser.add_argument(
+        "--target-dte-max",
+        type=int,
+        default=14,
+        help="Maximum DTE when --expiry-policy=target_dte.",
+    )
     args = parser.parse_args()
 
     end_date = date.fromisoformat(args.end_date) if args.end_date else date.today()
@@ -228,6 +260,10 @@ def main() -> None:
         min_real_coverage_pct=max(0.0, min(args.min_real_coverage_pct, 1.0)),
         base_budget_usd=max(args.base_budget_usd, 0.0),
         hard_cost_ceiling_usd=args.hard_cost_ceiling_usd if args.hard_cost_ceiling_usd > 0 else None,
+        options_data_dir=args.options_data_dir,
+        expiry_policy=args.expiry_policy,
+        target_dte_min=max(args.target_dte_min, 0),
+        target_dte_max=max(args.target_dte_max, 0),
     )
 
 

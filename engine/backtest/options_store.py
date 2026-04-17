@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from collections.abc import Iterable
 from datetime import UTC, datetime, date
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ import pandas as pd
 
 PARTITION_DIRNAME = "partitioned"
 MANIFEST_FILENAME = "coverage_manifest.json"
+CONTRACT_KEY_COLUMNS = ["quote_date", "underlying_symbol", "expire_date", "option_type", "strike"]
 
 
 def partition_root(data_dir: str | Path) -> Path:
@@ -51,12 +53,254 @@ def _standardize_frame(frame: pd.DataFrame) -> pd.DataFrame:
     if "option_type" in normalized.columns:
         normalized["option_type"] = normalized["option_type"].astype(str).str.upper().str[0]
 
-    for col in ["strike", "bid", "ask", "implied_volatility", "delta", "open_interest", "trade_volume", "volume"]:
+    for col in [
+        "strike",
+        "bid",
+        "ask",
+        "last",
+        "implied_volatility",
+        "delta",
+        "gamma",
+        "theta",
+        "vega",
+        "rho",
+        "open_interest",
+        "trade_volume",
+        "volume",
+    ]:
         if col in normalized.columns:
             normalized[col] = pd.to_numeric(normalized[col], errors="coerce")
 
     normalized = normalized.dropna(subset=["quote_date", "underlying_symbol"])
     return normalized
+
+
+def _source_priority(source: Any) -> int:
+    source_text = str(source or "").lower()
+    if "onclick" in source_text:
+        return 40
+    if "optionsdx" in source_text:
+        return 30
+    if "dolthub" in source_text:
+        return 20
+    return 10
+
+
+def _dedupe_contract_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    key_cols = [col for col in CONTRACT_KEY_COLUMNS if col in frame.columns]
+    if len(key_cols) < len(CONTRACT_KEY_COLUMNS):
+        return frame.drop_duplicates()
+
+    result = frame.copy()
+    result["_source_priority"] = result.get("source", pd.Series(index=result.index, dtype=object)).map(_source_priority)
+    result = result.sort_values(
+        by=[*key_cols, "_source_priority"],
+        kind="mergesort",
+    )
+    result = result.drop_duplicates(subset=key_cols, keep="last")
+    return result.drop(columns=["_source_priority"])
+
+
+def _empty_manifest(
+    data_dir: Path,
+    *,
+    source_files: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    root = partition_root(data_dir)
+    manifest: dict[str, Any] = {
+        "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
+        "data_dir": str(data_dir.resolve()),
+        "partition_root": str(root.resolve()),
+        "source_files": source_files or [],
+        "summary": {
+            "csv_file_count": len(source_files or []),
+            "partition_count": 0,
+            "symbol_count": 0,
+            "quote_date_count": 0,
+            "row_count": 0,
+        },
+        "symbols": {},
+        "quote_dates": {},
+    }
+    if metadata:
+        manifest["metadata"] = metadata
+    return manifest
+
+
+def write_partitioned_frames(
+    data_dir: str | Path,
+    frames: Iterable[pd.DataFrame],
+    *,
+    source_files: list[str] | None = None,
+    force: bool = False,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Write normalized option-chain frames into the shared partition format."""
+    data_dir = Path(data_dir)
+    root = partition_root(data_dir)
+    root.mkdir(parents=True, exist_ok=True)
+
+    grouped: dict[tuple[date, str], list[pd.DataFrame]] = {}
+    for frame in frames:
+        standardized = _standardize_frame(frame)
+        if standardized.empty:
+            continue
+        for (quote_date, symbol), chunk in standardized.groupby(["quote_date", "underlying_symbol"], dropna=True):
+            grouped.setdefault((quote_date, symbol), []).append(chunk.copy())
+
+    if not grouped:
+        manifest = _empty_manifest(data_dir, source_files=source_files, metadata=metadata)
+        manifest_path(data_dir).write_text(json.dumps(manifest, indent=2))
+        return manifest
+
+    symbol_summary: dict[str, dict[str, Any]] = {}
+    date_summary: dict[str, dict[str, Any]] = {}
+    partition_count = 0
+    total_rows = 0
+
+    for (quote_date, symbol), chunks in sorted(grouped.items()):
+        combined = pd.concat(chunks, ignore_index=True)
+        combined = _dedupe_contract_rows(combined).sort_values(
+            by=[col for col in ["quote_date", "expire_date", "option_type", "strike"] if col in combined.columns]
+        )
+        out_path = partition_file_path(data_dir, quote_date, symbol)
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        if force or not out_path.exists():
+            combined.to_parquet(out_path, index=False)
+        else:
+            existing = pd.read_parquet(out_path)
+            merged = pd.concat([existing, combined], ignore_index=True)
+            merged = _dedupe_contract_rows(merged).sort_values(
+                by=[col for col in ["quote_date", "expire_date", "option_type", "strike"] if col in merged.columns]
+            )
+            merged.to_parquet(out_path, index=False)
+            combined = merged
+
+        row_count = int(len(combined))
+        partition_count += 1
+        total_rows += row_count
+        symbol_entry = symbol_summary.setdefault(
+            symbol,
+            {"quote_dates": [], "expiries": set(), "row_count": 0, "partitions": 0},
+        )
+        symbol_entry["quote_dates"].append(quote_date.isoformat())
+        symbol_entry["row_count"] += row_count
+        symbol_entry["partitions"] += 1
+        if "expire_date" in combined.columns:
+            symbol_entry["expiries"].update(
+                sorted({d.isoformat() for d in combined["expire_date"].dropna().tolist()})
+            )
+
+        date_entry = date_summary.setdefault(
+            quote_date.isoformat(),
+            {"symbols": [], "row_count": 0, "partitions": 0},
+        )
+        date_entry["symbols"].append(symbol)
+        date_entry["row_count"] += row_count
+        date_entry["partitions"] += 1
+
+    manifest = _empty_manifest(data_dir, source_files=source_files, metadata=metadata)
+    manifest["summary"].update(
+        {
+            "partition_count": partition_count,
+            "symbol_count": len(symbol_summary),
+            "quote_date_count": len(date_summary),
+            "row_count": total_rows,
+        }
+    )
+
+    for symbol, payload in sorted(symbol_summary.items()):
+        manifest["symbols"][symbol] = {
+            "quote_dates": sorted(set(payload["quote_dates"])),
+            "expiries": sorted(payload["expiries"]),
+            "row_count": payload["row_count"],
+            "partitions": payload["partitions"],
+        }
+    for quote_date, payload in sorted(date_summary.items()):
+        manifest["quote_dates"][quote_date] = {
+            "symbols": sorted(set(payload["symbols"])),
+            "row_count": payload["row_count"],
+            "partitions": payload["partitions"],
+        }
+
+    manifest_path(data_dir).write_text(json.dumps(manifest, indent=2))
+    return manifest
+
+
+def build_manifest_from_partitions(
+    data_dir: str | Path,
+    *,
+    source_files: list[str] | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    data_dir = Path(data_dir)
+    symbol_summary: dict[str, dict[str, Any]] = {}
+    date_summary: dict[str, dict[str, Any]] = {}
+    partition_count = 0
+    total_rows = 0
+
+    for parquet_path in partition_root(data_dir).glob("quote_date=*/underlying_symbol=*/chain.parquet"):
+        try:
+            frame = pd.read_parquet(parquet_path)
+        except Exception:
+            continue
+        if frame.empty:
+            continue
+        quote_dates = pd.to_datetime(frame.get("quote_date"), errors="coerce").dt.date.dropna()
+        symbols = frame.get("underlying_symbol", pd.Series(dtype=object)).astype(str).str.upper().dropna()
+        if quote_dates.empty or symbols.empty:
+            continue
+        quote_date = quote_dates.iloc[0]
+        symbol = symbols.iloc[0]
+        row_count = int(len(frame))
+        partition_count += 1
+        total_rows += row_count
+
+        symbol_entry = symbol_summary.setdefault(
+            symbol,
+            {"quote_dates": [], "expiries": set(), "row_count": 0, "partitions": 0},
+        )
+        symbol_entry["quote_dates"].append(quote_date.isoformat())
+        symbol_entry["row_count"] += row_count
+        symbol_entry["partitions"] += 1
+        if "expire_date" in frame.columns:
+            symbol_entry["expiries"].update(
+                sorted({d.isoformat() for d in pd.to_datetime(frame["expire_date"], errors="coerce").dt.date.dropna()})
+            )
+
+        date_entry = date_summary.setdefault(
+            quote_date.isoformat(),
+            {"symbols": [], "row_count": 0, "partitions": 0},
+        )
+        date_entry["symbols"].append(symbol)
+        date_entry["row_count"] += row_count
+        date_entry["partitions"] += 1
+
+    manifest = _empty_manifest(data_dir, source_files=source_files, metadata=metadata)
+    manifest["summary"].update(
+        {
+            "partition_count": partition_count,
+            "symbol_count": len(symbol_summary),
+            "quote_date_count": len(date_summary),
+            "row_count": total_rows,
+        }
+    )
+    for symbol, payload in sorted(symbol_summary.items()):
+        manifest["symbols"][symbol] = {
+            "quote_dates": sorted(set(payload["quote_dates"])),
+            "expiries": sorted(payload["expiries"]),
+            "row_count": payload["row_count"],
+            "partitions": payload["partitions"],
+        }
+    for quote_date, payload in sorted(date_summary.items()):
+        manifest["quote_dates"][quote_date] = {
+            "symbols": sorted(set(payload["symbols"])),
+            "row_count": payload["row_count"],
+            "partitions": payload["partitions"],
+        }
+    manifest_path(data_dir).write_text(json.dumps(manifest, indent=2))
+    return manifest
 
 
 def _symbol_from_filename(source_name: str | None) -> str:
@@ -120,11 +364,8 @@ def build_partitioned_store(
     force: bool = False,
 ) -> dict[str, Any]:
     data_dir = Path(data_dir)
-    root = partition_root(data_dir)
-    root.mkdir(parents=True, exist_ok=True)
-
-    grouped: dict[tuple[date, str], list[pd.DataFrame]] = {}
     source_files: list[str] = []
+    frames: list[pd.DataFrame] = []
     raw_files = sorted(
         path
         for path in data_dir.iterdir()
@@ -142,87 +383,15 @@ def build_partitioned_store(
         frame = standardized
         if frame.empty:
             continue
-        for (quote_date, symbol), chunk in frame.groupby(["quote_date", "underlying_symbol"], dropna=True):
-            grouped.setdefault((quote_date, symbol), []).append(chunk.copy())
+        frames.append(frame)
 
-    symbol_summary: dict[str, dict[str, Any]] = {}
-    date_summary: dict[str, dict[str, Any]] = {}
-    partition_count = 0
-    total_rows = 0
-
-    for (quote_date, symbol), chunks in sorted(grouped.items()):
-        combined = pd.concat(chunks, ignore_index=True)
-        combined = combined.drop_duplicates().sort_values(
-            by=[col for col in ["quote_date", "expire_date", "option_type", "strike"] if col in combined.columns]
-        )
-        out_path = partition_file_path(data_dir, quote_date, symbol)
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        if force or not out_path.exists():
-            combined.to_parquet(out_path, index=False)
-        else:
-            existing = pd.read_parquet(out_path)
-            merged = pd.concat([existing, combined], ignore_index=True).drop_duplicates()
-            merged = merged.sort_values(
-                by=[col for col in ["quote_date", "expire_date", "option_type", "strike"] if col in merged.columns]
-            )
-            merged.to_parquet(out_path, index=False)
-            combined = merged
-
-        row_count = int(len(combined))
-        partition_count += 1
-        total_rows += row_count
-        symbol_entry = symbol_summary.setdefault(
-            symbol,
-            {"quote_dates": [], "expiries": set(), "row_count": 0, "partitions": 0},
-        )
-        symbol_entry["quote_dates"].append(quote_date.isoformat())
-        symbol_entry["row_count"] += row_count
-        symbol_entry["partitions"] += 1
-        if "expire_date" in combined.columns:
-            symbol_entry["expiries"].update(
-                sorted({d.isoformat() for d in combined["expire_date"].dropna().tolist()})
-            )
-
-        date_entry = date_summary.setdefault(
-            quote_date.isoformat(),
-            {"symbols": [], "row_count": 0, "partitions": 0},
-        )
-        date_entry["symbols"].append(symbol)
-        date_entry["row_count"] += row_count
-        date_entry["partitions"] += 1
-
-    manifest: dict[str, Any] = {
-        "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
-        "data_dir": str(data_dir.resolve()),
-        "partition_root": str(root.resolve()),
-        "source_files": source_files,
-        "summary": {
-            "csv_file_count": len(raw_files),
-            "partition_count": partition_count,
-            "symbol_count": len(symbol_summary),
-            "quote_date_count": len(date_summary),
-            "row_count": total_rows,
-        },
-        "symbols": {},
-        "quote_dates": {},
-    }
-
-    for symbol, payload in sorted(symbol_summary.items()):
-        manifest["symbols"][symbol] = {
-            "quote_dates": sorted(set(payload["quote_dates"])),
-            "expiries": sorted(payload["expiries"]),
-            "row_count": payload["row_count"],
-            "partitions": payload["partitions"],
-        }
-    for quote_date, payload in sorted(date_summary.items()):
-        manifest["quote_dates"][quote_date] = {
-            "symbols": sorted(set(payload["symbols"])),
-            "row_count": payload["row_count"],
-            "partitions": payload["partitions"],
-        }
-
-    manifest_path(data_dir).write_text(json.dumps(manifest, indent=2))
-    return manifest
+    return write_partitioned_frames(
+        data_dir,
+        frames,
+        source_files=source_files,
+        force=force,
+        metadata={"provider": "csv"},
+    )
 
 
 def load_coverage_manifest(data_dir: str | Path) -> dict[str, Any] | None:
