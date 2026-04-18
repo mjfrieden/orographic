@@ -229,6 +229,10 @@ def build_results(
         1 for t in trades
         if t.entry_data_source == "real_chain" and t.exit_data_source == "real_chain"
     ) / len(trades)
+    entry_spreads = [t.entry_spread_pct for t in trades if t.entry_spread_pct is not None]
+    exit_spreads = [t.exit_spread_pct for t in trades if t.exit_spread_pct is not None]
+    exit_open_interest = [t.exit_open_interest for t in trades if t.exit_open_interest is not None]
+    exit_volume = [t.exit_volume for t in trades if t.exit_volume is not None]
 
     return {
         "generated_at": date.today().isoformat(),
@@ -264,6 +268,14 @@ def build_results(
             "entry_source_counts": dict(sorted(entry_source_counts.items())),
             "exit_source_counts": dict(sorted(exit_source_counts.items())),
         },
+        "execution_quality": {
+            "avg_entry_spread_pct": round(_mean(entry_spreads), 4),
+            "avg_exit_spread_pct": round(_mean(exit_spreads), 4),
+            "avg_entry_slippage_pct": round(_mean([t.entry_slippage_pct for t in trades]), 4),
+            "avg_exit_slippage_pct": round(_mean([t.exit_slippage_pct for t in trades]), 4),
+            "avg_exit_open_interest": round(_mean([float(v) for v in exit_open_interest]), 2),
+            "avg_exit_volume": round(_mean([float(v) for v in exit_volume]), 2),
+        },
         "equity_curve": equity_curve,
         "side_breakdown": side_breakdown,
         "symbol_breakdown": symbol_breakdown,
@@ -297,6 +309,16 @@ def _trade_to_dict(t: TradeLeg) -> dict[str, Any]:
         "entry_quote_type": t.entry_quote_type,
         "exit_quote_type": t.exit_quote_type,
         "options_data_coverage_pct": t.options_data_coverage_pct,
+        "entry_raw_price": t.entry_raw_price,
+        "exit_raw_price": t.exit_raw_price,
+        "entry_slippage_pct": t.entry_slippage_pct,
+        "exit_slippage_pct": t.exit_slippage_pct,
+        "entry_spread_pct": t.entry_spread_pct,
+        "exit_spread_pct": t.exit_spread_pct,
+        "entry_open_interest": t.entry_open_interest,
+        "entry_volume": t.entry_volume,
+        "exit_open_interest": t.exit_open_interest,
+        "exit_volume": t.exit_volume,
     }
 
 
@@ -340,6 +362,14 @@ def _empty_results(
             "fully_real_trade_pct": 0.0,
             "entry_source_counts": {},
             "exit_source_counts": {},
+        },
+        "execution_quality": {
+            "avg_entry_spread_pct": 0.0,
+            "avg_exit_spread_pct": 0.0,
+            "avg_entry_slippage_pct": 0.0,
+            "avg_exit_slippage_pct": 0.0,
+            "avg_exit_open_interest": 0.0,
+            "avg_exit_volume": 0.0,
         },
         "equity_curve": [],
         "side_breakdown": [],

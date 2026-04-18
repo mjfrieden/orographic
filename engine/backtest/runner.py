@@ -24,6 +24,7 @@ from engine.backtest.fetcher import (
 )
 from engine.backtest.pricer import BUDGET_PER_TRADE, HARD_COST_CEILING_USD, price_trade
 from engine.backtest.replay import replay_week
+from engine.backtest.risk_controls import apply_candidate_concentration_caps
 from engine.backtest.results import (
     DEFAULT_OUTPUT,
     apply_coverage_policy,
@@ -76,6 +77,16 @@ def run(
     expiry_policy: str = "same_week",
     target_dte_min: int = 7,
     target_dte_max: int = 14,
+    entry_slippage_pct: float = 0.0,
+    exit_slippage_pct: float = 0.0,
+    max_entry_spread_pct: float | None = None,
+    max_exit_spread_pct: float | None = None,
+    min_entry_open_interest: int = 150,
+    min_entry_volume: int = 25,
+    min_exit_open_interest: int = 0,
+    min_exit_volume: int = 0,
+    max_symbol_candidates_per_week: int | None = None,
+    max_sector_candidates_per_week: int | None = None,
 ) -> None:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Backtest window: %s → %s (%d months)", start_date, end_date, months)
@@ -129,6 +140,9 @@ def run(
                 expiry_policy=expiry_policy,
                 target_dte_min=target_dte_min,
                 target_dte_max=target_dte_max,
+                max_entry_spread_pct=max_entry_spread_pct,
+                min_entry_open_interest=min_entry_open_interest,
+                min_entry_volume=min_entry_volume,
             )
         except Exception as exc:
             log.warning("  replay_week failed: %s", exc)
@@ -137,7 +151,20 @@ def run(
         log.info("  %d signal(s), %d candidate(s), regime=%s",
                  len(week.signals), len(week.candidates), week.regime.mode)
 
-        for candidate in week.candidates:
+        candidates, concentration_diag = apply_candidate_concentration_caps(
+            week.candidates,
+            max_symbol_candidates=max_symbol_candidates_per_week,
+            max_sector_candidates=max_sector_candidates_per_week,
+        )
+        if concentration_diag["dropped_symbol_cap"] or concentration_diag["dropped_sector_cap"]:
+            log.info(
+                "  concentration caps kept %d, dropped %d symbol / %d sector candidate(s)",
+                concentration_diag["kept"],
+                concentration_diag["dropped_symbol_cap"],
+                concentration_diag["dropped_sector_cap"],
+            )
+
+        for candidate in candidates:
             hist = user_histories.get(candidate.symbol)
             if hist is None:
                 continue
@@ -151,6 +178,14 @@ def run(
                     budget=base_budget_usd,
                     hard_cost_ceiling=hard_cost_ceiling_usd,
                     strict_options_data=strict_options_data,
+                    entry_slippage_pct=entry_slippage_pct,
+                    exit_slippage_pct=exit_slippage_pct,
+                    max_entry_spread_pct=max_entry_spread_pct,
+                    max_exit_spread_pct=max_exit_spread_pct,
+                    min_entry_open_interest=min_entry_open_interest,
+                    min_entry_volume=min_entry_volume,
+                    min_exit_open_interest=min_exit_open_interest,
+                    min_exit_volume=min_exit_volume,
                 )
             except Exception as exc:
                 log.warning("  pricer failed for %s: %s", candidate.symbol, exc)
@@ -241,6 +276,16 @@ def main() -> None:
         default=14,
         help="Maximum DTE when --expiry-policy=target_dte.",
     )
+    parser.add_argument("--entry-slippage-pct", type=float, default=0.0, help="Extra entry premium stress, e.g. 0.03 for 3%.")
+    parser.add_argument("--exit-slippage-pct", type=float, default=0.0, help="Exit bid haircut stress, e.g. 0.03 for 3%.")
+    parser.add_argument("--max-entry-spread-pct", type=float, default=0.0, help="Reject entries wider than this bid/ask spread pct; <=0 disables.")
+    parser.add_argument("--max-exit-spread-pct", type=float, default=0.0, help="Reject exits wider than this bid/ask spread pct; <=0 disables.")
+    parser.add_argument("--min-entry-open-interest", type=int, default=150, help="Minimum entry open interest.")
+    parser.add_argument("--min-entry-volume", type=int, default=25, help="Minimum entry trade volume.")
+    parser.add_argument("--min-exit-open-interest", type=int, default=0, help="Minimum exit open interest; 0 disables.")
+    parser.add_argument("--min-exit-volume", type=int, default=0, help="Minimum exit trade volume; 0 disables.")
+    parser.add_argument("--max-symbol-candidates-per-week", type=int, default=0, help="Per-week symbol candidate cap; 0 disables.")
+    parser.add_argument("--max-sector-candidates-per-week", type=int, default=0, help="Per-week sector candidate cap; 0 disables.")
     args = parser.parse_args()
 
     end_date = date.fromisoformat(args.end_date) if args.end_date else date.today()
@@ -264,6 +309,16 @@ def main() -> None:
         expiry_policy=args.expiry_policy,
         target_dte_min=max(args.target_dte_min, 0),
         target_dte_max=max(args.target_dte_max, 0),
+        entry_slippage_pct=max(args.entry_slippage_pct, 0.0),
+        exit_slippage_pct=max(args.exit_slippage_pct, 0.0),
+        max_entry_spread_pct=args.max_entry_spread_pct if args.max_entry_spread_pct > 0 else None,
+        max_exit_spread_pct=args.max_exit_spread_pct if args.max_exit_spread_pct > 0 else None,
+        min_entry_open_interest=max(args.min_entry_open_interest, 0),
+        min_entry_volume=max(args.min_entry_volume, 0),
+        min_exit_open_interest=max(args.min_exit_open_interest, 0),
+        min_exit_volume=max(args.min_exit_volume, 0),
+        max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
+        max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
     )
 
 

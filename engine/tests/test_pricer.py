@@ -164,6 +164,91 @@ class PricerTests(unittest.TestCase):
         )
         self.assertIsNone(leg)
 
+    def test_price_trade_applies_execution_slippage(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 100.0,
+                    "bid": 2.0,
+                    "ask": 2.2,
+                    "open_interest": 500,
+                    "trade_volume": 100,
+                },
+            ]
+        )
+        leg = price_trade(
+            _candidate(ask=1.0, premium=1.0, contract_cost=100.0),
+            date(2026, 4, 6),
+            date(2026, 4, 10),
+            _history(),
+            _SpreadQuoteProvider(chain),
+            budget=300.0,
+            entry_slippage_pct=0.05,
+            exit_slippage_pct=0.10,
+        )
+
+        self.assertIsNotNone(leg)
+        assert leg is not None
+        self.assertAlmostEqual(leg.entry_raw_price, 1.0)
+        self.assertAlmostEqual(leg.entry_price, 1.05)
+        self.assertAlmostEqual(leg.exit_raw_price, 2.0)
+        self.assertAlmostEqual(leg.exit_price, 1.8)
+        self.assertEqual(leg.contracts, 2)
+        self.assertAlmostEqual(leg.pnl, 150.0)
+
+    def test_price_trade_rejects_wide_exit_spread(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 100.0,
+                    "bid": 1.0,
+                    "ask": 2.0,
+                    "open_interest": 500,
+                    "trade_volume": 100,
+                },
+            ]
+        )
+        leg = price_trade(
+            _candidate(ask=1.0, premium=1.0, contract_cost=100.0),
+            date(2026, 4, 6),
+            date(2026, 4, 10),
+            _history(),
+            _SpreadQuoteProvider(chain),
+            max_exit_spread_pct=0.20,
+        )
+
+        self.assertIsNone(leg)
+
+    def test_price_trade_rejects_low_exit_liquidity(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 100.0,
+                    "bid": 2.0,
+                    "ask": 2.2,
+                    "open_interest": 10,
+                    "trade_volume": 3,
+                },
+            ]
+        )
+        leg = price_trade(
+            _candidate(ask=1.0, premium=1.0, contract_cost=100.0),
+            date(2026, 4, 6),
+            date(2026, 4, 10),
+            _history(),
+            _SpreadQuoteProvider(chain),
+            min_exit_open_interest=100,
+            min_exit_volume=10,
+        )
+
+        self.assertIsNone(leg)
+
 
 if __name__ == "__main__":
     unittest.main()

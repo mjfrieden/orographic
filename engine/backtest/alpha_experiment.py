@@ -25,6 +25,7 @@ from engine.backtest.fetcher import fetch_equity_history, mondays_in_range
 from engine.backtest.options_provider import HistoricalOptionsProvider
 from engine.backtest.pricer import BUDGET_PER_TRADE, HARD_COST_CEILING_USD, TradeLeg, price_trade
 from engine.backtest.replay import historical_corr_matrix_as_of, replay_week
+from engine.backtest.risk_controls import apply_candidate_concentration_caps
 from engine.backtest.results import apply_coverage_policy, build_results
 from engine.backtest.runner import _load_universe
 from engine.orographic.council import select_board
@@ -222,6 +223,14 @@ def _price_candidates(
     budget: float = BUDGET_PER_TRADE,
     hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
     strict_options_data: bool = False,
+    entry_slippage_pct: float = 0.0,
+    exit_slippage_pct: float = 0.0,
+    max_entry_spread_pct: float | None = None,
+    max_exit_spread_pct: float | None = None,
+    min_entry_open_interest: int = 150,
+    min_entry_volume: int = 25,
+    min_exit_open_interest: int = 0,
+    min_exit_volume: int = 0,
 ) -> list[TradeLeg]:
     legs: list[TradeLeg] = []
     for candidate in candidates:
@@ -237,6 +246,14 @@ def _price_candidates(
             budget=budget,
             hard_cost_ceiling=hard_cost_ceiling,
             strict_options_data=strict_options_data,
+            entry_slippage_pct=entry_slippage_pct,
+            exit_slippage_pct=exit_slippage_pct,
+            max_entry_spread_pct=max_entry_spread_pct,
+            max_exit_spread_pct=max_exit_spread_pct,
+            min_entry_open_interest=min_entry_open_interest,
+            min_entry_volume=min_entry_volume,
+            min_exit_open_interest=min_exit_open_interest,
+            min_exit_volume=min_exit_volume,
         )
         if leg is not None:
             legs.append(leg)
@@ -258,6 +275,16 @@ def run_experiment(
     expiry_policy: str = "same_week",
     target_dte_min: int = 7,
     target_dte_max: int = 14,
+    entry_slippage_pct: float = 0.0,
+    exit_slippage_pct: float = 0.0,
+    max_entry_spread_pct: float | None = None,
+    max_exit_spread_pct: float | None = None,
+    min_entry_open_interest: int = 150,
+    min_entry_volume: int = 25,
+    min_exit_open_interest: int = 0,
+    min_exit_volume: int = 0,
+    max_symbol_candidates_per_week: int | None = None,
+    max_sector_candidates_per_week: int | None = None,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -306,6 +333,9 @@ def run_experiment(
             expiry_policy=expiry_policy,
             target_dte_min=target_dte_min,
             target_dte_max=target_dte_max,
+            max_entry_spread_pct=max_entry_spread_pct,
+            min_entry_open_interest=min_entry_open_interest,
+            min_entry_volume=min_entry_volume,
         )
         log.info(
             "Week %s → %d signal(s), %d candidate(s), regime=%s",
@@ -337,6 +367,12 @@ def run_experiment(
 
             if variant.use_symbol_priors:
                 candidate_pool, prior_diag = apply_symbol_priors(candidate_pool, research_priors)
+
+            candidate_pool, concentration_diag = apply_candidate_concentration_caps(
+                candidate_pool,
+                max_symbol_candidates=max_symbol_candidates_per_week,
+                max_sector_candidates=max_sector_candidates_per_week,
+            )
 
             if variant.council_only:
                 corr = historical_corr_matrix_as_of(
@@ -377,6 +413,14 @@ def run_experiment(
                 budget=base_budget_usd,
                 hard_cost_ceiling=hard_cost_ceiling_usd,
                 strict_options_data=strict_options_data,
+                entry_slippage_pct=entry_slippage_pct,
+                exit_slippage_pct=exit_slippage_pct,
+                max_entry_spread_pct=max_entry_spread_pct,
+                max_exit_spread_pct=max_exit_spread_pct,
+                min_entry_open_interest=min_entry_open_interest,
+                min_entry_volume=min_entry_volume,
+                min_exit_open_interest=min_exit_open_interest,
+                min_exit_volume=min_exit_volume,
             )
             variant_trades[variant.name].extend(priced)
 
@@ -392,6 +436,9 @@ def run_experiment(
                 },
                 "post_cost_cap_candidates": cost_diag["kept"],
                 "cost_cap_dropped": cost_diag["dropped"],
+                "post_concentration_candidates": concentration_diag["kept"],
+                "symbol_cap_dropped": concentration_diag["dropped_symbol_cap"],
+                "sector_cap_dropped": concentration_diag["dropped_sector_cap"],
                 "available_priors": prior_diag["available_priors"],
                 "boosted_symbols": prior_diag["boosted_symbols"],
                 "excluded_symbols": prior_diag["excluded_symbols"],
@@ -414,6 +461,14 @@ def run_experiment(
                 budget=base_budget_usd,
                 hard_cost_ceiling=hard_cost_ceiling_usd,
                 strict_options_data=strict_options_data,
+                entry_slippage_pct=entry_slippage_pct,
+                exit_slippage_pct=exit_slippage_pct,
+                max_entry_spread_pct=max_entry_spread_pct,
+                max_exit_spread_pct=max_exit_spread_pct,
+                min_entry_open_interest=min_entry_open_interest,
+                min_entry_volume=min_entry_volume,
+                min_exit_open_interest=min_exit_open_interest,
+                min_exit_volume=min_exit_volume,
             )
         )
 
@@ -463,6 +518,16 @@ def run_experiment(
             "expiry_policy": expiry_policy,
             "target_dte_min": target_dte_min,
             "target_dte_max": target_dte_max,
+            "entry_slippage_pct": entry_slippage_pct,
+            "exit_slippage_pct": exit_slippage_pct,
+            "max_entry_spread_pct": max_entry_spread_pct,
+            "max_exit_spread_pct": max_exit_spread_pct,
+            "min_entry_open_interest": min_entry_open_interest,
+            "min_entry_volume": min_entry_volume,
+            "min_exit_open_interest": min_exit_open_interest,
+            "min_exit_volume": min_exit_volume,
+            "max_symbol_candidates_per_week": max_symbol_candidates_per_week,
+            "max_sector_candidates_per_week": max_sector_candidates_per_week,
         },
         "variant_summaries": summaries,
         "variant_results": variant_results,
@@ -553,6 +618,16 @@ def parse_args() -> argparse.Namespace:
         default=14,
         help="Maximum DTE when --expiry-policy=target_dte.",
     )
+    parser.add_argument("--entry-slippage-pct", type=float, default=0.0, help="Extra entry premium stress, e.g. 0.03 for 3%.")
+    parser.add_argument("--exit-slippage-pct", type=float, default=0.0, help="Exit bid haircut stress, e.g. 0.03 for 3%.")
+    parser.add_argument("--max-entry-spread-pct", type=float, default=0.0, help="Reject entries wider than this bid/ask spread pct; <=0 disables.")
+    parser.add_argument("--max-exit-spread-pct", type=float, default=0.0, help="Reject exits wider than this bid/ask spread pct; <=0 disables.")
+    parser.add_argument("--min-entry-open-interest", type=int, default=150, help="Minimum entry open interest.")
+    parser.add_argument("--min-entry-volume", type=int, default=25, help="Minimum entry trade volume.")
+    parser.add_argument("--min-exit-open-interest", type=int, default=0, help="Minimum exit open interest; 0 disables.")
+    parser.add_argument("--min-exit-volume", type=int, default=0, help="Minimum exit trade volume; 0 disables.")
+    parser.add_argument("--max-symbol-candidates-per-week", type=int, default=0, help="Per-week symbol candidate cap; 0 disables.")
+    parser.add_argument("--max-sector-candidates-per-week", type=int, default=0, help="Per-week sector candidate cap; 0 disables.")
     return parser.parse_args()
 
 
@@ -579,6 +654,16 @@ def main() -> None:
         expiry_policy=args.expiry_policy,
         target_dte_min=max(args.target_dte_min, 0),
         target_dte_max=max(args.target_dte_max, 0),
+        entry_slippage_pct=max(args.entry_slippage_pct, 0.0),
+        exit_slippage_pct=max(args.exit_slippage_pct, 0.0),
+        max_entry_spread_pct=args.max_entry_spread_pct if args.max_entry_spread_pct > 0 else None,
+        max_exit_spread_pct=args.max_exit_spread_pct if args.max_exit_spread_pct > 0 else None,
+        min_entry_open_interest=max(args.min_entry_open_interest, 0),
+        min_entry_volume=max(args.min_entry_volume, 0),
+        min_exit_open_interest=max(args.min_exit_open_interest, 0),
+        min_exit_volume=max(args.min_exit_volume, 0),
+        max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
+        max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

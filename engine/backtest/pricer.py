@@ -113,6 +113,62 @@ class TradeLeg:
     entry_quote_type: str = "ask"
     exit_quote_type: str = "bid"
     options_data_coverage_pct: float = 1.0
+    entry_raw_price: float | None = None
+    exit_raw_price: float | None = None
+    entry_slippage_pct: float = 0.0
+    exit_slippage_pct: float = 0.0
+    entry_spread_pct: float | None = None
+    exit_spread_pct: float | None = None
+    entry_open_interest: int | None = None
+    entry_volume: int | None = None
+    exit_open_interest: int | None = None
+    exit_volume: int | None = None
+
+
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        if pd.isna(value):
+            return default
+        return float(value)
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_int(value: object, default: int = 0) -> int:
+    try:
+        if pd.isna(value):
+            return default
+        return int(float(value))
+    except (TypeError, ValueError):
+        return default
+
+
+def _quote_spread_pct(row: pd.Series) -> float | None:
+    bid = _safe_float(row.get("bid"), 0.0)
+    ask = _safe_float(row.get("ask"), 0.0)
+    mid = (bid + ask) / 2.0
+    if mid <= 0:
+        return None
+    return max(ask - bid, 0.0) / mid
+
+
+def _passes_liquidity(
+    *,
+    spread_pct: float | None,
+    max_spread_pct: float | None,
+    open_interest: int | None,
+    min_open_interest: int,
+    volume: int | None,
+    min_volume: int,
+) -> bool:
+    if max_spread_pct is not None and max_spread_pct > 0:
+        if spread_pct is None or spread_pct > max_spread_pct:
+            return False
+    if min_open_interest > 0 and (open_interest is None or open_interest < min_open_interest):
+        return False
+    if min_volume > 0 and (volume is None or volume < min_volume):
+        return False
+    return True
 
 
 def price_trade(
@@ -125,6 +181,14 @@ def price_trade(
     budget: float | None = None,
     hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
     strict_options_data: bool = False,
+    entry_slippage_pct: float = 0.0,
+    exit_slippage_pct: float = 0.0,
+    max_entry_spread_pct: float | None = None,
+    max_exit_spread_pct: float | None = None,
+    min_entry_open_interest: int = 0,
+    min_entry_volume: int = 0,
+    min_exit_open_interest: int = 0,
+    min_exit_volume: int = 0,
 ) -> TradeLeg | None:
     """
     Compute the P&L for entering a candidate on `monday` and exiting on `friday`.
@@ -144,9 +208,24 @@ def price_trade(
         return None
 
     # Entry: For spreads, use net debit. For naked, use ask.
-    entry_price = candidate.spread_cost if (candidate.is_spread and candidate.spread_cost) else candidate.ask
-    if entry_price <= 0:
+    entry_raw_price = candidate.spread_cost if (candidate.is_spread and candidate.spread_cost) else candidate.ask
+    if entry_raw_price <= 0:
         return None
+    entry_spread_pct = _safe_float(getattr(candidate, "spread_pct", None), 0.0)
+    entry_open_interest = _safe_int(getattr(candidate, "open_interest", None), 0)
+    entry_volume = _safe_int(getattr(candidate, "volume", None), 0)
+    if not _passes_liquidity(
+        spread_pct=entry_spread_pct,
+        max_spread_pct=max_entry_spread_pct,
+        open_interest=entry_open_interest,
+        min_open_interest=max(min_entry_open_interest, 0),
+        volume=entry_volume,
+        min_volume=max(min_entry_volume, 0),
+    ):
+        return None
+    entry_slippage = max(entry_slippage_pct, 0.0)
+    exit_slippage = max(exit_slippage_pct, 0.0)
+    entry_price = entry_raw_price * (1.0 + entry_slippage)
     entry_data_source = getattr(candidate, "entry_data_source", "real_chain")
     entry_quote_type = getattr(candidate, "entry_quote_type", "ask")
     if strict_options_data and entry_data_source != "real_chain":
@@ -172,8 +251,12 @@ def price_trade(
     # Fetch Friday options chain to find the exit Bid
     # We fallback to 0.0 (expired worthless) if anything goes wrong
     exit_price = 0.0
+    exit_raw_price = 0.0
     exit_data_source = "missing"
     exit_quote_type = "missing"
+    exit_spread_pct: float | None = None
+    exit_open_interest: int | None = None
+    exit_volume: int | None = None
     chain, chain_source = _get_chain_with_source(
         options_provider,
         candidate.symbol,
@@ -195,7 +278,21 @@ def price_trade(
             (round(chain["strike"], 2) == round(candidate.strike, 2))
         ]
         if not match.empty:
-            exit_price = float(match.iloc[0].get("bid", 0.0))
+            long_row = match.iloc[0]
+            exit_spread_pct = _quote_spread_pct(long_row)
+            exit_open_interest = _safe_int(long_row.get("open_interest", long_row.get("openInterest")), 0)
+            exit_volume = _safe_int(long_row.get("trade_volume", long_row.get("volume")), 0)
+            if not _passes_liquidity(
+                spread_pct=exit_spread_pct,
+                max_spread_pct=max_exit_spread_pct,
+                open_interest=exit_open_interest,
+                min_open_interest=max(min_exit_open_interest, 0),
+                volume=exit_volume,
+                min_volume=max(min_exit_volume, 0),
+            ):
+                return None
+            exit_raw_price = _safe_float(long_row.get("bid"), 0.0)
+            exit_price = exit_raw_price
             exit_quote_type = "bid" if chain_source == "real_chain" else "modeled"
             if candidate.is_spread and candidate.short_strike:
                 short_match = chain[
@@ -204,7 +301,8 @@ def price_trade(
                     (round(chain["strike"], 2) == round(float(candidate.short_strike), 2))
                 ]
                 if not short_match.empty:
-                    exit_price = max(0.0, exit_price - float(short_match.iloc[0].get("ask", 0.0)))
+                    exit_price = max(0.0, exit_price - _safe_float(short_match.iloc[0].get("ask"), 0.0))
+                    exit_raw_price = exit_price
                     exit_quote_type = "net_bid_ask" if chain_source == "real_chain" else "modeled"
                 elif strict_options_data:
                     return None
@@ -219,8 +317,10 @@ def price_trade(
                         candidate.option_type
                     )
                     exit_price = max(0.0, exit_price - (short_mid * 1.05))
+                    exit_raw_price = exit_price
                     exit_data_source = "hybrid" if chain_source == "real_chain" else chain_source
                     exit_quote_type = "modeled"
+            exit_price = max(0.0, exit_price * (1.0 - exit_slippage))
         else:
             if strict_options_data:
                 return None
@@ -251,6 +351,8 @@ def price_trade(
                 exit_price_short = short_mid * 1.05 # 5% Liquidity Premium (Short Ask to close)
                 
             exit_price = max(0.0, exit_price_long - exit_price_short)
+            exit_raw_price = exit_price
+            exit_price = max(0.0, exit_price * (1.0 - exit_slippage))
             exit_data_source = "hybrid" if chain_source == "real_chain" else chain_source
             exit_quote_type = "modeled"
 
@@ -286,4 +388,14 @@ def price_trade(
         entry_quote_type=entry_quote_type,
         exit_quote_type=exit_quote_type,
         options_data_coverage_pct=options_data_coverage_pct,
+        entry_raw_price=round(entry_raw_price, 4),
+        exit_raw_price=round(exit_raw_price, 4),
+        entry_slippage_pct=round(entry_slippage, 4),
+        exit_slippage_pct=round(exit_slippage, 4),
+        entry_spread_pct=round(entry_spread_pct, 4),
+        exit_spread_pct=round(exit_spread_pct, 4) if exit_spread_pct is not None else None,
+        entry_open_interest=entry_open_interest,
+        entry_volume=entry_volume,
+        exit_open_interest=exit_open_interest,
+        exit_volume=exit_volume,
     )

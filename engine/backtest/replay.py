@@ -42,7 +42,6 @@ from engine.orographic.scout import (
     _clip,
     _load_model,
 )
-from engine.orographic.market_data import compute_iv_rank, fetch_risk_free_rate
 from engine.backtest.fetcher import (
     fetch_equity_history,
     friday_of_week,
@@ -54,6 +53,7 @@ from engine.backtest.options_provider import HistoricalOptionsProvider
 log = logging.getLogger(__name__)
 
 ExpiryPolicy = Literal["same_week", "next_listed_weekly", "target_dte"]
+BACKTEST_RISK_FREE_RATE = 0.043
 
 
 def _get_chain_with_source(
@@ -78,6 +78,19 @@ def _get_chain_with_source(
         fallback_spot=fallback_spot,
         fallback_vol=fallback_vol,
     ), "real_chain"
+
+
+def _iv_rank_proxy(iv_now: float, realized_vol: float) -> float:
+    """
+    Offline IV rank proxy for replay.
+
+    Live Forge can query a current data feed for IVR. Backtests should remain
+    deterministic and should not hit live Yahoo for every candidate, so we map
+    the current IV-vs-realized-vol spread into a conservative 0..1 score.
+    """
+    if iv_now <= 0 or realized_vol <= 0:
+        return 0.5
+    return round(max(0.0, min(1.0, 0.5 + ((iv_now - realized_vol) * 2.0))), 4)
 
 
 # ── Column flattening helper ─────────────────────────────────────────────────
@@ -310,6 +323,9 @@ def forge_candidates_as_of(
     expiry_policy: ExpiryPolicy = "same_week",
     target_dte_min: int = 7,
     target_dte_max: int = 14,
+    max_entry_spread_pct: float | None = None,
+    min_entry_open_interest: int = 150,
+    min_entry_volume: int = 25,
 ) -> list[ContractCandidate]:
     """
     Generate ContractCandidate objects using real historical chains.
@@ -319,10 +335,12 @@ def forge_candidates_as_of(
     candidates: list[ContractCandidate] = []
     spot = signal.spot
     direction = signal.option_type if hasattr(signal, "option_type") else signal.direction
-    risk_free_rate = fetch_risk_free_rate()
+    risk_free_rate = BACKTEST_RISK_FREE_RATE
     net_debit_cap = _net_debit_cap(spot, max_premium)
     long_leg_cap = net_debit_cap
     effective_spread_cap = _spread_cap(spot, 0.18)
+    if max_entry_spread_pct is not None and max_entry_spread_pct > 0:
+        effective_spread_cap = min(effective_spread_cap, max_entry_spread_pct)
     projected_move = _projected_move_pct(signal, MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"))
     projected_spot = spot * (1 + projected_move) if direction == "call" else spot * (1 - projected_move)
 
@@ -399,8 +417,8 @@ def forge_candidates_as_of(
         return []
 
     valid_opts = valid_opts[
-        (valid_opts["open_interest"] >= 150)
-        & (valid_opts["trade_volume"] >= 25)
+        (valid_opts["open_interest"] >= max(min_entry_open_interest, 0))
+        & (valid_opts["trade_volume"] >= max(min_entry_volume, 0))
     ].copy()
     if valid_opts.empty:
         return []
@@ -447,7 +465,7 @@ def forge_candidates_as_of(
         breakeven_move = _breakeven_move_pct(direction, spot, strike, actual_premium)
         extrinsic_ratio = max(actual_premium - intrinsic_now, 0.0) / actual_premium if actual_premium > 0 else 1.0
         allocation_weight = round(min(max(0.35 / vol, 0.25), 3.0), 4)
-        ivr = compute_iv_rank(signal.symbol, vol)
+        ivr = _iv_rank_proxy(vol, signal.realized_vol_20d)
         ivr_penalty = max(ivr - 0.70, 0.0) * 0.4
         vrp_penalty = max(vol - signal.realized_vol_20d - 0.10, 0.0) * 2.0
         liquidity_score = max(0.0, min(1.0,
@@ -538,6 +556,9 @@ def replay_week(
     expiry_policy: ExpiryPolicy = "same_week",
     target_dte_min: int = 7,
     target_dte_max: int = 14,
+    max_entry_spread_pct: float | None = None,
+    min_entry_open_interest: int = 150,
+    min_entry_volume: int = 25,
 ) -> WeekReplay:
     """
     Reconstruct what Scout + Forge would have produced on the given Monday.
@@ -607,6 +628,9 @@ def replay_week(
                 expiry_policy=expiry_policy,
                 target_dte_min=target_dte_min,
                 target_dte_max=target_dte_max,
+                max_entry_spread_pct=max_entry_spread_pct,
+                min_entry_open_interest=min_entry_open_interest,
+                min_entry_volume=min_entry_volume,
             )
         except Exception as exc:
             log.warning("Forge replay failed for %s on %s: %s", sig.symbol, monday, exc)
