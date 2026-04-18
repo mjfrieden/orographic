@@ -445,6 +445,13 @@ def rank_contracts_with_diagnostics(
             symbol_diag["rejection_reason"] = "net_debit"
         per_symbol.append(symbol_diag)
 
+    try:
+        from engine.orographic.payoff_model import score_candidates
+
+        score_candidates(candidates, regime, as_of=today)
+    except Exception as exc:
+        log.warning("Payoff model scoring skipped: %s", exc)
+
     candidates.sort(key=lambda row: row.forge_score, reverse=True)
     return candidates, {
         "waterfall": stage_totals,

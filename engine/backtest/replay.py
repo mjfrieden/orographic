@@ -637,6 +637,13 @@ def replay_week(
             cands = []
         candidates.extend(cands)
 
+    try:
+        from engine.orographic.payoff_model import score_candidates
+
+        score_candidates(candidates, regime, as_of=monday)
+    except Exception as exc:
+        log.warning("Payoff model scoring skipped for %s: %s", monday, exc)
+
     candidates.sort(key=lambda c: c.forge_score, reverse=True)
 
     return WeekReplay(

@@ -67,6 +67,18 @@ class ContractCandidate:
     iv_rank: float = 0.5          # IV Rank percentile [0, 1]; 0=IV low, 1=IV high-cycle
     entry_data_source: str = "real_chain"
     entry_quote_type: str = "ask"
+    pre_payoff_forge_score: float | None = None
+    directional_edge: float | None = None
+    liquidity_score: float | None = None
+    regime_alignment_score: float | None = None
+    prob_positive_option_pnl: float | None = None
+    expected_option_return_pct_model: float | None = None
+    expected_option_return_pct_rank: float | None = None
+    prob_exceeds_breakeven: float | None = None
+    max_favorable_excursion_before_expiry: float | None = None
+    adverse_excursion_risk: float | None = None
+    payoff_model_score: float | None = None
+    final_candidate_score: float | None = None
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

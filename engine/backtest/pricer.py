@@ -123,6 +123,26 @@ class TradeLeg:
     entry_volume: int | None = None
     exit_open_interest: int | None = None
     exit_volume: int | None = None
+    pre_payoff_forge_score: float | None = None
+    directional_edge: float | None = None
+    liquidity_score: float | None = None
+    regime_alignment_score: float | None = None
+    prob_positive_option_pnl: float | None = None
+    expected_option_return_pct_model: float | None = None
+    expected_option_return_pct_rank: float | None = None
+    prob_exceeds_breakeven: float | None = None
+    max_favorable_excursion_before_expiry: float | None = None
+    adverse_excursion_risk: float | None = None
+    payoff_model_score: float | None = None
+    final_candidate_score: float | None = None
+    delta: float | None = None
+    moneyness: float | None = None
+    projected_move_pct: float | None = None
+    breakeven_move_pct: float | None = None
+    expected_return_pct: float | None = None
+    extrinsic_ratio: float | None = None
+    iv_rank: float | None = None
+    allocation_weight: float | None = None
 
 
 def _safe_float(value: object, default: float = 0.0) -> float:
@@ -398,4 +418,24 @@ def price_trade(
         entry_volume=entry_volume,
         exit_open_interest=exit_open_interest,
         exit_volume=exit_volume,
+        pre_payoff_forge_score=getattr(candidate, "pre_payoff_forge_score", None),
+        directional_edge=getattr(candidate, "directional_edge", None),
+        liquidity_score=getattr(candidate, "liquidity_score", None),
+        regime_alignment_score=getattr(candidate, "regime_alignment_score", None),
+        prob_positive_option_pnl=getattr(candidate, "prob_positive_option_pnl", None),
+        expected_option_return_pct_model=getattr(candidate, "expected_option_return_pct_model", None),
+        expected_option_return_pct_rank=getattr(candidate, "expected_option_return_pct_rank", None),
+        prob_exceeds_breakeven=getattr(candidate, "prob_exceeds_breakeven", None),
+        max_favorable_excursion_before_expiry=getattr(candidate, "max_favorable_excursion_before_expiry", None),
+        adverse_excursion_risk=getattr(candidate, "adverse_excursion_risk", None),
+        payoff_model_score=getattr(candidate, "payoff_model_score", None),
+        final_candidate_score=getattr(candidate, "final_candidate_score", None),
+        delta=getattr(candidate, "delta", None),
+        moneyness=getattr(candidate, "moneyness", None),
+        projected_move_pct=getattr(candidate, "projected_move_pct", None),
+        breakeven_move_pct=getattr(candidate, "breakeven_move_pct", None),
+        expected_return_pct=getattr(candidate, "expected_return_pct", None),
+        extrinsic_ratio=getattr(candidate, "extrinsic_ratio", None),
+        iv_rank=getattr(candidate, "iv_rank", None),
+        allocation_weight=getattr(candidate, "allocation_weight", None),
     )
