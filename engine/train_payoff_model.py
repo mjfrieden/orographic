@@ -7,6 +7,7 @@ tradable option outcomes instead of only stock direction.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import logging
 import sys
@@ -81,6 +82,14 @@ def _safe_int(value: object, default: int = 0) -> int:
 
 def _clip(value: float, low: float, high: float) -> float:
     return max(low, min(high, value))
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _contract_symbol(trade: dict[str, Any]) -> str:
@@ -434,6 +443,20 @@ def train(
     output_model.parent.mkdir(parents=True, exist_ok=True)
     output_report.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(artifact, output_model)
+    report["artifact"] = "payoff_model"
+    report["version"] = artifact["version"]
+    report["target_definitions"] = {
+        "prob_positive_option_pnl": "1 when realized option PnL pct is positive",
+        "prob_exceeds_breakeven": "1 when exit underlying price exceeds the long option breakeven",
+        "expected_option_return_pct": "realized option PnL pct clipped to the configured cap",
+        "max_favorable_excursion_before_expiry": "best observed bid-mark return before expiry when real marks exist, otherwise realized return fallback",
+        "adverse_excursion_risk": "worst observed bid-mark return before expiry when real marks exist, otherwise realized return fallback",
+    }
+    report["artifacts"] = {
+        "model_path": str(output_model),
+        "model_sha256": _sha256_file(output_model),
+        "report_path": str(output_report),
+    }
     output_report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     log.info("Payoff model saved to %s", output_model)
     log.info("Training report saved to %s", output_report)

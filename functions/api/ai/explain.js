@@ -3,8 +3,9 @@ import { jsonResponse, requireSession } from "../../_lib/tradier.js";
 /**
  * POST /api/ai/explain
  *
- * Generate a natural-language AI rationale for a Council-selected options contract.
+ * Generate an explanation-only AI rationale for a Council-selected options contract.
  * Uses Cloudflare Workers AI (llama-3-8b-instruct) at the edge — no external API key.
+ * This route never participates in scoring, sizing, ranking, broker gating, or order placement.
  *
  * Body:
  *   candidate  – ContractCandidate object from the Council output
@@ -34,7 +35,7 @@ export async function onRequestPost(context) {
   // If Cloudflare AI binding is not available, fall back to a structured rule-based rationale
   if (!context.env?.AI) {
     const rationale = buildFallbackRationale(candidate, regime);
-    return jsonResponse({ ok: true, rationale, ai_model: "rule-based-fallback" });
+    return jsonResponse({ ok: true, rationale, ai_model: "rule-based-fallback", scoring_role: "explanation_only" });
   }
 
   const prompt = buildPrompt(candidate, regime);
@@ -64,7 +65,7 @@ export async function onRequestPost(context) {
         ? response.response.trim()
         : buildFallbackRationale(candidate, regime);
 
-    return jsonResponse({ ok: true, rationale, ai_model: "@cf/meta/llama-3-8b-instruct" });
+    return jsonResponse({ ok: true, rationale, ai_model: "@cf/meta/llama-3-8b-instruct", scoring_role: "explanation_only" });
   } catch (error) {
     // Graceful degrade to rule-based if AI is unavailable
     const rationale = buildFallbackRationale(candidate, regime);
@@ -72,6 +73,7 @@ export async function onRequestPost(context) {
       ok: true,
       rationale,
       ai_model: "rule-based-fallback",
+      scoring_role: "explanation_only",
       ai_error: String(error.message || error),
     });
   }

@@ -117,6 +117,9 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_LIVE_TRADING_ENABLED`: `true` only when you explicitly want production order submission enabled
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
+- `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
+
+Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling.
 
 Recommended default:
 

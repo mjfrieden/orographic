@@ -519,7 +519,7 @@ async function refreshQuotes(contractSymbols) {
   }
 }
 
-// ── AI Rationale ────────────────────────────────────────────────────────────
+// ── Explanation-only AI Rationale ───────────────────────────────────────────
 
 async function fetchRationale(candidate, regime) {
   try {
@@ -697,7 +697,7 @@ function buildTradeCard(candidate, regime, lane) {
       </div>
 
       <div id="rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}" class="card-rationale is-loading">
-        Asking the Council…
+        Loading explanation-only note…
       </div>
 
       <div class="card-order-config">
@@ -1092,7 +1092,8 @@ async function renderBoard(payload) {
   // Bind card buttons
   bindCardButtons();
 
-  // Stream AI rationale for each card asynchronously
+  // Stream explanation-only AI rationale for each card asynchronously.
+  // This text never participates in Scout, Forge, Council, or broker gating.
   const allCandidates = [
     ...live.map((c) => ({ candidate: c, lane: "live" })),
     ...shadow.map((c) => ({ candidate: c, lane: "shadow" })),
@@ -1110,11 +1111,12 @@ async function loadCardRationale(candidate, regime) {
   if (el) {
     el.classList.remove("is-loading");
     el.textContent =
-      rationale ||
-      sentenceList(
-        candidate.notes,
-        `${candidate.symbol} ${candidate.option_type} — Forge score ${Number(candidate.forge_score || 0).toFixed(2)}.`,
-      );
+      rationale
+        ? `Explanation only: ${rationale}`
+        : sentenceList(
+            candidate.notes,
+            `${candidate.symbol} ${candidate.option_type} — Forge score ${Number(candidate.forge_score || 0).toFixed(2)}.`,
+          );
   }
 }
 

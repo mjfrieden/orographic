@@ -56,7 +56,13 @@ def _load_model() -> tuple | None:
         model = joblib.load(_MODEL_PATH)
         meta  = joblib.load(_SCALER_PATH)
         log.info("✓ Scout model loaded from %s", _MODEL_PATH)
-        return model, meta["scaler"], meta["feature_cols"]
+        return (
+            model,
+            meta["scaler"],
+            meta["feature_cols"],
+            meta.get("calibrator"),
+            meta.get("calibration_method", "none"),
+        )
     except Exception as exc:
         log.warning("Failed to load Scout model (%s) — using heuristic fallback.", exc)
         return None
@@ -217,12 +223,16 @@ def _ml_scout_score(feats: dict[str, float]) -> float | None:
     if loaded is None:
         return None
 
-    model, scaler, feature_cols = loaded
+    model, scaler, feature_cols, calibrator, calibration_method = loaded
     row = np.array([[feats.get(col, 0.0) for col in feature_cols]])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         row_scaled = scaler.transform(row)
         prob_bull = float(model.predict_proba(row_scaled)[0][1])
+        if calibrator is not None and calibration_method == "isotonic":
+            prob_bull = float(calibrator.predict([prob_bull])[0])
+        elif calibrator is not None and calibration_method == "platt":
+            prob_bull = float(calibrator.predict_proba([[prob_bull]])[0][1])
 
     # Map [0, 1] \u2192 [-1, +1] so existing downstream code is unchanged
     return _clip((prob_bull - 0.5) * 2.0)
@@ -364,8 +374,16 @@ def build_signal(
     scout_score = _clip(base_scout_score + regime_adjustment)
 
     # \u2500\u2500 AI Sentinel overlay \u2500\u2500
-    ai_score = fetch_ai_multiplier(symbol)
+    ai_score = fetch_ai_multiplier(symbol, direction=direction, scout_score=scout_score)
     scout_score = _clip(scout_score * ai_score.multiplier)
+    diagnostics["sentinel"] = {
+        "multiplier": round(float(ai_score.multiplier), 4),
+        "catalyst": ai_score.catalyst,
+        "rationale": ai_score.rationale,
+        "sentiment_score": round(float(ai_score.sentiment_score), 4),
+        "direction": ai_score.direction or direction,
+        "source": ai_score.source,
+    }
 
     notes: list[str] = []
     if using_ml:
@@ -430,6 +448,7 @@ def scan_symbols_with_diagnostics(
         "pre_veto_direction_counts": _empty_direction_counts(),
         "final_direction_counts": _empty_direction_counts(),
         "counter_regime_survivors": 0,
+        "sentinel_scores": [],
         "rejections": [],
         "settings": {
             "regime_same_side_bonus": REGIME_SAME_SIDE_BONUS,
@@ -501,6 +520,18 @@ def scan_symbols_with_diagnostics(
             scout_diagnostics["pre_veto_direction_counts"][str(pre_direction)] += 1
         if signal_diagnostics.get("counter_regime_survivor"):
             scout_diagnostics["counter_regime_survivors"] += 1
+        sentinel = signal_diagnostics.get("sentinel")
+        if isinstance(sentinel, dict):
+            scout_diagnostics["sentinel_scores"].append(
+                {
+                    "symbol": cleaned,
+                    "direction": sentinel.get("direction"),
+                    "multiplier": sentinel.get("multiplier"),
+                    "catalyst": sentinel.get("catalyst"),
+                    "sentiment_score": sentinel.get("sentiment_score"),
+                    "source": sentinel.get("source"),
+                }
+            )
         if signal is not None:
             signals.append(signal)
             scout_diagnostics["final_direction_counts"][signal.direction] += 1

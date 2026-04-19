@@ -16,6 +16,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import hashlib
+import json
 import logging
 import sys
 from datetime import date, timedelta
@@ -26,9 +28,15 @@ import pandas as pd
 import joblib
 import yfinance as yf
 from sklearn.model_selection import TimeSeriesSplit
-from sklearn.metrics import roc_auc_score, classification_report
+from sklearn.metrics import (
+    brier_score_loss,
+    classification_report,
+    log_loss,
+    roc_auc_score,
+)
 from sklearn.preprocessing import RobustScaler
-from sklearn.pipeline import Pipeline
+from sklearn.isotonic import IsotonicRegression
+from sklearn.linear_model import LogisticRegression
 
 try:
     import lightgbm as lgb
@@ -42,6 +50,7 @@ log = logging.getLogger(__name__)
 MODEL_DIR = Path(__file__).parent / "orographic" / "models"
 MODEL_PATH = MODEL_DIR / "scout_model.pkl"
 SCALER_PATH = MODEL_DIR / "scout_scaler.pkl"
+MODEL_CARD_PATH = MODEL_DIR / "scout_model_card.json"
 TRAINING_UNIVERSE_FILE = Path(__file__).with_name("sample_universe.txt")
 
 
@@ -175,7 +184,73 @@ def fetch_history(symbol: str, years: int) -> pd.DataFrame:
 
 # ── Training ─────────────────────────────────────────────────────────────────
 
-def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _fit_calibrator(raw_probs: np.ndarray, y: np.ndarray, method: str) -> object | None:
+    if method == "none":
+        return None
+    if method == "isotonic":
+        calibrator = IsotonicRegression(out_of_bounds="clip")
+        calibrator.fit(raw_probs, y)
+        return calibrator
+    if method == "platt":
+        calibrator = LogisticRegression(solver="lbfgs")
+        calibrator.fit(raw_probs.reshape(-1, 1), y)
+        return calibrator
+    raise ValueError(f"Unsupported calibration method: {method}")
+
+
+def _apply_calibrator(raw_probs: np.ndarray, calibrator: object | None, method: str) -> np.ndarray:
+    if calibrator is None or method == "none":
+        return raw_probs
+    if method == "isotonic":
+        return np.asarray(calibrator.predict(raw_probs), dtype=float)
+    if method == "platt":
+        return np.asarray(calibrator.predict_proba(raw_probs.reshape(-1, 1))[:, 1], dtype=float)
+    return raw_probs
+
+
+def _probability_buckets(probs: np.ndarray, y: np.ndarray, fwd_returns: np.ndarray, buckets: int = 10) -> list[dict[str, float | int | str]]:
+    frame = pd.DataFrame(
+        {
+            "prob": probs,
+            "label": y,
+            "fwd_return": fwd_returns,
+        }
+    ).dropna()
+    if frame.empty:
+        return []
+    q = min(buckets, max(2, len(frame) // 25))
+    frame["bucket"] = pd.qcut(frame["prob"], q=q, duplicates="drop")
+    rows: list[dict[str, float | int | str]] = []
+    grouped = frame.groupby("bucket", observed=True)
+    for bucket, group in grouped:
+        rows.append(
+            {
+                "bucket": str(bucket),
+                "rows": int(len(group)),
+                "mean_pred_prob": round(float(group["prob"].mean()), 4),
+                "realized_positive_rate": round(float(group["label"].mean()), 4),
+                "avg_fwd_5d_return": round(float(group["fwd_return"].mean()), 4),
+            }
+        )
+    return rows
+
+
+def train(
+    symbols: list[str],
+    years: int,
+    cutoff: date | None = None,
+    *,
+    calibration_method: str = "isotonic",
+) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
     if cutoff is None:
@@ -237,6 +312,9 @@ def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
     auc_scores: list[float] = []
     ic_scores: list[float] = []
 
+    oof_raw_probs = np.full(len(X), np.nan, dtype=float)
+    fold_reports: list[dict[str, float | int]] = []
+
     log.info("Running 5-fold walk-forward cross-validation …")
     for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
         X_tr, X_val = X[train_idx], X[val_idx]
@@ -260,6 +338,7 @@ def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
         )
         model.fit(X_tr_s, y_tr)
         probs = model.predict_proba(X_val_s)[:, 1]
+        oof_raw_probs[val_idx] = probs
         auc = roc_auc_score(y_val, probs)
         # IC = Pearson correlation between predicted proba and realized fwd return
         fwd_returns = combined["fwd_5d_return"].values[val_idx]
@@ -267,9 +346,50 @@ def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
 
         auc_scores.append(auc)
         ic_scores.append(ic)
-        log.info("  Fold %d — AUC: %.4f  IC: %.4f", fold + 1, auc, ic)
+        fold_brier = brier_score_loss(y_val, probs)
+        fold_log_loss = log_loss(y_val, np.clip(probs, 1e-6, 1 - 1e-6))
+        fold_reports.append(
+            {
+                "fold": fold + 1,
+                "train_rows": int(len(train_idx)),
+                "validation_rows": int(len(val_idx)),
+                "auc": round(float(auc), 4),
+                "ic": round(float(ic), 4),
+                "brier": round(float(fold_brier), 4),
+                "log_loss": round(float(fold_log_loss), 4),
+            }
+        )
+        log.info(
+            "  Fold %d — AUC: %.4f  IC: %.4f  Brier: %.4f",
+            fold + 1,
+            auc,
+            ic,
+            fold_brier,
+        )
 
     log.info("Mean AUC: %.4f  |  Mean IC: %.4f", np.mean(auc_scores), np.mean(ic_scores))
+
+    valid_oof = np.isfinite(oof_raw_probs)
+    calibrator = _fit_calibrator(oof_raw_probs[valid_oof], y[valid_oof], calibration_method)
+    oof_calibrated = np.full(len(X), np.nan, dtype=float)
+    oof_calibrated[valid_oof] = _apply_calibrator(
+        oof_raw_probs[valid_oof],
+        calibrator,
+        calibration_method,
+    )
+    calibration_metrics = {
+        "method": calibration_method,
+        "oof_rows": int(valid_oof.sum()),
+        "raw_brier": round(float(brier_score_loss(y[valid_oof], oof_raw_probs[valid_oof])), 4),
+        "calibrated_brier": round(float(brier_score_loss(y[valid_oof], oof_calibrated[valid_oof])), 4),
+        "raw_log_loss": round(float(log_loss(y[valid_oof], np.clip(oof_raw_probs[valid_oof], 1e-6, 1 - 1e-6))), 4),
+        "calibrated_log_loss": round(float(log_loss(y[valid_oof], np.clip(oof_calibrated[valid_oof], 1e-6, 1 - 1e-6))), 4),
+        "probability_buckets": _probability_buckets(
+            oof_calibrated[valid_oof],
+            y[valid_oof],
+            combined["fwd_5d_return"].values[valid_oof],
+        ),
+    }
 
     # ── Final model: train on all data ──
     log.info("Training final model on full dataset …")
@@ -292,9 +412,57 @@ def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
 
     # Save artifacts
     joblib.dump(final_model, MODEL_PATH)
-    joblib.dump({"scaler": final_scaler, "feature_cols": available}, SCALER_PATH)
+    joblib.dump(
+        {
+            "scaler": final_scaler,
+            "feature_cols": available,
+            "calibrator": calibrator,
+            "calibration_method": calibration_method,
+        },
+        SCALER_PATH,
+    )
     log.info("✅  Model saved  → %s", MODEL_PATH)
     log.info("✅  Scaler saved → %s", SCALER_PATH)
+
+    importances = sorted(
+        zip(available, final_model.feature_importances_),
+        key=lambda x: x[1], reverse=True
+    )
+    model_card = {
+        "artifact": "scout_model",
+        "version": 2,
+        "trained_at": date.today().isoformat(),
+        "training_cutoff": cutoff.isoformat(),
+        "years_requested": years,
+        "symbols_requested": symbols,
+        "symbols_trained": sorted({str(frame["symbol"].iloc[0]) for frame in all_features if "symbol" in frame}),
+        "rows": int(len(X)),
+        "positive_label_rate": round(float(y.mean()), 4),
+        "target": "probability that forward 5-day underlying return is positive",
+        "feature_cols": available,
+        "feature_importances": [
+            {"feature": feature, "importance": int(importance)}
+            for feature, importance in importances
+        ],
+        "cross_validation": {
+            "folds": fold_reports,
+            "mean_auc": round(float(np.mean(auc_scores)), 4),
+            "mean_ic": round(float(np.mean(ic_scores)), 4),
+        },
+        "calibration": calibration_metrics,
+        "artifacts": {
+            "model_path": str(MODEL_PATH),
+            "model_sha256": _sha256_file(MODEL_PATH),
+            "scaler_path": str(SCALER_PATH),
+            "scaler_sha256": _sha256_file(SCALER_PATH),
+        },
+        "limitations": [
+            "Directional Scout target is underlying stock return, not option payoff.",
+            "Payoff-aware contract ranking is handled by the second-stage payoff model when available.",
+        ],
+    }
+    MODEL_CARD_PATH.write_text(json.dumps(model_card, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    log.info("✅  Model card saved → %s", MODEL_CARD_PATH)
 
     # Final classification report on training data (sanity check, not a backtest)
     preds = final_model.predict(X_final)
@@ -306,13 +474,11 @@ def train(symbols: list[str], years: int, cutoff: date | None = None) -> None:
     print(f"  Features:         {len(available)}")
     print(f"  Mean AUC (CV):    {np.mean(auc_scores):.4f}")
     print(f"  Mean IC  (CV):    {np.mean(ic_scores):.4f}")
+    print(f"  Calibration:      {calibration_method}")
+    print(f"  OOF Brier:        {calibration_metrics['calibrated_brier']:.4f}")
     print()
     print(classification_report(y, preds, target_names=["bearish", "bullish"]))
     print(f"\n  Feature importances (top 10):")
-    importances = sorted(
-        zip(available, final_model.feature_importances_),
-        key=lambda x: x[1], reverse=True
-    )
     for feat, imp in importances[:10]:
         print(f"    {feat:<25s}  {imp:>6.0f}")
     print("═" * 50 + "\n")
@@ -327,6 +493,12 @@ def main() -> None:
                         help="Comma-separated symbols to train on (default: engine/sample_universe.txt)")
     parser.add_argument("--cutoff",  type=str, default="2026-01-01",
                         help="Cutoff date for training (default: 2026-01-01)")
+    parser.add_argument(
+        "--calibration",
+        choices=["isotonic", "platt", "none"],
+        default="isotonic",
+        help="Walk-forward probability calibration method (default: isotonic)",
+    )
     args = parser.parse_args()
 
     cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
@@ -336,7 +508,7 @@ def main() -> None:
         if args.symbols
         else TRAINING_UNIVERSE
     )
-    train(symbols, args.years, cutoff_dt)
+    train(symbols, args.years, cutoff_dt, calibration_method=args.calibration)
 
 
 if __name__ == "__main__":

@@ -188,6 +188,7 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
             "pre_veto_direction_counts": scout.get("pre_veto_direction_counts", {}),
             "final_direction_counts": scout.get("final_direction_counts", {}),
             "counter_regime_survivors": _coerce_int(scout.get("counter_regime_survivors")),
+            "sentinel_scores": scout.get("sentinel_scores", []),
             "rejection_counts": _sorted_reason_counts(scout_rejections, reason_key="reason"),
             "rejections": scout_rejections,
         },
