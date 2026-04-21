@@ -28,6 +28,10 @@ class ScoutSignal:
     technical_score: float
     empirical_score: float
     scout_score: float
+    call_edge_prob: float | None = None
+    put_edge_prob: float | None = None
+    no_trade_prob: float | None = None
+    scout_model_mode: str = "directional"
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -79,6 +83,13 @@ class ContractCandidate:
     adverse_excursion_risk: float | None = None
     payoff_model_score: float | None = None
     final_candidate_score: float | None = None
+    learned_rank_score: float | None = None
+    ranker_mode: str = "heuristic"
+    ranker_artifact_sha256: str | None = None
+    risk_adjusted_score: float | None = None
+    sector: str | None = None
+    suggested_allocation_pct: float | None = None
+    council_risk_flags: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:

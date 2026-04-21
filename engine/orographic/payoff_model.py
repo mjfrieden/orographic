@@ -8,6 +8,7 @@ liquidity, and regime context are considered.
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from datetime import date
 from math import log1p
@@ -21,6 +22,7 @@ from engine.orographic.schemas import ContractCandidate, MarketRegime
 log = logging.getLogger(__name__)
 
 MODEL_PATH = Path(__file__).parent / "models" / "payoff_model.pkl"
+RANKER_MODE_ENV = "OROGRAPHIC_PAYOFF_MODEL_MODE"
 
 FEATURE_COLS = [
     "option_type_is_call",
@@ -49,6 +51,23 @@ FEATURE_COLS = [
 
 _ARTIFACT: dict[str, Any] | None = None
 _ARTIFACT_LOAD_ATTEMPTED = False
+
+
+def _activation_mode() -> str:
+    mode = os.getenv(RANKER_MODE_ENV, "shadow").strip().lower()
+    return "active" if mode in {"active", "live"} else "shadow"
+
+
+def _sha256_file(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    import hashlib
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _clip(value: float, low: float = 0.0, high: float = 1.0) -> float:
@@ -235,6 +254,7 @@ def score_candidates(
     *,
     as_of: date | None = None,
     model_path: Path = MODEL_PATH,
+    activation_mode: str | None = None,
 ) -> list[ContractCandidate]:
     """
     Add payoff-aware predictions and final scores to candidates in-place.
@@ -246,6 +266,9 @@ def score_candidates(
         return candidates
 
     artifact = _load_artifact(model_path)
+    ranker_mode = (activation_mode or _activation_mode()).strip().lower()
+    ranker_mode = "active" if ranker_mode in {"active", "live"} else "shadow"
+    artifact_hash = _sha256_file(model_path) if artifact else None
     feature_cols = list((artifact or {}).get("feature_cols", FEATURE_COLS))
     X_all = feature_matrix(candidates, regime, as_of=as_of, feature_cols=feature_cols)
 
@@ -326,12 +349,21 @@ def score_candidates(
         candidate.adverse_excursion_risk = round(float(adverse[i]), 4)
         candidate.payoff_model_score = round(final_score, 4)
         candidate.final_candidate_score = round(final_score, 4)
+        candidate.learned_rank_score = round(final_score, 4)
+        candidate.ranker_artifact_sha256 = artifact_hash
         if artifact:
-            candidate.forge_score = round(final_score, 4)
-            if not any("payoff model" in note.lower() for note in candidate.notes):
-                candidate.notes.append("Payoff model score active")
+            candidate.ranker_mode = ranker_mode
+            if ranker_mode == "active":
+                candidate.forge_score = round(final_score, 4)
+                if not any("payoff model" in note.lower() for note in candidate.notes):
+                    candidate.notes.append("Payoff model ranker active")
+            else:
+                candidate.forge_score = round(pre_payoff_score, 4)
+                if not any("payoff model shadow" in note.lower() for note in candidate.notes):
+                    candidate.notes.append(f"Payoff model shadow score {final_score:.2f}")
         else:
             candidate.forge_score = round(pre_payoff_score, 4)
+            candidate.ranker_mode = "heuristic"
 
     candidates.sort(key=lambda candidate: candidate.forge_score, reverse=True)
     return candidates

@@ -15,6 +15,15 @@ class SentinelScore:
     sentiment_score: float = 0.0
     direction: str | None = None
     source: str = "neutral"
+    event_type: str = "none"
+    event_polarity: float = 0.0
+    directional_relevance: str = "neither"
+    novelty: str = "unknown"
+    source_reliability: str = "unknown"
+    time_horizon: str = "unknown"
+    confidence: float = 0.0
+    shadow_multiplier: float = 1.0
+    mode: str = "shadow"
 
 
 def _clip(value: float, low: float = 0.0, high: float = 1.5) -> float:
@@ -28,15 +37,21 @@ def fetch_ai_multiplier(
     scout_score: float | None = None,
 ) -> SentinelScore:
     """
-    Fetches the top 3 headlines for a symbol, routes them to the Cloudflare AI Sentinel edge route,
-    and returns an asymmetric edge multiplier. Gracefully degrades to 1.0 (neutral) if anything fails.
+    Fetch the top headlines, route them to the Sentinel event extractor, and
+    return a neutral-by-default overlay. Sentinel is shadow mode unless
+    OROGRAPHIC_SENTINEL_MODE=active is set, so LLM text extraction cannot
+    silently steer live scoring.
     """
+    sentinel_mode = os.getenv("OROGRAPHIC_SENTINEL_MODE", "shadow").strip().lower()
+    if sentinel_mode not in {"active", "shadow"}:
+        sentinel_mode = "shadow"
     default_score = SentinelScore(
         multiplier=1.0,
         catalyst="none",
-        rationale="No AI intelligence gathered.",
+        rationale="No Sentinel event intelligence gathered.",
         direction=direction,
         source="default",
+        mode=sentinel_mode,
     )
     
     # ── Configuration ──
@@ -67,6 +82,7 @@ def fetch_ai_multiplier(
                 "headlines": headlines,
                 "direction": direction,
                 "scout_score": scout_score,
+                "mode": sentinel_mode,
             }
         ).encode("utf-8")
         headers = {"Content-Type": "application/json"}
@@ -82,13 +98,24 @@ def fetch_ai_multiplier(
         with urllib.request.urlopen(req, timeout=3.0) as response:
             data = json.loads(response.read().decode("utf-8"))
             if data.get("ok"):
+                shadow_multiplier = _clip(float(data.get("shadow_multiplier", data.get("multiplier", 1.0))))
+                live_multiplier = _clip(float(data.get("multiplier", 1.0)))
                 return SentinelScore(
-                    multiplier=_clip(float(data.get("multiplier", 1.0))),
+                    multiplier=live_multiplier if sentinel_mode == "active" else 1.0,
                     catalyst=data.get("catalyst", "none"),
                     rationale=data.get("rationale", ""),
                     sentiment_score=float(data.get("sentiment_score", 0.0) or 0.0),
                     direction=data.get("direction") or direction,
                     source=data.get("source", "cloudflare_ai"),
+                    event_type=str(data.get("event_type", data.get("catalyst", "none")) or "none"),
+                    event_polarity=float(data.get("event_polarity", data.get("sentiment_score", 0.0)) or 0.0),
+                    directional_relevance=str(data.get("directional_relevance", "neither") or "neither"),
+                    novelty=str(data.get("novelty", "unknown") or "unknown"),
+                    source_reliability=str(data.get("source_reliability", "unknown") or "unknown"),
+                    time_horizon=str(data.get("time_horizon", "unknown") or "unknown"),
+                    confidence=float(data.get("confidence", 0.0) or 0.0),
+                    shadow_multiplier=shadow_multiplier,
+                    mode=str(data.get("mode", sentinel_mode) or sentinel_mode),
                 )
     except Exception:
         # Graceful degradation ensures execution engine never halts

@@ -4,15 +4,15 @@ import { jsonResponse } from "../../_lib/tradier.js";
  * POST /api/ai/sentinel
  *
  * Cloudflare Workers AI edge route for Orographic Sentinel.
- * Evaluates real-time news headlines to detect catalysts and compute
- * an asymmetric mathematical multiplier.
+ * Extracts structured event features from real-time news. Multipliers are
+ * shadow-only unless mode=active is explicitly provided by internal tooling.
  *
  * Body:
  *   symbol    - The stock ticker (e.g. "AAPL")
  *   headlines - Array of recent news strings
  *
  * Returns:
- *   { ok: true, multiplier: float, catalyst: string, rationale: string }
+ *   { ok: true, event_type, polarity, multiplier, shadow_multiplier, ... }
  */
 export async function onRequestPost(context) {
   const authError = requireInternalToken(context);
@@ -30,15 +30,25 @@ export async function onRequestPost(context) {
   const { symbol, headlines } = body || {};
   const direction = normalizeDirection(body?.direction);
   const scoutScore = clamp(Number(body?.scout_score || 0), -1, 1);
+  const mode = normalizeMode(body?.mode || context.env?.OROGRAPHIC_SENTINEL_MODE);
   
   if (!context.env?.AI) {
     return jsonResponse({ 
       ok: true, 
       multiplier: 1.0, 
+      shadow_multiplier: 1.0,
       catalyst: "none", 
       rationale: "Cloudflare AI binding not available locally.",
       sentiment_score: 0.0,
+      event_polarity: 0.0,
+      event_type: "none",
+      directional_relevance: "neither",
+      novelty: "unknown",
+      source_reliability: "unknown",
+      time_horizon: "unknown",
+      confidence: 0.0,
       direction,
+      mode,
       source: "fallback_no_ai",
     });
   }
@@ -47,32 +57,48 @@ export async function onRequestPost(context) {
     return jsonResponse({
         ok: true,
         multiplier: 1.0,
+        shadow_multiplier: 1.0,
         catalyst: "none",
         rationale: "No recent news available to evaluate.",
         sentiment_score: 0.0,
+        event_polarity: 0.0,
+        event_type: "none",
+        directional_relevance: "neither",
+        novelty: "unknown",
+        source_reliability: "unknown",
+        time_horizon: "unknown",
+        confidence: 0.0,
         direction,
+        mode,
         source: "fallback_no_news",
     });
   }
 
   const newsText = headlines.map(h => `- ${h}`).join("\n");
   
-  const prompt = `You are a strict quantitative trading Sentinel.
+  const prompt = `You are a strict quantitative trading event extraction system.
 Evaluate these recent news headlines for the stock ${symbol}.
-Identify if there is a fundamental catalyst driving the stock today (e.g., earnings beat, macro shift, scandal, buyout) or just noise.
+Extract structured event features only. Do not recommend trades.
 The engine is considering a ${direction || "unknown"} setup with current signed Scout score ${scoutScore.toFixed(3)}.
-Determine the news sentiment for the underlying stock, not for the option side.
-- -1.0: Disaster, massive scandal, bankruptcy threat, severe downside catalyst.
-- -0.5: Negative news, lawsuits, downgrades, demand weakness.
-- 0.0: Neutral news, product updates, noise, or no clear edge.
-- 0.5: Strong positive news, earnings beat, analyst upgrades.
-- 1.0: Explosive unpriced buyout, massive systemic tailwind.
+Determine event polarity for the underlying stock, not for the option side.
+- event_polarity -1.0: severe downside catalyst.
+- event_polarity -0.5: negative news, downgrade, lawsuit, demand weakness.
+- event_polarity 0.0: neutral news, stale news, noise, or no clear edge.
+- event_polarity 0.5: positive earnings, analyst upgrade, demand strength.
+- event_polarity 1.0: highly material upside catalyst.
+
+Use this controlled vocabulary:
+event_type: earnings, guidance, m_and_a, legal_regulatory, analyst, macro, product, supply_chain, geopolitical, fraud_accounting, financing, no_clear_event
+directional_relevance: call, put, both, neither
+novelty: stale, incremental, new, unknown
+source_reliability: primary, major_news, analyst, social_or_rumor, unknown
+time_horizon: intraday, one_to_three_days, one_to_two_weeks, longer, unknown
 
 Headlines:
 ${newsText}
 
 You MUST reply ONLY with a valid JSON object exactly matching this schema, completely unformatted (no markdown blocks or backticks):
-{"sentiment_score": 0.7, "catalyst": "earnings", "rationale": "Strong Q4 earnings beat driving fundamental upside."}`;
+{"event_type":"earnings","event_polarity":0.7,"directional_relevance":"call","novelty":"new","source_reliability":"major_news","time_horizon":"one_to_three_days","confidence":0.74,"catalyst":"earnings beat","rationale":"Recent earnings headlines indicate upside demand surprise."}`;
 
   try {
     const response = await context.env.AI.run("@cf/meta/llama-3-8b-instruct", {
@@ -100,15 +126,28 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
       }
       
       const parsed = JSON.parse(rawText);
-      const sentimentScore = clamp(Number(parsed.sentiment_score ?? parsed.sentiment ?? 0), -1, 1);
-      const multiplier = directionAwareMultiplier(sentimentScore, direction);
+      const eventPolarity = clamp(Number(parsed.event_polarity ?? parsed.sentiment_score ?? parsed.sentiment ?? 0), -1, 1);
+      const confidence = clamp(Number(parsed.confidence ?? 0), 0, 1);
+      const eventType = normalizeEventType(parsed.event_type);
+      const directionalRelevance = normalizeDirectionalRelevance(parsed.directional_relevance);
+      const shadowMultiplier = directionAwareMultiplier(eventPolarity, direction, directionalRelevance, confidence);
+      const multiplier = mode === "active" ? shadowMultiplier : 1.0;
       return jsonResponse({ 
         ok: true, 
         multiplier,
-        sentiment_score: sentimentScore,
+        shadow_multiplier: shadowMultiplier,
+        sentiment_score: eventPolarity,
+        event_polarity: eventPolarity,
+        event_type: eventType,
+        directional_relevance: directionalRelevance,
+        novelty: normalizeEnum(parsed.novelty, ["stale", "incremental", "new", "unknown"], "unknown"),
+        source_reliability: normalizeEnum(parsed.source_reliability, ["primary", "major_news", "analyst", "social_or_rumor", "unknown"], "unknown"),
+        time_horizon: normalizeEnum(parsed.time_horizon, ["intraday", "one_to_three_days", "one_to_two_weeks", "longer", "unknown"], "unknown"),
+        confidence,
         direction,
+        mode,
         catalyst: parsed.catalyst || "none",
-        rationale: parsed.rationale || "Interpreted via Llama-3.",
+        rationale: parsed.rationale || "Structured event extracted via Llama-3.",
         source: "@cf/meta/llama-3-8b-instruct",
       });
     } catch (parseError) {
@@ -116,8 +155,17 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
       return jsonResponse({
           ok: true,
           multiplier: 1.0, // Fail-safe degradation
+          shadow_multiplier: 1.0,
           sentiment_score: 0.0,
+          event_polarity: 0.0,
+          event_type: "parse_error",
+          directional_relevance: "neither",
+          novelty: "unknown",
+          source_reliability: "unknown",
+          time_horizon: "unknown",
+          confidence: 0.0,
           direction,
+          mode,
           catalyst: "parse_error",
           rationale: "LLM failed to adhere to strict JSON schema.",
           source: "parse_error",
@@ -129,8 +177,17 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
     return jsonResponse({
       ok: true,
       multiplier: 1.0,
+      shadow_multiplier: 1.0,
       sentiment_score: 0.0,
+      event_polarity: 0.0,
+      event_type: "error",
+      directional_relevance: "neither",
+      novelty: "unknown",
+      source_reliability: "unknown",
+      time_horizon: "unknown",
+      confidence: 0.0,
       direction,
+      mode,
       catalyst: "error",
       rationale: "Failed to connect to Cloudflare AI inference.",
       source: "error",
@@ -161,12 +218,54 @@ function normalizeDirection(value) {
   return direction === "call" || direction === "put" ? direction : null;
 }
 
+function normalizeMode(value) {
+  return String(value || "").toLowerCase() === "active" ? "active" : "shadow";
+}
+
+function normalizeEnum(value, allowed, fallback) {
+  const cleaned = String(value || "").toLowerCase();
+  return allowed.includes(cleaned) ? cleaned : fallback;
+}
+
+function normalizeEventType(value) {
+  return normalizeEnum(
+    value,
+    [
+      "earnings",
+      "guidance",
+      "m_and_a",
+      "legal_regulatory",
+      "analyst",
+      "macro",
+      "product",
+      "supply_chain",
+      "geopolitical",
+      "fraud_accounting",
+      "financing",
+      "no_clear_event",
+      "parse_error",
+      "error",
+      "none",
+    ],
+    "no_clear_event",
+  );
+}
+
+function normalizeDirectionalRelevance(value) {
+  return normalizeEnum(value, ["call", "put", "both", "neither"], "neither");
+}
+
 function clamp(value, low, high) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(low, Math.min(high, value));
 }
 
-function directionAwareMultiplier(sentimentScore, direction) {
-  const directionalSentiment = direction === "put" ? -sentimentScore : sentimentScore;
-  return Number(clamp(1.0 + directionalSentiment * 0.35, 0.0, 1.5).toFixed(4));
+function directionAwareMultiplier(eventPolarity, direction, directionalRelevance, confidence) {
+  if (!direction) return 1.0;
+  if (directionalRelevance !== "both" && directionalRelevance !== direction) {
+    return 1.0;
+  }
+  const directionalSentiment = direction === "put" ? -eventPolarity : eventPolarity;
+  const scaled = directionalSentiment * 0.35 * clamp(confidence || 0, 0, 1);
+  return Number(clamp(1.0 + scaled, 0.0, 1.5).toFixed(4));
 }

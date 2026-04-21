@@ -685,6 +685,36 @@ function buildTradeCard(candidate, regime, lane) {
           <span class="card-stat-value">${pct(candidate.expected_return_pct, 0)}</span>
         </div>
         ${
+          candidate.prob_positive_option_pnl != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">PnL Prob</span>
+          <span class="card-stat-value">${pct(candidate.prob_positive_option_pnl, 0)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          candidate.learned_rank_score != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">${candidate.ranker_mode === "active" ? "Ranker" : "Shadow Rank"}</span>
+          <span class="card-stat-value">${Number(candidate.learned_rank_score).toFixed(2)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          candidate.sector
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Sector</span>
+          <span class="card-stat-value">${String(candidate.sector).replaceAll("_", " ")}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
           isSpread
             ? `
         <div class="card-stat">
@@ -778,6 +808,13 @@ function buildTradeCard(candidate, regime, lane) {
       `
           : ""
       }
+      ${
+        candidate.council_risk_flags?.length
+          ? `
+        <p class="card-notes">Risk flags: ${candidate.council_risk_flags.join(" · ")}</p>
+      `
+          : ""
+      }
     </div>
   `;
 
@@ -829,8 +866,11 @@ function estimateTradeValue(order, fallbackQty, fallbackPrice) {
 function renderForgeDiagnostics(payload) {
   const waterfallEl = document.getElementById("forge-waterfall");
   const bottlenecksEl = document.getElementById("forge-bottlenecks");
+  const observabilityEl = document.getElementById("model-observability");
   const forgeDiag = payload?.diagnostics?.forge || {};
+  const scoutDiag = payload?.diagnostics?.scout || {};
   const waterfall = forgeDiag.waterfall || {};
+  const learnedRanker = forgeDiag.learned_ranker || {};
   const perSymbol = Array.isArray(forgeDiag.per_symbol)
     ? forgeDiag.per_symbol
     : [];
@@ -872,6 +912,12 @@ function renderForgeDiagnostics(payload) {
           `${integer(waterfall.rows_passing_net_debit)} rows`,
         ),
         summaryItemHtml("Candidates", integer(waterfall.final_candidates)),
+        summaryItemHtml(
+          "ML Ranker",
+          learnedRanker.scored_candidates
+            ? `${integer(learnedRanker.scored_candidates)} scored · ${Object.keys(learnedRanker.mode_counts || {}).join(", ") || "shadow"}`
+            : "No artifact",
+        ),
         summaryItemHtml(
           "Pass Rate",
           ratioOrDash(passedSignals, waterfall.signals_considered),
@@ -919,6 +965,41 @@ function renderForgeDiagnostics(payload) {
         );
       bottlenecksEl.innerHTML = [...topReasons, ...topPasses].join("");
     }
+  }
+
+  if (observabilityEl) {
+    const sentinelModes = (scoutDiag.sentinel_scores || []).reduce(
+      (acc, row) => {
+        const mode = row.mode || "shadow";
+        acc[mode] = (acc[mode] || 0) + 1;
+        return acc;
+      },
+      {},
+    );
+    observabilityEl.innerHTML = [
+      summaryItemHtml(
+        "Scout Side View",
+        `${integer(scoutDiag.side_aware_scores?.length)} symbols`,
+      ),
+      summaryItemHtml(
+        "Sentinel",
+        Object.entries(sentinelModes)
+          .map(([mode, count]) => `${mode} ${count}`)
+          .join(" · ") || "neutral",
+      ),
+      summaryItemHtml(
+        "Ranker Mode",
+        Object.entries(learnedRanker.mode_counts || {})
+          .map(([mode, count]) => `${mode} ${count}`)
+          .join(" · ") || "heuristic",
+      ),
+      summaryItemHtml(
+        "No-Trade Rule",
+        payload?.council?.summary?.no_trade_discipline
+          ? `min ${Number(payload.council.summary.no_trade_discipline.minimum_live_score).toFixed(2)}`
+          : "—",
+      ),
+    ].join("");
   }
 }
 
@@ -1043,7 +1124,7 @@ async function renderBoard(payload) {
         .map((row, i) =>
           rowHtml(
             `${row.symbol} ${String(row.direction).toUpperCase()} · ${row.scout_score}`,
-            `m5 ${pct(row.momentum_5d)} · m20 ${pct(row.momentum_20d)} · RSI ${row.rsi_14}`,
+            `call ${pct(row.call_edge_prob, 0)} · put ${pct(row.put_edge_prob, 0)} · no trade ${pct(row.no_trade_prob, 0)}`,
             toneClass(row.direction),
             `Scout ${String(i + 1).padStart(2, "0")}`,
           ),
@@ -1060,7 +1141,7 @@ async function renderBoard(payload) {
         .map((row, i) =>
           rowHtml(
             `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
-            `ask ${money(row.ask ?? row.premium)} · exp ${pct(row.expected_return_pct)} · OI ${integer(row.open_interest)}`,
+            `ask ${money(row.ask ?? row.premium)} · PnL ${pct(row.prob_positive_option_pnl, 0)} · rank ${row.learned_rank_score ?? "—"}`,
             toneClass(row.option_type),
             `Forge ${String(i + 1).padStart(2, "0")}`,
           ),
@@ -1078,6 +1159,16 @@ async function renderBoard(payload) {
       summaryItemHtml(
         "Candidates",
         integer(payload.council.summary?.candidate_count),
+      ),
+      summaryItemHtml(
+        "Correlation",
+        payload.council.summary?.avg_pairwise_correlation ?? "—",
+      ),
+      summaryItemHtml(
+        "Live Sectors",
+        Object.entries(payload.council.summary?.live_sector_counts || {})
+          .map(([sector, count]) => `${sector.replaceAll("_", " ")} ${count}`)
+          .join(" · ") || "—",
       ),
       summaryItemHtml("Regime", String(payload.regime.mode).replace("_", " ")),
       summaryItemHtml(

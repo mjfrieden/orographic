@@ -453,9 +453,23 @@ def rank_contracts_with_diagnostics(
         log.warning("Payoff model scoring skipped: %s", exc)
 
     candidates.sort(key=lambda row: row.forge_score, reverse=True)
+    ranker_modes: dict[str, int] = {}
+    learned_scores = []
+    for candidate in candidates:
+        mode = str(getattr(candidate, "ranker_mode", "heuristic") or "heuristic")
+        ranker_modes[mode] = ranker_modes.get(mode, 0) + 1
+        if candidate.learned_rank_score is not None:
+            learned_scores.append(float(candidate.learned_rank_score))
     return candidates, {
         "waterfall": stage_totals,
         "per_symbol": per_symbol,
+        "learned_ranker": {
+            "mode_counts": ranker_modes,
+            "shadow_default": True,
+            "active_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=active",
+            "scored_candidates": len(learned_scores),
+            "avg_learned_rank_score": round(sum(learned_scores) / len(learned_scores), 4) if learned_scores else None,
+        },
         "settings": {
             "minimum_days_to_expiry": minimum_days_to_expiry,
             "maximum_days_to_expiry": maximum_days_to_expiry,

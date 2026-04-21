@@ -30,6 +30,7 @@ log = logging.getLogger(__name__)
 _MODEL_DIR = Path(__file__).parent / "models"
 _MODEL_PATH = _MODEL_DIR / "scout_model.pkl"
 _SCALER_PATH = _MODEL_DIR / "scout_scaler.pkl"
+_SIDE_MODEL_PATH = _MODEL_DIR / "scout_side_model.pkl"
 REGIME_SAME_SIDE_BONUS = 0.08
 REGIME_COUNTERTREND_PENALTY = 0.18
 REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
@@ -50,6 +51,20 @@ def _load_model() -> tuple | None:
             "Falling back to heuristic linear scoring.",
             _MODEL_PATH,
         )
+        return None
+
+
+@lru_cache(maxsize=1)
+def _load_side_model() -> dict[str, object] | None:
+    if not _SIDE_MODEL_PATH.exists():
+        return None
+    try:
+        import joblib
+
+        artifact = joblib.load(_SIDE_MODEL_PATH)
+        return artifact if isinstance(artifact, dict) and "model" in artifact else None
+    except Exception as exc:
+        log.warning("Failed to load Scout side model (%s) — using derived side probabilities.", exc)
         return None
     try:
         import joblib
@@ -76,6 +91,61 @@ def _clip(value: float, low: float = -1.0, high: float = 1.0) -> float:
 
 def _empty_direction_counts() -> dict[str, int]:
     return {"call": 0, "put": 0}
+
+
+def _side_aware_probabilities(score: float) -> dict[str, float]:
+    """
+    Convert Scout's signed directional score into a side-aware three-way view.
+
+    Existing Scout artifacts are binary bull-probability models, so these are
+    routing probabilities over call edge, put edge, and no trade. A future
+    explicit side-aware artifact can replace the internals without changing
+    the snapshot contract.
+    """
+    signed = _clip(float(score))
+    strength = min(abs(signed), 1.0)
+    no_trade = _clip(1.0 - strength * 1.8, 0.05, 0.90)
+    active_mass = 1.0 - no_trade
+    dominant = 0.50 + strength / 2.0
+    if signed >= 0:
+        call_edge = active_mass * dominant
+        put_edge = active_mass - call_edge
+    else:
+        put_edge = active_mass * dominant
+        call_edge = active_mass - put_edge
+    return {
+        "call_edge": round(call_edge, 4),
+        "put_edge": round(put_edge, 4),
+        "no_trade": round(no_trade, 4),
+    }
+
+
+def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tuple[dict[str, float], str]:
+    artifact = _load_side_model()
+    if artifact is None:
+        return _side_aware_probabilities(fallback_score), "derived_three_class"
+    try:
+        model = artifact["model"]
+        scaler = artifact["scaler"]
+        feature_cols = list(artifact["feature_cols"])
+        class_map = {int(key): value for key, value in dict(artifact.get("class_map", {})).items()}
+        row = np.array([[feats.get(col, 0.0) for col in feature_cols]])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            row_scaled = scaler.transform(row)
+            probs = model.predict_proba(row_scaled)[0]
+        mapped = {"call_edge": 0.0, "put_edge": 0.0, "no_trade": 0.0}
+        for cls, prob in zip(model.classes_, probs):
+            name = class_map.get(int(cls), str(cls))
+            if name in mapped:
+                mapped[name] = float(prob)
+        total = sum(mapped.values())
+        if total <= 0:
+            return _side_aware_probabilities(fallback_score), "derived_three_class"
+        return {key: round(value / total, 4) for key, value in mapped.items()}, "trained_three_class"
+    except Exception as exc:
+        log.warning("Scout side model inference failed (%s) — using derived side probabilities.", exc)
+        return _side_aware_probabilities(fallback_score), "derived_three_class"
 
 
 def _apply_regime_alignment(
@@ -357,6 +427,15 @@ def build_signal(
     diagnostics["pre_veto_direction"] = direction
     diagnostics["conviction_score"] = round(float(conviction_score), 4)
     diagnostics["base_scout_score"] = round(float(base_scout_score), 4)
+    side_probs, side_model_mode = (
+        _ml_side_probabilities(feats, base_scout_score)
+        if using_ml
+        else (_side_aware_probabilities(base_scout_score), "heuristic_three_class")
+    )
+    diagnostics["side_aware"] = {
+        "model_mode": side_model_mode,
+        **side_probs,
+    }
 
     passed_alignment, regime_adjustment, rejection_reason, alignment_note = _apply_regime_alignment(
         direction=direction,
@@ -376,11 +455,29 @@ def build_signal(
     # \u2500\u2500 AI Sentinel overlay \u2500\u2500
     ai_score = fetch_ai_multiplier(symbol, direction=direction, scout_score=scout_score)
     scout_score = _clip(scout_score * ai_score.multiplier)
+    if side_model_mode != "trained_three_class":
+        side_probs = _side_aware_probabilities(scout_score)
+        diagnostics["side_aware"].update(
+            {
+                "call_edge": side_probs["call_edge"],
+                "put_edge": side_probs["put_edge"],
+                "no_trade": side_probs["no_trade"],
+            }
+        )
     diagnostics["sentinel"] = {
         "multiplier": round(float(ai_score.multiplier), 4),
+        "shadow_multiplier": round(float(ai_score.shadow_multiplier), 4),
+        "mode": ai_score.mode,
         "catalyst": ai_score.catalyst,
         "rationale": ai_score.rationale,
         "sentiment_score": round(float(ai_score.sentiment_score), 4),
+        "event_type": ai_score.event_type,
+        "event_polarity": round(float(ai_score.event_polarity), 4),
+        "directional_relevance": ai_score.directional_relevance,
+        "novelty": ai_score.novelty,
+        "source_reliability": ai_score.source_reliability,
+        "time_horizon": ai_score.time_horizon,
+        "confidence": round(float(ai_score.confidence), 4),
         "direction": ai_score.direction or direction,
         "source": ai_score.source,
     }
@@ -395,6 +492,10 @@ def build_signal(
     if ai_score.multiplier != 1.0:
         notes.append(
             f"AI Sentinel ({ai_score.multiplier}x: {ai_score.catalyst}) \u2014 {ai_score.rationale}"
+        )
+    elif ai_score.shadow_multiplier != 1.0:
+        notes.append(
+            f"Sentinel event shadow-only ({ai_score.shadow_multiplier}x: {ai_score.event_type})"
         )
     if abs(momentum_5d) > 0.035:
         notes.append("short-term momentum is strong")
@@ -417,6 +518,10 @@ def build_signal(
         technical_score=round(technical_score, 4),
         empirical_score=round(empirical_score, 4),
         scout_score=round(scout_score, 4),
+        call_edge_prob=side_probs["call_edge"],
+        put_edge_prob=side_probs["put_edge"],
+        no_trade_prob=side_probs["no_trade"],
+        scout_model_mode=side_model_mode,
         notes=notes,
     )
     diagnostics["passed"] = True
@@ -448,6 +553,7 @@ def scan_symbols_with_diagnostics(
         "pre_veto_direction_counts": _empty_direction_counts(),
         "final_direction_counts": _empty_direction_counts(),
         "counter_regime_survivors": 0,
+        "side_aware_scores": [],
         "sentinel_scores": [],
         "rejections": [],
         "settings": {
@@ -520,6 +626,17 @@ def scan_symbols_with_diagnostics(
             scout_diagnostics["pre_veto_direction_counts"][str(pre_direction)] += 1
         if signal_diagnostics.get("counter_regime_survivor"):
             scout_diagnostics["counter_regime_survivors"] += 1
+        side_aware = signal_diagnostics.get("side_aware")
+        if isinstance(side_aware, dict):
+            scout_diagnostics["side_aware_scores"].append(
+                {
+                    "symbol": cleaned,
+                    "model_mode": side_aware.get("model_mode"),
+                    "call_edge": side_aware.get("call_edge"),
+                    "put_edge": side_aware.get("put_edge"),
+                    "no_trade": side_aware.get("no_trade"),
+                }
+            )
         sentinel = signal_diagnostics.get("sentinel")
         if isinstance(sentinel, dict):
             scout_diagnostics["sentinel_scores"].append(
@@ -527,8 +644,14 @@ def scan_symbols_with_diagnostics(
                     "symbol": cleaned,
                     "direction": sentinel.get("direction"),
                     "multiplier": sentinel.get("multiplier"),
+                    "shadow_multiplier": sentinel.get("shadow_multiplier"),
+                    "mode": sentinel.get("mode"),
                     "catalyst": sentinel.get("catalyst"),
                     "sentiment_score": sentinel.get("sentiment_score"),
+                    "event_type": sentinel.get("event_type"),
+                    "event_polarity": sentinel.get("event_polarity"),
+                    "directional_relevance": sentinel.get("directional_relevance"),
+                    "confidence": sentinel.get("confidence"),
                     "source": sentinel.get("source"),
                 }
             )

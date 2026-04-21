@@ -94,7 +94,11 @@ def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]
                 "expiry": row.get("expiry"),
                 "strike": row.get("strike"),
                 "forge_score": row.get("forge_score"),
+                "learned_rank_score": row.get("learned_rank_score"),
+                "ranker_mode": row.get("ranker_mode"),
                 "contract_cost": row.get("contract_cost"),
+                "sector": row.get("sector"),
+                "risk_adjusted_score": row.get("risk_adjusted_score"),
                 "is_spread": bool(row.get("is_spread")),
             }
         )
@@ -189,11 +193,13 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
             "final_direction_counts": scout.get("final_direction_counts", {}),
             "counter_regime_survivors": _coerce_int(scout.get("counter_regime_survivors")),
             "sentinel_scores": scout.get("sentinel_scores", []),
+            "side_aware_scores": scout.get("side_aware_scores", []),
             "rejection_counts": _sorted_reason_counts(scout_rejections, reason_key="reason"),
             "rejections": scout_rejections,
         },
         "forge": {
             "waterfall": forge.get("waterfall", {}),
+            "learned_ranker": forge.get("learned_ranker", {}),
             "settings": forge.get("settings", {}),
             "rejection_counts": _sorted_reason_counts(forge_rejections, reason_key="rejection_reason"),
             "per_symbol": per_symbol,
@@ -283,6 +289,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout_counter_regime_survivors": scout_diagnostics.get("counter_regime_survivors", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
+                "forge_learned_ranker": forge_diagnostics.get("learned_ranker", {}),
                 "abstain": council.abstain,
                 "live_avg_score": live_avg_score,
                 "forge_input_symbols": [row.symbol for row in forge_input_signals],

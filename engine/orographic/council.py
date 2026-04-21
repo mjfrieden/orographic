@@ -26,6 +26,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from engine.backtest.risk_controls import sector_for_symbol
+
 from .schemas import ContractCandidate, CouncilResult, MarketRegime
 
 log = logging.getLogger(__name__)
@@ -143,6 +145,43 @@ def _kelly_weight(scout_score: float, win_rate_est: float = 0.54, b: float = 1.2
     return max(round(kelly_full * 0.5, 4), 0.05)   # half-Kelly, min 5%
 
 
+def _avg_pairwise_corr(corr: np.ndarray | None) -> float | None:
+    if corr is None or corr.ndim != 2 or corr.shape[0] < 2:
+        return None
+    upper = corr[np.triu_indices(corr.shape[0], k=1)]
+    if len(upper) == 0:
+        return None
+    return round(float(np.nanmean(upper)), 4)
+
+
+def _annotate_risk(
+    candidates: list[ContractCandidate],
+    *,
+    max_sector_share: float,
+) -> None:
+    sector_counts = Counter(sector_for_symbol(row.symbol) for row in candidates)
+    total = max(len(candidates), 1)
+    for candidate in candidates:
+        sector = sector_for_symbol(candidate.symbol)
+        candidate.sector = sector
+        candidate.suggested_allocation_pct = round(
+            min(max(_kelly_weight(candidate.scout_score) * candidate.allocation_weight, 0.01), 0.25),
+            4,
+        )
+        candidate.risk_adjusted_score = round(
+            candidate.forge_score * (1.0 - min(candidate.extrinsic_ratio, 1.0) * 0.08),
+            4,
+        )
+        flags = list(candidate.council_risk_flags)
+        if sector_counts[sector] / total > max_sector_share:
+            flags.append("sector_cluster")
+        if candidate.extrinsic_ratio > 0.94:
+            flags.append("high_extrinsic")
+        if candidate.spread_pct > 0.16:
+            flags.append("wide_spread")
+        candidate.council_risk_flags = sorted(set(flags))
+
+
 # ── Main selector ─────────────────────────────────────────────────────────────
 
 def select_board(
@@ -153,11 +192,13 @@ def select_board(
     shadow_size: int = 3,
     minimum_live_score: float = 0.57,
     max_same_side_share: float = 0.67,
+    max_same_sector_share: float = 0.67,
     max_live_extrinsic_ratio: float = 0.96,
     corr_matrix: np.ndarray | None = None,
     fetch_live_corr: bool = True,
 ) -> CouncilResult:
     notes: list[str] = []
+    _annotate_risk(candidates, max_sector_share=max_same_sector_share)
 
     # ── Pre-filter eligible candidates ──
     eligible = [
@@ -181,6 +222,7 @@ def select_board(
     live_board: list[ContractCandidate] = []
     portfolio_var: float = float("nan")
     portfolio_sharpe_est: float = float("nan")
+    corr_used: np.ndarray | None = None
 
     if len(unique_eligible) >= 2:
         syms = [c.symbol for c in unique_eligible]
@@ -189,6 +231,7 @@ def select_board(
             corr = _fetch_corr_matrix(syms)
 
         if corr is not None and corr.shape == (len(syms), len(syms)):
+            corr_used = corr
             exp_rets = np.array([(c.scout_score + 1.0) / 2.0 for c in unique_eligible])
             # Approximate symbol volatility from the candidate's implied vol
             approx_vols = np.array([c.implied_volatility for c in unique_eligible])
@@ -230,6 +273,11 @@ def select_board(
             same_side_share = max(side_counts.values()) / len(projected)
             if len(projected) > 1 and same_side_share > max_same_side_share:
                 continue
+            sector_counts = Counter(sector_for_symbol(row.symbol) for row in projected)
+            same_sector_share = max(sector_counts.values()) / len(projected)
+            if len(projected) > 1 and same_sector_share > max_same_sector_share:
+                candidate.council_risk_flags = sorted(set([*candidate.council_risk_flags, "sector_cap_shadow"]))
+                continue
             live_board.append(candidate)
 
     # ── Side-balance guard on Markowitz output ──
@@ -242,17 +290,45 @@ def select_board(
             # Drop the excess until balanced
             calls = [c for c in live_board if c.option_type == "call"]
             puts  = [c for c in live_board if c.option_type == "put"]
-            while calls and puts and max(len(calls), len(puts)) / (len(calls) + len(puts)) > max_same_side_share:
-                if len(calls) > len(puts):
-                    shadow_fallback.insert(0, calls.pop())
-                else:
-                    shadow_fallback.insert(0, puts.pop())
-            live_board = calls + puts
+            if calls and puts:
+                while max(len(calls), len(puts)) / (len(calls) + len(puts)) > max_same_side_share:
+                    if len(calls) > len(puts):
+                        shadow_fallback.insert(0, calls.pop())
+                    else:
+                        shadow_fallback.insert(0, puts.pop())
+                live_board = calls + puts
+            else:
+                while len(live_board) > 1 and max(Counter(c.option_type for c in live_board).values()) / len(live_board) > max_same_side_share:
+                    demote = min(live_board, key=lambda c: c.forge_score)
+                    demote.council_risk_flags = sorted(set([*demote.council_risk_flags, "side_cap_shadow"]))
+                    live_board.remove(demote)
+                    shadow_fallback.insert(0, demote)
+
+        sector_counts = Counter(sector_for_symbol(c.symbol) for c in live_board)
+        while live_board and max(sector_counts.values()) / len(live_board) > max_same_sector_share and len(live_board) > 1:
+            crowded_sector = sector_counts.most_common(1)[0][0]
+            demote = min(
+                (c for c in live_board if sector_for_symbol(c.symbol) == crowded_sector),
+                key=lambda c: c.forge_score,
+            )
+            demote.council_risk_flags = sorted(set([*demote.council_risk_flags, "sector_cap_shadow"]))
+            live_board.remove(demote)
+            shadow_fallback.insert(0, demote)
+            sector_counts = Counter(sector_for_symbol(c.symbol) for c in live_board)
+            notes.append("Sector concentration guard demoted an over-clustered position to shadow.")
 
     # ── Shadow board ──
     shadow_board: list[ContractCandidate] = []
     shadow_seen: set[str] = {c.symbol for c in live_board}
-    for candidate in candidates:
+    shadow_pool = sorted(
+        candidates,
+        key=lambda row: (
+            float(getattr(row, "learned_rank_score", None) or row.forge_score),
+            row.forge_score,
+        ),
+        reverse=True,
+    )
+    for candidate in shadow_pool:
         if len(shadow_board) >= shadow_size:
             break
         if candidate in live_board or candidate.symbol in shadow_seen:
@@ -278,6 +354,16 @@ def select_board(
         "minimum_live_score":  minimum_live_score,
         "portfolio_variance":  round(portfolio_var, 6) if not np.isnan(portfolio_var) else None,
         "portfolio_sharpe_est": portfolio_sharpe_est if not np.isnan(portfolio_sharpe_est) else None,
+        "live_side_counts": dict(Counter(row.option_type for row in live_board)),
+        "live_sector_counts": dict(Counter(sector_for_symbol(row.symbol) for row in live_board)),
+        "candidate_sector_counts": dict(Counter(sector_for_symbol(row.symbol) for row in candidates)),
+        "avg_pairwise_correlation": _avg_pairwise_corr(corr_used),
+        "no_trade_discipline": {
+            "minimum_live_score": minimum_live_score,
+            "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
+            "max_same_side_share": max_same_side_share,
+            "max_same_sector_share": max_same_sector_share,
+        },
         "notes":               notes,
     }
 

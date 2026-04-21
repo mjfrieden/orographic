@@ -5,8 +5,8 @@ Orographic is a new short-term options platform built from the useful parts of t
 It is split into three first-party layers:
 
 - `Scout`: a Cirrus-style symbol and direction engine. It decides whether a name has enough short-term edge to even deserve option-chain work.
-- `Forge`: a Cumulus-style contract engine. It chooses the actual weekly contract and scores quote quality, breakeven burden, and payoff shape.
-- `Council`: a Stratus-style portfolio gate. It selects the live board, keeps a shadow board, and enforces side concentration and diversification rules.
+- `Forge`: a Cumulus-style contract engine. It chooses the actual weekly contract and scores quote quality, breakeven burden, payoff shape, and shadow-mode learned payoff rank.
+- `Council`: a Stratus-style portfolio gate. It selects the live board, keeps a model-observation shadow board, and enforces side, sector, correlation, sizing, and no-trade discipline.
 
 The game layer lives in `web/`. It is designed to deploy cleanly to Cloudflare Pages as a static site.
 
@@ -20,6 +20,9 @@ The current game loop also uses Pages Functions as a thin Tradier proxy. The bro
 - One canonical snapshot schema from Scout to Forge to Council.
 - Hard abstain support instead of forcing a pick.
 - Live and shadow lanes are first-class from day one.
+- New ML/AI features run in shadow mode by default until explicitly promoted.
+- Scout snapshots include side-aware `call_edge`, `put_edge`, and `no_trade` probabilities.
+- Sentinel extracts structured event features from headlines instead of acting as a raw sentiment oracle.
 - Deployment path is intentionally cheap:
   - static game board on Cloudflare Pages
   - scheduled scan by GitHub Actions or a self-hosted runner
@@ -118,8 +121,16 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
 - `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
+- `OROGRAPHIC_SENTINEL_MODE`: optional; defaults to `shadow`. Set to `active` only when Sentinel event multipliers should affect Scout scoring.
+- `OROGRAPHIC_PAYOFF_MODEL_MODE`: optional; defaults to `shadow`. Set to `active` only when the learned payoff ranker should replace heuristic Forge scores.
 
-Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling.
+Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel and the payoff ranker are logged as model-observation signals and do not steer live recommendations.
+
+## Model Governance
+
+Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines.
+
+Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the shadow-by-default activation policy.
 
 Recommended default:
 

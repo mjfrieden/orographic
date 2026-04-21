@@ -11,6 +11,7 @@ import hashlib
 import json
 import logging
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -20,7 +21,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.dummy import DummyClassifier, DummyRegressor
-from sklearn.metrics import mean_absolute_error, roc_auc_score
+from sklearn.metrics import brier_score_loss, log_loss, mean_absolute_error, roc_auc_score
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import RobustScaler
@@ -41,6 +42,7 @@ log = logging.getLogger(__name__)
 DEFAULT_INPUT = Path("output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json")
 DEFAULT_MODEL_PATH = Path("engine/orographic/models/payoff_model.pkl")
 DEFAULT_REPORT_PATH = Path("output/payoff_model_training_report_2026-04-18.json")
+DEFAULT_MODEL_CARD_PATH = Path("engine/orographic/models/payoff_model_card.json")
 DEFAULT_OPTIONS_DATA_DIR = Path("engine/data/options/blended")
 
 
@@ -331,6 +333,25 @@ def _positive_proba(model: Pipeline, X: np.ndarray) -> np.ndarray:
     return np.asarray(model.predict(X), dtype=float)
 
 
+def _probability_buckets(probs: np.ndarray, y: np.ndarray, buckets: int = 8) -> list[dict[str, Any]]:
+    frame = pd.DataFrame({"prob": probs, "label": y}).replace([np.inf, -np.inf], np.nan).dropna()
+    if frame.empty:
+        return []
+    q = min(buckets, max(2, len(frame) // 20))
+    frame["bucket"] = pd.qcut(frame["prob"], q=q, duplicates="drop")
+    rows: list[dict[str, Any]] = []
+    for bucket, group in frame.groupby("bucket", observed=True):
+        rows.append(
+            {
+                "bucket": str(bucket),
+                "rows": int(len(group)),
+                "mean_pred_prob": round(float(group["prob"].mean()), 4),
+                "realized_rate": round(float(group["label"].mean()), 4),
+            }
+        )
+    return rows
+
+
 def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) -> dict[str, Any]:
     if len(X) < 80:
         return {"folds": 0, "reason": "insufficient_examples"}
@@ -343,7 +364,13 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) 
     tscv = TimeSeriesSplit(n_splits=min(5, max(2, len(X) // 120)))
     positive_auc: list[float] = []
     breakeven_auc: list[float] = []
+    positive_brier: list[float] = []
+    breakeven_brier: list[float] = []
+    positive_log_loss: list[float] = []
+    breakeven_log_loss: list[float] = []
     return_mae: list[float] = []
+    oof_positive = np.full(len(X_sorted), np.nan, dtype=float)
+    oof_breakeven = np.full(len(X_sorted), np.nan, dtype=float)
 
     for train_idx, val_idx in tscv.split(X_sorted):
         X_train, X_val = X_sorted[train_idx], X_sorted[val_idx]
@@ -354,18 +381,36 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) 
         pos_model = _fit_classifier(X_train, pos_train)
         be_model = _fit_classifier(X_train, be_train)
         ret_model = _fit_regressor(X_train, ret_train)
+        pos_probs = np.clip(_positive_proba(pos_model, X_val), 1e-6, 1 - 1e-6)
+        be_probs = np.clip(_positive_proba(be_model, X_val), 1e-6, 1 - 1e-6)
+        oof_positive[val_idx] = pos_probs
+        oof_breakeven[val_idx] = be_probs
 
         if len(set(pos_val.tolist())) > 1:
-            positive_auc.append(float(roc_auc_score(pos_val, _positive_proba(pos_model, X_val))))
+            positive_auc.append(float(roc_auc_score(pos_val, pos_probs)))
+            positive_log_loss.append(float(log_loss(pos_val, pos_probs)))
         if len(set(be_val.tolist())) > 1:
-            breakeven_auc.append(float(roc_auc_score(be_val, _positive_proba(be_model, X_val))))
+            breakeven_auc.append(float(roc_auc_score(be_val, be_probs)))
+            breakeven_log_loss.append(float(log_loss(be_val, be_probs)))
+        positive_brier.append(float(brier_score_loss(pos_val, pos_probs)))
+        breakeven_brier.append(float(brier_score_loss(be_val, be_probs)))
         return_mae.append(float(mean_absolute_error(ret_val, ret_model.predict(X_val))))
 
+    valid_positive = np.isfinite(oof_positive)
+    valid_breakeven = np.isfinite(oof_breakeven)
     return {
         "folds": int(tscv.n_splits),
         "positive_pnl_auc_mean": round(float(np.mean(positive_auc)), 4) if positive_auc else None,
         "breakeven_auc_mean": round(float(np.mean(breakeven_auc)), 4) if breakeven_auc else None,
+        "positive_pnl_brier_mean": round(float(np.mean(positive_brier)), 4) if positive_brier else None,
+        "breakeven_brier_mean": round(float(np.mean(breakeven_brier)), 4) if breakeven_brier else None,
+        "positive_pnl_log_loss_mean": round(float(np.mean(positive_log_loss)), 4) if positive_log_loss else None,
+        "breakeven_log_loss_mean": round(float(np.mean(breakeven_log_loss)), 4) if breakeven_log_loss else None,
         "expected_return_mae_mean": round(float(np.mean(return_mae)), 4) if return_mae else None,
+        "probability_buckets": {
+            "prob_positive_option_pnl": _probability_buckets(oof_positive[valid_positive], y_positive[valid_positive]),
+            "prob_exceeds_breakeven": _probability_buckets(oof_breakeven[valid_breakeven], y_breakeven[valid_breakeven]),
+        },
     }
 
 
@@ -379,11 +424,29 @@ def _fit_bundle(X: np.ndarray, labels: dict[str, np.ndarray]) -> dict[str, Any]:
     }
 
 
+def _side_observability(examples: list[TradeExample], labels: dict[str, np.ndarray], sides: np.ndarray) -> dict[str, Any]:
+    rows: dict[str, Any] = {}
+    returns = labels["expected_option_return_pct"]
+    for side in ("call", "put"):
+        idx = np.where(sides == side)[0]
+        if len(idx) == 0:
+            rows[side] = {"rows": 0}
+            continue
+        rows[side] = {
+            "rows": int(len(idx)),
+            "positive_pnl_rate": round(float(labels["prob_positive_option_pnl"][idx].mean()), 4),
+            "breakeven_rate": round(float(labels["prob_exceeds_breakeven"][idx].mean()), 4),
+            "avg_expected_option_return_pct": round(float(returns[idx].mean()), 4),
+        }
+    return rows
+
+
 def train(
     input_paths: list[Path],
     *,
     output_model: Path = DEFAULT_MODEL_PATH,
     output_report: Path = DEFAULT_REPORT_PATH,
+    output_model_card: Path = DEFAULT_MODEL_CARD_PATH,
     options_data_dir: Path | None = DEFAULT_OPTIONS_DATA_DIR,
     min_side_examples: int = 75,
 ) -> dict[str, Any]:
@@ -404,7 +467,7 @@ def train(
     sides = np.array([example.candidate.option_type for example in examples], dtype=object)
 
     artifact: dict[str, Any] = {
-        "version": 1,
+        "version": 2,
         "feature_cols": FEATURE_COLS,
         "global": _fit_bundle(X, labels),
         "by_side": {},
@@ -413,6 +476,7 @@ def train(
             "trained_at": date.today().isoformat(),
             "min_side_examples": min_side_examples,
             "label_means": {name: round(float(values.mean()), 4) for name, values in labels.items()},
+            "activation_policy": "shadow_by_default; set OROGRAPHIC_PAYOFF_MODEL_MODE=active to replace heuristic Forge scores",
         },
     }
 
@@ -426,7 +490,23 @@ def train(
         )
 
     side_counts = {side: int((sides == side).sum()) for side in ("call", "put")}
+    month_counts = Counter(example.entry_date.strftime("%Y-%m") for example in examples)
+    coverage = {
+        "entry_date_start": min(dates).isoformat(),
+        "entry_date_end": max(dates).isoformat(),
+        "months": {month: int(count) for month, count in sorted(month_counts.items())},
+        "side_counts": side_counts,
+        "exact_quote_marks_used": int(source_metadata.get("exact_quote_marks_used", 0)),
+        "option_chain_coverage_ratio": round(
+            float(source_metadata.get("exact_quote_marks_used", 0)) / max(len(examples), 1),
+            4,
+        ),
+    }
+    cv = _cv_report(X, labels, dates)
     report = {
+        "artifact": "payoff_model",
+        "version": artifact["version"],
+        "model_card_schema_version": 2,
         "training_examples": len(examples),
         "side_counts": side_counts,
         "positive_pnl_rate": round(float(labels["prob_positive_option_pnl"].mean()), 4),
@@ -436,15 +516,32 @@ def train(
         "avg_adverse_excursion_risk": round(float(labels["adverse_excursion_risk"].mean()), 4),
         "side_models_trained": sorted(artifact["by_side"].keys()),
         "feature_cols": FEATURE_COLS,
-        "cross_validation": _cv_report(X, labels, dates),
+        "cross_validation": cv,
+        "calibration": {
+            "method": "walk_forward_probability_buckets",
+            "probability_buckets": cv.get("probability_buckets", {}),
+            "brier": {
+                "prob_positive_option_pnl": cv.get("positive_pnl_brier_mean"),
+                "prob_exceeds_breakeven": cv.get("breakeven_brier_mean"),
+            },
+        },
+        "coverage": coverage,
+        "observability": {
+            "by_side": _side_observability(examples, labels, sides),
+            "coverage": coverage,
+        },
+        "activation_policy": {
+            "default": "shadow",
+            "active_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=active",
+            "reason": "New learned ranking is observed before it can alter live recommendations.",
+        },
         "source_metadata": source_metadata,
     }
 
     output_model.parent.mkdir(parents=True, exist_ok=True)
     output_report.parent.mkdir(parents=True, exist_ok=True)
+    output_model_card.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump(artifact, output_model)
-    report["artifact"] = "payoff_model"
-    report["version"] = artifact["version"]
     report["target_definitions"] = {
         "prob_positive_option_pnl": "1 when realized option PnL pct is positive",
         "prob_exceeds_breakeven": "1 when exit underlying price exceeds the long option breakeven",
@@ -456,10 +553,14 @@ def train(
         "model_path": str(output_model),
         "model_sha256": _sha256_file(output_model),
         "report_path": str(output_report),
+        "model_card_path": str(output_model_card),
     }
-    output_report.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    rendered = json.dumps(report, indent=2, sort_keys=True) + "\n"
+    output_report.write_text(rendered, encoding="utf-8")
+    output_model_card.write_text(rendered, encoding="utf-8")
     log.info("Payoff model saved to %s", output_model)
     log.info("Training report saved to %s", output_report)
+    log.info("Model card saved to %s", output_model_card)
     return report
 
 
@@ -468,6 +569,7 @@ def main() -> None:
     parser.add_argument("--input", action="append", type=Path, default=None, help="Backtest JSON path; may be repeated")
     parser.add_argument("--output-model", type=Path, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--output-report", type=Path, default=DEFAULT_REPORT_PATH)
+    parser.add_argument("--output-model-card", type=Path, default=DEFAULT_MODEL_CARD_PATH)
     parser.add_argument("--options-data-dir", type=Path, default=DEFAULT_OPTIONS_DATA_DIR)
     parser.add_argument("--min-side-examples", type=int, default=75)
     args = parser.parse_args()
@@ -483,6 +585,7 @@ def main() -> None:
         input_paths,
         output_model=args.output_model,
         output_report=args.output_report,
+        output_model_card=args.output_model_card,
         options_data_dir=args.options_data_dir,
         min_side_examples=args.min_side_examples,
     )
