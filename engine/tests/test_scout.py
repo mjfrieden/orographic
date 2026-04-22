@@ -6,7 +6,7 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.schemas import MarketRegime
-from engine.orographic.scout import build_signal
+from engine.orographic.scout import _MODEL_PATH, _SCALER_PATH, _load_model, build_signal
 from engine.orographic.sentinel import SentinelScore
 
 
@@ -24,6 +24,15 @@ def _frame() -> pd.DataFrame:
 
 
 class ScoutTests(unittest.TestCase):
+    def test_scout_model_loader_returns_trained_artifact_when_available(self) -> None:
+        if not _MODEL_PATH.exists() or not _SCALER_PATH.exists():
+            self.skipTest("Scout model artifacts are not present in this checkout.")
+        _load_model.cache_clear()
+        loaded = _load_model()
+        self.assertIsNotNone(loaded)
+        assert loaded is not None
+        self.assertEqual(len(loaded), 5)
+
     def test_strong_counter_regime_put_can_survive_risk_on(self) -> None:
         with (
             mock.patch("engine.orographic.scout._ml_scout_score", return_value=-0.6),

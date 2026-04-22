@@ -64,41 +64,7 @@ class PayoffModelTests(unittest.TestCase):
         self.assertEqual(candidate.pre_payoff_forge_score, 0.61)
         self.assertIsNotNone(candidate.prob_positive_option_pnl)
 
-    def test_artifact_scores_shadow_by_default(self) -> None:
-        candidates = [_candidate("call", 0.4, 0.51), _candidate("put", -0.5, 0.49)]
-        X = feature_matrix(candidates, MarketRegime("neutral", 0.0, "SPY"), as_of=date(2026, 4, 18), feature_cols=FEATURE_COLS)
-        positive = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
-        breakeven = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
-        expected = DummyRegressor(strategy="constant", constant=0.25).fit(X, np.ones(len(candidates)))
-        mfe = DummyRegressor(strategy="constant", constant=0.50).fit(X, np.ones(len(candidates)))
-        adverse = DummyRegressor(strategy="constant", constant=-0.20).fit(X, np.ones(len(candidates)))
-        bundle = {
-            "positive_classifier": positive,
-            "breakeven_classifier": breakeven,
-            "expected_return_regressor": expected,
-            "mfe_regressor": mfe,
-            "adverse_regressor": adverse,
-        }
-        with tempfile.TemporaryDirectory() as tmpdir:
-            model_path = Path(tmpdir) / "payoff_model.pkl"
-            joblib.dump(
-                {
-                    "feature_cols": FEATURE_COLS,
-                    "global": bundle,
-                    "by_side": {},
-                    "metadata": {"label_means": {}},
-                },
-                model_path,
-            )
-            score_candidates(candidates, MarketRegime("risk_on", 0.4, "SPY"), as_of=date(2026, 4, 18), model_path=model_path)
-
-        self.assertEqual(candidates[0].ranker_mode, "shadow")
-        self.assertEqual(candidates[0].forge_score, 0.51)
-        self.assertEqual(candidates[0].prob_positive_option_pnl, 1.0)
-        self.assertEqual(candidates[0].expected_option_return_pct_model, 0.25)
-        self.assertTrue(any("Payoff model shadow" in note for note in candidates[0].notes))
-
-    def test_artifact_can_replace_score_when_explicitly_active(self) -> None:
+    def test_artifact_can_score_in_shadow_mode(self) -> None:
         candidates = [_candidate("call", 0.4, 0.51), _candidate("put", -0.5, 0.49)]
         X = feature_matrix(candidates, MarketRegime("neutral", 0.0, "SPY"), as_of=date(2026, 4, 18), feature_cols=FEATURE_COLS)
         positive = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
@@ -129,7 +95,46 @@ class PayoffModelTests(unittest.TestCase):
                 MarketRegime("risk_on", 0.4, "SPY"),
                 as_of=date(2026, 4, 18),
                 model_path=model_path,
-                activation_mode="active",
+                activation_mode="shadow",
+            )
+
+        self.assertEqual(candidates[0].ranker_mode, "shadow")
+        self.assertEqual(candidates[0].forge_score, 0.51)
+        self.assertEqual(candidates[0].prob_positive_option_pnl, 1.0)
+        self.assertEqual(candidates[0].expected_option_return_pct_model, 0.25)
+        self.assertTrue(any("Payoff model shadow" in note for note in candidates[0].notes))
+
+    def test_artifact_replaces_score_by_default_active_mode(self) -> None:
+        candidates = [_candidate("call", 0.4, 0.51), _candidate("put", -0.5, 0.49)]
+        X = feature_matrix(candidates, MarketRegime("neutral", 0.0, "SPY"), as_of=date(2026, 4, 18), feature_cols=FEATURE_COLS)
+        positive = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
+        breakeven = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
+        expected = DummyRegressor(strategy="constant", constant=0.25).fit(X, np.ones(len(candidates)))
+        mfe = DummyRegressor(strategy="constant", constant=0.50).fit(X, np.ones(len(candidates)))
+        adverse = DummyRegressor(strategy="constant", constant=-0.20).fit(X, np.ones(len(candidates)))
+        bundle = {
+            "positive_classifier": positive,
+            "breakeven_classifier": breakeven,
+            "expected_return_regressor": expected,
+            "mfe_regressor": mfe,
+            "adverse_regressor": adverse,
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = Path(tmpdir) / "payoff_model.pkl"
+            joblib.dump(
+                {
+                    "feature_cols": FEATURE_COLS,
+                    "global": bundle,
+                    "by_side": {},
+                    "metadata": {"label_means": {}},
+                },
+                model_path,
+            )
+            score_candidates(
+                candidates,
+                MarketRegime("risk_on", 0.4, "SPY"),
+                as_of=date(2026, 4, 18),
+                model_path=model_path,
             )
 
         self.assertEqual(candidates[0].ranker_mode, "active")

@@ -465,8 +465,8 @@ def rank_contracts_with_diagnostics(
         "per_symbol": per_symbol,
         "learned_ranker": {
             "mode_counts": ranker_modes,
-            "shadow_default": True,
-            "active_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=active",
+            "active_default": True,
+            "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
             "scored_candidates": len(learned_scores),
             "avg_learned_rank_score": round(sum(learned_scores) / len(learned_scores), 4) if learned_scores else None,
         },

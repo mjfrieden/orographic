@@ -273,11 +273,6 @@ def select_board(
             same_side_share = max(side_counts.values()) / len(projected)
             if len(projected) > 1 and same_side_share > max_same_side_share:
                 continue
-            sector_counts = Counter(sector_for_symbol(row.symbol) for row in projected)
-            same_sector_share = max(sector_counts.values()) / len(projected)
-            if len(projected) > 1 and same_sector_share > max_same_sector_share:
-                candidate.council_risk_flags = sorted(set([*candidate.council_risk_flags, "sector_cap_shadow"]))
-                continue
             live_board.append(candidate)
 
     # ── Side-balance guard on Markowitz output ──
@@ -290,32 +285,12 @@ def select_board(
             # Drop the excess until balanced
             calls = [c for c in live_board if c.option_type == "call"]
             puts  = [c for c in live_board if c.option_type == "put"]
-            if calls and puts:
-                while max(len(calls), len(puts)) / (len(calls) + len(puts)) > max_same_side_share:
-                    if len(calls) > len(puts):
-                        shadow_fallback.insert(0, calls.pop())
-                    else:
-                        shadow_fallback.insert(0, puts.pop())
-                live_board = calls + puts
-            else:
-                while len(live_board) > 1 and max(Counter(c.option_type for c in live_board).values()) / len(live_board) > max_same_side_share:
-                    demote = min(live_board, key=lambda c: c.forge_score)
-                    demote.council_risk_flags = sorted(set([*demote.council_risk_flags, "side_cap_shadow"]))
-                    live_board.remove(demote)
-                    shadow_fallback.insert(0, demote)
-
-        sector_counts = Counter(sector_for_symbol(c.symbol) for c in live_board)
-        while live_board and max(sector_counts.values()) / len(live_board) > max_same_sector_share and len(live_board) > 1:
-            crowded_sector = sector_counts.most_common(1)[0][0]
-            demote = min(
-                (c for c in live_board if sector_for_symbol(c.symbol) == crowded_sector),
-                key=lambda c: c.forge_score,
-            )
-            demote.council_risk_flags = sorted(set([*demote.council_risk_flags, "sector_cap_shadow"]))
-            live_board.remove(demote)
-            shadow_fallback.insert(0, demote)
-            sector_counts = Counter(sector_for_symbol(c.symbol) for c in live_board)
-            notes.append("Sector concentration guard demoted an over-clustered position to shadow.")
+            while calls and puts and max(len(calls), len(puts)) / (len(calls) + len(puts)) > max_same_side_share:
+                if len(calls) > len(puts):
+                    shadow_fallback.insert(0, calls.pop())
+                else:
+                    shadow_fallback.insert(0, puts.pop())
+            live_board = calls + puts
 
     # ── Shadow board ──
     shadow_board: list[ContractCandidate] = []

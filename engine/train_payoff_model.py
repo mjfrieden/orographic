@@ -476,7 +476,7 @@ def train(
             "trained_at": date.today().isoformat(),
             "min_side_examples": min_side_examples,
             "label_means": {name: round(float(values.mean()), 4) for name, values in labels.items()},
-            "activation_policy": "shadow_by_default; set OROGRAPHIC_PAYOFF_MODEL_MODE=active to replace heuristic Forge scores",
+            "activation_policy": "active_by_default_for_existing payoff ranker; set OROGRAPHIC_PAYOFF_MODEL_MODE=shadow for observation-only scoring",
         },
     }
 
@@ -531,9 +531,9 @@ def train(
             "coverage": coverage,
         },
         "activation_policy": {
-            "default": "shadow",
-            "active_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=active",
-            "reason": "New learned ranking is observed before it can alter live recommendations.",
+            "default": "active",
+            "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
+            "reason": "The payoff ranker was already part of the prior edge-bearing system; new side-aware and Sentinel models remain shadow-only until promoted.",
         },
         "source_metadata": source_metadata,
     }

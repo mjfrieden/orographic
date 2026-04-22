@@ -52,6 +52,22 @@ def _load_model() -> tuple | None:
             _MODEL_PATH,
         )
         return None
+    try:
+        import joblib
+
+        model = joblib.load(_MODEL_PATH)
+        meta  = joblib.load(_SCALER_PATH)
+        log.info("✓ Scout model loaded from %s", _MODEL_PATH)
+        return (
+            model,
+            meta["scaler"],
+            meta["feature_cols"],
+            meta.get("calibrator"),
+            meta.get("calibration_method", "none"),
+        )
+    except Exception as exc:
+        log.warning("Failed to load Scout model (%s) — using heuristic fallback.", exc)
+        return None
 
 
 @lru_cache(maxsize=1)
@@ -65,21 +81,6 @@ def _load_side_model() -> dict[str, object] | None:
         return artifact if isinstance(artifact, dict) and "model" in artifact else None
     except Exception as exc:
         log.warning("Failed to load Scout side model (%s) — using derived side probabilities.", exc)
-        return None
-    try:
-        import joblib
-        model = joblib.load(_MODEL_PATH)
-        meta  = joblib.load(_SCALER_PATH)
-        log.info("✓ Scout model loaded from %s", _MODEL_PATH)
-        return (
-            model,
-            meta["scaler"],
-            meta["feature_cols"],
-            meta.get("calibrator"),
-            meta.get("calibration_method", "none"),
-        )
-    except Exception as exc:
-        log.warning("Failed to load Scout model (%s) — using heuristic fallback.", exc)
         return None
 
 

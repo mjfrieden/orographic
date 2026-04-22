@@ -54,8 +54,8 @@ _ARTIFACT_LOAD_ATTEMPTED = False
 
 
 def _activation_mode() -> str:
-    mode = os.getenv(RANKER_MODE_ENV, "shadow").strip().lower()
-    return "active" if mode in {"active", "live"} else "shadow"
+    mode = os.getenv(RANKER_MODE_ENV, "active").strip().lower()
+    return "shadow" if mode in {"shadow", "observe", "off"} else "active"
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -267,7 +267,7 @@ def score_candidates(
 
     artifact = _load_artifact(model_path)
     ranker_mode = (activation_mode or _activation_mode()).strip().lower()
-    ranker_mode = "active" if ranker_mode in {"active", "live"} else "shadow"
+    ranker_mode = "shadow" if ranker_mode in {"shadow", "observe", "off"} else "active"
     artifact_hash = _sha256_file(model_path) if artifact else None
     feature_cols = list((artifact or {}).get("feature_cols", FEATURE_COLS))
     X_all = feature_matrix(candidates, regime, as_of=as_of, feature_cols=feature_cols)

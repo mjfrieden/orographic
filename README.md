@@ -122,9 +122,9 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
 - `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
 - `OROGRAPHIC_SENTINEL_MODE`: optional; defaults to `shadow`. Set to `active` only when Sentinel event multipliers should affect Scout scoring.
-- `OROGRAPHIC_PAYOFF_MODEL_MODE`: optional; defaults to `shadow`. Set to `active` only when the learned payoff ranker should replace heuristic Forge scores.
+- `OROGRAPHIC_PAYOFF_MODEL_MODE`: optional; defaults to `active` for the existing payoff ranker. Set to `shadow` for observation-only scoring.
 
-Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel and the payoff ranker are logged as model-observation signals and do not steer live recommendations.
+Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel is logged as a model-observation signal and does not steer live recommendations.
 
 ## Model Governance
 
