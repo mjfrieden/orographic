@@ -11,6 +11,7 @@ import pandas as pd
 from engine.orographic.forge import select_signals_for_forge
 from engine.orographic.pipeline import (
     build_forge_rejection_waterfall_artifact,
+    build_promotion_readiness,
     load_universe,
     write_forge_rejection_waterfall_artifacts,
 )
@@ -165,6 +166,80 @@ class PipelineTests(unittest.TestCase):
             artifact["final_board"]["abstain_reasons"],
             ["Council abstained because no contract cleared the live board threshold."],
         )
+        self.assertEqual(artifact["promotion_readiness"]["decision"], "keep_shadow")
+
+    def test_build_promotion_readiness_tracks_shadow_models(self) -> None:
+        payload = {
+            "scout_signals": [
+                {"symbol": "AAA", "direction": "call"},
+                {"symbol": "BBB", "direction": "put"},
+            ],
+            "council": {
+                "live_board": [
+                    {
+                        "symbol": "AAA",
+                        "council_risk_flags": ["sector_watch"],
+                    }
+                ],
+                "shadow_board": [
+                    {
+                        "symbol": "BBB",
+                        "council_risk_flags": [],
+                    }
+                ],
+                "summary": {
+                    "candidate_count": 4,
+                    "avg_pairwise_correlation": 0.21,
+                    "live_sector_counts": {"technology": 1},
+                },
+            },
+            "diagnostics": {
+                "scout": {
+                    "side_aware_scores": [
+                        {
+                            "symbol": "AAA",
+                            "model_mode": "trained_three_class",
+                            "call_edge": 0.2,
+                            "put_edge": 0.7,
+                            "no_trade": 0.1,
+                        },
+                        {
+                            "symbol": "BBB",
+                            "model_mode": "trained_three_class",
+                            "call_edge": 0.1,
+                            "put_edge": 0.8,
+                            "no_trade": 0.1,
+                        },
+                    ],
+                    "sentinel_scores": [
+                        {
+                            "symbol": "AAA",
+                            "mode": "shadow",
+                            "shadow_multiplier": 0.8,
+                            "event_type": "regulatory",
+                        }
+                    ],
+                },
+                "forge": {
+                    "learned_ranker": {
+                        "mode_counts": {"active": 4},
+                        "scored_candidates": 4,
+                        "avg_learned_rank_score": 0.61,
+                    }
+                },
+            },
+        }
+
+        readiness = build_promotion_readiness(payload)
+        models = {row["name"]: row for row in readiness["models"]}
+
+        self.assertEqual(readiness["decision"], "keep_shadow")
+        self.assertEqual(models["Side-Aware Scout"]["disagreements"], 1)
+        self.assertEqual(models["Side-Aware Scout"]["side_mix"]["put"], 2)
+        self.assertEqual(models["Sentinel Event Extractor"]["non_neutral_events"], 1)
+        self.assertEqual(models["Payoff Ranker"]["mode"], "active")
+        self.assertEqual(models["Council Risk Intelligence"]["live_risk_flags"], 1)
+        self.assertEqual(len(readiness["gates"]), 6)
 
     def test_write_forge_rejection_waterfall_artifacts_creates_latest_and_dated_files(self) -> None:
         payload = {

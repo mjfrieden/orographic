@@ -114,6 +114,181 @@ def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
     return counts
 
 
+def _shadow_preferred_side(row: dict[str, Any]) -> str:
+    scores = {
+        "call": row.get("call_edge"),
+        "put": row.get("put_edge"),
+        "no_trade": row.get("no_trade"),
+    }
+    numeric_scores = {
+        key: float(value)
+        for key, value in scores.items()
+        if isinstance(value, Number)
+    }
+    if not numeric_scores:
+        return "unknown"
+    return max(numeric_scores.items(), key=lambda item: item[1])[0]
+
+
+def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
+    diagnostics = payload.get("diagnostics") if isinstance(payload.get("diagnostics"), dict) else {}
+    scout = diagnostics.get("scout") if isinstance(diagnostics.get("scout"), dict) else {}
+    forge = diagnostics.get("forge") if isinstance(diagnostics.get("forge"), dict) else {}
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    council_summary = council.get("summary") if isinstance(council.get("summary"), dict) else {}
+
+    scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
+    signal_direction_by_symbol = {
+        str(row.get("symbol") or "").upper(): str(row.get("direction") or "").lower()
+        for row in scout_signals
+        if isinstance(row, dict)
+    }
+    side_rows = scout.get("side_aware_scores") if isinstance(scout.get("side_aware_scores"), list) else []
+    side_mix: dict[str, int] = {"call": 0, "put": 0, "no_trade": 0, "unknown": 0}
+    side_disagreements = 0
+    side_model_modes: dict[str, int] = {}
+    for row in side_rows:
+        if not isinstance(row, dict):
+            continue
+        preferred = _shadow_preferred_side(row)
+        side_mix[preferred] = side_mix.get(preferred, 0) + 1
+        model_mode = str(row.get("model_mode") or "unknown")
+        side_model_modes[model_mode] = side_model_modes.get(model_mode, 0) + 1
+        active_direction = signal_direction_by_symbol.get(str(row.get("symbol") or "").upper())
+        if active_direction in {"call", "put"} and preferred in {"call", "put"} and preferred != active_direction:
+            side_disagreements += 1
+
+    sentinel_rows = scout.get("sentinel_scores") if isinstance(scout.get("sentinel_scores"), list) else []
+    sentinel_modes: dict[str, int] = {}
+    sentinel_events: dict[str, int] = {}
+    sentinel_non_neutral = 0
+    for row in sentinel_rows:
+        if not isinstance(row, dict):
+            continue
+        mode = str(row.get("mode") or "shadow")
+        sentinel_modes[mode] = sentinel_modes.get(mode, 0) + 1
+        event_type = str(row.get("event_type") or "none")
+        sentinel_events[event_type] = sentinel_events.get(event_type, 0) + 1
+        shadow_multiplier = row.get("shadow_multiplier")
+        if isinstance(shadow_multiplier, Number) and abs(float(shadow_multiplier) - 1.0) > 0.0001:
+            sentinel_non_neutral += 1
+
+    learned_ranker = forge.get("learned_ranker") if isinstance(forge.get("learned_ranker"), dict) else {}
+    ranker_modes = learned_ranker.get("mode_counts") if isinstance(learned_ranker.get("mode_counts"), dict) else {}
+    live_rows = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_rows = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    live_risk_flags = sum(
+        len(row.get("council_risk_flags") or [])
+        for row in live_rows
+        if isinstance(row, dict)
+    )
+    shadow_risk_flags = sum(
+        len(row.get("council_risk_flags") or [])
+        for row in shadow_rows
+        if isinstance(row, dict)
+    )
+
+    gates = [
+        {
+            "name": "Disagreement P&L",
+            "status": "pending",
+            "target": "Shadow beats active when they disagree, after costs.",
+        },
+        {
+            "name": "Live Shadow Window",
+            "status": "pending",
+            "target": "At least 30 trading days, preferably 60.",
+        },
+        {
+            "name": "Backtest Windows",
+            "status": "pending",
+            "target": "Shadow beats active over 3, 6, and 12 month windows.",
+        },
+        {
+            "name": "Calibration",
+            "status": "pending",
+            "target": "Brier score improves or stays close while P&L improves.",
+        },
+        {
+            "name": "Risk Shape",
+            "status": "pending",
+            "target": "Sharpe is no worse and drawdown does not materially increase.",
+        },
+        {
+            "name": "Coverage",
+            "status": "pending",
+            "target": "Option-chain coverage remains stable and representative.",
+        },
+    ]
+
+    models = [
+        {
+            "name": "Side-Aware Scout",
+            "mode": "shadow",
+            "role": "call / put / no-trade probabilities",
+            "status": "collecting_evidence",
+            "recommendation": "Keep shadow until disagreement P&L is positive out of sample.",
+            "observations": len(side_rows),
+            "disagreements": side_disagreements,
+            "side_mix": side_mix,
+            "model_modes": side_model_modes,
+            "promotion_step": "shadow",
+        },
+        {
+            "name": "Sentinel Event Extractor",
+            "mode": "shadow" if "active" not in sentinel_modes else "mixed",
+            "role": "event extraction and direction-aware risk tags",
+            "status": "collecting_evidence",
+            "recommendation": "Keep as event intelligence until event tags prove risk-adjusted lift.",
+            "observations": len(sentinel_rows),
+            "non_neutral_events": sentinel_non_neutral,
+            "mode_counts": sentinel_modes,
+            "event_type_counts": sentinel_events,
+            "promotion_step": "shadow",
+        },
+        {
+            "name": "Payoff Ranker",
+            "mode": "active" if "active" in ranker_modes else "shadow",
+            "role": "option payoff-aware ranking",
+            "status": "production_monitor",
+            "recommendation": "Monitor calibration and drift; this is the recovered edge-bearing model.",
+            "observations": int(learned_ranker.get("scored_candidates") or 0),
+            "mode_counts": ranker_modes,
+            "avg_learned_rank_score": learned_ranker.get("avg_learned_rank_score"),
+            "promotion_step": "active",
+        },
+        {
+            "name": "Council Risk Intelligence",
+            "mode": "observe",
+            "role": "correlation, sector exposure, sizing, no-trade discipline",
+            "status": "observe_only",
+            "recommendation": "Keep warnings visible; promote hard demotions only after shadow P&L improves.",
+            "observations": int(council_summary.get("candidate_count") or 0),
+            "live_risk_flags": live_risk_flags,
+            "shadow_risk_flags": shadow_risk_flags,
+            "avg_pairwise_correlation": council_summary.get("avg_pairwise_correlation"),
+            "live_sector_counts": council_summary.get("live_sector_counts", {}),
+            "promotion_step": "observe",
+        },
+    ]
+
+    return {
+        "decision": "keep_shadow",
+        "decision_label": "Keep new ML/AI layers in shadow",
+        "promotion_path": ["shadow", "tie_breaker", "small_weight", "limited_active", "active"],
+        "policy": {
+            "minimum_shadow_trading_days": 30,
+            "preferred_shadow_trading_days": 60,
+            "minimum_disagreement_trades": 30,
+            "minimum_pnl_lift_pct": 0.10,
+            "required_windows": ["3_month", "6_month", "12_month"],
+            "promotion_rule": "Promote only if shadow beats active when they disagree, after costs, out of sample, without worse drawdown.",
+        },
+        "gates": gates,
+        "models": models,
+    }
+
+
 def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[str, Any]:
     generated_at = _normalize_timestamp(payload.get("generated_at_utc"))
     generated_at_utc = generated_at.replace(microsecond=0).isoformat()
@@ -215,6 +390,7 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
                 council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
             ),
         },
+        "promotion_readiness": payload.get("promotion_readiness") or build_promotion_readiness(payload),
     }
 
 
@@ -269,7 +445,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             else 0.0
         )
 
-        return {
+        payload = {
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
             "regime": regime.to_dict(),
@@ -296,6 +472,8 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "forge_waterfall": forge_diagnostics.get("waterfall", {}),
             },
         }
+        payload["promotion_readiness"] = build_promotion_readiness(payload)
+        return payload
     except Exception as exc:
         log.error("Pipeline crashed: %s", exc, exc_info=True)
         # Return a safe "abstain" payload so Cloudflare still receives a status update

@@ -1003,6 +1003,120 @@ function renderForgeDiagnostics(payload) {
   }
 }
 
+function promotionStatusClass(status) {
+  const normalized = String(status || "").toLowerCase();
+  if (normalized.includes("production") || normalized === "pass") return "is-pass";
+  if (normalized.includes("shadow")) return "is-pending";
+  if (normalized.includes("collect") || normalized.includes("pending")) return "is-pending";
+  if (normalized.includes("observe")) return "is-observe";
+  if (normalized.includes("fail") || normalized.includes("reject")) return "is-fail";
+  return "is-neutral";
+}
+
+function compactCounts(counts) {
+  if (!counts || typeof counts !== "object") return "—";
+  const entries = Object.entries(counts).filter(([, value]) => Number(value) > 0);
+  if (!entries.length) return "—";
+  return entries
+    .map(([key, value]) => `${String(key).replaceAll("_", " ")} ${integer(value)}`)
+    .join(" · ");
+}
+
+function renderPromotionModelCard(model) {
+  const statusClass = promotionStatusClass(model.status);
+  const observations = Number(model.observations);
+  const metricRows = [];
+  if (Number.isFinite(observations)) {
+    metricRows.push(summaryItemHtml("Observations", integer(observations)));
+  }
+  if (model.disagreements !== undefined) {
+    metricRows.push(summaryItemHtml("Disagreements", integer(model.disagreements)));
+  }
+  if (model.non_neutral_events !== undefined) {
+    metricRows.push(summaryItemHtml("Event Signals", integer(model.non_neutral_events)));
+  }
+  if (model.avg_learned_rank_score !== undefined && model.avg_learned_rank_score !== null) {
+    metricRows.push(summaryItemHtml("Avg Rank", Number(model.avg_learned_rank_score).toFixed(2)));
+  }
+  if (model.avg_pairwise_correlation !== undefined && model.avg_pairwise_correlation !== null) {
+    metricRows.push(summaryItemHtml("Correlation", Number(model.avg_pairwise_correlation).toFixed(2)));
+  }
+  if (model.side_mix) {
+    metricRows.push(summaryItemHtml("Side Mix", compactCounts(model.side_mix)));
+  }
+  if (model.mode_counts) {
+    metricRows.push(summaryItemHtml("Mode Counts", compactCounts(model.mode_counts)));
+  } else if (model.model_modes) {
+    metricRows.push(summaryItemHtml("Model Modes", compactCounts(model.model_modes)));
+  }
+  if (model.live_sector_counts) {
+    metricRows.push(summaryItemHtml("Live Sectors", compactCounts(model.live_sector_counts)));
+  }
+
+  return `
+    <article class="promotion-card ${statusClass}">
+      <div class="promotion-card-head">
+        <div>
+          <span class="meta-label">${escapeHtml(model.mode || "shadow")}</span>
+          <h3>${escapeHtml(model.name || "Model")}</h3>
+        </div>
+        <span class="promotion-step">${escapeHtml(model.promotion_step || "shadow")}</span>
+      </div>
+      <p class="promotion-role">${escapeHtml(model.role || "")}</p>
+      <div class="summary-box promotion-card-metrics">
+        ${metricRows.join("") || summaryItemHtml("Status", "No scan observations")}
+      </div>
+      <p class="promotion-recommendation">${escapeHtml(model.recommendation || "Keep monitoring.")}</p>
+    </article>
+  `;
+}
+
+function renderPromotionReadiness(payload) {
+  const readiness = payload?.promotion_readiness || {};
+  const decisionEl = document.getElementById("promotion-decision");
+  const modelGrid = document.getElementById("promotion-model-grid");
+  const gatesEl = document.getElementById("promotion-gates");
+  const policyEl = document.getElementById("promotion-policy");
+
+  if (decisionEl) {
+    decisionEl.textContent = readiness.decision_label || "Keep shadow";
+    decisionEl.className = `promotion-decision ${promotionStatusClass(readiness.decision || "pending")}`;
+  }
+
+  if (modelGrid) {
+    const models = Array.isArray(readiness.models) ? readiness.models : [];
+    modelGrid.innerHTML = models.length
+      ? models.map(renderPromotionModelCard).join("")
+      : `<div class="card-placeholder muted" style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;">No promotion readiness artifact in this scan.</div>`;
+  }
+
+  if (gatesEl) {
+    const gates = Array.isArray(readiness.gates) ? readiness.gates : [];
+    gatesEl.innerHTML = gates.length
+      ? gates
+          .map((gate) =>
+            summaryItemHtml(
+              `${gate.name || "Gate"} · ${String(gate.status || "pending").replaceAll("_", " ")}`,
+              gate.target || "—",
+            ),
+          )
+          .join("")
+      : summaryItemHtml("Status", "No acceptance gates logged");
+  }
+
+  if (policyEl) {
+    const policy = readiness.policy || {};
+    policyEl.innerHTML = [
+      summaryItemHtml("Path", Array.isArray(readiness.promotion_path) ? readiness.promotion_path.join(" -> ") : "—"),
+      summaryItemHtml("Shadow Days", `${integer(policy.minimum_shadow_trading_days)} min · ${integer(policy.preferred_shadow_trading_days)} preferred`),
+      summaryItemHtml("Disagreements", `${integer(policy.minimum_disagreement_trades)} minimum`),
+      summaryItemHtml("P&L Lift", pctOrDash(policy.minimum_pnl_lift_pct)),
+      summaryItemHtml("Windows", Array.isArray(policy.required_windows) ? policy.required_windows.join(" · ").replaceAll("_", " ") : "—"),
+      summaryItemHtml("Rule", policy.promotion_rule || "—"),
+    ].join("");
+  }
+}
+
 async function renderBoard(payload) {
   if (!payload || !payload.council) {
     throw new Error("Invalid or missing council data in snapshot.");
@@ -1179,6 +1293,7 @@ async function renderBoard(payload) {
   }
 
   renderForgeDiagnostics(payload);
+  renderPromotionReadiness(payload);
 
   // Bind card buttons
   bindCardButtons();

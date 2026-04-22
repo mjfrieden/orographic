@@ -1815,6 +1815,109 @@ section + section {
   margin-top: 24px;
 }
 
+.panel-promotion {
+  margin-top: 24px;
+}
+.promotion-decision {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-data);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.035);
+  text-align: center;
+}
+.promotion-decision.is-pending {
+  border-color: rgba(232, 197, 109, 0.38);
+  color: var(--amber);
+}
+.promotion-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 12px;
+}
+.promotion-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: rgba(255, 255, 255, 0.025);
+  padding: 14px;
+  min-width: 0;
+}
+.promotion-card.is-pass {
+  border-color: rgba(75, 201, 140, 0.34);
+}
+.promotion-card.is-pending {
+  border-color: rgba(232, 197, 109, 0.3);
+}
+.promotion-card.is-observe {
+  border-color: rgba(109, 178, 232, 0.3);
+}
+.promotion-card.is-fail {
+  border-color: rgba(224, 82, 82, 0.38);
+}
+.promotion-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.promotion-card h3 {
+  margin: 4px 0 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+.promotion-step {
+  flex-shrink: 0;
+  padding: 4px 7px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  font-family: var(--font-data);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.promotion-role,
+.promotion-recommendation {
+  margin: 10px 0;
+  font-family: var(--font-data);
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+.promotion-recommendation {
+  margin-bottom: 0;
+  color: var(--text-secondary);
+}
+.promotion-card-metrics {
+  margin-top: 10px;
+}
+.promotion-card-metrics .summary-item {
+  padding: 6px 0;
+}
+.promotion-card-metrics .summary-label {
+  font-size: 0.6rem;
+}
+.promotion-card-metrics .summary-value {
+  font-size: 0.7rem;
+}
+.promotion-gates-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
 /* ── Rules section ── */
 .panel-rules {
   margin-top: 24px;
@@ -2356,7 +2459,9 @@ section + section {
 }
 @media (max-width: 900px) {
   .pipeline-grid,
-  .ops-diagnostics {
+  .ops-diagnostics,
+  .promotion-grid,
+  .promotion-gates-wrap {
     grid-template-columns: 1fr;
   }
 }

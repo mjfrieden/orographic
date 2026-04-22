@@ -49,6 +49,8 @@ Each scan also writes a Forge bottleneck artifact beside the snapshot:
 - `web/data/diagnostics/forge_rejection_waterfall_latest.json`
 - `web/data/diagnostics/forge_rejection_waterfall_YYYY-MM-DD.json`
 
+Each snapshot also includes `promotion_readiness`, a shadow-mode governance report for Side-Aware Scout, Sentinel, the active payoff ranker, and Council risk intelligence. It records current shadow observations, pending acceptance gates, and the staged path from `shadow` to `tie_breaker`, `small_weight`, `limited_active`, and `active`. The dashboard renders this as the Promotion Readiness panel.
+
 Optionally capture standing-position value on each run into a private local file:
 
 ```bash
@@ -130,7 +132,9 @@ Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TO
 
 Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines.
 
-Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the shadow-by-default activation policy.
+Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the active-by-default activation policy for the recovered payoff ranker.
+
+Promotion gates should stay pending until a shadow model beats the active system where they disagree, after costs, across 3/6/12-month validation windows and at least 30 live shadow trading days. Promote one layer at a time.
 
 Recommended default:
 
