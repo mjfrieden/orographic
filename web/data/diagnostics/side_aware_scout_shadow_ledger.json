@@ -1,14 +1,14 @@
 {
   "artifact": "side_aware_scout_shadow_ledger",
   "schema_version": 1,
-  "updated_at_utc": "2026-04-23T17:54:45+00:00",
+  "updated_at_utc": "2026-04-23T18:14:43+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 1,
-    "observations": 100,
-    "disagreements": 45,
-    "directional_disagreements": 0,
-    "no_trade_disagreements": 45
+    "runs": 2,
+    "observations": 200,
+    "disagreements": 63,
+    "directional_disagreements": 5,
+    "no_trade_disagreements": 58
   },
   "entries": [
     {
@@ -641,6 +641,292 @@
           "call_edge": 0.3728,
           "put_edge": 0.0,
           "no_trade": 0.6272,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-04-23T18:14:43+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.2796,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "model_artifacts": {
+        "scout_model": {
+          "present": true,
+          "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+        },
+        "scout_scaler": {
+          "present": true,
+          "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+        },
+        "scout_side_model": {
+          "present": true,
+          "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+        },
+        "payoff_model": {
+          "present": true,
+          "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+        },
+        "scout_model_card": {
+          "present": true,
+          "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+        },
+        "payoff_model_card": {
+          "present": true,
+          "sha256": "88a5c5cffdba71e605f9d7472debf294e0e0a5be30540f72a8900f226e2f073c"
+        }
+      },
+      "summary": {
+        "observations": 100,
+        "disagreements": 18,
+        "directional_disagreements": 5,
+        "no_trade_disagreements": 13,
+        "side_mix": {
+          "call": 56,
+          "put": 0,
+          "no_trade": 44,
+          "unknown": 0
+        },
+        "model_modes": {
+          "trained_option_payoff_three_class": 100
+        }
+      },
+      "disagreements": [
+        {
+          "symbol": "SPY",
+          "active_direction": "put",
+          "shadow_preferred_side": "call",
+          "active_scout_score": -0.5522,
+          "call_edge": 0.5551,
+          "put_edge": 0.0004,
+          "no_trade": 0.4445,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "IWM",
+          "active_direction": "put",
+          "shadow_preferred_side": "call",
+          "active_scout_score": -0.5753,
+          "call_edge": 0.7453,
+          "put_edge": 0.0002,
+          "no_trade": 0.2545,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": true,
+          "was_live_symbol": false,
+          "was_shadow_symbol": true
+        },
+        {
+          "symbol": "DIA",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5569,
+          "call_edge": 0.4866,
+          "put_edge": 0.0002,
+          "no_trade": 0.5132,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "XLI",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5956,
+          "call_edge": 0.3125,
+          "put_edge": 0.0001,
+          "no_trade": 0.6874,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": true,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "XLY",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5474,
+          "call_edge": 0.3779,
+          "put_edge": 0.0002,
+          "no_trade": 0.6219,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "XLP",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5485,
+          "call_edge": 0.1928,
+          "put_edge": 0.0,
+          "no_trade": 0.8072,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "GLD",
+          "active_direction": "call",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": 0.168,
+          "call_edge": 0.4074,
+          "put_edge": 0.0,
+          "no_trade": 0.5925,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "USO",
+          "active_direction": "call",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": 0.3062,
+          "call_edge": 0.0677,
+          "put_edge": 0.0,
+          "no_trade": 0.9323,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "AAPL",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5591,
+          "call_edge": 0.1204,
+          "put_edge": 0.0,
+          "no_trade": 0.8796,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": true,
+          "was_live_symbol": false,
+          "was_shadow_symbol": true
+        },
+        {
+          "symbol": "GOOGL",
+          "active_direction": "put",
+          "shadow_preferred_side": "call",
+          "active_scout_score": -0.5602,
+          "call_edge": 0.8845,
+          "put_edge": 0.0004,
+          "no_trade": 0.1151,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": true,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "AVGO",
+          "active_direction": "put",
+          "shadow_preferred_side": "call",
+          "active_scout_score": -0.6484,
+          "call_edge": 0.777,
+          "put_edge": 0.0,
+          "no_trade": 0.223,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "JPM",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5545,
+          "call_edge": 0.2802,
+          "put_edge": 0.0002,
+          "no_trade": 0.7196,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": true,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "COST",
+          "active_direction": "put",
+          "shadow_preferred_side": "call",
+          "active_scout_score": -0.6216,
+          "call_edge": 0.5541,
+          "put_edge": 0.0001,
+          "no_trade": 0.4458,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "KO",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5544,
+          "call_edge": 0.3029,
+          "put_edge": 0.0001,
+          "no_trade": 0.697,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": true,
+          "was_live_symbol": false,
+          "was_shadow_symbol": true
+        },
+        {
+          "symbol": "PYPL",
+          "active_direction": "call",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": 0.3169,
+          "call_edge": 0.3376,
+          "put_edge": 0.0,
+          "no_trade": 0.6624,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "ISRG",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5437,
+          "call_edge": 0.2051,
+          "put_edge": 0.0,
+          "no_trade": 0.7949,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "CAT",
+          "active_direction": "put",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": -0.5955,
+          "call_edge": 0.2149,
+          "put_edge": 0.0,
+          "no_trade": 0.7851,
+          "model_mode": "trained_option_payoff_three_class",
+          "was_forge_candidate_symbol": false,
+          "was_live_symbol": false,
+          "was_shadow_symbol": false
+        },
+        {
+          "symbol": "LMT",
+          "active_direction": "call",
+          "shadow_preferred_side": "no_trade",
+          "active_scout_score": 0.434,
+          "call_edge": 0.4405,
+          "put_edge": 0.0,
+          "no_trade": 0.5595,
           "model_mode": "trained_option_payoff_three_class",
           "was_forge_candidate_symbol": false,
           "was_live_symbol": false,
