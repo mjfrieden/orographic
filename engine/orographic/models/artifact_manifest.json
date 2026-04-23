@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-04-22",
+  "artifacts": {
+    "scout_model": {
+      "path": "engine/orographic/models/scout_model.pkl",
+      "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+      "required": true,
+      "role": "active directional Scout model"
+    },
+    "scout_scaler": {
+      "path": "engine/orographic/models/scout_scaler.pkl",
+      "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+      "required": true,
+      "role": "active directional Scout scaler and calibrator metadata"
+    },
+    "scout_side_model": {
+      "path": "engine/orographic/models/scout_side_model.pkl",
+      "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+      "required": true,
+      "role": "shadow option-payoff side-aware Scout model",
+      "activation_env": "OROGRAPHIC_SIDE_MODEL_MODE=active"
+    },
+    "payoff_model": {
+      "path": "engine/orographic/models/payoff_model.pkl",
+      "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+      "required": true,
+      "role": "active option payoff ranker",
+      "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
+    },
+    "scout_model_card": {
+      "path": "engine/orographic/models/scout_model_card.json",
+      "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+      "required": true,
+      "role": "Scout model governance card"
+    },
+    "payoff_model_card": {
+      "path": "engine/orographic/models/payoff_model_card.json",
+      "sha256": "88a5c5cffdba71e605f9d7472debf294e0e0a5be30540f72a8900f226e2f073c",
+      "required": true,
+      "role": "payoff ranker model governance card"
+    }
+  },
+  "promotion_policy": {
+    "side_aware_scout_default": "shadow",
+    "side_aware_scout_required_before_active": [
+      "positive live shadow disagreement P&L after costs",
+      "at least 30 live shadow trading days",
+      "materially improved side-balanced validation, especially put-edge coverage"
+    ],
+    "payoff_ranker_default": "active",
+    "artifact_change_rule": "Any artifact hash change must update this manifest and the corresponding model card."
+  }
+}

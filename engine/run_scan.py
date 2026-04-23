@@ -10,6 +10,7 @@ if __package__ in {None, ""}:
 
 from engine.orographic.pipeline import (
     PipelineConfig,
+    append_side_aware_shadow_ledger,
     load_universe,
     run_scan,
     write_forge_rejection_waterfall_artifacts,
@@ -54,6 +55,22 @@ def parse_args() -> argparse.Namespace:
         default=500,
         help="Maximum number of per-run position snapshots to keep when --positions-log-output is enabled.",
     )
+    parser.add_argument(
+        "--shadow-ledger-output",
+        default="",
+        help="Optional path for the side-aware Scout shadow disagreement ledger. Defaults beside the snapshot diagnostics.",
+    )
+    parser.add_argument(
+        "--shadow-ledger-max-entries",
+        type=int,
+        default=500,
+        help="Maximum number of scan entries to retain in the side-aware Scout shadow ledger.",
+    )
+    parser.add_argument(
+        "--no-shadow-ledger",
+        action="store_true",
+        help="Disable writing the side-aware Scout shadow disagreement ledger.",
+    )
     parser.add_argument("--live-size", type=int, default=3)
     parser.add_argument("--shadow-size", type=int, default=3)
     return parser.parse_args()
@@ -80,6 +97,18 @@ def main() -> int:
         diagnostic_paths[0],
         diagnostic_paths[1],
     )
+    if not args.no_shadow_ledger:
+        ledger_path = (
+            Path(args.shadow_ledger_output)
+            if args.shadow_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "side_aware_scout_shadow_ledger.json"
+        )
+        written = append_side_aware_shadow_ledger(
+            ledger_path,
+            payload,
+            max_entries=max(int(args.shadow_ledger_max_entries), 1),
+        )
+        log.info("Updated side-aware Scout shadow ledger at %s.", written)
 
     if args.positions_log_output.strip():
         try:

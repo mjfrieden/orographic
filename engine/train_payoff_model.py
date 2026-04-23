@@ -311,18 +311,20 @@ def _regressor(random_state: int = 42) -> Any:
     )
 
 
-def _fit_classifier(X: np.ndarray, y: np.ndarray) -> Pipeline:
+def _fit_classifier(X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None) -> Pipeline:
     estimator = _classifier()
     if len(set(y.tolist())) < 2:
         estimator = DummyClassifier(strategy="constant", constant=int(y[0]) if len(y) else 0)
     model = Pipeline([("scaler", RobustScaler()), ("model", estimator)])
-    model.fit(X, y)
+    fit_kwargs = {"model__sample_weight": sample_weight} if sample_weight is not None else {}
+    model.fit(X, y, **fit_kwargs)
     return model
 
 
-def _fit_regressor(X: np.ndarray, y: np.ndarray) -> Pipeline:
+def _fit_regressor(X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None) -> Pipeline:
     model = Pipeline([("scaler", RobustScaler()), ("model", _regressor())])
-    model.fit(X, y)
+    fit_kwargs = {"model__sample_weight": sample_weight} if sample_weight is not None else {}
+    model.fit(X, y, **fit_kwargs)
     return model
 
 
@@ -352,7 +354,39 @@ def _probability_buckets(probs: np.ndarray, y: np.ndarray, buckets: int = 8) -> 
     return rows
 
 
-def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) -> dict[str, Any]:
+def _balanced_sample_weight(sides: np.ndarray, y: np.ndarray | None = None) -> np.ndarray:
+    weights = np.ones(len(sides), dtype=float)
+    side_counts = Counter(str(side) for side in sides.tolist())
+    for i, side in enumerate(sides.tolist()):
+        weights[i] *= len(sides) / max(len(side_counts), 1) / max(side_counts[str(side)], 1)
+    if y is not None:
+        label_counts = Counter(int(v) for v in y.tolist())
+        for i, label in enumerate(y.tolist()):
+            weights[i] *= len(y) / max(len(label_counts), 1) / max(label_counts[int(label)], 1)
+    return weights / max(float(np.mean(weights)), 1e-9)
+
+
+def _side_metric_report(y_true: np.ndarray, probs: np.ndarray, sides: np.ndarray) -> dict[str, Any]:
+    rows: dict[str, Any] = {}
+    for side in ("call", "put"):
+        idx = np.where(sides == side)[0]
+        if len(idx) < 20:
+            rows[side] = {"rows": int(len(idx)), "reason": "insufficient_rows"}
+            continue
+        side_y = y_true[idx]
+        side_probs = probs[idx]
+        rows[side] = {
+            "rows": int(len(idx)),
+            "positive_rate": round(float(side_y.mean()), 4),
+            "brier": round(float(brier_score_loss(side_y, side_probs)), 4),
+            "auc": round(float(roc_auc_score(side_y, side_probs)), 4)
+            if len(set(side_y.tolist())) > 1
+            else None,
+        }
+    return rows
+
+
+def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], sides: np.ndarray) -> dict[str, Any]:
     if len(X) < 80:
         return {"folds": 0, "reason": "insufficient_examples"}
 
@@ -361,6 +395,7 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) 
     y_positive = labels["prob_positive_option_pnl"][order]
     y_breakeven = labels["prob_exceeds_breakeven"][order]
     y_return = labels["expected_option_return_pct"][order]
+    sides_sorted = sides[order]
     tscv = TimeSeriesSplit(n_splits=min(5, max(2, len(X) // 120)))
     positive_auc: list[float] = []
     breakeven_auc: list[float] = []
@@ -378,9 +413,11 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) 
         be_train, be_val = y_breakeven[train_idx], y_breakeven[val_idx]
         ret_train, ret_val = y_return[train_idx], y_return[val_idx]
 
-        pos_model = _fit_classifier(X_train, pos_train)
-        be_model = _fit_classifier(X_train, be_train)
-        ret_model = _fit_regressor(X_train, ret_train)
+        train_sides = sides_sorted[train_idx]
+        side_weights = _balanced_sample_weight(train_sides)
+        pos_model = _fit_classifier(X_train, pos_train, _balanced_sample_weight(train_sides, pos_train))
+        be_model = _fit_classifier(X_train, be_train, _balanced_sample_weight(train_sides, be_train))
+        ret_model = _fit_regressor(X_train, ret_train, side_weights)
         pos_probs = np.clip(_positive_proba(pos_model, X_val), 1e-6, 1 - 1e-6)
         be_probs = np.clip(_positive_proba(be_model, X_val), 1e-6, 1 - 1e-6)
         oof_positive[val_idx] = pos_probs
@@ -411,16 +448,28 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date]) 
             "prob_positive_option_pnl": _probability_buckets(oof_positive[valid_positive], y_positive[valid_positive]),
             "prob_exceeds_breakeven": _probability_buckets(oof_breakeven[valid_breakeven], y_breakeven[valid_breakeven]),
         },
+        "by_side": {
+            "prob_positive_option_pnl": _side_metric_report(
+                y_positive[valid_positive],
+                oof_positive[valid_positive],
+                sides_sorted[valid_positive],
+            ),
+            "prob_exceeds_breakeven": _side_metric_report(
+                y_breakeven[valid_breakeven],
+                oof_breakeven[valid_breakeven],
+                sides_sorted[valid_breakeven],
+            ),
+        },
     }
 
 
-def _fit_bundle(X: np.ndarray, labels: dict[str, np.ndarray]) -> dict[str, Any]:
+def _fit_bundle(X: np.ndarray, labels: dict[str, np.ndarray], sample_weight: np.ndarray | None = None) -> dict[str, Any]:
     return {
-        "positive_classifier": _fit_classifier(X, labels["prob_positive_option_pnl"]),
-        "breakeven_classifier": _fit_classifier(X, labels["prob_exceeds_breakeven"]),
-        "expected_return_regressor": _fit_regressor(X, labels["expected_option_return_pct"]),
-        "mfe_regressor": _fit_regressor(X, labels["max_favorable_excursion_before_expiry"]),
-        "adverse_regressor": _fit_regressor(X, labels["adverse_excursion_risk"]),
+        "positive_classifier": _fit_classifier(X, labels["prob_positive_option_pnl"], sample_weight),
+        "breakeven_classifier": _fit_classifier(X, labels["prob_exceeds_breakeven"], sample_weight),
+        "expected_return_regressor": _fit_regressor(X, labels["expected_option_return_pct"], sample_weight),
+        "mfe_regressor": _fit_regressor(X, labels["max_favorable_excursion_before_expiry"], sample_weight),
+        "adverse_regressor": _fit_regressor(X, labels["adverse_excursion_risk"], sample_weight),
     }
 
 
@@ -467,9 +516,9 @@ def train(
     sides = np.array([example.candidate.option_type for example in examples], dtype=object)
 
     artifact: dict[str, Any] = {
-        "version": 2,
+        "version": 3,
         "feature_cols": FEATURE_COLS,
-        "global": _fit_bundle(X, labels),
+        "global": _fit_bundle(X, labels, _balanced_sample_weight(sides)),
         "by_side": {},
         "metadata": {
             **source_metadata,
@@ -487,6 +536,7 @@ def train(
         artifact["by_side"][side] = _fit_bundle(
             X[side_idx],
             {name: values[side_idx] for name, values in labels.items()},
+            _balanced_sample_weight(sides[side_idx]),
         )
 
     side_counts = {side: int((sides == side).sum()) for side in ("call", "put")}
@@ -502,7 +552,7 @@ def train(
             4,
         ),
     }
-    cv = _cv_report(X, labels, dates)
+    cv = _cv_report(X, labels, dates, sides)
     report = {
         "artifact": "payoff_model",
         "version": artifact["version"],
@@ -536,6 +586,11 @@ def train(
             "reason": "The payoff ranker was already part of the prior edge-bearing system; new side-aware and Sentinel models remain shadow-only until promoted.",
         },
         "source_metadata": source_metadata,
+        "training_policy": {
+            "global_fit": "side-balanced sample weights",
+            "side_fit": "separate call and put bundles when side has enough examples",
+            "min_side_examples": min_side_examples,
+        },
     }
 
     output_model.parent.mkdir(parents=True, exist_ok=True)

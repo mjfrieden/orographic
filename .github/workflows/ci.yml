@@ -1,0 +1,66 @@
+name: Orographic CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    paths:
+      - ".github/workflows/ci.yml"
+      - "engine/**"
+      - "scripts/**"
+      - "README.md"
+      - "docs/**"
+
+jobs:
+  regression-gates:
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r engine/requirements.txt
+          pip install pytest
+
+      - name: Validate model artifacts
+        run: |
+          python scripts/validate_model_artifacts.py
+
+      - name: Run tests
+        run: |
+          python -m pytest -q engine/tests
+
+      - name: Snapshot smoke test
+        run: |
+          python engine/run_scan.py \
+            --symbols SPY,QQQ,IWM,DIA,GLD,SLV \
+            --output /tmp/orographic_ci_latest.json \
+            --shadow-ledger-output /tmp/orographic_ci_shadow_ledger.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("/tmp/orographic_ci_latest.json").read_text(encoding="utf-8"))
+          if payload.get("error"):
+              raise SystemExit(f"snapshot contains pipeline error: {payload.get('error')}")
+          summary = payload.get("summary", {})
+          if summary.get("scout_signal_count", 0) <= 0:
+              raise SystemExit("snapshot smoke test produced no Scout signals")
+          ledger = json.loads(Path("/tmp/orographic_ci_shadow_ledger.json").read_text(encoding="utf-8"))
+          if ledger.get("artifact") != "side_aware_scout_shadow_ledger":
+              raise SystemExit("shadow ledger artifact was not written")
+          artifacts = payload.get("model_artifacts", {})
+          missing = [name for name, row in artifacts.items() if not row.get("present") or not row.get("sha256")]
+          if missing:
+              raise SystemExit(f"snapshot missing model artifact status: {missing}")
+          print("Snapshot smoke test passed.")
+          PY

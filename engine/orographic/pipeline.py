@@ -40,6 +40,7 @@ DEFAULT_UNIVERSE = _read_universe_file(DEFAULT_UNIVERSE_FILE) or [
     "AAPL",
     "MSFT",
 ]
+MODEL_DIR = Path(__file__).resolve().parent / "models"
 
 
 @dataclass
@@ -114,6 +115,36 @@ def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
     return counts
 
 
+def _sha256_file(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    import hashlib
+
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _model_artifact_status() -> dict[str, Any]:
+    artifacts = {
+        "scout_model": MODEL_DIR / "scout_model.pkl",
+        "scout_scaler": MODEL_DIR / "scout_scaler.pkl",
+        "scout_side_model": MODEL_DIR / "scout_side_model.pkl",
+        "payoff_model": MODEL_DIR / "payoff_model.pkl",
+        "scout_model_card": MODEL_DIR / "scout_model_card.json",
+        "payoff_model_card": MODEL_DIR / "payoff_model_card.json",
+    }
+    return {
+        name: {
+            "present": path.exists(),
+            "sha256": _sha256_file(path),
+        }
+        for name, path in artifacts.items()
+    }
+
+
 def _shadow_preferred_side(row: dict[str, Any]) -> str:
     scores = {
         "call": row.get("call_edge"),
@@ -154,8 +185,10 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         side_mix[preferred] = side_mix.get(preferred, 0) + 1
         model_mode = str(row.get("model_mode") or "unknown")
         side_model_modes[model_mode] = side_model_modes.get(model_mode, 0) + 1
-        active_direction = signal_direction_by_symbol.get(str(row.get("symbol") or "").upper())
-        if active_direction in {"call", "put"} and preferred in {"call", "put"} and preferred != active_direction:
+        active_direction = str(row.get("active_direction") or "").lower()
+        if active_direction not in {"call", "put"}:
+            active_direction = signal_direction_by_symbol.get(str(row.get("symbol") or "").upper())
+        if active_direction in {"call", "put"} and preferred in {"call", "put", "no_trade"} and preferred != active_direction:
             side_disagreements += 1
 
     sentinel_rows = scout.get("sentinel_scores") if isinstance(scout.get("sentinel_scores"), list) else []
@@ -287,6 +320,113 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         "gates": gates,
         "models": models,
     }
+
+
+def build_side_aware_shadow_ledger_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    diagnostics = payload.get("diagnostics") if isinstance(payload.get("diagnostics"), dict) else {}
+    scout = diagnostics.get("scout") if isinstance(diagnostics.get("scout"), dict) else {}
+    side_rows = scout.get("side_aware_scores") if isinstance(scout.get("side_aware_scores"), list) else []
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
+    live_symbols = {str(row.get("symbol") or "").upper() for row in live_board if isinstance(row, dict)}
+    shadow_symbols = {str(row.get("symbol") or "").upper() for row in shadow_board if isinstance(row, dict)}
+    forge_symbols = {str(row.get("symbol") or "").upper() for row in forge_candidates if isinstance(row, dict)}
+
+    disagreements: list[dict[str, Any]] = []
+    side_mix: dict[str, int] = {"call": 0, "put": 0, "no_trade": 0, "unknown": 0}
+    mode_counts: dict[str, int] = {}
+    for row in side_rows:
+        if not isinstance(row, dict):
+            continue
+        preferred = _shadow_preferred_side(row)
+        side_mix[preferred] = side_mix.get(preferred, 0) + 1
+        model_mode = str(row.get("model_mode") or "unknown")
+        mode_counts[model_mode] = mode_counts.get(model_mode, 0) + 1
+        active_direction = str(row.get("active_direction") or "").lower()
+        if active_direction not in {"call", "put"}:
+            continue
+        if preferred == active_direction:
+            continue
+        symbol = str(row.get("symbol") or "").upper()
+        disagreements.append(
+            {
+                "symbol": symbol,
+                "active_direction": active_direction,
+                "shadow_preferred_side": preferred,
+                "active_scout_score": row.get("active_scout_score"),
+                "call_edge": row.get("call_edge"),
+                "put_edge": row.get("put_edge"),
+                "no_trade": row.get("no_trade"),
+                "model_mode": model_mode,
+                "was_forge_candidate_symbol": symbol in forge_symbols,
+                "was_live_symbol": symbol in live_symbols,
+                "was_shadow_symbol": symbol in shadow_symbols,
+            }
+        )
+
+    generated_at = _normalize_timestamp(payload.get("generated_at_utc")).replace(microsecond=0).isoformat()
+    return {
+        "run_generated_at_utc": generated_at,
+        "regime": payload.get("regime", {}),
+        "model_artifacts": payload.get("model_artifacts", {}),
+        "summary": {
+            "observations": len(side_rows),
+            "disagreements": len(disagreements),
+            "directional_disagreements": sum(
+                1 for row in disagreements
+                if row["shadow_preferred_side"] in {"call", "put"}
+            ),
+            "no_trade_disagreements": sum(
+                1 for row in disagreements
+                if row["shadow_preferred_side"] == "no_trade"
+            ),
+            "side_mix": side_mix,
+            "model_modes": mode_counts,
+        },
+        "disagreements": disagreements,
+    }
+
+
+def append_side_aware_shadow_ledger(
+    path: str | Path,
+    payload: dict[str, Any],
+    *,
+    max_entries: int = 500,
+) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    entry = build_side_aware_shadow_ledger_entry(payload)
+    ledger: dict[str, Any]
+    if output.exists():
+        try:
+            loaded = json.loads(output.read_text(encoding="utf-8"))
+            ledger = loaded if isinstance(loaded, dict) else {}
+        except json.JSONDecodeError:
+            ledger = {}
+    else:
+        ledger = {}
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    entries.append(entry)
+    entries = entries[-max(max_entries, 1):]
+    aggregate = {
+        "runs": len(entries),
+        "observations": sum(_coerce_int(row.get("summary", {}).get("observations")) for row in entries),
+        "disagreements": sum(_coerce_int(row.get("summary", {}).get("disagreements")) for row in entries),
+        "directional_disagreements": sum(_coerce_int(row.get("summary", {}).get("directional_disagreements")) for row in entries),
+        "no_trade_disagreements": sum(_coerce_int(row.get("summary", {}).get("no_trade_disagreements")) for row in entries),
+    }
+    rendered = {
+        "artifact": "side_aware_scout_shadow_ledger",
+        "schema_version": 1,
+        "updated_at_utc": entry["run_generated_at_utc"],
+        "max_entries": max(max_entries, 1),
+        "aggregate": aggregate,
+        "entries": entries,
+    }
+    output.write_text(json.dumps(rendered, indent=2), encoding="utf-8")
+    return output
 
 
 def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[str, Any]:
@@ -457,6 +597,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
             },
+            "model_artifacts": _model_artifact_status(),
             "summary": {
                 "universe_size": len(config.universe),
                 "scout_signal_count": len(scout_signals),

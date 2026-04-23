@@ -10,8 +10,10 @@ import pandas as pd
 
 from engine.orographic.forge import select_signals_for_forge
 from engine.orographic.pipeline import (
+    append_side_aware_shadow_ledger,
     build_forge_rejection_waterfall_artifact,
     build_promotion_readiness,
+    build_side_aware_shadow_ledger_entry,
     load_universe,
     write_forge_rejection_waterfall_artifacts,
 )
@@ -261,6 +263,62 @@ class PipelineTests(unittest.TestCase):
 
             rendered = json.loads(paths[0].read_text(encoding="utf-8"))
             self.assertEqual(rendered["trading_day"], "2026-04-15")
+
+    def test_side_aware_shadow_ledger_records_disagreements(self) -> None:
+        payload = {
+            "generated_at_utc": "2026-04-22T15:07:00+00:00",
+            "regime": {"mode": "risk_on", "bias": 0.4, "source_symbol": "SPY"},
+            "model_artifacts": {"scout_side_model": {"present": True, "sha256": "abc"}},
+            "forge_candidates": [{"symbol": "AAA"}],
+            "council": {
+                "live_board": [{"symbol": "AAA"}],
+                "shadow_board": [{"symbol": "BBB"}],
+            },
+            "diagnostics": {
+                "scout": {
+                    "side_aware_scores": [
+                        {
+                            "symbol": "AAA",
+                            "model_mode": "trained_option_payoff_three_class",
+                            "active_direction": "call",
+                            "active_scout_score": 0.6,
+                            "call_edge": 0.2,
+                            "put_edge": 0.7,
+                            "no_trade": 0.1,
+                        },
+                        {
+                            "symbol": "BBB",
+                            "model_mode": "trained_option_payoff_three_class",
+                            "active_direction": "put",
+                            "active_scout_score": -0.5,
+                            "call_edge": 0.1,
+                            "put_edge": 0.2,
+                            "no_trade": 0.7,
+                        },
+                    ]
+                }
+            },
+        }
+
+        entry = build_side_aware_shadow_ledger_entry(payload)
+
+        self.assertEqual(entry["summary"]["observations"], 2)
+        self.assertEqual(entry["summary"]["disagreements"], 2)
+        self.assertEqual(entry["summary"]["directional_disagreements"], 1)
+        self.assertEqual(entry["summary"]["no_trade_disagreements"], 1)
+        self.assertTrue(entry["disagreements"][0]["was_live_symbol"])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger_path = append_side_aware_shadow_ledger(
+                f"{tmpdir}/ledger.json",
+                payload,
+                max_entries=1,
+            )
+            rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(rendered["artifact"], "side_aware_scout_shadow_ledger")
+        self.assertEqual(rendered["aggregate"]["runs"], 1)
+        self.assertEqual(rendered["aggregate"]["disagreements"], 2)
 
 
 if __name__ == "__main__":

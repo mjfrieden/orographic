@@ -19,7 +19,7 @@ jobs:
       OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
       OROGRAPHIC_SITE_URL: https://orographic.pages.dev
-      PYTHONPATH: engine
+      PYTHONPATH: .
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -33,10 +33,40 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r engine/requirements.txt
+          pip install pytest
+
+      - name: Run regression gates
+        run: |
+          python -m pytest -q engine/tests
+          python scripts/validate_model_artifacts.py
 
       - name: Run Orographic scan
         run: |
           python engine/run_scan.py --output web/data/latest_run.json
+
+      - name: Validate refreshed snapshot
+        run: |
+          python scripts/validate_model_artifacts.py
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          payload = json.loads(Path("web/data/latest_run.json").read_text(encoding="utf-8"))
+          if payload.get("error"):
+              raise SystemExit(f"snapshot contains pipeline error: {payload.get('error')}")
+          summary = payload.get("summary", {})
+          if summary.get("scout_signal_count", 0) <= 0:
+              raise SystemExit("snapshot has no Scout signals")
+          artifacts = payload.get("model_artifacts", {})
+          missing = [name for name, row in artifacts.items() if not row.get("present") or not row.get("sha256")]
+          if missing:
+              raise SystemExit(f"snapshot missing model artifact status: {missing}")
+          ledger = Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json")
+          if not ledger.exists():
+              raise SystemExit("side-aware Scout shadow ledger was not written")
+          print("Snapshot regression gates passed.")
+          PY
 
       - name: Commit refreshed snapshot
         id: snapshot

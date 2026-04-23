@@ -13,6 +13,7 @@ original linear heuristic formula so the pipeline never hard-fails.
 from __future__ import annotations
 
 import logging
+import os
 import warnings
 from functools import lru_cache
 from pathlib import Path
@@ -31,6 +32,7 @@ _MODEL_DIR = Path(__file__).parent / "models"
 _MODEL_PATH = _MODEL_DIR / "scout_model.pkl"
 _SCALER_PATH = _MODEL_DIR / "scout_scaler.pkl"
 _SIDE_MODEL_PATH = _MODEL_DIR / "scout_side_model.pkl"
+SIDE_MODEL_MODE_ENV = "OROGRAPHIC_SIDE_MODEL_MODE"
 REGIME_SAME_SIDE_BONUS = 0.08
 REGIME_COUNTERTREND_PENALTY = 0.18
 REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
@@ -121,6 +123,11 @@ def _side_aware_probabilities(score: float) -> dict[str, float]:
     }
 
 
+def _side_model_activation_mode() -> str:
+    mode = os.getenv(SIDE_MODEL_MODE_ENV, "shadow").strip().lower()
+    return "active" if mode in {"active", "live"} else "shadow"
+
+
 def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tuple[dict[str, float], str]:
     artifact = _load_side_model()
     if artifact is None:
@@ -143,7 +150,13 @@ def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tu
         total = sum(mapped.values())
         if total <= 0:
             return _side_aware_probabilities(fallback_score), "derived_three_class"
-        return {key: round(value / total, 4) for key, value in mapped.items()}, "trained_three_class"
+        target = str(artifact.get("target") or "").strip().lower()
+        model_mode = (
+            "trained_option_payoff_three_class"
+            if target == "strict_real_option_payoff"
+            else "trained_underlying_three_class"
+        )
+        return {key: round(value / total, 4) for key, value in mapped.items()}, model_mode
     except Exception as exc:
         log.warning("Scout side model inference failed (%s) — using derived side probabilities.", exc)
         return _side_aware_probabilities(fallback_score), "derived_three_class"
@@ -424,15 +437,33 @@ def build_signal(
         direction = "call" if technical_score >= 0 else "put"
         raw_score = None   
 
-    conviction_score = raw_score if using_ml else technical_score
-    diagnostics["pre_veto_direction"] = direction
-    diagnostics["conviction_score"] = round(float(conviction_score), 4)
-    diagnostics["base_scout_score"] = round(float(base_scout_score), 4)
     side_probs, side_model_mode = (
         _ml_side_probabilities(feats, base_scout_score)
         if using_ml
         else (_side_aware_probabilities(base_scout_score), "heuristic_three_class")
     )
+    side_activation_mode = _side_model_activation_mode()
+    if side_model_mode == "trained_option_payoff_three_class":
+        option_payoff_score = _clip(side_probs["call_edge"] - side_probs["put_edge"])
+        diagnostics["side_model_override"] = {
+            "target": "strict_real_option_payoff",
+            "mode": side_activation_mode,
+            "directional_model_score": round(float(raw_score if raw_score is not None else 0.0), 4),
+            "option_payoff_score": round(float(option_payoff_score), 4),
+        }
+        if side_activation_mode == "active":
+            direction = "call" if option_payoff_score >= 0 else "put"
+            base_scout_score = option_payoff_score
+            technical_score = option_payoff_score
+
+    conviction_score = (
+        base_scout_score
+        if side_model_mode == "trained_option_payoff_three_class" and side_activation_mode == "active"
+        else (raw_score if using_ml else technical_score)
+    )
+    diagnostics["pre_veto_direction"] = direction
+    diagnostics["conviction_score"] = round(float(conviction_score), 4)
+    diagnostics["base_scout_score"] = round(float(base_scout_score), 4)
     diagnostics["side_aware"] = {
         "model_mode": side_model_mode,
         **side_probs,
@@ -456,7 +487,7 @@ def build_signal(
     # \u2500\u2500 AI Sentinel overlay \u2500\u2500
     ai_score = fetch_ai_multiplier(symbol, direction=direction, scout_score=scout_score)
     scout_score = _clip(scout_score * ai_score.multiplier)
-    if side_model_mode != "trained_three_class":
+    if side_model_mode not in {"trained_underlying_three_class", "trained_option_payoff_three_class"}:
         side_probs = _side_aware_probabilities(scout_score)
         diagnostics["side_aware"].update(
             {
@@ -636,6 +667,11 @@ def scan_symbols_with_diagnostics(
                     "call_edge": side_aware.get("call_edge"),
                     "put_edge": side_aware.get("put_edge"),
                     "no_trade": side_aware.get("no_trade"),
+                    "active_direction": signal.direction if signal is not None else None,
+                    "active_scout_score": signal.scout_score if signal is not None else None,
+                    "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
+                    "passed": bool(signal is not None),
+                    "reason": signal_diagnostics.get("reason"),
                 }
             )
         sentinel = signal_diagnostics.get("sentinel")

@@ -1,0 +1,800 @@
+{
+  "artifact": "scout_model",
+  "artifacts": {
+    "model_path": "/Users/mjfrieden/Desktop/2026/Orographic/engine/orographic/models/scout_model.pkl",
+    "model_sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+    "scaler_path": "/Users/mjfrieden/Desktop/2026/Orographic/engine/orographic/models/scout_scaler.pkl",
+    "scaler_sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+    "side_model_path": "/Users/mjfrieden/Desktop/2026/Orographic/engine/orographic/models/scout_side_model.pkl",
+    "side_model_sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+  },
+  "artifact_notes": [
+    "Active directional Scout model/scaler were restored to the pre-existing production artifacts after the 2026-04-22 retrain produced an all-call live scan in temp validation.",
+    "The side-aware Scout artifact was newly trained on strict-real option payoff labels and is shadow-only unless OROGRAPHIC_SIDE_MODEL_MODE=active is explicitly set."
+  ],
+  "calibration": {
+    "calibrated_brier": 0.2454,
+    "calibrated_log_loss": 0.6839,
+    "method": "isotonic",
+    "oof_rows": 55525,
+    "probability_buckets": [
+      {
+        "avg_fwd_5d_return": 0.0045,
+        "bucket": "(0.497, 0.547]",
+        "mean_pred_prob": 0.5435,
+        "realized_positive_rate": 0.5435,
+        "rows": 28234
+      },
+      {
+        "avg_fwd_5d_return": 0.003,
+        "bucket": "(0.547, 0.551]",
+        "mean_pred_prob": 0.548,
+        "realized_positive_rate": 0.548,
+        "rows": 5458
+      },
+      {
+        "avg_fwd_5d_return": 0.0046,
+        "bucket": "(0.551, 0.575]",
+        "mean_pred_prob": 0.5746,
+        "realized_positive_rate": 0.5746,
+        "rows": 17213
+      },
+      {
+        "avg_fwd_5d_return": 0.0145,
+        "bucket": "(0.575, 1.0]",
+        "mean_pred_prob": 0.6342,
+        "realized_positive_rate": 0.6342,
+        "rows": 4620
+      }
+    ],
+    "raw_brier": 0.2759,
+    "raw_log_loss": 0.7668
+  },
+  "cross_validation": {
+    "folds": [
+      {
+        "auc": 0.5073,
+        "brier": 0.2995,
+        "fold": 1,
+        "ic": 0.0632,
+        "log_loss": 0.8302,
+        "train_rows": 11108,
+        "validation_rows": 11105
+      },
+      {
+        "auc": 0.5634,
+        "brier": 0.261,
+        "fold": 2,
+        "ic": 0.128,
+        "log_loss": 0.7266,
+        "train_rows": 22213,
+        "validation_rows": 11105
+      },
+      {
+        "auc": 0.5615,
+        "brier": 0.2578,
+        "fold": 3,
+        "ic": 0.0547,
+        "log_loss": 0.7152,
+        "train_rows": 33318,
+        "validation_rows": 11105
+      },
+      {
+        "auc": 0.5121,
+        "brier": 0.2906,
+        "fold": 4,
+        "ic": 0.0276,
+        "log_loss": 0.8216,
+        "train_rows": 44423,
+        "validation_rows": 11105
+      },
+      {
+        "auc": 0.487,
+        "brier": 0.2708,
+        "fold": 5,
+        "ic": -0.0481,
+        "log_loss": 0.7402,
+        "train_rows": 55528,
+        "validation_rows": 11105
+      }
+    ],
+    "mean_auc": 0.5263,
+    "mean_ic": 0.045
+  },
+  "feature_cols": [
+    "mom_5d",
+    "mom_10d",
+    "mom_20d",
+    "mom_60d",
+    "rv20",
+    "rv60",
+    "vol_adj_mom_5d",
+    "vol_adj_mom_20d",
+    "rsi_14",
+    "rsi_7",
+    "atr_pct_14d",
+    "price_vs_ma20",
+    "volume_ratio",
+    "vol_regime",
+    "spy_mom_5d",
+    "spy_mom_20d",
+    "spy_rv20",
+    "rel_strength_20d"
+  ],
+  "feature_importances": [
+    {
+      "feature": "spy_rv20",
+      "importance": 1988
+    },
+    {
+      "feature": "spy_mom_5d",
+      "importance": 1700
+    },
+    {
+      "feature": "spy_mom_20d",
+      "importance": 1645
+    },
+    {
+      "feature": "vol_regime",
+      "importance": 802
+    },
+    {
+      "feature": "rv60",
+      "importance": 775
+    },
+    {
+      "feature": "mom_60d",
+      "importance": 724
+    },
+    {
+      "feature": "atr_pct_14d",
+      "importance": 654
+    },
+    {
+      "feature": "rv20",
+      "importance": 614
+    },
+    {
+      "feature": "rsi_14",
+      "importance": 522
+    },
+    {
+      "feature": "mom_10d",
+      "importance": 521
+    },
+    {
+      "feature": "vol_adj_mom_20d",
+      "importance": 493
+    },
+    {
+      "feature": "rsi_7",
+      "importance": 470
+    },
+    {
+      "feature": "volume_ratio",
+      "importance": 447
+    },
+    {
+      "feature": "rel_strength_20d",
+      "importance": 394
+    },
+    {
+      "feature": "price_vs_ma20",
+      "importance": 393
+    },
+    {
+      "feature": "mom_20d",
+      "importance": 388
+    },
+    {
+      "feature": "vol_adj_mom_5d",
+      "importance": 370
+    },
+    {
+      "feature": "mom_5d",
+      "importance": 363
+    }
+  ],
+  "limitations": [
+    "Directional Scout target is underlying stock return, not option payoff.",
+    "The option-payoff side model has limited put-edge coverage and weak walk-forward balanced accuracy, so it is not active by default.",
+    "Payoff-aware contract ranking is handled by the second-stage payoff model when available."
+  ],
+  "model_card_schema_version": 2,
+  "observability": {
+    "coverage": {
+      "date_end": "2025-12-23",
+      "date_start": "2023-04-19",
+      "rows": 66633,
+      "rows_by_symbol": {
+        "AAPL": 664,
+        "ABBV": 664,
+        "ACN": 667,
+        "ADBE": 666,
+        "AMAT": 667,
+        "AMD": 673,
+        "AMGN": 673,
+        "AMZN": 670,
+        "ANET": 664,
+        "ARKK": 672,
+        "AVGO": 667,
+        "AXP": 668,
+        "BA": 671,
+        "BAC": 671,
+        "BLK": 657,
+        "BRK-B": 665,
+        "C": 659,
+        "CAT": 662,
+        "CMG": 671,
+        "COF": 662,
+        "COP": 669,
+        "COST": 661,
+        "CRM": 674,
+        "CRWD": 666,
+        "CSCO": 665,
+        "CVX": 663,
+        "DE": 669,
+        "DHR": 674,
+        "DIA": 665,
+        "DIS": 669,
+        "GE": 662,
+        "GILD": 664,
+        "GLD": 668,
+        "GOOGL": 664,
+        "GS": 663,
+        "HD": 669,
+        "HON": 674,
+        "HYG": 672,
+        "IBM": 655,
+        "INTC": 671,
+        "ISRG": 667,
+        "IWM": 672,
+        "JNJ": 657,
+        "JPM": 656,
+        "KLAC": 661,
+        "KO": 663,
+        "LLY": 670,
+        "LMT": 668,
+        "LOW": 669,
+        "LRCX": 662,
+        "MA": 670,
+        "MCD": 670,
+        "META": 652,
+        "MRK": 666,
+        "MS": 661,
+        "MSFT": 665,
+        "MU": 658,
+        "NFLX": 662,
+        "NKE": 663,
+        "NOW": 660,
+        "NVDA": 670,
+        "ORCL": 665,
+        "PANW": 670,
+        "PEP": 674,
+        "PFE": 672,
+        "PG": 665,
+        "PLTR": 668,
+        "PYPL": 670,
+        "QCOM": 667,
+        "QQQ": 664,
+        "RTX": 669,
+        "SBUX": 673,
+        "SCHW": 665,
+        "SHOP": 664,
+        "SLV": 672,
+        "SMH": 665,
+        "SPY": 659,
+        "T": 668,
+        "TLT": 672,
+        "TMO": 669,
+        "TMUS": 659,
+        "TSLA": 661,
+        "TXN": 670,
+        "UBER": 671,
+        "UNH": 670,
+        "UPS": 673,
+        "USO": 672,
+        "V": 664,
+        "VZ": 669,
+        "WFC": 664,
+        "WMT": 663,
+        "XLE": 667,
+        "XLF": 667,
+        "XLI": 670,
+        "XLK": 657,
+        "XLP": 671,
+        "XLU": 669,
+        "XLV": 663,
+        "XLY": 663,
+        "XOM": 667
+      },
+      "symbols": 100
+    },
+    "feature_drift_baseline": {
+      "atr_pct_14d": {
+        "mean": 0.023202,
+        "p05": 0.010486,
+        "p50": 0.020733,
+        "p95": 0.044539,
+        "std": 0.011192
+      },
+      "mom_10d": {
+        "mean": 0.008277,
+        "p05": -0.082574,
+        "p50": 0.00646,
+        "p95": 0.103994,
+        "std": 0.059904
+      },
+      "mom_20d": {
+        "mean": 0.017548,
+        "p05": -0.106314,
+        "p50": 0.013098,
+        "p95": 0.155569,
+        "std": 0.084275
+      },
+      "mom_5d": {
+        "mean": 0.003924,
+        "p05": -0.059902,
+        "p50": 0.003238,
+        "p95": 0.069866,
+        "std": 0.042863
+      },
+      "mom_60d": {
+        "mean": 0.054591,
+        "p05": -0.153718,
+        "p50": 0.038423,
+        "p95": 0.31644,
+        "std": 0.152915
+      },
+      "price_vs_ma20": {
+        "mean": 0.321124,
+        "p05": -2.558247,
+        "p50": 0.340244,
+        "p95": 3.135453,
+        "std": 1.72557
+      },
+      "rel_strength_20d": {
+        "mean": 0.001488,
+        "p05": -0.108119,
+        "p50": -0.002694,
+        "p95": 0.125557,
+        "std": 0.076275
+      },
+      "rsi_14": {
+        "mean": 53.1962,
+        "p05": 24.57764,
+        "p50": 53.432793,
+        "p95": 80.945824,
+        "std": 17.16087
+      },
+      "rsi_7": {
+        "mean": 53.016682,
+        "p05": 13.476739,
+        "p50": 53.658534,
+        "p95": 90.572112,
+        "std": 23.549764
+      },
+      "rv20": {
+        "mean": 0.26847,
+        "p05": 0.108103,
+        "p50": 0.229048,
+        "p95": 0.557555,
+        "std": 0.152789
+      },
+      "rv60": {
+        "mean": 0.277404,
+        "p05": 0.118286,
+        "p50": 0.247196,
+        "p95": 0.546361,
+        "std": 0.13375
+      },
+      "spy_mom_20d": {
+        "mean": 0.01606,
+        "p05": -0.049423,
+        "p50": 0.022331,
+        "p95": 0.060367,
+        "std": 0.035274
+      },
+      "spy_mom_5d": {
+        "mean": 0.003779,
+        "p05": -0.028702,
+        "p50": 0.004819,
+        "p95": 0.033656,
+        "std": 0.019856
+      },
+      "spy_rv20": {
+        "mean": 0.135054,
+        "p05": 0.073491,
+        "p50": 0.119582,
+        "p95": 0.215646,
+        "std": 0.076004
+      },
+      "vol_adj_mom_20d": {
+        "mean": 0.074773,
+        "p05": -0.376644,
+        "p50": 0.062656,
+        "p95": 0.566191,
+        "std": 0.291375
+      },
+      "vol_adj_mom_5d": {
+        "mean": 0.014426,
+        "p05": -0.222847,
+        "p50": 0.01534,
+        "p95": 0.24935,
+        "std": 0.142032
+      },
+      "vol_regime": {
+        "mean": 0.97398,
+        "p05": 0.575583,
+        "p50": 0.964948,
+        "p95": 1.402733,
+        "std": 0.24502
+      },
+      "volume_ratio": {
+        "mean": 1.011466,
+        "p05": 0.562988,
+        "p50": 0.920005,
+        "p95": 1.752361,
+        "std": 0.440102
+      }
+    },
+    "segments": {
+      "by_regime": {
+        "neutral": {
+          "avg_fwd_5d_return": 0.0044,
+          "avg_pred_prob": 0.5554,
+          "brier": 0.2462,
+          "positive_rate": 0.5521,
+          "rows": 17082
+        },
+        "risk_off": {
+          "avg_fwd_5d_return": 0.0091,
+          "avg_pred_prob": 0.5903,
+          "brier": 0.2382,
+          "positive_rate": 0.5997,
+          "rows": 8849
+        },
+        "risk_on": {
+          "avg_fwd_5d_return": 0.0045,
+          "avg_pred_prob": 0.5557,
+          "brier": 0.2471,
+          "positive_rate": 0.5548,
+          "rows": 29594
+        }
+      },
+      "by_side": {
+        "call": {
+          "avg_fwd_5d_return": 0.0053,
+          "avg_pred_prob": 0.5616,
+          "brier": 0.2454,
+          "positive_rate": 0.5616,
+          "rows": 55079
+        },
+        "put": {
+          "avg_fwd_5d_return": -0.0011,
+          "avg_pred_prob": 0.4978,
+          "brier": 0.25,
+          "positive_rate": 0.4978,
+          "rows": 446
+        }
+      },
+      "by_side_regime": {
+        "call_neutral": {
+          "avg_fwd_5d_return": 0.0045,
+          "avg_pred_prob": 0.5558,
+          "brier": 0.2462,
+          "positive_rate": 0.5538,
+          "rows": 16960
+        },
+        "call_risk_off": {
+          "avg_fwd_5d_return": 0.0091,
+          "avg_pred_prob": 0.5909,
+          "brier": 0.2381,
+          "positive_rate": 0.5995,
+          "rows": 8793
+        },
+        "call_risk_on": {
+          "avg_fwd_5d_return": 0.0046,
+          "avg_pred_prob": 0.5563,
+          "brier": 0.2471,
+          "positive_rate": 0.5548,
+          "rows": 29326
+        },
+        "put_neutral": {
+          "avg_fwd_5d_return": -0.0104,
+          "avg_pred_prob": 0.4978,
+          "brier": 0.2492,
+          "positive_rate": 0.3115,
+          "rows": 122
+        },
+        "put_risk_off": {
+          "avg_fwd_5d_return": 0.0122,
+          "avg_pred_prob": 0.4978,
+          "brier": 0.2506,
+          "positive_rate": 0.6429,
+          "rows": 56
+        },
+        "put_risk_on": {
+          "avg_fwd_5d_return": 0.0003,
+          "avg_pred_prob": 0.4978,
+          "brier": 0.2502,
+          "positive_rate": 0.5522,
+          "rows": 268
+        }
+      }
+    }
+  },
+  "positive_label_rate": 0.5501,
+  "rows": 66633,
+  "side_aware_output": {
+    "classes": [
+      "call_edge",
+      "put_edge",
+      "no_trade"
+    ],
+    "label_definition": "call_edge/put_edge/no_trade from strict-real option PnL by symbol/date",
+    "mode": "trained_option_payoff_three_class",
+    "training_metrics": {
+      "class_counts": {
+        "call_edge": 205,
+        "no_trade": 209,
+        "put_edge": 19
+      },
+      "classes": {
+        "0": "put_edge",
+        "1": "no_trade",
+        "2": "call_edge"
+      },
+      "cross_validation": {
+        "fold_reports": [
+          {
+            "balanced_accuracy": 0.3688,
+            "fold": 1,
+            "train_rows": 109,
+            "validation_rows": 108
+          },
+          {
+            "balanced_accuracy": 0.5317,
+            "fold": 2,
+            "train_rows": 217,
+            "validation_rows": 108
+          },
+          {
+            "balanced_accuracy": 0.3284,
+            "fold": 3,
+            "train_rows": 325,
+            "validation_rows": 108
+          }
+        ],
+        "folds": 3,
+        "mean_balanced_accuracy": 0.4097
+      },
+      "label_threshold_abs_fwd_5d_return": null,
+      "rows": 433,
+      "source_metadata": {
+        "class_counts": {
+          "call_edge": 208,
+          "no_trade": 210,
+          "put_edge": 19
+        },
+        "input_files": [
+          "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"
+        ],
+        "labeled_symbol_dates": 437,
+        "skipped_after_cutoff": 184,
+        "trade_rows": 671
+      },
+      "target": "strict_real_option_payoff",
+      "training_balanced_accuracy": 1.0
+    }
+  },
+  "symbols_requested": [
+    "SPY",
+    "QQQ",
+    "IWM",
+    "DIA",
+    "XLF",
+    "XLK",
+    "XLE",
+    "XLI",
+    "XLV",
+    "XLY",
+    "XLP",
+    "XLU",
+    "SMH",
+    "TLT",
+    "GLD",
+    "SLV",
+    "HYG",
+    "USO",
+    "ARKK",
+    "AAPL",
+    "MSFT",
+    "NVDA",
+    "GOOGL",
+    "AMZN",
+    "META",
+    "TSLA",
+    "BRK-B",
+    "LLY",
+    "AVGO",
+    "JPM",
+    "UNH",
+    "V",
+    "XOM",
+    "MA",
+    "JNJ",
+    "PG",
+    "COST",
+    "HD",
+    "ABBV",
+    "CVX",
+    "CRM",
+    "NFLX",
+    "WMT",
+    "KO",
+    "BAC",
+    "PEP",
+    "IBM",
+    "ORCL",
+    "CSCO",
+    "ACN",
+    "ADBE",
+    "QCOM",
+    "INTC",
+    "TXN",
+    "AMD",
+    "MU",
+    "AMAT",
+    "LRCX",
+    "KLAC",
+    "ANET",
+    "NOW",
+    "PANW",
+    "CRWD",
+    "PLTR",
+    "UBER",
+    "SHOP",
+    "MCD",
+    "DIS",
+    "NKE",
+    "BA",
+    "GS",
+    "MS",
+    "WFC",
+    "C",
+    "AXP",
+    "PYPL",
+    "COF",
+    "BLK",
+    "SCHW",
+    "PFE",
+    "MRK",
+    "AMGN",
+    "GILD",
+    "TMO",
+    "ISRG",
+    "DHR",
+    "T",
+    "VZ",
+    "TMUS",
+    "CAT",
+    "DE",
+    "GE",
+    "HON",
+    "RTX",
+    "LMT",
+    "LOW",
+    "SBUX",
+    "CMG",
+    "COP",
+    "UPS"
+  ],
+  "symbols_trained": [
+    "AAPL",
+    "ABBV",
+    "ACN",
+    "ADBE",
+    "AMAT",
+    "AMD",
+    "AMGN",
+    "AMZN",
+    "ANET",
+    "ARKK",
+    "AVGO",
+    "AXP",
+    "BA",
+    "BAC",
+    "BLK",
+    "BRK-B",
+    "C",
+    "CAT",
+    "CMG",
+    "COF",
+    "COP",
+    "COST",
+    "CRM",
+    "CRWD",
+    "CSCO",
+    "CVX",
+    "DE",
+    "DHR",
+    "DIA",
+    "DIS",
+    "GE",
+    "GILD",
+    "GLD",
+    "GOOGL",
+    "GS",
+    "HD",
+    "HON",
+    "HYG",
+    "IBM",
+    "INTC",
+    "ISRG",
+    "IWM",
+    "JNJ",
+    "JPM",
+    "KLAC",
+    "KO",
+    "LLY",
+    "LMT",
+    "LOW",
+    "LRCX",
+    "MA",
+    "MCD",
+    "META",
+    "MRK",
+    "MS",
+    "MSFT",
+    "MU",
+    "NFLX",
+    "NKE",
+    "NOW",
+    "NVDA",
+    "ORCL",
+    "PANW",
+    "PEP",
+    "PFE",
+    "PG",
+    "PLTR",
+    "PYPL",
+    "QCOM",
+    "QQQ",
+    "RTX",
+    "SBUX",
+    "SCHW",
+    "SHOP",
+    "SLV",
+    "SMH",
+    "SPY",
+    "T",
+    "TLT",
+    "TMO",
+    "TMUS",
+    "TSLA",
+    "TXN",
+    "UBER",
+    "UNH",
+    "UPS",
+    "USO",
+    "V",
+    "VZ",
+    "WFC",
+    "WMT",
+    "XLE",
+    "XLF",
+    "XLI",
+    "XLK",
+    "XLP",
+    "XLU",
+    "XLV",
+    "XLY",
+    "XOM"
+  ],
+  "target": "probability that forward 5-day underlying return is positive",
+  "trained_at": "2026-04-22",
+  "training_cutoff": "2026-01-01",
+  "version": 3,
+  "years_requested": 3
+}

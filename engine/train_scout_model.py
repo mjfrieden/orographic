@@ -72,6 +72,7 @@ def _load_training_universe() -> list[str]:
 
 TRAINING_UNIVERSE = _load_training_universe()
 SIDE_CLASS_MAP = {0: "put_edge", 1: "no_trade", 2: "call_edge"}
+SIDE_CLASS_TO_ID = {value: key for key, value in SIDE_CLASS_MAP.items()}
 
 
 # ── Feature engineering ──────────────────────────────────────────────────────
@@ -161,6 +162,7 @@ def build_feature_matrix(df: pd.DataFrame, spy_df: pd.DataFrame | None = None) -
 
     # ── Forward return label (5d) ──
     features["fwd_5d_return"] = close.pct_change(5).shift(-5)
+    features["fwd_5d_label_date"] = pd.Series(close.index, index=df.index).shift(-5)
     features["label"] = (features["fwd_5d_return"] > 0).astype(int)
 
     return features.dropna()
@@ -323,12 +325,161 @@ def _drift_baseline(combined: pd.DataFrame, feature_cols: list[str]) -> dict[str
     return baseline
 
 
+def _safe_float(value: object, default: float = 0.0) -> float:
+    try:
+        if value is None:
+            return default
+        result = float(value)
+        if not np.isfinite(result):
+            return default
+        return result
+    except (TypeError, ValueError):
+        return default
+
+
+def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = None) -> tuple[pd.DataFrame, dict[str, Any]]:
+    """
+    Build symbol/date side labels from strict-real option outcomes.
+
+    A profitable call labels that symbol/date as call_edge; a profitable put
+    labels it as put_edge; losing or flat observed expressions become no_trade.
+    When both sides exist for the same symbol/date, the better positive side wins.
+    """
+    rows: list[dict[str, Any]] = []
+    skipped_after_cutoff = 0
+    for path in input_paths:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        for trade in payload.get("all_trades", []):
+            try:
+                entry_date = date.fromisoformat(str(trade["entry_date"]))
+                exit_date = date.fromisoformat(str(trade.get("exit_date") or trade["entry_date"]))
+            except (KeyError, TypeError, ValueError):
+                continue
+            if cutoff is not None and (entry_date > cutoff or exit_date > cutoff):
+                skipped_after_cutoff += 1
+                continue
+            side = str(trade.get("option_type", "")).lower()
+            if side not in {"call", "put"}:
+                continue
+            rows.append(
+                {
+                    "symbol": str(trade.get("symbol", "")).upper(),
+                    "date": pd.Timestamp(entry_date),
+                    "option_type": side,
+                    "pnl_pct": _safe_float(trade.get("pnl_pct")),
+                    "pnl": _safe_float(trade.get("pnl")),
+                    "source_file": str(path),
+                }
+            )
+
+    if not rows:
+        return pd.DataFrame(), {
+            "input_files": [str(path) for path in input_paths],
+            "trade_rows": 0,
+            "labeled_symbol_dates": 0,
+            "skipped_after_cutoff": skipped_after_cutoff,
+        }
+
+    trades = pd.DataFrame(rows)
+    grouped_rows: list[dict[str, Any]] = []
+    for (symbol, entry_date), group in trades.groupby(["symbol", "date"], sort=True):
+        call_returns = group.loc[group["option_type"] == "call", "pnl_pct"]
+        put_returns = group.loc[group["option_type"] == "put", "pnl_pct"]
+        call_score = float(call_returns.mean()) if not call_returns.empty else float("-inf")
+        put_score = float(put_returns.mean()) if not put_returns.empty else float("-inf")
+        best_side = "call_edge" if call_score >= put_score else "put_edge"
+        best_score = max(call_score, put_score)
+        label = best_side if best_score > 0.0 else "no_trade"
+        grouped_rows.append(
+            {
+                "symbol": symbol,
+                "date": entry_date,
+                "side_label": label,
+                "side_label_id": SIDE_CLASS_TO_ID[label],
+                "call_avg_pnl_pct": None if call_score == float("-inf") else round(call_score, 6),
+                "put_avg_pnl_pct": None if put_score == float("-inf") else round(put_score, 6),
+                "trade_count": int(len(group)),
+            }
+        )
+
+    labeled = pd.DataFrame(grouped_rows)
+    metadata = {
+        "input_files": [str(path) for path in input_paths],
+        "trade_rows": int(len(trades)),
+        "labeled_symbol_dates": int(len(labeled)),
+        "skipped_after_cutoff": int(skipped_after_cutoff),
+        "class_counts": {
+            label: int((labeled["side_label"] == label).sum())
+            for label in SIDE_CLASS_TO_ID
+        },
+    }
+    return labeled, metadata
+
+
+def _side_cv_report(X: np.ndarray, y: np.ndarray, dates: np.ndarray) -> dict[str, Any]:
+    if len(X) < 80 or len(set(y.tolist())) < 2:
+        return {"folds": 0, "reason": "insufficient_examples_or_classes"}
+    order = np.argsort(pd.to_datetime(dates).view("int64"))
+    X_sorted = X[order]
+    y_sorted = y[order]
+    tscv = TimeSeriesSplit(n_splits=min(5, max(2, len(X_sorted) // 120)))
+    rows: list[dict[str, Any]] = []
+    balanced_scores: list[float] = []
+    for fold, (train_idx, val_idx) in enumerate(tscv.split(X_sorted), start=1):
+        if len(set(y_sorted[train_idx].tolist())) < 2 or len(set(y_sorted[val_idx].tolist())) < 2:
+            rows.append(
+                {
+                    "fold": fold,
+                    "train_rows": int(len(train_idx)),
+                    "validation_rows": int(len(val_idx)),
+                    "skipped": True,
+                    "reason": "single_class_train_or_validation",
+                }
+            )
+            continue
+        scaler = RobustScaler()
+        X_train = scaler.fit_transform(X_sorted[train_idx])
+        X_val = scaler.transform(X_sorted[val_idx])
+        model = lgb.LGBMClassifier(
+            objective="multiclass",
+            num_class=3,
+            n_estimators=260,
+            learning_rate=0.04,
+            max_depth=4,
+            num_leaves=15,
+            subsample=0.85,
+            colsample_bytree=0.85,
+            min_child_samples=10,
+            class_weight="balanced",
+            random_state=43 + fold,
+            verbose=-1,
+        )
+        model.fit(X_train, y_sorted[train_idx])
+        preds = model.predict(X_val)
+        score = float(balanced_accuracy_score(y_sorted[val_idx], preds))
+        balanced_scores.append(score)
+        rows.append(
+            {
+                "fold": fold,
+                "train_rows": int(len(train_idx)),
+                "validation_rows": int(len(val_idx)),
+                "balanced_accuracy": round(score, 4),
+            }
+        )
+    return {
+        "folds": int(tscv.n_splits),
+        "mean_balanced_accuracy": round(float(np.mean(balanced_scores)), 4) if balanced_scores else None,
+        "fold_reports": rows,
+    }
+
+
 def train(
     symbols: list[str],
     years: int,
     cutoff: date | None = None,
     *,
     calibration_method: str = "isotonic",
+    option_outcome_inputs: list[Path] | None = None,
 ) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -364,9 +515,13 @@ def train(
         sys.exit(1)
 
     combined = pd.concat(all_features, axis=0).sort_index()
-    # Apply cutoff: only use rows strictly <= cutoff date
-    # (Forward return label was computed by build_feature_matrix using shift(-5))
+    # Apply cutoff to the realized label date, not just the feature date.
+    # fwd_5d_return uses shift(-5), so feature rows near the cutoff would
+    # otherwise include post-cutoff returns.
     mask = combined.index.date <= cutoff
+    if "fwd_5d_label_date" in combined.columns:
+        label_dates = pd.to_datetime(combined["fwd_5d_label_date"], errors="coerce").dt.date
+        mask = mask & (label_dates <= cutoff)
     combined = combined[mask].copy()
     
     log.info("Combined dataset: %d rows across %d symbols (after cutoff)", len(combined), len(all_features))
@@ -500,10 +655,50 @@ def train(
     final_model.fit(X_final, y)
 
     side_threshold = 0.01
-    fwd = combined["fwd_5d_return"].values
-    side_y = np.where(fwd > side_threshold, 2, np.where(fwd < -side_threshold, 0, 1))
+    side_target = "underlying_forward_return"
+    side_source_metadata: dict[str, Any] = {}
+    side_training_frame = combined.copy()
+    side_training_dates = pd.to_datetime(side_training_frame.index).to_numpy()
+    if option_outcome_inputs:
+        option_labels, side_source_metadata = _load_option_outcome_labels(option_outcome_inputs, cutoff=cutoff)
+        if not option_labels.empty:
+            mergeable = combined.copy()
+            feature_dates = pd.to_datetime(mergeable.index)
+            if getattr(feature_dates, "tz", None) is not None:
+                feature_dates = feature_dates.tz_convert(None)
+            mergeable["date"] = feature_dates.normalize()
+            merged = mergeable.merge(
+                option_labels,
+                on=["symbol", "date"],
+                how="inner",
+                validate="many_to_one",
+            )
+            if len(merged) >= 80 and merged["side_label_id"].nunique() >= 2:
+                side_training_frame = merged
+                side_training_dates = pd.to_datetime(merged["date"]).to_numpy()
+                side_y = merged["side_label_id"].to_numpy(dtype=int)
+                side_target = "strict_real_option_payoff"
+            else:
+                log.warning(
+                    "Option-outcome side labels were insufficient (%d rows, %d classes); falling back to underlying side target.",
+                    len(merged),
+                    int(merged["side_label_id"].nunique()) if "side_label_id" in merged else 0,
+                )
+                fwd = combined["fwd_5d_return"].values
+                side_y = np.where(fwd > side_threshold, 2, np.where(fwd < -side_threshold, 0, 1))
+        else:
+            fwd = combined["fwd_5d_return"].values
+            side_y = np.where(fwd > side_threshold, 2, np.where(fwd < -side_threshold, 0, 1))
+    else:
+        fwd = combined["fwd_5d_return"].values
+        side_y = np.where(fwd > side_threshold, 2, np.where(fwd < -side_threshold, 0, 1))
+
+    side_X_raw = side_training_frame[available].values
+    side_scaler = RobustScaler()
+    side_X = side_scaler.fit_transform(side_X_raw)
     side_model = lgb.LGBMClassifier(
         objective="multiclass",
+        num_class=3,
         n_estimators=450,
         learning_rate=0.04,
         max_depth=5,
@@ -515,16 +710,25 @@ def train(
         random_state=43,
         verbose=-1,
     )
-    side_model.fit(X_final, side_y)
-    side_preds = side_model.predict(X_final)
+    side_model.fit(side_X, side_y)
+    side_preds = side_model.predict(side_X)
+    side_cv = _side_cv_report(
+        side_X_raw,
+        side_y,
+        side_training_dates,
+    )
     side_training_metrics = {
-        "label_threshold_abs_fwd_5d_return": side_threshold,
+        "target": side_target,
+        "label_threshold_abs_fwd_5d_return": side_threshold if side_target == "underlying_forward_return" else None,
         "classes": SIDE_CLASS_MAP,
         "class_counts": {
             SIDE_CLASS_MAP[int(cls)]: int((side_y == cls).sum())
             for cls in sorted(set(side_y.tolist()))
         },
+        "rows": int(len(side_y)),
         "training_balanced_accuracy": round(float(balanced_accuracy_score(side_y, side_preds)), 4),
+        "cross_validation": side_cv,
+        "source_metadata": side_source_metadata,
     }
 
     # Save artifacts
@@ -532,10 +736,12 @@ def train(
     joblib.dump(
         {
             "model": side_model,
-            "scaler": final_scaler,
+            "scaler": side_scaler,
             "feature_cols": available,
             "class_map": SIDE_CLASS_MAP,
-            "label_threshold_abs_fwd_5d_return": side_threshold,
+            "target": side_target,
+            "label_threshold_abs_fwd_5d_return": side_threshold if side_target == "underlying_forward_return" else None,
+            "source_metadata": side_source_metadata,
         },
         SIDE_MODEL_PATH,
     )
@@ -569,9 +775,15 @@ def train(
         "positive_label_rate": round(float(y.mean()), 4),
         "target": "probability that forward 5-day underlying return is positive",
         "side_aware_output": {
-            "mode": "trained_three_class",
+            "mode": "trained_option_payoff_three_class"
+            if side_target == "strict_real_option_payoff"
+            else "trained_underlying_three_class",
             "classes": ["call_edge", "put_edge", "no_trade"],
-            "label_definition": "call_edge if fwd_5d_return > +1%, put_edge if fwd_5d_return < -1%, otherwise no_trade",
+            "label_definition": (
+                "call_edge/put_edge/no_trade from strict-real option PnL by symbol/date"
+                if side_target == "strict_real_option_payoff"
+                else "call_edge if fwd_5d_return > +1%, put_edge if fwd_5d_return < -1%, otherwise no_trade"
+            ),
             "training_metrics": side_training_metrics,
         },
         "feature_cols": available,
@@ -638,6 +850,13 @@ def main() -> None:
         default="isotonic",
         help="Walk-forward probability calibration method (default: isotonic)",
     )
+    parser.add_argument(
+        "--option-outcome-input",
+        action="append",
+        type=Path,
+        default=None,
+        help="Strict-real backtest JSON used to train side-aware Scout on option payoff outcomes. May be repeated.",
+    )
     args = parser.parse_args()
 
     cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
@@ -647,7 +866,13 @@ def main() -> None:
         if args.symbols
         else TRAINING_UNIVERSE
     )
-    train(symbols, args.years, cutoff_dt, calibration_method=args.calibration)
+    train(
+        symbols,
+        args.years,
+        cutoff_dt,
+        calibration_method=args.calibration,
+        option_outcome_inputs=args.option_outcome_input,
+    )
 
 
 if __name__ == "__main__":

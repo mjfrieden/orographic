@@ -51,6 +51,12 @@ Each scan also writes a Forge bottleneck artifact beside the snapshot:
 
 Each snapshot also includes `promotion_readiness`, a shadow-mode governance report for Side-Aware Scout, Sentinel, the active payoff ranker, and Council risk intelligence. It records current shadow observations, pending acceptance gates, and the staged path from `shadow` to `tie_breaker`, `small_weight`, `limited_active`, and `active`. The dashboard renders this as the Promotion Readiness panel.
 
+Each scan also appends a side-aware Scout shadow disagreement ledger beside the diagnostics:
+
+- `web/data/diagnostics/side_aware_scout_shadow_ledger.json`
+
+This ledger records where the shadow side-aware Scout preferred call, put, or no-trade differently from active Scout, plus whether the symbol reached Forge, live board, or shadow board.
+
 Optionally capture standing-position value on each run into a private local file:
 
 ```bash
@@ -124,13 +130,20 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
 - `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
 - `OROGRAPHIC_SENTINEL_MODE`: optional; defaults to `shadow`. Set to `active` only when Sentinel event multipliers should affect Scout scoring.
+- `OROGRAPHIC_SIDE_MODEL_MODE`: optional; defaults to `shadow`. Set to `active` only after promotion gates pass if the option-payoff side-aware Scout model should steer live call/put direction.
 - `OROGRAPHIC_PAYOFF_MODEL_MODE`: optional; defaults to `active` for the existing payoff ranker. Set to `shadow` for observation-only scoring.
 
 Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel is logged as a model-observation signal and does not steer live recommendations.
 
 ## Model Governance
 
-Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines.
+Model artifacts are pinned in `engine/orographic/models/artifact_manifest.json`. Validate the manifest, model cards, and hashes with:
+
+```bash
+python scripts/validate_model_artifacts.py
+```
+
+Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. That side model remains shadow-only unless `OROGRAPHIC_SIDE_MODEL_MODE=active` is explicitly set.
 
 Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the active-by-default activation policy for the recovered payoff ranker.
 

@@ -76,6 +76,67 @@ class ScoutTests(unittest.TestCase):
         self.assertEqual(diagnostics["pre_veto_direction"], "put")
         self.assertEqual(diagnostics["reason"], "counter_regime_weak_conviction")
 
+    def test_option_payoff_side_model_can_override_directional_scout(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "active"}),
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.5),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.15, "put_edge": 0.70, "no_trade": 0.15},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(signal.direction, "put")
+        self.assertAlmostEqual(signal.scout_score, -0.55, places=4)
+        self.assertEqual(signal.scout_model_mode, "trained_option_payoff_three_class")
+        self.assertEqual(diagnostics["side_model_override"]["target"], "strict_real_option_payoff")
+
+    def test_option_payoff_side_model_is_shadow_by_default(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.5),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.15, "put_edge": 0.70, "no_trade": 0.15},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(signal.direction, "call")
+        self.assertAlmostEqual(signal.scout_score, 0.5, places=4)
+        self.assertEqual(diagnostics["side_model_override"]["mode"], "shadow")
+
 
 if __name__ == "__main__":
     unittest.main()
