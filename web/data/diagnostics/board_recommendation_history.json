@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 1,
-  "updated_at_utc": "2026-04-28T15:24:20+00:00",
+  "updated_at_utc": "2026-04-28T16:18:38+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 4,
+    "runs": 5,
     "live_picks_emitted": 2,
-    "shadow_picks_emitted": 12,
-    "abstain_runs": 2
+    "shadow_picks_emitted": 15,
+    "abstain_runs": 3
   },
   "entries": [
     {
@@ -397,6 +397,93 @@
           "notes": [
             "projected payoff is asymmetric",
             "IVR penalty applied: IV rank 74% above gate",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-04-28T16:18:38+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.6263,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 74,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 4,
+        "live_count": 0,
+        "shadow_count": 3,
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 3
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "QQQ",
+          "contract_symbol": "QQQ260430P00648000",
+          "option_type": "put",
+          "expiry": "2026-04-30",
+          "strike": 648.0,
+          "forge_score": 0.8299,
+          "payoff_edge_score": 0.7525,
+          "expected_edge_after_friction_pct": 0.6948,
+          "contract_cost": 381.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 126% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260430P00704000",
+          "option_type": "put",
+          "expiry": "2026-04-30",
+          "strike": 704.0,
+          "forge_score": 0.8245,
+          "payoff_edge_score": 0.7603,
+          "expected_edge_after_friction_pct": 0.6964,
+          "contract_cost": 250.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 93% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "WMT",
+          "contract_symbol": "WMT260501P00128000",
+          "option_type": "put",
+          "expiry": "2026-05-01",
+          "strike": 128.0,
+          "forge_score": 0.7673,
+          "payoff_edge_score": 0.813,
+          "expected_edge_after_friction_pct": 0.4406,
+          "contract_cost": 124.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
             "Payoff model ranker active"
           ]
         }
