@@ -106,6 +106,27 @@ def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]
     return compact
 
 
+def _compact_attribution_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]]:
+    compact: list[dict[str, object]] = []
+    for row in rows:
+        compact.append(
+            {
+                "symbol": row.get("symbol"),
+                "contract_symbol": row.get("contract_symbol"),
+                "option_type": row.get("option_type"),
+                "expiry": row.get("expiry"),
+                "strike": row.get("strike"),
+                "forge_score": row.get("forge_score"),
+                "payoff_edge_score": row.get("payoff_edge_score"),
+                "expected_edge_after_friction_pct": row.get("expected_edge_after_friction_pct"),
+                "contract_cost": row.get("contract_cost"),
+                "council_risk_flags": row.get("council_risk_flags", []),
+                "notes": row.get("notes", []),
+            }
+        )
+    return compact
+
+
 def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
     counts = {"call": 0, "put": 0}
     for row in rows:
@@ -113,6 +134,17 @@ def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
         if side in counts:
             counts[side] += 1
     return counts
+
+
+def _average_metric(rows: list[dict[str, Any]], key: str) -> float | None:
+    values: list[float] = []
+    for row in rows:
+        value = row.get(key)
+        if isinstance(value, Number):
+            values.append(float(value))
+    if not values:
+        return None
+    return round(sum(values) / len(values), 4)
 
 
 def _sha256_file(path: Path) -> str | None:
@@ -143,6 +175,38 @@ def _model_artifact_status() -> dict[str, Any]:
         }
         for name, path in artifacts.items()
     }
+
+
+def _validate_snapshot_contract(payload: dict[str, Any]) -> None:
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    council_summary = council.get("summary") if isinstance(council.get("summary"), dict) else {}
+    scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
+    forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
+    live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+
+    expected = {
+        "scout_signal_count": len(scout_signals),
+        "forge_candidate_count": len(forge_candidates),
+        "candidate_count": len(forge_candidates),
+        "live_count": len(live_board),
+        "shadow_count": len(shadow_board),
+    }
+    observed = {
+        "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
+        "forge_candidate_count": _coerce_int(summary.get("forge_candidate_count")),
+        "candidate_count": _coerce_int(council_summary.get("candidate_count")),
+        "live_count": _coerce_int(council_summary.get("live_count")),
+        "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+    }
+    mismatches = {
+        key: {"expected": expected[key], "observed": observed[key]}
+        for key in expected
+        if expected[key] != observed[key]
+    }
+    if mismatches:
+        raise ValueError(f"Snapshot contract mismatch: {mismatches}")
 
 
 def _shadow_preferred_side(row: dict[str, Any]) -> str:
@@ -389,6 +453,33 @@ def build_side_aware_shadow_ledger_entry(payload: dict[str, Any]) -> dict[str, A
     }
 
 
+def build_board_recommendation_history_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    generated_at = _normalize_timestamp(payload.get("generated_at_utc")).replace(microsecond=0).isoformat()
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    council_summary = council.get("summary") if isinstance(council.get("summary"), dict) else {}
+    live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+
+    return {
+        "run_generated_at_utc": generated_at,
+        "regime": payload.get("regime", {}),
+        "abstain": bool(council.get("abstain", summary.get("abstain", False))),
+        "summary": {
+            "universe_size": _coerce_int(summary.get("universe_size")),
+            "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
+            "pre_forge_signal_count": _coerce_int(summary.get("pre_forge_signal_count")),
+            "forge_candidate_count": _coerce_int(summary.get("forge_candidate_count")),
+            "live_count": _coerce_int(council_summary.get("live_count")),
+            "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+            "live_side_mix": _count_side_mix(live_board, key="option_type"),
+            "shadow_side_mix": _count_side_mix(shadow_board, key="option_type"),
+        },
+        "live_board": _compact_attribution_contract_view(live_board),
+        "shadow_board": _compact_attribution_contract_view(shadow_board),
+    }
+
+
 def append_side_aware_shadow_ledger(
     path: str | Path,
     payload: dict[str, Any],
@@ -419,6 +510,45 @@ def append_side_aware_shadow_ledger(
     }
     rendered = {
         "artifact": "side_aware_scout_shadow_ledger",
+        "schema_version": 1,
+        "updated_at_utc": entry["run_generated_at_utc"],
+        "max_entries": max(max_entries, 1),
+        "aggregate": aggregate,
+        "entries": entries,
+    }
+    output.write_text(json.dumps(rendered, indent=2), encoding="utf-8")
+    return output
+
+
+def append_board_recommendation_history(
+    path: str | Path,
+    payload: dict[str, Any],
+    *,
+    max_entries: int = 500,
+) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    entry = build_board_recommendation_history_entry(payload)
+    history: dict[str, Any]
+    if output.exists():
+        try:
+            loaded = json.loads(output.read_text(encoding="utf-8"))
+            history = loaded if isinstance(loaded, dict) else {}
+        except json.JSONDecodeError:
+            history = {}
+    else:
+        history = {}
+    entries = history.get("entries") if isinstance(history.get("entries"), list) else []
+    entries.append(entry)
+    entries = entries[-max(max_entries, 1):]
+    aggregate = {
+        "runs": len(entries),
+        "live_picks_emitted": sum(_coerce_int(row.get("summary", {}).get("live_count")) for row in entries),
+        "shadow_picks_emitted": sum(_coerce_int(row.get("summary", {}).get("shadow_count")) for row in entries),
+        "abstain_runs": sum(1 for row in entries if bool(row.get("abstain"))),
+    }
+    rendered = {
+        "artifact": "board_recommendation_history",
         "schema_version": 1,
         "updated_at_utc": entry["run_generated_at_utc"],
         "max_entries": max(max_entries, 1),
@@ -534,6 +664,105 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
     }
 
 
+def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str, Any]:
+    generated_at = _normalize_timestamp(payload.get("generated_at_utc"))
+    generated_at_utc = generated_at.replace(microsecond=0).isoformat()
+    trading_day = generated_at.astimezone(DIAGNOSTIC_TIMEZONE).date().isoformat()
+
+    diagnostics = payload.get("diagnostics") if isinstance(payload.get("diagnostics"), dict) else {}
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    council_summary = council.get("summary") if isinstance(council.get("summary"), dict) else {}
+    pre_forge = diagnostics.get("pre_forge") if isinstance(diagnostics.get("pre_forge"), dict) else {}
+    forge = diagnostics.get("forge") if isinstance(diagnostics.get("forge"), dict) else {}
+
+    scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
+    forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
+    live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    friction_gate = forge.get("pre_council_gate") if isinstance(forge.get("pre_council_gate"), dict) else {}
+    deduplication = forge.get("deduplication") if isinstance(forge.get("deduplication"), dict) else {}
+    pre_forge_rejections = pre_forge.get("rejections") if isinstance(pre_forge.get("rejections"), list) else []
+    friction_rejections = friction_gate.get("rejections") if isinstance(friction_gate.get("rejections"), list) else []
+
+    live_contracts = {str(row.get("contract_symbol") or "") for row in live_board if isinstance(row, dict)}
+    shadow_contracts = {str(row.get("contract_symbol") or "") for row in shadow_board if isinstance(row, dict)}
+    council_holdouts = [
+        row
+        for row in forge_candidates
+        if isinstance(row, dict)
+        and str(row.get("contract_symbol") or "")
+        and str(row.get("contract_symbol") or "") not in live_contracts
+        and str(row.get("contract_symbol") or "") not in shadow_contracts
+    ]
+    council_holdouts.sort(
+        key=lambda row: (
+            float(row.get("learned_rank_score") or row.get("forge_score") or 0.0),
+            float(row.get("forge_score") or 0.0),
+        ),
+        reverse=True,
+    )
+
+    return {
+        "artifact": "live_shadow_attribution",
+        "product": payload.get("product", "Orographic"),
+        "generated_at_utc": generated_at_utc,
+        "trading_day": trading_day,
+        "timezone": "America/Chicago",
+        "summary": {
+            "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
+            "pre_forge_signal_count": _coerce_int(summary.get("pre_forge_signal_count")),
+            "forge_candidate_count": _coerce_int(summary.get("forge_candidate_count")),
+            "live_count": _coerce_int(council_summary.get("live_count")),
+            "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+            "abstain": bool(council.get("abstain", False)),
+            "live_side_mix": _count_side_mix(live_board, key="option_type"),
+            "shadow_side_mix": _count_side_mix(shadow_board, key="option_type"),
+            "forge_candidate_side_mix": _count_side_mix(forge_candidates, key="option_type"),
+            "friction_veto_count": len(friction_rejections),
+            "dedupe_removed_count": _coerce_int(deduplication.get("removed_candidates")),
+            "pre_forge_rejection_count": len(pre_forge_rejections),
+            "council_holdout_count": len(council_holdouts),
+            "live_avg_forge_score": _average_metric(live_board, "forge_score"),
+            "shadow_avg_forge_score": _average_metric(shadow_board, "forge_score"),
+            "live_avg_edge_after_friction_pct": _average_metric(live_board, "expected_edge_after_friction_pct"),
+            "shadow_avg_edge_after_friction_pct": _average_metric(shadow_board, "expected_edge_after_friction_pct"),
+        },
+        "layer_breakdown": {
+            "scout": {
+                "pre_veto_direction_counts": summary.get("scout_pre_veto_direction_counts", {}),
+                "final_direction_counts": summary.get("scout_final_direction_counts", {}),
+                "counter_regime_survivors": _coerce_int(summary.get("scout_counter_regime_survivors")),
+            },
+            "forge": {
+                "waterfall": forge.get("waterfall", {}),
+                "pre_council_gate": {
+                    "kept": _coerce_int(friction_gate.get("kept")),
+                    "dropped": _coerce_int(friction_gate.get("dropped")),
+                    "min_expected_edge_after_friction_pct": friction_gate.get("min_expected_edge_after_friction_pct"),
+                },
+                "deduplication": {
+                    "removed_candidates": _coerce_int(deduplication.get("removed_candidates")),
+                    "kept_candidates": _coerce_int(deduplication.get("kept_candidates")),
+                    "max_structures_per_symbol_side": deduplication.get("max_structures_per_symbol_side"),
+                },
+            },
+            "council": {
+                "candidate_count": _coerce_int(council_summary.get("candidate_count")),
+                "live_count": _coerce_int(council_summary.get("live_count")),
+                "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+                "avg_pairwise_correlation": council_summary.get("avg_pairwise_correlation"),
+                "notes": council_summary.get("notes", []),
+            },
+        },
+        "top_live_board": _compact_attribution_contract_view(live_board[:3]),
+        "top_shadow_board": _compact_attribution_contract_view(shadow_board[:3]),
+        "council_holdouts": _compact_attribution_contract_view(council_holdouts[:5]),
+        "friction_vetoes": friction_rejections[:5],
+        "pre_forge_rejections": pre_forge_rejections[:5],
+    }
+
+
 def write_forge_rejection_waterfall_artifacts(snapshot_path: str, payload: dict[str, Any]) -> list[Path]:
     snapshot = Path(snapshot_path)
     diagnostics_dir = snapshot.parent / "diagnostics"
@@ -541,6 +770,21 @@ def write_forge_rejection_waterfall_artifacts(snapshot_path: str, payload: dict[
     trading_day = str(artifact["trading_day"])
     latest_path = diagnostics_dir / "forge_rejection_waterfall_latest.json"
     dated_path = diagnostics_dir / f"forge_rejection_waterfall_{trading_day}.json"
+
+    diagnostics_dir.mkdir(parents=True, exist_ok=True)
+    rendered = json.dumps(artifact, indent=2)
+    latest_path.write_text(rendered, encoding="utf-8")
+    dated_path.write_text(rendered, encoding="utf-8")
+    return [latest_path, dated_path]
+
+
+def write_live_shadow_attribution_artifacts(snapshot_path: str, payload: dict[str, Any]) -> list[Path]:
+    snapshot = Path(snapshot_path)
+    diagnostics_dir = snapshot.parent / "diagnostics"
+    artifact = build_live_shadow_attribution_artifact(payload)
+    trading_day = str(artifact["trading_day"])
+    latest_path = diagnostics_dir / "live_shadow_attribution_latest.json"
+    dated_path = diagnostics_dir / f"live_shadow_attribution_{trading_day}.json"
 
     diagnostics_dir.mkdir(parents=True, exist_ok=True)
     rendered = json.dumps(artifact, indent=2)
@@ -589,8 +833,8 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
             "regime": regime.to_dict(),
-            "scout_signals": [row.to_dict() for row in scout_signals[:8]],
-            "forge_candidates": [row.to_dict() for row in forge_candidates[:10]],
+            "scout_signals": [row.to_dict() for row in scout_signals],
+            "forge_candidates": [row.to_dict() for row in forge_candidates],
             "council": council.to_dict(),
             "diagnostics": {
                 "scout": scout_diagnostics,
@@ -614,6 +858,8 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             },
         }
         payload["promotion_readiness"] = build_promotion_readiness(payload)
+        payload["attribution"] = build_live_shadow_attribution_artifact(payload)
+        _validate_snapshot_contract(payload)
         return payload
     except Exception as exc:
         log.error("Pipeline crashed: %s", exc, exc_info=True)

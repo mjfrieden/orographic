@@ -57,6 +57,12 @@ Each scan also appends a side-aware Scout shadow disagreement ledger beside the 
 
 This ledger records where the shadow side-aware Scout preferred call, put, or no-trade differently from active Scout, plus whether the symbol reached Forge, live board, or shadow board.
 
+Each scan also appends a rolling board history ledger beside the diagnostics:
+
+- `web/data/diagnostics/board_recommendation_history.json`
+
+This ledger records each run's live board, shadow board, regime, and board counts so recommendations can be tracked over time instead of being overwritten by the newest snapshot.
+
 Optionally capture standing-position value on each run into a private local file:
 
 ```bash

@@ -342,9 +342,11 @@ def score_candidates(
         candidate.liquidity_score = round(liquidity, 4)
         candidate.regime_alignment_score = round(regime_alignment, 4)
         candidate.prob_positive_option_pnl = round(_clip(float(prob_positive[i])), 4)
+        candidate.payoff_edge_score = candidate.prob_positive_option_pnl
         candidate.expected_option_return_pct_model = round(float(expected_return[i]), 4)
         candidate.expected_option_return_pct_rank = round(float(expected_return_rank[i]), 4)
         candidate.prob_exceeds_breakeven = round(_clip(float(prob_breakeven[i])), 4)
+        candidate.breakeven_edge_score = candidate.prob_exceeds_breakeven
         candidate.max_favorable_excursion_before_expiry = round(float(mfe[i]), 4)
         candidate.adverse_excursion_risk = round(float(adverse[i]), 4)
         candidate.payoff_model_score = round(final_score, 4)

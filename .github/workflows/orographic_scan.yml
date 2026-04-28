@@ -58,6 +58,18 @@ jobs:
           summary = payload.get("summary", {})
           if summary.get("scout_signal_count", 0) <= 0:
               raise SystemExit("snapshot has no Scout signals")
+          council = payload.get("council", {})
+          council_summary = council.get("summary", {})
+          if summary.get("scout_signal_count") != len(payload.get("scout_signals", [])):
+              raise SystemExit("snapshot scout signal count does not match stored rows")
+          if summary.get("forge_candidate_count") != len(payload.get("forge_candidates", [])):
+              raise SystemExit("snapshot forge candidate count does not match stored rows")
+          if council_summary.get("candidate_count") != len(payload.get("forge_candidates", [])):
+              raise SystemExit("council candidate count does not match forge candidates")
+          if council_summary.get("live_count") != len(council.get("live_board", [])):
+              raise SystemExit("council live count does not match live board")
+          if council_summary.get("shadow_count") != len(council.get("shadow_board", [])):
+              raise SystemExit("council shadow count does not match shadow board")
           artifacts = payload.get("model_artifacts", {})
           missing = [name for name, row in artifacts.items() if not row.get("present") or not row.get("sha256")]
           if missing:
@@ -65,6 +77,15 @@ jobs:
           ledger = Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json")
           if not ledger.exists():
               raise SystemExit("side-aware Scout shadow ledger was not written")
+          attribution = payload.get("attribution", {})
+          if attribution.get("artifact") != "live_shadow_attribution":
+              raise SystemExit("snapshot attribution artifact missing")
+          attribution_file = Path("web/data/diagnostics/live_shadow_attribution_latest.json")
+          if not attribution_file.exists():
+              raise SystemExit("live/shadow attribution artifact was not written")
+          board_history = Path("web/data/diagnostics/board_recommendation_history.json")
+          if not board_history.exists():
+              raise SystemExit("board recommendation history was not written")
           print("Snapshot regression gates passed.")
           PY
 
@@ -80,8 +101,26 @@ jobs:
             exit 0
           fi
           git commit -m "chore: refresh Orographic snapshot"
-          git push
           echo "snapshot_changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push refreshed snapshot to GitHub
+        id: push_snapshot
+        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' }}
+        continue-on-error: true
+        run: |
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Snapshot push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "Snapshot push failed after ${attempt} attempts." >&2
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 15))
+            echo "Retrying snapshot push in ${sleep_seconds}s..."
+            sleep "${sleep_seconds}"
+          done
 
       - name: Set up Node
         if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
@@ -123,3 +162,9 @@ jobs:
             --header "Authorization: Bearer ${OROGRAPHIC_INTERNAL_CAPTURE_TOKEN}" \
             --header "Content-Type: application/json" \
             --data @/tmp/orographic-position-capture.json
+
+      - name: Fail when snapshot push did not reach GitHub
+        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && steps.push_snapshot.outcome == 'failure' }}
+        run: |
+          echo "Snapshot deploy completed, but GitHub push never succeeded." >&2
+          exit 1

@@ -9,11 +9,13 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from engine.orographic.pipeline import (
+    append_board_recommendation_history,
     PipelineConfig,
     append_side_aware_shadow_ledger,
     load_universe,
     run_scan,
     write_forge_rejection_waterfall_artifacts,
+    write_live_shadow_attribution_artifacts,
     write_snapshot,
 )
 from engine.orographic.positions import append_position_history, fetch_position_snapshot
@@ -71,6 +73,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable writing the side-aware Scout shadow disagreement ledger.",
     )
+    parser.add_argument(
+        "--board-history-output",
+        default="",
+        help="Optional path for a rolling live/shadow board recommendation history. Defaults beside the snapshot diagnostics.",
+    )
+    parser.add_argument(
+        "--board-history-max-entries",
+        type=int,
+        default=500,
+        help="Maximum number of scan entries to retain in the board recommendation history.",
+    )
+    parser.add_argument(
+        "--no-board-history",
+        action="store_true",
+        help="Disable writing the rolling board recommendation history.",
+    )
     parser.add_argument("--live-size", type=int, default=3)
     parser.add_argument("--shadow-size", type=int, default=3)
     return parser.parse_args()
@@ -97,6 +115,24 @@ def main() -> int:
         diagnostic_paths[0],
         diagnostic_paths[1],
     )
+    attribution_paths = write_live_shadow_attribution_artifacts(args.output, payload)
+    log.info(
+        "Wrote live/shadow attribution artifacts to %s and %s.",
+        attribution_paths[0],
+        attribution_paths[1],
+    )
+    if not args.no_board_history:
+        board_history_path = (
+            Path(args.board_history_output)
+            if args.board_history_output.strip()
+            else Path(args.output).parent / "diagnostics" / "board_recommendation_history.json"
+        )
+        written = append_board_recommendation_history(
+            board_history_path,
+            payload,
+            max_entries=max(int(args.board_history_max_entries), 1),
+        )
+        log.info("Updated board recommendation history at %s.", written)
     if not args.no_shadow_ledger:
         ledger_path = (
             Path(args.shadow_ledger_output)

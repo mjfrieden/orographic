@@ -504,6 +504,9 @@ def run_experiment(
         "backtest_end": end_date.isoformat(),
         "months": months,
         "symbols": symbols,
+        "recommended_default_variant": "council_cost_cap",
+        "recommended_default_variant_label": "Council + Cost Cap",
+        "experimental_variants": ["council_cost_cap_symbol_priors"],
         "config": {
             "budget_per_trade_usd": base_budget_usd,
             "hard_cost_ceiling_usd": hard_cost_ceiling_usd,

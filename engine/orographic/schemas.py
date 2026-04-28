@@ -76,11 +76,16 @@ class ContractCandidate:
     liquidity_score: float | None = None
     regime_alignment_score: float | None = None
     prob_positive_option_pnl: float | None = None
+    payoff_edge_score: float | None = None
     expected_option_return_pct_model: float | None = None
     expected_option_return_pct_rank: float | None = None
     prob_exceeds_breakeven: float | None = None
+    breakeven_edge_score: float | None = None
     max_favorable_excursion_before_expiry: float | None = None
     adverse_excursion_risk: float | None = None
+    friction_buffer_pct: float | None = None
+    expected_edge_after_friction_pct: float | None = None
+    friction_gate_passed: bool | None = None
     payoff_model_score: float | None = None
     final_candidate_score: float | None = None
     learned_rank_score: float | None = None

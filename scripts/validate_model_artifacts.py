@@ -90,10 +90,31 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         side = scout.get("side_aware_output", {})
         if side.get("mode") != "trained_option_payoff_three_class":
             errors.append("scout_model_card: side-aware output is not option-payoff trained")
+        primary_target = scout.get("primary_target", {})
+        primary_mode = primary_target.get("mode")
+        if not primary_mode:
+            target_text = str(scout.get("target") or "").lower()
+            if "strict-real" in target_text and "option" in target_text:
+                primary_mode = "strict_real_option_direction"
+            elif target_text:
+                primary_mode = "underlying_forward_return"
         metrics = side.get("training_metrics", {})
         source_counts = (metrics.get("source_metadata") or {}).get("class_counts") or {}
         if int(source_counts.get("put_edge", 0) or 0) < 1:
             errors.append("scout_model_card: side-aware source has no put_edge examples")
+        if primary_mode == "strict_real_option_direction":
+            balance_report = primary_target.get("balance_report") or {}
+            minority_share = balance_report.get("minority_share")
+            if minority_share is None or float(minority_share) < 0.20:
+                errors.append("scout_model_card: strict-real option-direction target has insufficient minority-side coverage")
+            segment_sides = (scout.get("observability", {}).get("segments", {}).get("by_side") or {}).keys()
+            segment_sides = {str(side) for side in segment_sides}
+            if not {"call", "put"}.issubset(segment_sides):
+                errors.append("scout_model_card: strict-real option-direction target collapsed to a single predicted side")
+            actual_sides = (scout.get("observability", {}).get("segments", {}).get("by_actual_side") or {}).keys()
+            actual_sides = {str(side) for side in actual_sides}
+            if not {"call_edge", "put_edge"}.issubset(actual_sides):
+                errors.append("scout_model_card: strict-real option-direction target lacks actual-side observability coverage")
     else:
         errors.append("scout_model_card: file missing")
 

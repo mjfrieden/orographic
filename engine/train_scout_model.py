@@ -55,6 +55,12 @@ SIDE_MODEL_PATH = MODEL_DIR / "scout_side_model.pkl"
 SCALER_PATH = MODEL_DIR / "scout_scaler.pkl"
 MODEL_CARD_PATH = MODEL_DIR / "scout_model_card.json"
 TRAINING_UNIVERSE_FILE = Path(__file__).with_name("sample_universe.txt")
+DEFAULT_OPTION_OUTCOME_INPUT_CANDIDATES = [
+    Path("output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"),
+    Path("output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_12mo.json"),
+]
+PRIMARY_TARGET_UNDERLYING = "underlying_forward_return"
+PRIMARY_TARGET_OPTION_DIRECTION = "strict_real_option_direction"
 
 
 def _load_training_universe() -> list[str]:
@@ -73,6 +79,10 @@ def _load_training_universe() -> list[str]:
 TRAINING_UNIVERSE = _load_training_universe()
 SIDE_CLASS_MAP = {0: "put_edge", 1: "no_trade", 2: "call_edge"}
 SIDE_CLASS_TO_ID = {value: key for key, value in SIDE_CLASS_MAP.items()}
+
+
+def _default_option_outcome_inputs() -> list[Path]:
+    return [path for path in DEFAULT_OPTION_OUTCOME_INPUT_CANDIDATES if path.exists()]
 
 
 # ── Feature engineering ──────────────────────────────────────────────────────
@@ -223,12 +233,19 @@ def _apply_calibrator(raw_probs: np.ndarray, calibrator: object | None, method: 
     return raw_probs
 
 
-def _probability_buckets(probs: np.ndarray, y: np.ndarray, fwd_returns: np.ndarray, buckets: int = 10) -> list[dict[str, float | int | str]]:
+def _probability_buckets(
+    probs: np.ndarray,
+    y: np.ndarray,
+    realized_outcomes: np.ndarray,
+    *,
+    outcome_label: str = "realized_target_value",
+    buckets: int = 10,
+) -> list[dict[str, float | int | str]]:
     frame = pd.DataFrame(
         {
             "prob": probs,
             "label": y,
-            "fwd_return": fwd_returns,
+            "realized_outcome": realized_outcomes,
         }
     ).dropna()
     if frame.empty:
@@ -244,7 +261,7 @@ def _probability_buckets(probs: np.ndarray, y: np.ndarray, fwd_returns: np.ndarr
                 "rows": int(len(group)),
                 "mean_pred_prob": round(float(group["prob"].mean()), 4),
                 "realized_positive_rate": round(float(group["label"].mean()), 4),
-                "avg_fwd_5d_return": round(float(group["fwd_return"].mean()), 4),
+                f"avg_{outcome_label}": round(float(group["realized_outcome"].mean()), 4),
             }
         )
     return rows
@@ -253,15 +270,21 @@ def _probability_buckets(probs: np.ndarray, y: np.ndarray, fwd_returns: np.ndarr
 def _segment_report(
     probs: np.ndarray,
     y: np.ndarray,
-    fwd_returns: np.ndarray,
+    realized_outcomes: np.ndarray,
     combined: pd.DataFrame,
+    *,
+    outcome_label: str = "realized_target_value",
+    class_names: dict[int, str] | None = None,
 ) -> dict[str, Any]:
+    class_names = class_names or {0: "put", 1: "call"}
+    actual_side = np.array([class_names.get(int(label), str(label)) for label in y], dtype=object)
     frame = pd.DataFrame(
         {
             "prob": probs,
             "label": y,
-            "fwd_return": fwd_returns,
+            "realized_outcome": realized_outcomes,
             "predicted_side": np.where(probs >= 0.5, "call", "put"),
+            "actual_side": actual_side,
             "regime": np.where(
                 combined.get("spy_mom_20d", pd.Series(0.0, index=combined.index)).values >= 0.02,
                 "risk_on",
@@ -273,8 +296,18 @@ def _segment_report(
             ),
         }
     ).replace([np.inf, -np.inf], np.nan).dropna()
-    report: dict[str, Any] = {"by_side": {}, "by_regime": {}, "by_side_regime": {}}
-    for key, target in (("predicted_side", "by_side"), ("regime", "by_regime")):
+    report: dict[str, Any] = {
+        "by_side": {},
+        "by_regime": {},
+        "by_side_regime": {},
+        "by_actual_side": {},
+        "by_actual_side_regime": {},
+    }
+    for key, target in (
+        ("predicted_side", "by_side"),
+        ("regime", "by_regime"),
+        ("actual_side", "by_actual_side"),
+    ):
         for value, group in frame.groupby(key):
             if len(group) < 10:
                 continue
@@ -283,7 +316,7 @@ def _segment_report(
                 "positive_rate": round(float(group["label"].mean()), 4),
                 "avg_pred_prob": round(float(group["prob"].mean()), 4),
                 "brier": round(float(brier_score_loss(group["label"], group["prob"])), 4),
-                "avg_fwd_5d_return": round(float(group["fwd_return"].mean()), 4),
+                f"avg_{outcome_label}": round(float(group["realized_outcome"].mean()), 4),
             }
     for (side, regime), group in frame.groupby(["predicted_side", "regime"]):
         if len(group) < 10:
@@ -293,19 +326,126 @@ def _segment_report(
             "positive_rate": round(float(group["label"].mean()), 4),
             "avg_pred_prob": round(float(group["prob"].mean()), 4),
             "brier": round(float(brier_score_loss(group["label"], group["prob"])), 4),
-            "avg_fwd_5d_return": round(float(group["fwd_return"].mean()), 4),
+            f"avg_{outcome_label}": round(float(group["realized_outcome"].mean()), 4),
         }
+    for (side, regime), group in frame.groupby(["actual_side", "regime"]):
+        if len(group) < 10:
+            continue
+        report["by_actual_side_regime"][f"{side}_{regime}"] = {
+            "rows": int(len(group)),
+            "positive_rate": round(float(group["label"].mean()), 4),
+            "avg_pred_prob": round(float(group["prob"].mean()), 4),
+            "brier": round(float(brier_score_loss(group["label"], group["prob"])), 4),
+            f"avg_{outcome_label}": round(float(group["realized_outcome"].mean()), 4),
+        }
+    report["target_value_field"] = outcome_label
     return report
 
 
 def _coverage_report(combined: pd.DataFrame) -> dict[str, Any]:
     symbol_counts = combined["symbol"].value_counts().to_dict() if "symbol" in combined else {}
+    date_series = pd.Series(dtype="datetime64[ns]")
+    for key in ("primary_label_date", "fwd_5d_label_date", "date"):
+        if key in combined.columns:
+            date_series = pd.to_datetime(combined[key], errors="coerce").dropna()
+            if not date_series.empty:
+                break
+    if date_series.empty and isinstance(combined.index, pd.DatetimeIndex):
+        date_series = pd.Series(combined.index).dropna()
     return {
         "symbols": int(len(symbol_counts)),
         "rows": int(len(combined)),
         "rows_by_symbol": {str(k): int(v) for k, v in sorted(symbol_counts.items())},
-        "date_start": str(combined.index.min().date()) if len(combined) else None,
-        "date_end": str(combined.index.max().date()) if len(combined) else None,
+        "date_start": str(date_series.min().date()) if not date_series.empty else None,
+        "date_end": str(date_series.max().date()) if not date_series.empty else None,
+    }
+
+
+def _infer_regime_labels(frame: pd.DataFrame) -> np.ndarray:
+    spy_mom = pd.to_numeric(frame.get("spy_mom_20d", pd.Series(0.0, index=frame.index)), errors="coerce").fillna(0.0)
+    return np.where(
+        spy_mom.values >= 0.02,
+        "risk_on",
+        np.where(spy_mom.values <= -0.02, "risk_off", "neutral"),
+    )
+
+
+def _balanced_sample_weights(y: np.ndarray, regime_labels: np.ndarray) -> np.ndarray:
+    if len(y) == 0:
+        return np.array([], dtype=float)
+    weights = np.ones(len(y), dtype=float)
+
+    class_counts = pd.Series(y).value_counts().to_dict()
+    total = max(len(y), 1)
+    class_weight_map = {
+        int(cls): total / (max(len(class_counts), 1) * count)
+        for cls, count in class_counts.items()
+        if count > 0
+    }
+    for idx, cls in enumerate(y):
+        weights[idx] *= class_weight_map.get(int(cls), 1.0)
+
+    grouped = pd.DataFrame({"label": y, "regime": regime_labels})
+    for cls in sorted(grouped["label"].unique().tolist()):
+        class_mask = grouped["label"] == cls
+        class_total = int(class_mask.sum())
+        if class_total <= 0:
+            continue
+        regime_counts = grouped.loc[class_mask, "regime"].value_counts().to_dict()
+        regime_weight_map = {
+            str(regime): class_total / (max(len(regime_counts), 1) * count)
+            for regime, count in regime_counts.items()
+            if count > 0
+        }
+        for idx in grouped.index[class_mask]:
+            weights[int(idx)] *= regime_weight_map.get(str(grouped.at[idx, "regime"]), 1.0)
+
+    mean_weight = float(np.mean(weights)) if len(weights) else 1.0
+    if mean_weight > 0:
+        weights = weights / mean_weight
+    return weights
+
+
+def _class_balance_report(y: np.ndarray, regime_labels: np.ndarray, *, class_names: dict[int, str]) -> dict[str, Any]:
+    if len(y) == 0:
+        return {
+            "rows": 0,
+            "class_counts": {},
+            "class_shares": {},
+            "minority_share": None,
+            "regime_counts": {},
+            "class_regime_counts": {},
+        }
+    label_series = pd.Series(y, name="label")
+    regime_series = pd.Series(regime_labels, name="regime")
+    class_counts_raw = label_series.value_counts().sort_index().to_dict()
+    class_counts = {
+        class_names.get(int(cls), str(cls)): int(count)
+        for cls, count in class_counts_raw.items()
+    }
+    total = max(int(len(label_series)), 1)
+    class_shares = {
+        name: round(count / total, 4)
+        for name, count in class_counts.items()
+    }
+    minority_share = min(class_shares.values()) if class_shares else None
+    regime_counts_raw = regime_series.value_counts().to_dict()
+    class_regime_counts: dict[str, dict[str, int]] = {}
+    for cls, name in class_names.items():
+        mask = label_series == cls
+        if not mask.any():
+            continue
+        class_regime_counts[name] = {
+            str(regime): int(count)
+            for regime, count in regime_series[mask].value_counts().to_dict().items()
+        }
+    return {
+        "rows": int(len(label_series)),
+        "class_counts": class_counts,
+        "class_shares": class_shares,
+        "minority_share": round(float(minority_share), 4) if minority_share is not None else None,
+        "regime_counts": {str(regime): int(count) for regime, count in regime_counts_raw.items()},
+        "class_regime_counts": class_regime_counts,
     }
 
 
@@ -416,6 +556,37 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
     return labeled, metadata
 
 
+def _merge_option_outcome_labels(combined: pd.DataFrame, option_labels: pd.DataFrame) -> pd.DataFrame:
+    if option_labels.empty:
+        return pd.DataFrame()
+    mergeable = combined.copy()
+    feature_dates = pd.to_datetime(mergeable.index)
+    if getattr(feature_dates, "tz", None) is not None:
+        feature_dates = feature_dates.tz_convert(None)
+    mergeable["date"] = feature_dates.normalize()
+    return mergeable.merge(
+        option_labels,
+        on=["symbol", "date"],
+        how="inner",
+        validate="many_to_one",
+    )
+
+
+def _directional_option_training_frame(merged: pd.DataFrame) -> pd.DataFrame:
+    if merged.empty:
+        return merged.copy()
+    directional = merged.copy()
+    if directional.empty:
+        return directional.copy()
+    call_pnl = pd.to_numeric(directional["call_avg_pnl_pct"], errors="coerce").fillna(-1.0)
+    put_pnl = pd.to_numeric(directional["put_avg_pnl_pct"], errors="coerce").fillna(-1.0)
+    directional["primary_label"] = (directional["side_label"] == "call_edge").astype(int)
+    directional["primary_label"] = (call_pnl >= put_pnl).astype(int)
+    directional["primary_outcome_value"] = call_pnl - put_pnl
+    directional["primary_label_date"] = pd.to_datetime(directional["date"], errors="coerce")
+    return directional
+
+
 def _side_cv_report(X: np.ndarray, y: np.ndarray, dates: np.ndarray) -> dict[str, Any]:
     if len(X) < 80 or len(set(y.tolist())) < 2:
         return {"folds": 0, "reason": "insufficient_examples_or_classes"}
@@ -480,6 +651,7 @@ def train(
     *,
     calibration_method: str = "isotonic",
     option_outcome_inputs: list[Path] | None = None,
+    primary_target: str = PRIMARY_TARGET_UNDERLYING,
 ) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -536,10 +708,78 @@ def train(
         FEATURE_COLS += ["spy_mom_5d", "spy_mom_20d", "spy_rv20", "rel_strength_20d"]
 
     available = [c for c in FEATURE_COLS if c in combined.columns]
-    X = combined[available].values
-    y = combined["label"].values
+    option_labels = pd.DataFrame()
+    option_label_metadata: dict[str, Any] = {}
+    if option_outcome_inputs:
+        option_labels, option_label_metadata = _load_option_outcome_labels(option_outcome_inputs, cutoff=cutoff)
 
-    log.info("Label distribution: %.1f%% positive (bullish)", 100 * y.mean())
+    primary_training_frame = combined.copy()
+    primary_target_effective = primary_target
+    target_description = "probability that forward 5-day underlying return is positive"
+    positive_class_name = "bullish"
+    primary_outcome_label = "fwd_5d_return"
+    primary_source_metadata: dict[str, Any] = {}
+    if primary_target == PRIMARY_TARGET_OPTION_DIRECTION:
+        merged_option_labels = _merge_option_outcome_labels(combined, option_labels)
+        directional_frame = _directional_option_training_frame(merged_option_labels)
+        if len(directional_frame) >= 80 and directional_frame["primary_label"].nunique() >= 2:
+            primary_training_frame = directional_frame
+            target_description = "probability that strict-real call-side option edge beats put-side option edge"
+            positive_class_name = "call_edge"
+            primary_outcome_label = "directional_option_edge_spread"
+            primary_source_metadata = {
+                **option_label_metadata,
+                "merged_symbol_dates": int(len(merged_option_labels)),
+                "directional_symbol_dates": int(len(directional_frame)),
+                "class_counts": {
+                    "put_edge": int((directional_frame["primary_label"] == 0).sum()),
+                    "call_edge": int((directional_frame["primary_label"] == 1).sum()),
+                },
+            }
+        else:
+            log.warning(
+                "Primary option-direction target requested but insufficient strict-real labels were available (%d directional rows, %d classes). Falling back to underlying direction target.",
+                len(directional_frame),
+                int(directional_frame["primary_label"].nunique()) if "primary_label" in directional_frame else 0,
+            )
+            primary_target_effective = PRIMARY_TARGET_UNDERLYING
+
+    if primary_target_effective == PRIMARY_TARGET_UNDERLYING:
+        primary_training_frame["primary_label"] = primary_training_frame["label"].astype(int)
+        primary_training_frame["primary_outcome_value"] = primary_training_frame["fwd_5d_return"]
+        primary_training_frame["primary_label_date"] = pd.to_datetime(
+            primary_training_frame["fwd_5d_label_date"],
+            errors="coerce",
+        )
+        primary_source_metadata = {
+            "rows": int(len(primary_training_frame)),
+            "positive_label_rate": round(float(primary_training_frame["primary_label"].mean()), 4),
+        }
+
+    X = primary_training_frame[available].values
+    y = primary_training_frame["primary_label"].to_numpy(dtype=int)
+    realized_target_values = primary_training_frame["primary_outcome_value"].to_numpy(dtype=float)
+    primary_regime_labels = _infer_regime_labels(primary_training_frame)
+    primary_class_names = (
+        {0: "put_edge", 1: positive_class_name}
+        if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
+        else {0: "bearish", 1: "bullish"}
+    )
+    primary_health = _class_balance_report(y, primary_regime_labels, class_names=primary_class_names)
+    primary_sample_weights = (
+        _balanced_sample_weights(y, primary_regime_labels)
+        if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
+        else np.ones(len(y), dtype=float)
+    )
+    primary_source_metadata["balance_report"] = primary_health
+
+    log.info(
+        "Primary target: %s (%d rows, %.1f%% positive %s)",
+        primary_target_effective,
+        len(primary_training_frame),
+        100 * y.mean(),
+        positive_class_name,
+    )
 
     # Time-series aware cross-validation (no lookahead)
     tscv = TimeSeriesSplit(n_splits=5)
@@ -553,6 +793,7 @@ def train(
     for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
         X_tr, X_val = X[train_idx], X[val_idx]
         y_tr, y_val = y[train_idx], y[val_idx]
+        weight_tr = primary_sample_weights[train_idx]
 
         scaler = RobustScaler()
         X_tr_s  = scaler.fit_transform(X_tr)
@@ -570,13 +811,18 @@ def train(
             random_state=42,
             verbose=-1,
         )
-        model.fit(X_tr_s, y_tr)
+        model.fit(X_tr_s, y_tr, sample_weight=weight_tr)
         probs = model.predict_proba(X_val_s)[:, 1]
         oof_raw_probs[val_idx] = probs
         auc = roc_auc_score(y_val, probs)
         # IC = Pearson correlation between predicted proba and realized fwd return
-        fwd_returns = combined["fwd_5d_return"].values[val_idx]
-        ic = float(np.corrcoef(probs, fwd_returns)[0, 1]) if len(probs) > 1 else 0.0
+        target_values = realized_target_values[val_idx]
+        if len(probs) > 1:
+            ic = float(np.corrcoef(probs, target_values)[0, 1])
+            if not np.isfinite(ic):
+                ic = 0.0
+        else:
+            ic = 0.0
 
         auc_scores.append(auc)
         ic_scores.append(ic)
@@ -607,10 +853,10 @@ def train(
     calibrator = _fit_calibrator(oof_raw_probs[valid_oof], y[valid_oof], calibration_method)
     oof_calibrated = np.full(len(X), np.nan, dtype=float)
     oof_calibrated[valid_oof] = _apply_calibrator(
-        oof_raw_probs[valid_oof],
-        calibrator,
-        calibration_method,
-    )
+            oof_raw_probs[valid_oof],
+            calibrator,
+            calibration_method,
+        )
     calibration_metrics = {
         "method": calibration_method,
         "oof_rows": int(valid_oof.sum()),
@@ -621,18 +867,29 @@ def train(
         "probability_buckets": _probability_buckets(
             oof_calibrated[valid_oof],
             y[valid_oof],
-            combined["fwd_5d_return"].values[valid_oof],
+            realized_target_values[valid_oof],
+            outcome_label=primary_outcome_label,
         ),
     }
     observability = {
-        "coverage": _coverage_report(combined),
+        "coverage": _coverage_report(primary_training_frame),
         "segments": _segment_report(
             oof_calibrated[valid_oof],
             y[valid_oof],
-            combined["fwd_5d_return"].values[valid_oof],
-            combined.iloc[np.where(valid_oof)[0]],
+            realized_target_values[valid_oof],
+            primary_training_frame.iloc[np.where(valid_oof)[0]],
+            outcome_label=primary_outcome_label,
+            class_names=primary_class_names,
         ),
-        "feature_drift_baseline": _drift_baseline(combined, available),
+        "feature_drift_baseline": _drift_baseline(primary_training_frame, available),
+        "primary_target": {
+            "mode": primary_target_effective,
+            "description": target_description,
+            "positive_class_name": positive_class_name,
+            "rows": int(len(primary_training_frame)),
+            "source_metadata": primary_source_metadata,
+            "balance_report": primary_health,
+        },
     }
 
     # ── Final model: train on all data ──
@@ -652,7 +909,7 @@ def train(
         random_state=42,
         verbose=-1,
     )
-    final_model.fit(X_final, y)
+    final_model.fit(X_final, y, sample_weight=primary_sample_weights)
 
     side_threshold = 0.01
     side_target = "underlying_forward_return"
@@ -751,6 +1008,9 @@ def train(
             "feature_cols": available,
             "calibrator": calibrator,
             "calibration_method": calibration_method,
+            "primary_target": primary_target_effective,
+            "target_description": target_description,
+            "positive_class_name": positive_class_name,
         },
         SCALER_PATH,
     )
@@ -773,7 +1033,16 @@ def train(
         "symbols_trained": sorted({str(frame["symbol"].iloc[0]) for frame in all_features if "symbol" in frame}),
         "rows": int(len(X)),
         "positive_label_rate": round(float(y.mean()), 4),
-        "target": "probability that forward 5-day underlying return is positive",
+        "target": target_description,
+        "primary_target": {
+            "mode": primary_target_effective,
+            "description": target_description,
+            "positive_class_name": positive_class_name,
+            "outcome_value_field": primary_outcome_label,
+            "rows": int(len(primary_training_frame)),
+            "source_metadata": primary_source_metadata,
+            "balance_report": primary_health,
+        },
         "side_aware_output": {
             "mode": "trained_option_payoff_three_class"
             if side_target == "strict_real_option_payoff"
@@ -807,7 +1076,11 @@ def train(
             "scaler_sha256": _sha256_file(SCALER_PATH),
         },
         "limitations": [
-            "Directional Scout target is underlying stock return, not option payoff.",
+            (
+                "Primary Scout target is strict-real option-direction edge, but no-trade abstention still relies on the side-aware Scout artifact and downstream Council gates."
+                if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
+                else "Directional Scout target is underlying stock return, not option payoff."
+            ),
             "Payoff-aware contract ranking is handled by the second-stage payoff model when available.",
         ],
     }
@@ -822,13 +1095,15 @@ def train(
     print(f"  Symbols trained:  {len(all_features)}")
     print(f"  Total samples:    {len(X)}")
     print(f"  Features:         {len(available)}")
+    print(f"  Primary target:   {primary_target_effective}")
     print(f"  Mean AUC (CV):    {np.mean(auc_scores):.4f}")
     print(f"  Mean IC  (CV):    {np.mean(ic_scores):.4f}")
     print(f"  Calibration:      {calibration_method}")
     print(f"  OOF Brier:        {calibration_metrics['calibrated_brier']:.4f}")
     print(f"  Side model BAcc:  {side_training_metrics['training_balanced_accuracy']:.4f}")
     print()
-    print(classification_report(y, preds, target_names=["bearish", "bullish"]))
+    target_names = ["put_edge", positive_class_name] if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION else ["bearish", "bullish"]
+    print(classification_report(y, preds, target_names=target_names))
     print(f"\n  Feature importances (top 10):")
     for feat, imp in importances[:10]:
         print(f"    {feat:<25s}  {imp:>6.0f}")
@@ -855,11 +1130,22 @@ def main() -> None:
         action="append",
         type=Path,
         default=None,
-        help="Strict-real backtest JSON used to train side-aware Scout on option payoff outcomes. May be repeated.",
+        help="Strict-real backtest JSON used to train Scout targets from option payoff outcomes. May be repeated.",
+    )
+    parser.add_argument(
+        "--primary-target",
+        choices=[PRIMARY_TARGET_UNDERLYING, PRIMARY_TARGET_OPTION_DIRECTION],
+        default=None,
+        help="Primary Scout target. Defaults to strict-real option direction when option-outcome inputs are available.",
     )
     args = parser.parse_args()
 
     cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
+    option_inputs = args.option_outcome_input or _default_option_outcome_inputs()
+    primary_target = (
+        args.primary_target
+        or (PRIMARY_TARGET_OPTION_DIRECTION if option_inputs else PRIMARY_TARGET_UNDERLYING)
+    )
 
     symbols = (
         [s.strip().upper() for s in args.symbols.split(",") if s.strip()]
@@ -871,7 +1157,8 @@ def main() -> None:
         args.years,
         cutoff_dt,
         calibration_method=args.calibration,
-        option_outcome_inputs=args.option_outcome_input,
+        option_outcome_inputs=option_inputs,
+        primary_target=primary_target,
     )
 
 

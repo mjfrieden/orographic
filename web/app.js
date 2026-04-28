@@ -685,11 +685,21 @@ function buildTradeCard(candidate, regime, lane) {
           <span class="card-stat-value">${pct(candidate.expected_return_pct, 0)}</span>
         </div>
         ${
-          candidate.prob_positive_option_pnl != null
+          candidate.payoff_edge_score != null
             ? `
         <div class="card-stat">
-          <span class="card-stat-label">PnL Prob</span>
-          <span class="card-stat-value">${pct(candidate.prob_positive_option_pnl, 0)}</span>
+          <span class="card-stat-label">Payoff Edge</span>
+          <span class="card-stat-value">${pct(candidate.payoff_edge_score, 0)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          candidate.expected_edge_after_friction_pct != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Edge After Friction</span>
+          <span class="card-stat-value">${pct(candidate.expected_edge_after_friction_pct, 0)}</span>
         </div>
         `
             : ""
@@ -1003,6 +1013,74 @@ function renderForgeDiagnostics(payload) {
   }
 }
 
+function attributionCandidateSummary(row) {
+  if (!row || typeof row !== "object") return "—";
+  const parts = [];
+  if (row.symbol) parts.push(`${row.symbol} ${String(row.option_type || "").toUpperCase()}`.trim());
+  if (Number.isFinite(Number(row.forge_score))) parts.push(`forge ${Number(row.forge_score).toFixed(2)}`);
+  if (Number.isFinite(Number(row.expected_edge_after_friction_pct))) {
+    parts.push(`post-friction ${pct(row.expected_edge_after_friction_pct, 0)}`);
+  }
+  const flags = Array.isArray(row.council_risk_flags) ? row.council_risk_flags.filter(Boolean) : [];
+  if (flags.length) parts.push(flags.slice(0, 2).join(" · ").replaceAll("_", " "));
+  const notes = Array.isArray(row.notes) ? row.notes.filter(Boolean) : [];
+  if (notes.length) parts.push(notes[0]);
+  return parts.join(" · ") || "—";
+}
+
+function attributionFrictionSummary(row) {
+  if (!row || typeof row !== "object") return "—";
+  const parts = [];
+  if (row.symbol) parts.push(row.symbol);
+  if (row.contract_symbol) parts.push(String(row.contract_symbol).slice(0, 18));
+  if (Number.isFinite(Number(row.expected_edge_after_friction_pct))) {
+    parts.push(`edge ${pct(row.expected_edge_after_friction_pct, 0)}`);
+  }
+  if (Number.isFinite(Number(row.friction_buffer_pct))) {
+    parts.push(`buffer ${pct(row.friction_buffer_pct, 0)}`);
+  }
+  return parts.join(" · ") || "—";
+}
+
+function renderLiveShadowAttribution(payload) {
+  const attributionEl = document.getElementById("live-shadow-attribution");
+  if (!attributionEl) return;
+
+  const attribution = payload?.attribution || {};
+  const summary = attribution.summary || {};
+  const holdouts = Array.isArray(attribution.council_holdouts) ? attribution.council_holdouts : [];
+  const frictionVetoes = Array.isArray(attribution.friction_vetoes) ? attribution.friction_vetoes : [];
+
+  if (!Object.keys(summary).length) {
+    attributionEl.innerHTML = summaryItemHtml("Status", "No attribution artifact in this scan");
+    return;
+  }
+
+  attributionEl.innerHTML = [
+    summaryItemHtml("Live Mix", compactCounts(summary.live_side_mix)),
+    summaryItemHtml("Shadow Mix", compactCounts(summary.shadow_side_mix)),
+    summaryItemHtml("Friction Vetoes", integer(summary.friction_veto_count)),
+    summaryItemHtml("Dedupe Removed", integer(summary.dedupe_removed_count)),
+    summaryItemHtml("Holdouts", integer(summary.council_holdout_count)),
+    summaryItemHtml(
+      "Live Avg Edge",
+      pctOrDash(summary.live_avg_edge_after_friction_pct),
+    ),
+    summaryItemHtml(
+      "Shadow Avg Edge",
+      pctOrDash(summary.shadow_avg_edge_after_friction_pct),
+    ),
+    summaryItemHtml(
+      "Top Holdout",
+      holdouts.length ? attributionCandidateSummary(holdouts[0]) : "No unselected Forge holdouts",
+    ),
+    summaryItemHtml(
+      "Top Friction Veto",
+      frictionVetoes.length ? attributionFrictionSummary(frictionVetoes[0]) : "No friction vetoes",
+    ),
+  ].join("");
+}
+
 function promotionStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized.includes("production") || normalized === "pass") return "is-pass";
@@ -1238,7 +1316,7 @@ async function renderBoard(payload) {
         .map((row, i) =>
           rowHtml(
             `${row.symbol} ${String(row.direction).toUpperCase()} · ${row.scout_score}`,
-            `call ${pct(row.call_edge_prob, 0)} · put ${pct(row.put_edge_prob, 0)} · no trade ${pct(row.no_trade_prob, 0)}`,
+            `call edge ${pct(row.call_edge_prob, 0)} · put edge ${pct(row.put_edge_prob, 0)} · no-trade edge ${pct(row.no_trade_prob, 0)}`,
             toneClass(row.direction),
             `Scout ${String(i + 1).padStart(2, "0")}`,
           ),
@@ -1255,7 +1333,7 @@ async function renderBoard(payload) {
         .map((row, i) =>
           rowHtml(
             `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
-            `ask ${money(row.ask ?? row.premium)} · PnL ${pct(row.prob_positive_option_pnl, 0)} · rank ${row.learned_rank_score ?? "—"}`,
+            `ask ${money(row.ask ?? row.premium)} · edge ${pct(row.payoff_edge_score ?? row.prob_positive_option_pnl, 0)} · rank ${row.learned_rank_score ?? "—"}`,
             toneClass(row.option_type),
             `Forge ${String(i + 1).padStart(2, "0")}`,
           ),
@@ -1293,6 +1371,7 @@ async function renderBoard(payload) {
   }
 
   renderForgeDiagnostics(payload);
+  renderLiveShadowAttribution(payload);
   renderPromotionReadiness(payload);
 
   // Bind card buttons

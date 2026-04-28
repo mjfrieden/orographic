@@ -31,7 +31,7 @@ class ScoutTests(unittest.TestCase):
         loaded = _load_model()
         self.assertIsNotNone(loaded)
         assert loaded is not None
-        self.assertEqual(len(loaded), 5)
+        self.assertEqual(len(loaded), 8)
 
     def test_strong_counter_regime_put_can_survive_risk_on(self) -> None:
         with (
@@ -136,6 +136,38 @@ class ScoutTests(unittest.TestCase):
         self.assertEqual(signal.direction, "call")
         self.assertAlmostEqual(signal.scout_score, 0.5, places=4)
         self.assertEqual(diagnostics["side_model_override"]["mode"], "shadow")
+
+    def test_option_direction_target_updates_ml_note(self) -> None:
+        with (
+            mock.patch(
+                "engine.orographic.scout._load_model",
+                return_value=(object(), object(), [], None, "none", "strict_real_option_direction", "call-side edge target", "call_edge"),
+            ),
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.4),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.60, "put_edge": 0.25, "no_trade": 0.15},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(diagnostics["primary_target"], "strict_real_option_direction")
+        self.assertIn("p_call_edge", signal.notes[0])
 
 
 if __name__ == "__main__":

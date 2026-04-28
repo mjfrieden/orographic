@@ -66,6 +66,9 @@ def _load_model() -> tuple | None:
             meta["feature_cols"],
             meta.get("calibrator"),
             meta.get("calibration_method", "none"),
+            meta.get("primary_target", "underlying_forward_return"),
+            meta.get("target_description", "probability that forward 5-day underlying return is positive"),
+            meta.get("positive_class_name", "bullish"),
         )
     except Exception as exc:
         log.warning("Failed to load Scout model (%s) — using heuristic fallback.", exc)
@@ -307,7 +310,7 @@ def _ml_scout_score(feats: dict[str, float]) -> float | None:
     if loaded is None:
         return None
 
-    model, scaler, feature_cols, calibrator, calibration_method = loaded
+    model, scaler, feature_cols, calibrator, calibration_method, _, _, _ = loaded
     row = np.array([[feats.get(col, 0.0) for col in feature_cols]])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -422,6 +425,13 @@ def build_signal(
     feats = _extract_features(close, frame, spy_close)
     ml_score = _ml_scout_score(feats)
     using_ml = ml_score is not None
+    primary_target = "underlying_forward_return"
+    target_description = "probability that forward 5-day underlying return is positive"
+    positive_class_name = "bullish"
+    if using_ml:
+        loaded = _load_model()
+        if loaded is not None:
+            _, _, _, _, _, primary_target, target_description, positive_class_name = loaded
 
     if using_ml:
         raw_score = ml_score
@@ -464,6 +474,8 @@ def build_signal(
     diagnostics["pre_veto_direction"] = direction
     diagnostics["conviction_score"] = round(float(conviction_score), 4)
     diagnostics["base_scout_score"] = round(float(base_scout_score), 4)
+    diagnostics["primary_target"] = primary_target
+    diagnostics["target_description"] = target_description
     diagnostics["side_aware"] = {
         "model_mode": side_model_mode,
         **side_probs,
@@ -516,7 +528,8 @@ def build_signal(
 
     notes: list[str] = []
     if using_ml:
-        notes.append(f"ML model active (prob_bull={raw_score/2+0.5:.2%})")
+        probability_label = "p_call_edge" if primary_target == "strict_real_option_direction" else "prob_bull"
+        notes.append(f"ML model active ({probability_label}={raw_score/2+0.5:.2%})")
     else:
         notes.append("heuristic fallback active (model not found)")
     if alignment_note:
