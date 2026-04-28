@@ -1,15 +1,15 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-04-28T16:18:38+00:00",
+  "generated_at_utc": "2026-04-28T18:47:03+00:00",
   "trading_day": "2026-04-28",
   "timezone": "America/Chicago",
   "summary": {
-    "scout_signal_count": 74,
+    "scout_signal_count": 69,
     "pre_forge_signal_count": 6,
-    "forge_candidate_count": 4,
+    "forge_candidate_count": 2,
     "live_count": 0,
-    "shadow_count": 3,
+    "shadow_count": 2,
     "abstain": true,
     "live_side_mix": {
       "call": 0,
@@ -17,65 +17,65 @@
     },
     "shadow_side_mix": {
       "call": 0,
-      "put": 3
+      "put": 2
     },
     "forge_candidate_side_mix": {
       "call": 0,
-      "put": 4
+      "put": 2
     },
-    "friction_veto_count": 8,
-    "dedupe_removed_count": 8,
-    "pre_forge_rejection_count": 2,
-    "council_holdout_count": 1,
+    "friction_veto_count": 9,
+    "dedupe_removed_count": 5,
+    "pre_forge_rejection_count": 0,
+    "council_holdout_count": 0,
     "live_avg_forge_score": null,
-    "shadow_avg_forge_score": 0.8072,
+    "shadow_avg_forge_score": 0.8334,
     "live_avg_edge_after_friction_pct": null,
-    "shadow_avg_edge_after_friction_pct": 0.6106
+    "shadow_avg_edge_after_friction_pct": 0.755
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 7,
-        "put": 93
+        "call": 13,
+        "put": 87
       },
       "final_direction_counts": {
-        "call": 7,
-        "put": 67
+        "call": 13,
+        "put": 56
       },
-      "counter_regime_survivors": 67
+      "counter_regime_survivors": 56
     },
     "forge": {
       "waterfall": {
         "signals_considered": 6,
         "signals_with_expiry": 6,
         "signals_with_chain": 6,
-        "rows_after_basic": 504,
-        "rows_positive_bid_ask": 346,
-        "rows_within_long_leg_cap": 246,
-        "rows_within_spread_cap": 157,
-        "rows_passing_liquidity": 127,
-        "rows_passing_moneyness": 54,
-        "rows_passing_delta": 20,
-        "rows_passing_net_debit": 20,
-        "final_candidates": 20,
-        "candidates_after_friction_gate": 12,
-        "candidates_after_deduplication": 4
+        "rows_after_basic": 328,
+        "rows_positive_bid_ask": 237,
+        "rows_within_long_leg_cap": 169,
+        "rows_within_spread_cap": 88,
+        "rows_passing_liquidity": 78,
+        "rows_passing_moneyness": 31,
+        "rows_passing_delta": 16,
+        "rows_passing_net_debit": 16,
+        "final_candidates": 16,
+        "candidates_after_friction_gate": 7,
+        "candidates_after_deduplication": 2
       },
       "pre_council_gate": {
-        "kept": 12,
-        "dropped": 8,
+        "kept": 7,
+        "dropped": 9,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
-        "removed_candidates": 8,
-        "kept_candidates": 4,
+        "removed_candidates": 5,
+        "kept_candidates": 2,
         "max_structures_per_symbol_side": 2
       }
     },
     "council": {
-      "candidate_count": 4,
+      "candidate_count": 2,
       "live_count": 0,
-      "shadow_count": 3,
+      "shadow_count": 2,
       "avg_pairwise_correlation": null,
       "notes": [
         "Council abstained because no contract cleared the live board threshold.",
@@ -86,136 +86,82 @@
   "top_live_board": [],
   "top_shadow_board": [
     {
-      "symbol": "QQQ",
-      "contract_symbol": "QQQ260430P00648000",
-      "option_type": "put",
-      "expiry": "2026-04-30",
-      "strike": 648.0,
-      "forge_score": 0.8299,
-      "payoff_edge_score": 0.7525,
-      "expected_edge_after_friction_pct": 0.6948,
-      "contract_cost": 381.0,
-      "council_risk_flags": [
-        "high_extrinsic"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "IVR penalty applied: IV rank 126% above gate",
-        "delta sits in the preferred weekly range",
-        "Payoff model ranker active"
-      ]
-    },
-    {
-      "symbol": "SPY",
-      "contract_symbol": "SPY260430P00704000",
-      "option_type": "put",
-      "expiry": "2026-04-30",
-      "strike": 704.0,
-      "forge_score": 0.8245,
-      "payoff_edge_score": 0.7603,
-      "expected_edge_after_friction_pct": 0.6964,
-      "contract_cost": 250.0,
-      "council_risk_flags": [
-        "high_extrinsic"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "IVR penalty applied: IV rank 93% above gate",
-        "delta sits in the preferred weekly range",
-        "Payoff model ranker active"
-      ]
-    },
-    {
-      "symbol": "WMT",
-      "contract_symbol": "WMT260501P00128000",
-      "option_type": "put",
-      "expiry": "2026-05-01",
-      "strike": 128.0,
-      "forge_score": 0.7673,
-      "payoff_edge_score": 0.813,
-      "expected_edge_after_friction_pct": 0.4406,
-      "contract_cost": 124.0,
-      "council_risk_flags": [
-        "high_extrinsic"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "Payoff model ranker active"
-      ]
-    }
-  ],
-  "council_holdouts": [
-    {
-      "symbol": "XLF",
-      "contract_symbol": "XLF260501P00052000",
+      "symbol": "BAC",
+      "contract_symbol": "BAC260501P00052000",
       "option_type": "put",
       "expiry": "2026-05-01",
       "strike": 52.0,
-      "forge_score": 0.6989,
-      "payoff_edge_score": 0.6973,
-      "expected_edge_after_friction_pct": 0.1495,
-      "contract_cost": 36.0,
+      "forge_score": 0.8517,
+      "payoff_edge_score": 0.8571,
+      "expected_edge_after_friction_pct": 0.814,
+      "contract_cost": 25.0,
       "council_risk_flags": [
         "high_extrinsic"
       ],
       "notes": [
         "projected payoff is asymmetric",
-        "IVR penalty applied: IV rank 74% above gate",
+        "delta sits in the preferred weekly range",
+        "Payoff model ranker active"
+      ]
+    },
+    {
+      "symbol": "QQQ",
+      "contract_symbol": "QQQ260430P00651000",
+      "option_type": "put",
+      "expiry": "2026-04-30",
+      "strike": 651.0,
+      "forge_score": 0.8151,
+      "payoff_edge_score": 0.7525,
+      "expected_edge_after_friction_pct": 0.6959,
+      "contract_cost": 342.0,
+      "council_risk_flags": [
+        "high_extrinsic"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "IVR penalty applied: IV rank 111% above gate",
+        "delta sits in the preferred weekly range",
         "Payoff model ranker active"
       ]
     }
   ],
+  "council_holdouts": [],
   "friction_vetoes": [
     {
-      "symbol": "SPY",
-      "contract_symbol": "SPY260430P00706000",
+      "symbol": "BAC",
+      "contract_symbol": "BAC260501P00053000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.0191,
-      "friction_buffer_pct": 0.3115
+      "expected_edge_after_friction_pct": -0.1027,
+      "friction_buffer_pct": 0.1261
     },
     {
-      "symbol": "SPY",
-      "contract_symbol": "SPY260430P00707000",
+      "symbol": "UPS",
+      "contract_symbol": "UPS260501P00105000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1039,
-      "friction_buffer_pct": 0.311
+      "expected_edge_after_friction_pct": -0.6162,
+      "friction_buffer_pct": 0.3974
     },
     {
-      "symbol": "SPY",
-      "contract_symbol": "SPY260430P00708000",
+      "symbol": "PG",
+      "contract_symbol": "PG260501P00148000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1036,
-      "friction_buffer_pct": 0.3107
-    },
-    {
-      "symbol": "SPY",
-      "contract_symbol": "SPY260430P00709000",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1033,
-      "friction_buffer_pct": 0.3104
-    },
-    {
-      "symbol": "XLF",
-      "contract_symbol": "XLF260501P00052500",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.3138,
-      "friction_buffer_pct": 0.1088
-    }
-  ],
-  "pre_forge_rejections": [
-    {
-      "symbol": "PEP",
-      "reason": "liquidity_gate",
-      "expiry": "2026-05-01",
-      "long_leg_cap": 2.75,
-      "spread_cap": 0.18
+      "expected_edge_after_friction_pct": -0.6187,
+      "friction_buffer_pct": 0.4125
     },
     {
       "symbol": "XLU",
-      "reason": "liquidity_gate",
-      "expiry": "2026-05-01",
-      "long_leg_cap": 2.25,
-      "spread_cap": 0.18
+      "contract_symbol": "XLU260501P00046500",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.2515,
+      "friction_buffer_pct": 0.1245
+    },
+    {
+      "symbol": "JPM",
+      "contract_symbol": "JPM260501P00307500",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.4874,
+      "friction_buffer_pct": 0.3465
     }
-  ]
+  ],
+  "pre_forge_rejections": []
 }
