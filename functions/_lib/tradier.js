@@ -551,20 +551,17 @@ export async function fetchBrokerStatus(env) {
   }
 
   let positions = normalizePositions(positionsResponse.data);
-  const missingOptionMarks = positions
-    .filter(
-      (position) =>
-        isOptionContractSymbol(position.symbol) && position.current_value === null,
-    )
+  const optionPositionSymbols = positions
+    .filter((position) => isOptionContractSymbol(position.symbol))
     .map((position) => position.symbol);
 
   let quoteRateLimits = null;
-  if (missingOptionMarks.length) {
+  if (optionPositionSymbols.length) {
     try {
       const quotesResponse = await tradierRequest(env, {
         path: "/markets/quotes",
         query: {
-          symbols: missingOptionMarks.join(","),
+          symbols: optionPositionSymbols.join(","),
           greeks: "false",
         },
       });

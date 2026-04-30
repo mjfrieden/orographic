@@ -82,6 +82,10 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function domSafeId(value) {
+  return String(value ?? "").replace(/[^a-z0-9]/gi, "_");
+}
+
 // ── Session & Auth ──────────────────────────────────────────────────────────
 
 let SESSION = null;
@@ -128,6 +132,9 @@ let BROKER_STATE = {
   lastLoadedAt: null,
   lastError: null,
 };
+
+let POSITION_ADVICE = new Map();
+let POSITION_ADVICE_EPOCH = 0;
 
 function optionContractMeta(symbol) {
   const text = String(symbol || "")
@@ -194,6 +201,67 @@ function positionMarkMeta(position) {
   };
 }
 
+function adviceToneClass(action) {
+  return String(action || "").toLowerCase() === "sell"
+    ? "is-sell"
+    : "is-hold";
+}
+
+function formatRiskFlags(flags) {
+  if (!Array.isArray(flags) || !flags.length) return "";
+  return flags
+    .map((flag) =>
+      String(flag || "")
+        .replaceAll("_", " ")
+        .trim(),
+    )
+    .filter(Boolean)
+    .join(" · ");
+}
+
+function renderPositionAdviceHtml(symbol) {
+  const advice = POSITION_ADVICE.get(symbol);
+  if (!advice) {
+    return `
+      <div id="position-advice-${domSafeId(symbol)}" class="position-ai-brief is-loading">
+        <div class="position-ai-head">
+          <span class="position-ai-label">Exit AI</span>
+          <span class="position-ai-pill is-loading">Loading…</span>
+        </div>
+        <p class="position-ai-text">Checking whether this live contract looks better held or sold.</p>
+      </div>
+    `;
+  }
+
+  const tone = adviceToneClass(advice.action);
+  const confidence =
+    Number.isFinite(Number(advice.confidence)) && Number(advice.confidence) > 0
+      ? `${Math.round(Number(advice.confidence) * 100)}% confidence`
+      : "Rule-based";
+  const headline = advice.headline ? escapeHtml(advice.headline) : advice.action === "sell" ? "Sell bias" : "Hold bias";
+  const rationale = advice.rationale
+    ? escapeHtml(advice.rationale)
+    : advice.action === "sell"
+      ? "Conditions favor taking the exit."
+      : "Conditions still support holding.";
+  const flags = formatRiskFlags(advice.risk_flags);
+
+  return `
+    <div id="position-advice-${domSafeId(symbol)}" class="position-ai-brief ${tone}">
+      <div class="position-ai-head">
+        <span class="position-ai-label">Exit AI</span>
+        <span class="position-ai-pill ${tone}">${escapeHtml(String(advice.action || "hold").toUpperCase())}</span>
+      </div>
+      <p class="position-ai-title">${headline}</p>
+      <p class="position-ai-text">${rationale}</p>
+      <div class="position-ai-meta">
+        <span>${escapeHtml(confidence)}</span>
+        ${flags ? `<span>${escapeHtml(flags)}</span>` : ""}
+      </div>
+    </div>
+  `;
+}
+
 function renderPositionsMeta() {
   const syncEl = document.getElementById("positions-sync-status");
   const refreshBtn = document.getElementById("positions-refresh-btn");
@@ -222,6 +290,8 @@ function renderPositionsMeta() {
 }
 
 async function loadAccount() {
+  POSITION_ADVICE_EPOCH += 1;
+  POSITION_ADVICE = new Map();
   BROKER_STATE = {
     ...BROKER_STATE,
     loading: true,
@@ -263,6 +333,9 @@ async function loadAccount() {
   renderPositions();
   renderOrders();
   bindPositionsTable();
+  hydratePositionAdvice(BROKER_STATE.positions, POSITION_ADVICE_EPOCH).catch(
+    () => {},
+  );
 }
 
 function renderRibbon() {
@@ -330,8 +403,12 @@ function renderPositions() {
         ? `<span class="position-chip ${contract.side === "call" ? "is-call" : "is-put"}">${contract.side.toUpperCase()}</span>`
         : `<span class="position-chip is-neutral">EQUITY</span>`;
       const statusChip = `<span class="position-chip ${markMeta.toneClass}">${escapeHtml(markMeta.label)}</span>`;
+      const adviceHtml = isOpt ? renderPositionAdviceHtml(sym) : "";
+      const closeBtnClass = `mini-action close-position-btn${
+        POSITION_ADVICE.get(sym)?.action === "sell" ? " is-advised-sell" : ""
+      }`;
       const actionCell = isOpt
-        ? `<button class="mini-action close-position-btn" type="button" data-contract="${sym}" data-qty="${pos.quantity}">Close</button>`
+        ? `<button class="${closeBtnClass}" type="button" data-contract="${sym}" data-qty="${pos.quantity}">${POSITION_ADVICE.get(sym)?.action === "sell" ? "Close Suggested" : "Close"}</button>`
         : ``;
       return `<tr class="position-row ${cv === null ? "is-mark-pending" : "is-marked"}">
       <td data-label="Symbol" class="position-cell-symbol ${tone}">
@@ -344,6 +421,7 @@ function renderPositions() {
         <div class="position-status-stack">
           <div class="position-chip-row">${instrumentChip}${statusChip}</div>
           <span class="position-detail">${escapeHtml(markMeta.detail)}</span>
+          ${adviceHtml}
         </div>
       </td>
       <td data-label="Qty">${integer(pos.quantity)}</td>
@@ -375,6 +453,68 @@ function renderPositions() {
     </tr>`;
     })
     .join("");
+}
+
+async function fetchPositionAdvice(position) {
+  try {
+    const r = await fetch("/api/ai/position-advice", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ position }),
+    });
+    const data = await r.json();
+    return data.ok ? data.advice || null : null;
+  } catch {
+    return null;
+  }
+}
+
+function updatePositionAdviceDom(symbol, advice) {
+  const container = document.getElementById(`position-advice-${domSafeId(symbol)}`);
+  if (container) {
+    container.outerHTML = renderPositionAdviceHtml(symbol);
+  }
+
+  const closeBtn = document.querySelector(
+    `.close-position-btn[data-contract="${symbol}"]`,
+  );
+  if (closeBtn) {
+    closeBtn.classList.toggle("is-advised-sell", advice?.action === "sell");
+    closeBtn.textContent = advice?.action === "sell" ? "Close Suggested" : "Close";
+  }
+}
+
+async function hydratePositionAdvice(positions, epoch) {
+  const optionPositions = (positions || []).filter(
+    (position) => Boolean(optionContractMeta(position.symbol).side),
+  );
+
+  const activeSymbols = new Set(
+    optionPositions.map((position) => optionContractMeta(position.symbol).symbol),
+  );
+  POSITION_ADVICE = new Map(
+    [...POSITION_ADVICE.entries()].filter(([symbol]) => activeSymbols.has(symbol)),
+  );
+
+  for (const position of optionPositions) {
+    const symbol = optionContractMeta(position.symbol).symbol;
+    POSITION_ADVICE.delete(symbol);
+    updatePositionAdviceDom(symbol, null);
+  }
+
+  await Promise.all(
+    optionPositions.map(async (position) => {
+      const symbol = optionContractMeta(position.symbol).symbol;
+      const advice = await fetchPositionAdvice(position);
+      if (epoch !== POSITION_ADVICE_EPOCH) {
+        return;
+      }
+      if (advice) {
+        POSITION_ADVICE.set(symbol, advice);
+        updatePositionAdviceDom(symbol, advice);
+      }
+    }),
+  );
 }
 
 function renderOrders() {
@@ -736,7 +876,7 @@ function buildTradeCard(candidate, regime, lane) {
         }
       </div>
 
-      <div id="rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}" class="card-rationale is-loading">
+      <div id="rationale-${domSafeId(candidate.contract_symbol)}" class="card-rationale is-loading">
         Loading explanation-only note…
       </div>
 
@@ -1389,7 +1529,7 @@ async function renderBoard(payload) {
 }
 
 async function loadCardRationale(candidate, regime) {
-  const id = `rationale-${candidate.contract_symbol.replace(/[^a-z0-9]/gi, "_")}`;
+  const id = `rationale-${domSafeId(candidate.contract_symbol)}`;
   const el = document.getElementById(id);
   if (!el) return;
   const rationale = await fetchRationale(candidate, regime);
