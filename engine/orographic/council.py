@@ -32,6 +32,16 @@ from .schemas import ContractCandidate, CouncilResult, MarketRegime
 
 log = logging.getLogger(__name__)
 
+ABSTAIN_REASON_LABELS = {
+    "no_forge_candidates": "No Forge candidates reached Council.",
+    "below_live_score": "All candidates fell below the live-score gate.",
+    "extrinsic_limit": "All candidates failed the extrinsic ceiling.",
+    "score_and_extrinsic_limit": "Candidates failed both score and extrinsic gates.",
+    "mixed_core_filters": "Candidates were blocked by a mix of score and extrinsic gates.",
+    "side_balance": "Eligible candidates were rejected by side-balance controls.",
+    "selection_threshold": "Eligible candidates survived core filters but did not reach the live board.",
+}
+
 
 # ── Markowitz helpers ─────────────────────────────────────────────────────────
 
@@ -182,6 +192,10 @@ def _annotate_risk(
         candidate.council_risk_flags = sorted(set(flags))
 
 
+def _abstain_reason_label(reason: str) -> str:
+    return ABSTAIN_REASON_LABELS.get(reason, "Council abstained after applying the live-board filters.")
+
+
 # ── Main selector ─────────────────────────────────────────────────────────────
 
 def select_board(
@@ -201,11 +215,23 @@ def select_board(
     _annotate_risk(candidates, max_sector_share=max_same_sector_share)
 
     # ── Pre-filter eligible candidates ──
-    eligible = [
-        c for c in candidates
-        if c.forge_score >= minimum_live_score
-        and c.extrinsic_ratio <= max_live_extrinsic_ratio
-    ]
+    eligible: list[ContractCandidate] = []
+    score_only_blocked: list[ContractCandidate] = []
+    extrinsic_only_blocked: list[ContractCandidate] = []
+    score_and_extrinsic_blocked: list[ContractCandidate] = []
+
+    for candidate in candidates:
+        score_ok = candidate.forge_score >= minimum_live_score
+        extrinsic_ok = candidate.extrinsic_ratio <= max_live_extrinsic_ratio
+        if score_ok and extrinsic_ok:
+            eligible.append(candidate)
+        elif not score_ok and not extrinsic_ok:
+            score_and_extrinsic_blocked.append(candidate)
+        elif not score_ok:
+            score_only_blocked.append(candidate)
+        else:
+            extrinsic_only_blocked.append(candidate)
+
     shadow_fallback = [
         c for c in candidates
         if c not in eligible
@@ -217,6 +243,8 @@ def select_board(
         if c.symbol not in seen or c.forge_score > seen[c.symbol].forge_score:
             seen[c.symbol] = c
     unique_eligible = list(seen.values())
+    side_balance_rejections = 0
+    side_balance_demotions = 0
 
     # ── Markowitz portfolio construction ──
     live_board: list[ContractCandidate] = []
@@ -272,6 +300,7 @@ def select_board(
             side_counts = Counter(row.option_type for row in projected)
             same_side_share = max(side_counts.values()) / len(projected)
             if len(projected) > 1 and same_side_share > max_same_side_share:
+                side_balance_rejections += 1
                 continue
             live_board.append(candidate)
 
@@ -290,6 +319,7 @@ def select_board(
                     shadow_fallback.insert(0, calls.pop())
                 else:
                     shadow_fallback.insert(0, puts.pop())
+                side_balance_demotions += 1
             live_board = calls + puts
 
     # ── Shadow board ──
@@ -313,6 +343,30 @@ def select_board(
 
     if not live_board:
         notes.append("Council abstained because no contract cleared the live board threshold.")
+
+    if not candidates:
+        primary_reason = "no_forge_candidates"
+    elif not eligible:
+        if len(extrinsic_only_blocked) + len(score_and_extrinsic_blocked) == len(candidates):
+            primary_reason = (
+                "score_and_extrinsic_limit"
+                if len(score_and_extrinsic_blocked) == len(candidates)
+                else "extrinsic_limit"
+            )
+        elif len(score_only_blocked) + len(score_and_extrinsic_blocked) == len(candidates):
+            primary_reason = (
+                "score_and_extrinsic_limit"
+                if len(score_and_extrinsic_blocked) == len(candidates)
+                else "below_live_score"
+            )
+        else:
+            primary_reason = "mixed_core_filters"
+    elif not live_board and (side_balance_rejections > 0 or side_balance_demotions > 0):
+        primary_reason = "side_balance"
+    elif not live_board:
+        primary_reason = "selection_threshold"
+    else:
+        primary_reason = "live_board_available"
 
     if regime.mode == "risk_off":
         notes.append("Council is operating under a risk-off market regime.")
@@ -338,6 +392,24 @@ def select_board(
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
             "max_same_side_share": max_same_side_share,
             "max_same_sector_share": max_same_sector_share,
+        },
+        "abstain_audit": {
+            "primary_reason": primary_reason,
+            "primary_reason_label": _abstain_reason_label(primary_reason),
+            "requested_live_size": live_size,
+            "candidate_count": len(candidates),
+            "core_filter_pass_count": len(eligible),
+            "unique_eligible_count": len(unique_eligible),
+            "score_only_fail_count": len(score_only_blocked),
+            "extrinsic_only_fail_count": len(extrinsic_only_blocked),
+            "score_and_extrinsic_fail_count": len(score_and_extrinsic_blocked),
+            "side_balance_rejections": side_balance_rejections,
+            "side_balance_demotions": side_balance_demotions,
+            "blocked_symbols": {
+                "score_only": [row.symbol for row in score_only_blocked[:3]],
+                "extrinsic_only": [row.symbol for row in extrinsic_only_blocked[:3]],
+                "score_and_extrinsic": [row.symbol for row in score_and_extrinsic_blocked[:3]],
+            },
         },
         "notes":               notes,
     }

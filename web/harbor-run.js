@@ -975,8 +975,7 @@ export function mountHarborRun({ payload, sessionPayload }) {
       refs.submitButton.disabled =
         !previewEligible(contract) ||
         role !== "admin" ||
-        state.broker.loading ||
-        (state.broker.mode === "live" && contract?.lane !== "live");
+        state.broker.loading;
       refs.submitButton.textContent = isSpreadPick(contract)
         ? "Manual Spread Required"
         : state.broker.mode === "live"

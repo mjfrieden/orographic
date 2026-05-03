@@ -170,7 +170,7 @@ The Tradier workflow in this repo currently supports:
 5. Server-side option order preview using `preview=true`
 6. Admin-only limit-order placement for both entries and manual exits
 7. Optional private per-run position history capture during Python scan runs
-8. Live entry placement gated by admin access, current live-board membership, and fresh snapshot timing
+8. Live entry placement gated by admin access and fresh snapshot timing for both live-board and shadow-board entries
 
 ## Hosted Position History
 

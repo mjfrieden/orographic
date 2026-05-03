@@ -43,6 +43,10 @@ class CouncilTests(unittest.TestCase):
         )
         self.assertTrue(result.abstain)
         self.assertEqual(result.live_board, [])
+        self.assertEqual(
+            result.summary["abstain_audit"]["primary_reason"],
+            "below_live_score",
+        )
 
     def test_council_limits_side_concentration(self) -> None:
         candidates = [
@@ -58,6 +62,23 @@ class CouncilTests(unittest.TestCase):
             )
         self.assertEqual(len(result.live_board), 2)
         self.assertEqual({row.option_type for row in result.live_board}, {"call", "put"})
+
+    def test_council_audits_extrinsic_abstentions(self) -> None:
+        candidate = _candidate("AAPL", "put", 0.82)
+        candidate.extrinsic_ratio = 1.0
+        result = select_board(
+            [candidate],
+            MarketRegime(mode="risk_on", bias=0.3, source_symbol="SPY"),
+        )
+        self.assertTrue(result.abstain)
+        self.assertEqual(
+            result.summary["abstain_audit"]["primary_reason"],
+            "extrinsic_limit",
+        )
+        self.assertEqual(
+            result.summary["abstain_audit"]["blocked_symbols"]["extrinsic_only"],
+            ["AAPL"],
+        )
 
 
 if __name__ == "__main__":

@@ -31,9 +31,9 @@ import {
  *   confirm_live (bool)          – must be true for live (non-sandbox) order placement
  *
  * Preview: any authenticated session, no snapshot freshness gate.
- * Placement: admin-only. New entries require a fresh snapshot and, in live mode,
- * must still be on the live board. Manual exits stay available even if the
- * snapshot has gone stale.
+ * Placement: admin-only. New entries require a fresh snapshot, whether the
+ * contract came from the live or shadow board. Manual exits stay available even
+ * if the snapshot has gone stale.
  */
 export async function onRequestPost(context) {
   const auth = await requireSession(context);

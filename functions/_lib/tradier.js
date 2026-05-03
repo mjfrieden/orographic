@@ -913,7 +913,7 @@ export function buildEligibility({ config, lane, snapshotInfo }) {
   }
   return {
     lane,
-    live_submittable: config.mode !== "live" || lane === "live",
+    live_submittable: config.mode !== "disabled",
     warnings,
   };
 }
@@ -950,14 +950,6 @@ export function validateSubmission({
         ok: false,
         status: 409,
         error: snapshotInfo?.reason || "Signal snapshot is stale.",
-      };
-    }
-    if (config.mode === "live" && lane !== "live") {
-      return {
-        ok: false,
-        status: 409,
-        error:
-          "Live mode only allows contracts currently promoted to the live council board.",
       };
     }
   }

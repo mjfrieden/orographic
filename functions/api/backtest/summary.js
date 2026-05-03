@@ -1,5 +1,19 @@
 import { requireSession, jsonResponse } from "../../_lib/tradier.js";
 
+function isUsableArtifact(kind, data) {
+  if (!data || typeof data !== "object") {
+    return false;
+  }
+  if (kind === "walk_forward") {
+    return (
+      Number(data.total_trades || 0) > 0 &&
+      typeof data.variant_key === "string" &&
+      data.variant_key.length > 0
+    );
+  }
+  return Number(data.total_trades || 0) > 0;
+}
+
 /**
  * GET /api/backtest/summary
  *
@@ -32,6 +46,9 @@ export async function onRequestGet(context) {
         continue;
       }
       const data = await response.json();
+      if (!isUsableArtifact(candidate.kind, data)) {
+        continue;
+      }
       return jsonResponse({
         ok: true,
         backtest: data,

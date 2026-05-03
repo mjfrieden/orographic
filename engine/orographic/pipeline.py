@@ -472,6 +472,7 @@ def build_board_recommendation_history_entry(payload: dict[str, Any]) -> dict[st
             "forge_candidate_count": _coerce_int(summary.get("forge_candidate_count")),
             "live_count": _coerce_int(council_summary.get("live_count")),
             "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+            "abstain_audit": council_summary.get("abstain_audit", {}),
             "live_side_mix": _count_side_mix(live_board, key="option_type"),
             "shadow_side_mix": _count_side_mix(shadow_board, key="option_type"),
         },
@@ -541,15 +542,30 @@ def append_board_recommendation_history(
     entries = history.get("entries") if isinstance(history.get("entries"), list) else []
     entries.append(entry)
     entries = entries[-max(max_entries, 1):]
+    abstain_reason_counts = _sorted_reason_counts(
+        [
+            {
+                "reason": (
+                    row.get("summary", {})
+                    .get("abstain_audit", {})
+                    .get("primary_reason", "unknown")
+                )
+            }
+            for row in entries
+            if bool(row.get("abstain"))
+        ],
+        reason_key="reason",
+    )
     aggregate = {
         "runs": len(entries),
         "live_picks_emitted": sum(_coerce_int(row.get("summary", {}).get("live_count")) for row in entries),
         "shadow_picks_emitted": sum(_coerce_int(row.get("summary", {}).get("shadow_count")) for row in entries),
         "abstain_runs": sum(1 for row in entries if bool(row.get("abstain"))),
+        "abstain_primary_reasons": abstain_reason_counts,
     }
     rendered = {
         "artifact": "board_recommendation_history",
-        "schema_version": 1,
+        "schema_version": 2,
         "updated_at_utc": entry["run_generated_at_utc"],
         "max_entries": max(max_entries, 1),
         "aggregate": aggregate,
@@ -616,6 +632,9 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
                 council.get("live_board") if isinstance(council.get("live_board"), list) else [],
                 key="option_type",
             ),
+            "abstain_primary_reason": (
+                council_summary.get("abstain_audit", {}) if isinstance(council_summary.get("abstain_audit"), dict) else {}
+            ).get("primary_reason"),
         },
         "top_scout_names": [
             {
@@ -652,6 +671,7 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
         "final_board": {
             "abstain": bool(council.get("abstain", False)),
             "abstain_reasons": abstain_reasons,
+            "abstain_audit": council_summary.get("abstain_audit", {}),
             "council_notes": council_notes,
             "live_board": _compact_contract_view(
                 council.get("live_board") if isinstance(council.get("live_board"), list) else []
@@ -727,6 +747,9 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
             "shadow_avg_forge_score": _average_metric(shadow_board, "forge_score"),
             "live_avg_edge_after_friction_pct": _average_metric(live_board, "expected_edge_after_friction_pct"),
             "shadow_avg_edge_after_friction_pct": _average_metric(shadow_board, "expected_edge_after_friction_pct"),
+            "abstain_primary_reason": (
+                council_summary.get("abstain_audit", {}) if isinstance(council_summary.get("abstain_audit"), dict) else {}
+            ).get("primary_reason"),
         },
         "layer_breakdown": {
             "scout": {
@@ -752,6 +775,7 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
                 "live_count": _coerce_int(council_summary.get("live_count")),
                 "shadow_count": _coerce_int(council_summary.get("shadow_count")),
                 "avg_pairwise_correlation": council_summary.get("avg_pairwise_correlation"),
+                "abstain_audit": council_summary.get("abstain_audit", {}),
                 "notes": council_summary.get("notes", []),
             },
         },

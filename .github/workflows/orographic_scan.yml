@@ -44,6 +44,10 @@ jobs:
         run: |
           python engine/run_scan.py --output web/data/latest_run.json
 
+      - name: Sync dashboard validation artifacts
+        run: |
+          python scripts/sync_dashboard_artifacts.py
+
       - name: Validate refreshed snapshot
         run: |
           python scripts/validate_model_artifacts.py
@@ -86,6 +90,20 @@ jobs:
           board_history = Path("web/data/diagnostics/board_recommendation_history.json")
           if not board_history.exists():
               raise SystemExit("board recommendation history was not written")
+          walk_forward = Path("web/data/walk_forward_results.json")
+          if not walk_forward.exists():
+              raise SystemExit("walk-forward dashboard artifact was not written")
+          walk_forward_payload = json.loads(walk_forward.read_text(encoding="utf-8"))
+          if int(walk_forward_payload.get("total_trades", 0)) <= 0:
+              raise SystemExit("walk-forward dashboard artifact is empty")
+          if not str(walk_forward_payload.get("variant_key") or "").strip():
+              raise SystemExit("walk-forward dashboard artifact is missing variant_key")
+          backtest = Path("web/data/backtest_results.json")
+          if not backtest.exists():
+              raise SystemExit("backtest dashboard artifact was not written")
+          backtest_payload = json.loads(backtest.read_text(encoding="utf-8"))
+          if int(backtest_payload.get("total_trades", 0)) <= 0:
+              raise SystemExit("backtest dashboard artifact is empty")
           print("Snapshot regression gates passed.")
           PY
 
@@ -94,7 +112,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/data/latest_run.json web/data/diagnostics/
+          git add web/data/latest_run.json web/data/diagnostics/ web/data/walk_forward_results.json web/data/backtest_results.json
           if git diff --cached --quiet; then
             echo "snapshot_changed=false" >> "$GITHUB_OUTPUT"
             echo "No snapshot changes to commit."

@@ -913,9 +913,7 @@ function buildTradeCard(candidate, regime, lane) {
           ${
             isSpread
               ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
-              : !isLive && BROKER_STATE.mode === "live"
-                ? "disabled title='Live mode only accepts live-board contracts'"
-                : ""
+              : ""
           }
         >${isSpread ? "Manual Spread Required" : "Preview Trade"}</button>
 
@@ -933,9 +931,7 @@ function buildTradeCard(candidate, regime, lane) {
           ${
             isSpread
               ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
-              : !isLive && BROKER_STATE.mode === "live"
-                ? "disabled title='Live mode only'"
-                : ""
+              : ""
           }
         >${isSpread ? "Manual Spread Required" : "Execute Trade"}</button>
         `
@@ -1182,12 +1178,42 @@ function attributionFrictionSummary(row) {
   return parts.join(" · ") || "—";
 }
 
+function blockedSymbolsSummary(blocked) {
+  if (!blocked || typeof blocked !== "object") return "—";
+  const parts = [];
+  const scoreOnly = Array.isArray(blocked.score_only) ? blocked.score_only : [];
+  const extrinsicOnly = Array.isArray(blocked.extrinsic_only) ? blocked.extrinsic_only : [];
+  const scoreAndExtrinsic = Array.isArray(blocked.score_and_extrinsic)
+    ? blocked.score_and_extrinsic
+    : [];
+  if (scoreOnly.length) parts.push(`score ${scoreOnly.join(", ")}`);
+  if (extrinsicOnly.length) parts.push(`extrinsic ${extrinsicOnly.join(", ")}`);
+  if (scoreAndExtrinsic.length) {
+    parts.push(`score+extrinsic ${scoreAndExtrinsic.join(", ")}`);
+  }
+  return parts.join(" · ") || "No blocked-symbol sample";
+}
+
+function coreFilterAuditSummary(audit) {
+  if (!audit || typeof audit !== "object") return "—";
+  return [
+    `${integer(audit.core_filter_pass_count)} pass`,
+    `${integer(audit.score_only_fail_count)} score`,
+    `${integer(audit.extrinsic_only_fail_count)} extrinsic`,
+    `${integer(audit.score_and_extrinsic_fail_count)} both`,
+  ].join(" · ");
+}
+
 function renderLiveShadowAttribution(payload) {
   const attributionEl = document.getElementById("live-shadow-attribution");
   if (!attributionEl) return;
 
   const attribution = payload?.attribution || {};
   const summary = attribution.summary || {};
+  const abstainAudit =
+    payload?.council?.summary?.abstain_audit ||
+    attribution?.layer_breakdown?.council?.abstain_audit ||
+    {};
   const holdouts = Array.isArray(attribution.council_holdouts) ? attribution.council_holdouts : [];
   const frictionVetoes = Array.isArray(attribution.friction_vetoes) ? attribution.friction_vetoes : [];
 
@@ -1210,6 +1236,13 @@ function renderLiveShadowAttribution(payload) {
       "Shadow Avg Edge",
       pctOrDash(summary.shadow_avg_edge_after_friction_pct),
     ),
+    summaryItemHtml(
+      "Abstain Driver",
+      abstainAudit.primary_reason_label ||
+        (summary.abstain ? "Council abstained without a structured audit." : "Live board available"),
+    ),
+    summaryItemHtml("Core Filter Audit", coreFilterAuditSummary(abstainAudit)),
+    summaryItemHtml("Blocked Symbols", blockedSymbolsSummary(abstainAudit.blocked_symbols)),
     summaryItemHtml(
       "Top Holdout",
       holdouts.length ? attributionCandidateSummary(holdouts[0]) : "No unselected Forge holdouts",
@@ -1343,6 +1376,7 @@ async function renderBoard(payload) {
   const live = payload.council.live_board || [];
   const shadow = payload.council.shadow_board || [];
   const summary = payload.council.summary || payload.summary || {};
+  const abstainAudit = summary.abstain_audit || {};
   const generatedAt = payload.generated_at_utc || payload.timestamp;
 
   // Stale check (4 hours)
@@ -1496,6 +1530,12 @@ async function renderBoard(payload) {
         "Correlation",
         payload.council.summary?.avg_pairwise_correlation ?? "—",
       ),
+      summaryItemHtml(
+        "Abstain Driver",
+        abstainAudit.primary_reason_label ||
+          (payload.council.abstain ? "Unspecified" : "Live board available"),
+      ),
+      summaryItemHtml("Core Pass", `${integer(abstainAudit.core_filter_pass_count)} / ${integer(abstainAudit.candidate_count)}`),
       summaryItemHtml(
         "Live Sectors",
         Object.entries(payload.council.summary?.live_sector_counts || {})

@@ -353,6 +353,10 @@ class PipelineTests(unittest.TestCase):
                     "live_count": 1,
                     "shadow_count": 1,
                     "avg_pairwise_correlation": 0.22,
+                    "abstain_audit": {
+                        "primary_reason": "live_board_available",
+                        "primary_reason_label": "Live board available",
+                    },
                     "notes": ["Council is operating under a neutral market regime."],
                 },
             },
@@ -392,8 +396,13 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(artifact["summary"]["dedupe_removed_count"], 2)
         self.assertEqual(artifact["summary"]["council_holdout_count"], 1)
         self.assertEqual(artifact["summary"]["live_side_mix"], {"call": 1, "put": 0})
+        self.assertEqual(artifact["summary"]["abstain_primary_reason"], "live_board_available")
         self.assertEqual(artifact["council_holdouts"][0]["symbol"], "SPY")
         self.assertEqual(artifact["friction_vetoes"][0]["symbol"], "DIA")
+        self.assertEqual(
+            artifact["layer_breakdown"]["council"]["abstain_audit"]["primary_reason"],
+            "live_board_available",
+        )
 
     def test_write_live_shadow_attribution_artifacts_creates_latest_and_dated_files(self) -> None:
         payload = {
@@ -720,6 +729,10 @@ class PipelineTests(unittest.TestCase):
                 "summary": {
                     "live_count": 1,
                     "shadow_count": 1,
+                    "abstain_audit": {
+                        "primary_reason": "live_board_available",
+                        "primary_reason_label": "Live board available",
+                    },
                 },
             },
         }
@@ -728,6 +741,10 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(entry["summary"]["live_count"], 1)
         self.assertEqual(entry["summary"]["shadow_side_mix"], {"call": 0, "put": 1})
+        self.assertEqual(
+            entry["summary"]["abstain_audit"]["primary_reason"],
+            "live_board_available",
+        )
         self.assertEqual(entry["live_board"][0]["symbol"], "IWM")
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -742,6 +759,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rendered["aggregate"]["runs"], 1)
         self.assertEqual(rendered["aggregate"]["live_picks_emitted"], 1)
         self.assertEqual(rendered["aggregate"]["shadow_picks_emitted"], 1)
+        self.assertEqual(rendered["aggregate"]["abstain_primary_reasons"], [])
 
 
 if __name__ == "__main__":
