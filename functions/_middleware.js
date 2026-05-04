@@ -5,6 +5,7 @@ function isPublicPath(pathname) {
     pathname === "/login" ||
     pathname === "/login/" ||
     pathname === "/styles.css" ||
+    pathname.startsWith("/assets/") ||
     pathname === "/api/login" ||
     pathname === "/api/logout" ||
     pathname === "/api/ai/sentinel" ||
