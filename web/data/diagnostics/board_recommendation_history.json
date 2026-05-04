@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-04T15:13:48+00:00",
+  "updated_at_utc": "2026-05-04T16:10:26+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 18,
+    "runs": 19,
     "live_picks_emitted": 8,
-    "shadow_picks_emitted": 36,
-    "abstain_runs": 11,
+    "shadow_picks_emitted": 38,
+    "abstain_runs": 12,
     "abstain_primary_reasons": [
       {
         "reason": "unknown",
@@ -15,7 +15,7 @@
       },
       {
         "reason": "extrinsic_limit",
-        "count": 2
+        "count": 3
       }
     ]
   },
@@ -1434,6 +1434,96 @@
           ],
           "notes": [
             "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-04T16:10:26+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3826,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 52,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 3,
+        "live_count": 0,
+        "shadow_count": 2,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 3,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 3,
+          "score_and_extrinsic_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "NFLX",
+              "SLV",
+              "NFLX"
+            ],
+            "score_and_extrinsic": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 2,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "NFLX",
+          "contract_symbol": "NFLX260508C00093000",
+          "option_type": "call",
+          "expiry": "2026-05-08",
+          "strike": 93.0,
+          "forge_score": 0.7202,
+          "payoff_edge_score": 0.5224,
+          "expected_edge_after_friction_pct": 0.118,
+          "contract_cost": 80.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "SLV",
+          "contract_symbol": "SLV260506C00067500",
+          "option_type": "call",
+          "expiry": "2026-05-06",
+          "strike": 67.5,
+          "forge_score": 0.6807,
+          "payoff_edge_score": 0.4177,
+          "expected_edge_after_friction_pct": 1.2282,
+          "contract_cost": 67.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "VRP penalty applied: IV is highly elevated over RV",
             "delta sits in the preferred weekly range",
             "Payoff model ranker active"
           ]
