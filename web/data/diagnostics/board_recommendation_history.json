@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-03T15:26:39+00:00",
+  "updated_at_utc": "2026-05-04T15:13:48+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 17,
+    "runs": 18,
     "live_picks_emitted": 8,
-    "shadow_picks_emitted": 33,
-    "abstain_runs": 10,
+    "shadow_picks_emitted": 36,
+    "abstain_runs": 11,
     "abstain_primary_reasons": [
       {
         "reason": "unknown",
@@ -15,7 +15,7 @@
       },
       {
         "reason": "extrinsic_limit",
-        "count": 1
+        "count": 2
       }
     ]
   },
@@ -1324,6 +1324,116 @@
           "notes": [
             "projected payoff is asymmetric",
             "IVR penalty applied: IV rank 72% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-04T15:13:48+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.515,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 35,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 5,
+        "live_count": 0,
+        "shadow_count": 3,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 5,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 4,
+          "score_and_extrinsic_fail_count": 1,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "KO",
+              "AAPL",
+              "WMT"
+            ],
+            "score_and_extrinsic": [
+              "XLE"
+            ]
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 3
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "KO",
+          "contract_symbol": "KO260508P00078000",
+          "option_type": "put",
+          "expiry": "2026-05-08",
+          "strike": 78.0,
+          "forge_score": 0.8161,
+          "payoff_edge_score": 0.902,
+          "expected_edge_after_friction_pct": 0.4156,
+          "contract_cost": 46.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "AAPL",
+          "contract_symbol": "AAPL260506P00275000",
+          "option_type": "put",
+          "expiry": "2026-05-06",
+          "strike": 275.0,
+          "forge_score": 0.7969,
+          "payoff_edge_score": 0.8067,
+          "expected_edge_after_friction_pct": 0.5944,
+          "contract_cost": 141.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "WMT",
+          "contract_symbol": "WMT260508P00130000",
+          "option_type": "put",
+          "expiry": "2026-05-08",
+          "strike": 130.0,
+          "forge_score": 0.7694,
+          "payoff_edge_score": 0.8202,
+          "expected_edge_after_friction_pct": 0.4386,
+          "contract_cost": 109.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
             "delta sits in the preferred weekly range",
             "Payoff model ranker active"
           ]
