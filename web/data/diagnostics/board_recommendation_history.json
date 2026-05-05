@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-05T16:01:07+00:00",
+  "updated_at_utc": "2026-05-05T18:22:20+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 23,
+    "runs": 24,
     "live_picks_emitted": 10,
-    "shadow_picks_emitted": 47,
-    "abstain_runs": 14,
+    "shadow_picks_emitted": 49,
+    "abstain_runs": 15,
     "abstain_primary_reasons": [
       {
         "reason": "unknown",
@@ -15,7 +15,7 @@
       },
       {
         "reason": "extrinsic_limit",
-        "count": 5
+        "count": 6
       }
     ]
   },
@@ -1931,6 +1931,95 @@
           "payoff_edge_score": 0.7714,
           "expected_edge_after_friction_pct": 0.5159,
           "contract_cost": 228.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-05T18:22:20+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.6119,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 42,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 2,
+        "live_count": 0,
+        "shadow_count": 2,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 2,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 2,
+          "score_and_extrinsic_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "WMT",
+              "QQQ"
+            ],
+            "score_and_extrinsic": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 2
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "WMT",
+          "contract_symbol": "WMT260508P00130000",
+          "option_type": "put",
+          "expiry": "2026-05-08",
+          "strike": 130.0,
+          "forge_score": 0.8011,
+          "payoff_edge_score": 0.8387,
+          "expected_edge_after_friction_pct": 0.4633,
+          "contract_cost": 94.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 70% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "QQQ",
+          "contract_symbol": "QQQ260507P00677000",
+          "option_type": "put",
+          "expiry": "2026-05-07",
+          "strike": 677.0,
+          "forge_score": 0.7991,
+          "payoff_edge_score": 0.7603,
+          "expected_edge_after_friction_pct": 0.7165,
+          "contract_cost": 232.0,
           "council_risk_flags": [
             "high_extrinsic"
           ],
