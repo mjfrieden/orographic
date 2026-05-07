@@ -1,11 +1,11 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-05-07T18:55:17+00:00",
+  "generated_at_utc": "2026-05-07T21:14:07+00:00",
   "trading_day": "2026-05-07",
   "timezone": "America/Chicago",
   "summary": {
-    "scout_signal_count": 41,
+    "scout_signal_count": 35,
     "pre_forge_signal_count": 6,
     "forge_candidate_count": 0,
     "live_count": 0,
@@ -23,9 +23,9 @@
       "call": 0,
       "put": 0
     },
-    "friction_veto_count": 12,
+    "friction_veto_count": 14,
     "dedupe_removed_count": 0,
-    "pre_forge_rejection_count": 1,
+    "pre_forge_rejection_count": 4,
     "council_holdout_count": 0,
     "live_avg_forge_score": null,
     "shadow_avg_forge_score": null,
@@ -36,35 +36,35 @@
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 1,
-        "put": 99
+        "call": 4,
+        "put": 96
       },
       "final_direction_counts": {
-        "call": 1,
-        "put": 40
+        "call": 4,
+        "put": 31
       },
-      "counter_regime_survivors": 40
+      "counter_regime_survivors": 31
     },
     "forge": {
       "waterfall": {
         "signals_considered": 6,
         "signals_with_expiry": 6,
         "signals_with_chain": 6,
-        "rows_after_basic": 297,
-        "rows_positive_bid_ask": 191,
-        "rows_within_long_leg_cap": 96,
-        "rows_within_spread_cap": 34,
-        "rows_passing_liquidity": 17,
-        "rows_passing_moneyness": 16,
-        "rows_passing_delta": 12,
-        "rows_passing_net_debit": 12,
-        "final_candidates": 12,
+        "rows_after_basic": 390,
+        "rows_positive_bid_ask": 240,
+        "rows_within_long_leg_cap": 147,
+        "rows_within_spread_cap": 39,
+        "rows_passing_liquidity": 29,
+        "rows_passing_moneyness": 22,
+        "rows_passing_delta": 14,
+        "rows_passing_net_debit": 14,
+        "final_candidates": 14,
         "candidates_after_friction_gate": 0,
         "candidates_after_deduplication": 0
       },
       "pre_council_gate": {
         "kept": 0,
-        "dropped": 12,
+        "dropped": 14,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
@@ -108,43 +108,64 @@
   "friction_vetoes": [
     {
       "symbol": "KO",
-      "contract_symbol": "KO260515P00078000",
+      "contract_symbol": "KO260515P00077500",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1369,
-      "friction_buffer_pct": 0.3707
-    },
-    {
-      "symbol": "XLP",
-      "contract_symbol": "XLP260515P00083000",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.2672,
-      "friction_buffer_pct": 0.3998
+      "expected_edge_after_friction_pct": -0.0688,
+      "friction_buffer_pct": 0.3633
     },
     {
       "symbol": "KO",
-      "contract_symbol": "KO260515P00077500",
+      "contract_symbol": "KO260515P00078000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.3003,
-      "friction_buffer_pct": 0.4075
+      "expected_edge_after_friction_pct": -0.6013,
+      "friction_buffer_pct": 0.3849
     },
     {
-      "symbol": "XLP",
-      "contract_symbol": "XLP260515P00084000",
+      "symbol": "KO",
+      "contract_symbol": "KO260515P00079000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.5862,
-      "friction_buffer_pct": 0.3809
+      "expected_edge_after_friction_pct": -0.4909,
+      "friction_buffer_pct": 0.1863
+    },
+    {
+      "symbol": "PEP",
+      "contract_symbol": "PEP260515P00155000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.4477,
+      "friction_buffer_pct": 0.3685
     },
     {
       "symbol": "DIA",
-      "contract_symbol": "DIA260515P00490000",
+      "contract_symbol": "DIA260515P00491000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.5142,
-      "friction_buffer_pct": 0.3581
+      "expected_edge_after_friction_pct": -0.4784,
+      "friction_buffer_pct": 0.3462
     }
   ],
   "pre_forge_rejections": [
     {
-      "symbol": "PEP",
+      "symbol": "XLP",
+      "reason": "liquidity_gate",
+      "expiry": "2026-05-15",
+      "long_leg_cap": 2.25,
+      "spread_cap": 0.18
+    },
+    {
+      "symbol": "XLY",
+      "reason": "liquidity_gate",
+      "expiry": "2026-05-15",
+      "long_leg_cap": 2.25,
+      "spread_cap": 0.18
+    },
+    {
+      "symbol": "XLV",
+      "reason": "liquidity_gate",
+      "expiry": "2026-05-15",
+      "long_leg_cap": 2.25,
+      "spread_cap": 0.18
+    },
+    {
+      "symbol": "XLI",
       "reason": "liquidity_gate",
       "expiry": "2026-05-15",
       "long_leg_cap": 2.75,
