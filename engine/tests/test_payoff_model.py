@@ -11,6 +11,7 @@ from sklearn.dummy import DummyClassifier, DummyRegressor
 
 from engine.orographic.payoff_model import (
     FEATURE_COLS,
+    feature_row,
     feature_matrix,
     score_candidates,
     side_aligned_directional_edge,
@@ -140,6 +141,81 @@ class PayoffModelTests(unittest.TestCase):
         self.assertEqual(candidates[0].ranker_mode, "active")
         self.assertNotEqual(candidates[0].forge_score, 0.51)
         self.assertTrue(any("Payoff model ranker active" in note for note in candidates[0].notes))
+
+    def test_active_ranker_applies_stability_bonus_and_turnover_penalty(self) -> None:
+        incumbent = _candidate("call", 0.4, 0.51)
+        incumbent.symbol = "AAPL"
+        entrant = _candidate("call", 0.35, 0.50)
+        entrant.symbol = "NVDA"
+        entrant.expected_return_pct = 0.08
+        candidates = [incumbent, entrant]
+        X = feature_matrix(candidates, MarketRegime("neutral", 0.0, "SPY"), as_of=date(2026, 4, 18), feature_cols=FEATURE_COLS)
+        positive = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
+        breakeven = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(len(candidates), dtype=int))
+        expected = DummyRegressor(strategy="constant", constant=0.12).fit(X, np.ones(len(candidates)))
+        mfe = DummyRegressor(strategy="constant", constant=0.25).fit(X, np.ones(len(candidates)))
+        adverse = DummyRegressor(strategy="constant", constant=-0.10).fit(X, np.ones(len(candidates)))
+        bundle = {
+            "positive_classifier": positive,
+            "breakeven_classifier": breakeven,
+            "expected_return_regressor": expected,
+            "mfe_regressor": mfe,
+            "adverse_regressor": adverse,
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = Path(tmpdir) / "payoff_model.pkl"
+            joblib.dump(
+                {
+                    "feature_cols": FEATURE_COLS,
+                    "global": bundle,
+                    "by_side": {},
+                    "metadata": {"label_means": {}},
+                },
+                model_path,
+            )
+            score_candidates(
+                candidates,
+                MarketRegime("neutral", 0.0, "SPY"),
+                as_of=date(2026, 4, 18),
+                model_path=model_path,
+                prior_live_board_symbols=["AAPL"],
+                turnover_switch_penalty=0.03,
+            )
+
+        self.assertTrue(incumbent.prior_live_board_symbol)
+        self.assertGreater(incumbent.stability_adjustment or 0.0, 0.0)
+        self.assertEqual(entrant.prior_live_board_symbol, False)
+        self.assertGreater(entrant.turnover_risk_penalty or 0.0, 0.0)
+        self.assertLess(entrant.final_candidate_score, entrant.payoff_model_score)
+        self.assertGreater(incumbent.final_candidate_score, incumbent.payoff_model_score)
+
+    def test_feature_row_includes_option_native_and_sentinel_features(self) -> None:
+        candidate = _candidate("call", 0.4, 0.55)
+        candidate.realized_vol_20d = 0.22
+        candidate.atr_pct_14d = 0.025
+        candidate.premium_pct_of_spot = 0.011
+        candidate.vrp_gap = 0.10
+        candidate.expected_edge_after_friction_pct = 0.18
+        candidate.sentinel_holding_window_fit = 0.8
+        candidate.sentinel_confidence = 0.7
+        candidate.sentinel_call_relevance = 0.9
+        candidate.sentinel_put_relevance = 0.1
+        candidate.sentinel_no_trade_relevance = 0.05
+        candidate.sentinel_spot_effect = 1.0
+        candidate.sentinel_iv_effect = 0.0
+
+        row = feature_row(candidate, MarketRegime("risk_on", 0.3, "SPY"), as_of=date(2026, 4, 18))
+
+        self.assertEqual(row["premium_pct_of_spot"], 0.011)
+        self.assertEqual(row["realized_vol_20d"], 0.22)
+        self.assertEqual(row["atr_pct_14d"], 0.025)
+        self.assertEqual(row["vrp_gap"], 0.10)
+        self.assertEqual(row["heuristic_edge_after_friction_pct"], 0.18)
+        self.assertEqual(row["sentinel_holding_window_fit"], 0.8)
+        self.assertEqual(row["sentinel_confidence"], 0.7)
+        self.assertEqual(row["sentinel_side_relevance"], 0.9)
+        self.assertEqual(row["sentinel_spot_effect"], 1.0)
+        self.assertEqual(row["sentinel_iv_effect"], 0.0)
 
 
 if __name__ == "__main__":

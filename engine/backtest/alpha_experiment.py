@@ -27,9 +27,10 @@ from engine.backtest.pricer import BUDGET_PER_TRADE, HARD_COST_CEILING_USD, Trad
 from engine.backtest.replay import historical_corr_matrix_as_of, replay_week
 from engine.backtest.risk_controls import apply_candidate_concentration_caps
 from engine.backtest.results import apply_coverage_policy, build_results
+from engine.backtest.results import save_option_outcome_dataset
 from engine.backtest.runner import _load_universe
 from engine.orographic.council import select_board
-from engine.orographic.schemas import ContractCandidate
+from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,6 +40,7 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 DEFAULT_OUTPUT = Path(__file__).parents[2] / "docs" / "alpha_experiment_results.json"
+DEFAULT_OPTION_OUTCOME_DIR = Path("output")
 
 
 @dataclass(frozen=True)
@@ -47,6 +49,10 @@ class VariantConfig:
     council_only: bool
     max_estimated_cost_basis: float | None = None
     use_symbol_priors: bool = False
+    use_path_tiebreaker: bool = False
+    path_tiebreaker_max_swaps: int = 1
+    path_tiebreaker_max_forge_gap: float = 0.03
+    path_tiebreaker_min_path_quality_edge: float = 0.10
     live_size: int = 3
     shadow_size: int = 3
 
@@ -72,7 +78,37 @@ def build_variants(cost_cap_usd: float | None) -> list[VariantConfig]:
             max_estimated_cost_basis=cost_cap_usd,
             use_symbol_priors=True,
         ),
+        VariantConfig(
+            name="council_cost_cap_path_tiebreaker",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            use_path_tiebreaker=True,
+        ),
+        VariantConfig(
+            name="council_cost_cap_path_tiebreaker_loose",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            use_path_tiebreaker=True,
+            path_tiebreaker_max_forge_gap=0.08,
+            path_tiebreaker_min_path_quality_edge=0.03,
+        ),
     ]
+
+
+def default_variant_option_outcome_paths(
+    output_path: Path,
+    variant_names: list[str],
+    *,
+    output_dir: Path | None = None,
+) -> dict[str, Path]:
+    target_dir = output_dir or DEFAULT_OPTION_OUTCOME_DIR
+    base_stem = output_path.stem
+    if base_stem == "alpha_experiment_results":
+        base_stem = "alpha_experiment"
+    return {
+        variant_name: target_dir / f"option_outcomes_{base_stem}_{variant_name}.json"
+        for variant_name in variant_names
+    }
 
 
 def estimated_cost_basis(
@@ -219,6 +255,7 @@ def _price_candidates(
     friday: date,
     equity_histories: dict[str, Any],
     options_provider: HistoricalOptionsProvider,
+    regime: MarketRegime,
     *,
     budget: float = BUDGET_PER_TRADE,
     hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
@@ -243,6 +280,7 @@ def _price_candidates(
             friday,
             hist,
             options_provider,
+            regime=regime,
             budget=budget,
             hard_cost_ceiling=hard_cost_ceiling,
             strict_options_data=strict_options_data,
@@ -258,6 +296,171 @@ def _price_candidates(
         if leg is not None:
             legs.append(leg)
     return legs
+
+
+def _candidate_sort_value(candidate: ContractCandidate, field: str, fallback: str = "forge_score") -> float:
+    primary = getattr(candidate, field, None)
+    if primary is not None:
+        return float(primary)
+    return float(getattr(candidate, fallback, 0.0) or 0.0)
+
+
+def _path_shadow_board(
+    candidates: list[ContractCandidate],
+    *,
+    board_size: int,
+) -> list[ContractCandidate]:
+    ranked = sorted(
+        candidates,
+        key=lambda row: (
+            _candidate_sort_value(row, "path_holding_quality_score"),
+            _candidate_sort_value(row, "path_early_profit_take_prob"),
+            _candidate_sort_value(row, "forge_score"),
+        ),
+        reverse=True,
+    )
+    selected: list[ContractCandidate] = []
+    seen_symbols: set[str] = set()
+    for candidate in ranked:
+        if len(selected) >= max(board_size, 1):
+            break
+        if candidate.symbol in seen_symbols:
+            continue
+        selected.append(candidate)
+        seen_symbols.add(candidate.symbol)
+    return selected
+
+
+def apply_path_tiebreaker(
+    chosen: list[ContractCandidate],
+    candidate_pool: list[ContractCandidate],
+    *,
+    max_swaps: int = 1,
+    max_forge_gap: float = 0.03,
+    min_path_quality_edge: float = 0.10,
+) -> tuple[list[ContractCandidate], dict[str, Any]]:
+    if not chosen:
+        return list(chosen), {
+            "swaps": 0,
+            "max_swaps": max_swaps,
+            "max_forge_gap": max_forge_gap,
+            "min_path_quality_edge": min_path_quality_edge,
+            "top_symbols_before": [],
+            "top_symbols_after": [],
+            "swap_details": [],
+        }
+    top_before = [row.symbol for row in chosen[:5]]
+    updated = list(chosen)
+    chosen_symbols = {row.symbol for row in updated}
+    swap_details: list[dict[str, Any]] = []
+    near_miss_details: list[dict[str, Any]] = []
+
+    alternatives = [
+        row for row in sorted(
+            candidate_pool,
+            key=lambda row: (
+                float(getattr(row, "path_holding_quality_score", 0.0) or 0.0),
+                float(getattr(row, "forge_score", 0.0) or 0.0),
+            ),
+            reverse=True,
+        )
+        if row.symbol not in chosen_symbols
+    ]
+
+    swaps = 0
+    while swaps < max_swaps and alternatives and updated:
+        incumbent = min(
+            updated,
+            key=lambda row: (
+                float(getattr(row, "path_holding_quality_score", 0.0) or 0.0),
+                float(getattr(row, "forge_score", 0.0) or 0.0),
+            ),
+        )
+        replacement = alternatives.pop(0)
+        incumbent_path = float(getattr(incumbent, "path_holding_quality_score", 0.0) or 0.0)
+        replacement_path = float(getattr(replacement, "path_holding_quality_score", 0.0) or 0.0)
+        forge_gap = float(getattr(incumbent, "forge_score", 0.0) or 0.0) - float(getattr(replacement, "forge_score", 0.0) or 0.0)
+        path_edge = replacement_path - incumbent_path
+        blocker: str | None = None
+        if replacement_path < incumbent_path + min_path_quality_edge:
+            blocker = "path_edge_below_minimum"
+        elif forge_gap > max_forge_gap:
+            blocker = "forge_gap_above_maximum"
+        if blocker is not None:
+            if len(near_miss_details) < 5:
+                near_miss_details.append(
+                    {
+                        "out_symbol": incumbent.symbol,
+                        "candidate_symbol": replacement.symbol,
+                        "incumbent_path_holding_quality_score": round(incumbent_path, 4),
+                        "candidate_path_holding_quality_score": round(replacement_path, 4),
+                        "path_quality_edge": round(path_edge, 4),
+                        "forge_gap": round(forge_gap, 4),
+                        "blocker": blocker,
+                    }
+                )
+            continue
+        updated = [row for row in updated if row.symbol != incumbent.symbol]
+        updated.append(
+            replace(
+                replacement,
+                notes=[*replacement.notes, f"path tie-breaker swap over {incumbent.symbol}"],
+            )
+        )
+        chosen_symbols.discard(incumbent.symbol)
+        chosen_symbols.add(replacement.symbol)
+        swap_details.append(
+            {
+                "out_symbol": incumbent.symbol,
+                "in_symbol": replacement.symbol,
+                "incumbent_path_holding_quality_score": round(incumbent_path, 4),
+                "replacement_path_holding_quality_score": round(replacement_path, 4),
+                "path_quality_edge": round(path_edge, 4),
+                "forge_gap": round(forge_gap, 4),
+            }
+        )
+        swaps += 1
+
+    updated.sort(key=lambda row: float(getattr(row, "forge_score", 0.0) or 0.0), reverse=True)
+    return updated, {
+        "swaps": swaps,
+        "max_swaps": max_swaps,
+        "max_forge_gap": max_forge_gap,
+        "min_path_quality_edge": min_path_quality_edge,
+        "top_symbols_before": top_before,
+        "top_symbols_after": [row.symbol for row in updated[:5]],
+        "swap_details": swap_details,
+        "near_miss_details": near_miss_details,
+        "considered_candidates": len(swap_details) + len(near_miss_details),
+    }
+
+
+def _summarize_path_shadow_week(
+    chosen: list[ContractCandidate],
+    path_shadow: list[ContractCandidate],
+    live_priced: list[TradeLeg],
+    path_priced: list[TradeLeg],
+) -> dict[str, Any]:
+    chosen_contracts = [row.contract_symbol for row in chosen]
+    path_contracts = [row.contract_symbol for row in path_shadow]
+    disagreement = chosen_contracts != path_contracts
+    return {
+        "chosen_contracts": chosen_contracts,
+        "path_shadow_contracts": path_contracts,
+        "disagreement": disagreement,
+        "chosen_avg_path_holding_quality_score": round(
+            sum(float(row.path_holding_quality_score or 0.0) for row in chosen) / len(chosen),
+            4,
+        ) if chosen else None,
+        "path_shadow_avg_holding_quality_score": round(
+            sum(float(row.path_holding_quality_score or 0.0) for row in path_shadow) / len(path_shadow),
+            4,
+        ) if path_shadow else None,
+        "chosen_week_pnl": round(sum(trade.pnl for trade in live_priced), 2),
+        "path_shadow_week_pnl": round(sum(trade.pnl for trade in path_priced), 2),
+        "chosen_priced_count": len(live_priced),
+        "path_shadow_priced_count": len(path_priced),
+    }
 
 
 def run_experiment(
@@ -285,6 +488,7 @@ def run_experiment(
     min_exit_volume: int = 0,
     max_symbol_candidates_per_week: int | None = None,
     max_sector_candidates_per_week: int | None = None,
+    option_outcome_dir: Path | None = None,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -357,6 +561,14 @@ def run_experiment(
             candidate_pool = list(week.candidates)
             cost_diag = {"kept": len(candidate_pool), "dropped": 0, "max_estimated_cost_basis": None}
             prior_diag = {"boosted_symbols": [], "excluded_symbols": [], "available_priors": 0}
+            path_tiebreaker_diag = {
+                "swaps": 0,
+                "top_symbols_before": [],
+                "top_symbols_after": [],
+                "swap_details": [],
+                "near_miss_details": [],
+                "considered_candidates": 0,
+            }
 
             candidate_pool, cost_diag = filter_by_cost_basis(
                 candidate_pool,
@@ -367,7 +579,6 @@ def run_experiment(
 
             if variant.use_symbol_priors:
                 candidate_pool, prior_diag = apply_symbol_priors(candidate_pool, research_priors)
-
             candidate_pool, concentration_diag = apply_candidate_concentration_caps(
                 candidate_pool,
                 max_symbol_candidates=max_symbol_candidates_per_week,
@@ -389,6 +600,14 @@ def run_experiment(
                     fetch_live_corr=False,
                 )
                 chosen = list(council.live_board)
+                if variant.use_path_tiebreaker:
+                    chosen, path_tiebreaker_diag = apply_path_tiebreaker(
+                        chosen,
+                        candidate_pool,
+                        max_swaps=variant.path_tiebreaker_max_swaps,
+                        max_forge_gap=variant.path_tiebreaker_max_forge_gap,
+                        min_path_quality_edge=variant.path_tiebreaker_min_path_quality_edge,
+                    )
                 summary = council.summary
                 live_symbols = [row.symbol for row in council.live_board]
                 shadow_symbols = [row.symbol for row in council.shadow_board]
@@ -410,6 +629,7 @@ def run_experiment(
                 week.friday,
                 user_histories,
                 options_provider,
+                week.regime,
                 budget=base_budget_usd,
                 hard_cost_ceiling=hard_cost_ceiling_usd,
                 strict_options_data=strict_options_data,
@@ -422,11 +642,37 @@ def run_experiment(
                 min_exit_open_interest=min_exit_open_interest,
                 min_exit_volume=min_exit_volume,
             )
+            path_shadow = _path_shadow_board(
+                candidate_pool,
+                board_size=len(chosen) if chosen else max(variant.live_size, 1),
+            )
+            path_shadow_priced = _price_candidates(
+                path_shadow,
+                week.monday,
+                week.friday,
+                user_histories,
+                options_provider,
+                week.regime,
+                budget=base_budget_usd,
+                hard_cost_ceiling=hard_cost_ceiling_usd,
+                strict_options_data=strict_options_data,
+                entry_slippage_pct=entry_slippage_pct,
+                exit_slippage_pct=exit_slippage_pct,
+                max_entry_spread_pct=max_entry_spread_pct,
+                max_exit_spread_pct=max_exit_spread_pct,
+                min_entry_open_interest=min_entry_open_interest,
+                min_entry_volume=min_entry_volume,
+                min_exit_open_interest=min_exit_open_interest,
+                min_exit_volume=min_exit_volume,
+            )
+            path_shadow_diag = _summarize_path_shadow_week(chosen, path_shadow, priced, path_shadow_priced)
             variant_trades[variant.name].extend(priced)
 
             weekly_diagnostics[variant.name].append({
                 "monday": week.monday.isoformat(),
                 "regime": week.regime.mode,
+                "regime_bias": round(float(week.regime.bias), 4),
+                "regime_source_symbol": week.regime.source_symbol,
                 "signals": len(week.signals),
                 "signal_side_mix": week.scout_diagnostics.get("final_direction_counts", {}),
                 "raw_candidates": len(week.candidates),
@@ -442,12 +688,15 @@ def run_experiment(
                 "available_priors": prior_diag["available_priors"],
                 "boosted_symbols": prior_diag["boosted_symbols"],
                 "excluded_symbols": prior_diag["excluded_symbols"],
+                "path_tiebreaker": path_tiebreaker_diag,
                 "research_prior_symbols": sorted(research_priors.keys()),
                 "selected_symbols": live_symbols,
                 "shadow_symbols": shadow_symbols,
+                "path_shadow_symbols": [row.symbol for row in path_shadow],
                 "selected_count": len(chosen),
                 "priced_count": len(priced),
                 "week_pnl": round(sum(trade.pnl for trade in priced), 2),
+                "path_shadow": path_shadow_diag,
                 "council_notes": summary.get("notes", []),
             })
 
@@ -458,6 +707,7 @@ def run_experiment(
                 week.friday,
                 user_histories,
                 options_provider,
+                week.regime,
                 budget=base_budget_usd,
                 hard_cost_ceiling=hard_cost_ceiling_usd,
                 strict_options_data=strict_options_data,
@@ -494,9 +744,55 @@ def run_experiment(
             "net_return_pct": result["net_return_pct"],
             "sharpe_ratio": result["sharpe_ratio"],
             "max_drawdown": result["max_drawdown"],
+            "path_shadow_disagreement_weeks": sum(
+                1 for row in weekly_diagnostics[name]
+                if bool((row.get("path_shadow") or {}).get("disagreement"))
+            ),
+            "path_shadow_live_pnl_on_disagreement_weeks": round(
+                sum(
+                    float((row.get("path_shadow") or {}).get("chosen_week_pnl") or 0.0)
+                    for row in weekly_diagnostics[name]
+                    if bool((row.get("path_shadow") or {}).get("disagreement"))
+                ),
+                2,
+            ),
+            "path_shadow_alt_pnl_on_disagreement_weeks": round(
+                sum(
+                    float((row.get("path_shadow") or {}).get("path_shadow_week_pnl") or 0.0)
+                    for row in weekly_diagnostics[name]
+                    if bool((row.get("path_shadow") or {}).get("disagreement"))
+                ),
+                2,
+            ),
+            "path_tiebreaker_swap_weeks": sum(
+                1 for row in weekly_diagnostics[name]
+                if int((row.get("path_tiebreaker") or {}).get("swaps", 0) or 0) > 0
+            ),
+            "path_tiebreaker_total_swaps": sum(
+                int((row.get("path_tiebreaker") or {}).get("swaps", 0) or 0)
+                for row in weekly_diagnostics[name]
+            ),
+            "path_tiebreaker_near_miss_weeks": sum(
+                1 for row in weekly_diagnostics[name]
+                if bool((row.get("path_tiebreaker") or {}).get("near_miss_details"))
+            ),
         }
         for name, result in variant_results.items()
     }
+    option_outcome_paths = default_variant_option_outcome_paths(
+        output_path,
+        [variant.name for variant in variants],
+        output_dir=option_outcome_dir,
+    )
+    for variant in variants:
+        dataset_path = option_outcome_paths[variant.name]
+        save_option_outcome_dataset(
+            variant_trades[variant.name],
+            dataset_path,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        variant_results[variant.name]["option_outcome_dataset_artifact_path"] = str(dataset_path)
 
     payload = {
         "generated_at": date.today().isoformat(),
@@ -506,7 +802,11 @@ def run_experiment(
         "symbols": symbols,
         "recommended_default_variant": "council_cost_cap",
         "recommended_default_variant_label": "Council + Cost Cap",
-        "experimental_variants": ["council_cost_cap_symbol_priors"],
+        "experimental_variants": [
+            "council_cost_cap_symbol_priors",
+            "council_cost_cap_path_tiebreaker",
+            "council_cost_cap_path_tiebreaker_loose",
+        ],
         "config": {
             "budget_per_trade_usd": base_budget_usd,
             "hard_cost_ceiling_usd": hard_cost_ceiling_usd,
@@ -533,6 +833,13 @@ def run_experiment(
             "max_sector_candidates_per_week": max_sector_candidates_per_week,
         },
         "variant_summaries": summaries,
+        "option_outcome_datasets": {
+            name: {
+                "artifact": "option_outcome_dataset",
+                "path": str(path),
+            }
+            for name, path in option_outcome_paths.items()
+        },
         "variant_results": variant_results,
         "weekly_diagnostics": weekly_diagnostics,
     }
@@ -631,6 +938,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-exit-volume", type=int, default=0, help="Minimum exit trade volume; 0 disables.")
     parser.add_argument("--max-symbol-candidates-per-week", type=int, default=0, help="Per-week symbol candidate cap; 0 disables.")
     parser.add_argument("--max-sector-candidates-per-week", type=int, default=0, help="Per-week sector candidate cap; 0 disables.")
+    parser.add_argument(
+        "--option-outcome-dir",
+        type=Path,
+        default=None,
+        help="Directory for per-variant canonical option outcome datasets. Defaults to output/.",
+    )
     return parser.parse_args()
 
 
@@ -667,6 +980,7 @@ def main() -> None:
         min_exit_volume=max(args.min_exit_volume, 0),
         max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
         max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
+        option_outcome_dir=args.option_outcome_dir,
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from datetime import date
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
-from engine.backtest.replay import forge_candidates_as_of, select_expiry_from_chain
-from engine.orographic.schemas import ScoutSignal
+from engine.backtest.replay import forge_candidates_as_of, replay_week, select_expiry_from_chain
+from engine.orographic.schemas import MarketRegime, ScoutSignal
 
 
 class _ReplayProvider:
@@ -193,6 +194,56 @@ class ReplayTests(unittest.TestCase):
         )
 
         self.assertEqual(expiry, date(2026, 4, 17))
+
+    def test_replay_week_applies_path_model_scoring(self) -> None:
+        signal = _signal()
+        candidate = forge_candidates_as_of(
+            signal,
+            date(2026, 4, 6),
+            _ReplayProvider(
+                pd.DataFrame(
+                    [
+                        {
+                            "option_type": "C",
+                            "expire_date": "2026-04-10",
+                            "strike": 100.0,
+                            "bid": 1.7,
+                            "ask": 1.8,
+                            "delta": 0.55,
+                            "implied_volatility": 0.30,
+                            "open_interest": 1200,
+                            "trade_volume": 400,
+                        }
+                    ]
+                )
+            ),
+        )[0]
+
+        def _fake_path_score(candidates: list[object], regime: object, *, as_of: date | None = None) -> None:
+            self.assertEqual(as_of, date(2026, 4, 6))
+            self.assertEqual(len(candidates), 1)
+            candidates[0].path_holding_quality_score = 0.77
+            candidates[0].path_model_mode = "shadow"
+
+        with (
+            patch("engine.backtest.replay.infer_regime_as_of", return_value=MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY")),
+            patch("engine.backtest.replay.build_signal_as_of", return_value=signal),
+            patch("engine.backtest.replay.forge_candidates_as_of", return_value=[candidate]),
+            patch("engine.orographic.payoff_model.score_candidates", return_value=None),
+            patch("engine.orographic.path_model.score_candidates", side_effect=_fake_path_score),
+        ):
+            result = replay_week(
+                date(2026, 4, 6),
+                ["TEST"],
+                {"TEST": pd.DataFrame({"Close": [100.0]}, index=pd.to_datetime(["2026-04-06"]))},
+                pd.DataFrame({"Close": [100.0]}, index=pd.to_datetime(["2026-04-06"])),
+                pd.DataFrame({"Close": [20.0]}, index=pd.to_datetime(["2026-04-06"])),
+                _ReplayProvider(pd.DataFrame()),
+            )
+
+        self.assertEqual(len(result.candidates), 1)
+        self.assertAlmostEqual(result.candidates[0].path_holding_quality_score or 0.0, 0.77, places=4)
+        self.assertEqual(result.candidates[0].path_model_mode, "shadow")
 
 
 if __name__ == "__main__":

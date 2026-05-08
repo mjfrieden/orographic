@@ -29,8 +29,10 @@ from engine.backtest.results import (
     DEFAULT_OUTPUT,
     apply_coverage_policy,
     build_results,
+    default_option_outcome_output_path,
     print_summary,
     save_results,
+    save_option_outcome_dataset,
 )
 from engine.backtest.options_provider import HistoricalOptionsProvider
 
@@ -87,6 +89,7 @@ def run(
     min_exit_volume: int = 0,
     max_symbol_candidates_per_week: int | None = None,
     max_sector_candidates_per_week: int | None = None,
+    option_outcome_output: Path | None = None,
 ) -> None:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Backtest window: %s → %s (%d months)", start_date, end_date, months)
@@ -175,6 +178,7 @@ def run(
                     week.friday,
                     hist,
                     options_provider,
+                    regime=week.regime,
                     budget=base_budget_usd,
                     hard_cost_ceiling=hard_cost_ceiling_usd,
                     strict_options_data=strict_options_data,
@@ -214,6 +218,13 @@ def run(
     )
     print_summary(results)
     save_results(results, output_path)
+    dataset_output_path = option_outcome_output or default_option_outcome_output_path(output_path)
+    save_option_outcome_dataset(
+        all_trades,
+        dataset_output_path,
+        start_date=start_date,
+        end_date=end_date,
+    )
 
 
 def main() -> None:
@@ -286,6 +297,12 @@ def main() -> None:
     parser.add_argument("--min-exit-volume", type=int, default=0, help="Minimum exit trade volume; 0 disables.")
     parser.add_argument("--max-symbol-candidates-per-week", type=int, default=0, help="Per-week symbol candidate cap; 0 disables.")
     parser.add_argument("--max-sector-candidates-per-week", type=int, default=0, help="Per-week sector candidate cap; 0 disables.")
+    parser.add_argument(
+        "--option-outcome-output",
+        type=Path,
+        default=None,
+        help="Optional JSON output path for the canonical friction-aware option outcome dataset. Defaults to a derived canonical path.",
+    )
     args = parser.parse_args()
 
     end_date = date.fromisoformat(args.end_date) if args.end_date else date.today()
@@ -319,6 +336,7 @@ def main() -> None:
         min_exit_volume=max(args.min_exit_volume, 0),
         max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
         max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
+        option_outcome_output=args.option_outcome_output,
     )
 
 
