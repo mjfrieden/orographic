@@ -22,6 +22,10 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+from .event_features import (
+    latest_event_feature_snapshot,
+    load_event_feature_frame,
+)
 from .market_data import history
 from .schemas import MarketRegime, ScoutSignal
 from .sentinel import fetch_ai_multiplier
@@ -314,6 +318,7 @@ def _extract_features(
     close: pd.Series,
     frame: pd.DataFrame,
     spy_close: pd.Series | None = None,
+    event_snapshot: dict[str, float] | None = None,
 ) -> dict[str, float]:
     """
     Compute the same feature set used during training.
@@ -365,6 +370,15 @@ def _extract_features(
             "spy_rv20":         spy_rv20,
             "rel_strength_20d": mom_20d - spy_mom_20d,
         })
+
+    if event_snapshot:
+        feats.update(
+            {
+                key: float(value)
+                for key, value in event_snapshot.items()
+                if isinstance(value, (int, float, np.integer, np.floating))
+            }
+        )
 
     return feats
 
@@ -464,6 +478,7 @@ def build_signal(
     frame: pd.DataFrame,
     z_score: float,
     spy_frame: pd.DataFrame | None = None,
+    event_feature_store: pd.DataFrame | None = None,
     *,
     return_diagnostics: bool = False,
 ) -> ScoutSignal | tuple[ScoutSignal | None, dict[str, object]] | None:
@@ -491,7 +506,18 @@ def build_signal(
         spy_close = pd.to_numeric(spy_frame.get("Close", pd.Series(dtype=float)), errors="coerce").dropna()
         spy_close = spy_close.reindex(close.index, method="ffill").dropna()
 
-    feats = _extract_features(close, frame, spy_close)
+    event_feature_snapshot = latest_event_feature_snapshot(
+        symbol,
+        event_feature_store,
+        as_of=close.index[-1] if len(close.index) else None,
+    )
+    event_context = event_feature_snapshot.to_context_dict() if event_feature_snapshot is not None else {}
+    feats = _extract_features(
+        close,
+        frame,
+        spy_close,
+        event_snapshot=event_feature_snapshot.to_feature_dict() if event_feature_snapshot is not None else None,
+    )
     ml_score = _ml_scout_score(feats)
     using_ml = ml_score is not None
     primary_target = "underlying_forward_return"
@@ -545,6 +571,7 @@ def build_signal(
     diagnostics["base_scout_score"] = round(float(base_scout_score), 4)
     diagnostics["primary_target"] = primary_target
     diagnostics["target_description"] = target_description
+    diagnostics["event_dataset_features"] = event_context
     diagnostics["side_aware"] = {
         "model_mode": side_model_mode,
         **side_probs,
@@ -577,7 +604,12 @@ def build_signal(
     scout_score = _clip(base_scout_score + regime_adjustment)
 
     # \u2500\u2500 AI Sentinel overlay \u2500\u2500
-    ai_score = fetch_ai_multiplier(symbol, direction=direction, scout_score=scout_score)
+    ai_score = fetch_ai_multiplier(
+        symbol,
+        direction=direction,
+        scout_score=scout_score,
+        event_context=event_context,
+    )
     scout_score = _clip(scout_score * ai_score.multiplier)
     if side_model_mode not in {"trained_underlying_three_class", "trained_option_payoff_three_class"}:
         side_probs = _side_aware_probabilities(scout_score)
@@ -601,9 +633,20 @@ def build_signal(
         "novelty": ai_score.novelty,
         "source_reliability": ai_score.source_reliability,
         "time_horizon": ai_score.time_horizon,
+        "direction_1d": ai_score.direction_1d,
+        "direction_3d": ai_score.direction_3d,
+        "direction_5d": ai_score.direction_5d,
+        "magnitude_bucket": ai_score.magnitude_bucket,
+        "decay_half_life": ai_score.decay_half_life,
+        "spot_vs_iv_effect": ai_score.spot_vs_iv_effect,
+        "call_relevance": round(float(ai_score.call_relevance), 4),
+        "put_relevance": round(float(ai_score.put_relevance), 4),
+        "no_trade_relevance": round(float(ai_score.no_trade_relevance), 4),
         "confidence": round(float(ai_score.confidence), 4),
         "direction": ai_score.direction or direction,
         "source": ai_score.source,
+        "headlines": list(ai_score.headlines or []),
+        "event_context": dict(ai_score.event_context or event_context),
     }
 
     notes: list[str] = []
@@ -624,6 +667,13 @@ def build_signal(
         notes.append(
             f"Sentinel event shadow-only ({ai_score.shadow_multiplier}x: {ai_score.event_type})"
         )
+    if ai_score.time_horizon not in {"unknown", "intraday"} or ai_score.decay_half_life not in {"unknown", "intraday"}:
+        notes.append(
+            f"Sentinel horizon {ai_score.time_horizon} · decay {ai_score.decay_half_life}"
+        )
+    if event_feature_snapshot is not None:
+        tags = event_feature_snapshot.dataset_tags or "event_dataset"
+        notes.append(f"Dataset-backed event context active ({tags})")
     if abs(momentum_5d) > 0.035:
         notes.append("short-term momentum is strong")
     if 40.0 <= rsi_14 <= 60.0:
@@ -649,6 +699,7 @@ def build_signal(
         put_edge_prob=side_probs["put_edge"],
         no_trade_prob=side_probs["no_trade"],
         scout_model_mode=side_model_mode,
+        sentinel_event=dict(diagnostics["sentinel"]),
         notes=notes,
     )
     diagnostics["passed"] = True
@@ -691,7 +742,17 @@ def scan_symbols_with_diagnostics(
             "regime_countertrend_penalty": REGIME_COUNTERTREND_PENALTY,
             "regime_countertrend_min_abs_score": REGIME_COUNTERTREND_MIN_ABS_SCORE,
         },
+        "event_features": {
+            "rows": 0,
+            "symbols": 0,
+        },
     }
+    event_feature_store = load_event_feature_frame()
+    if not event_feature_store.empty:
+        scout_diagnostics["event_features"] = {
+            "rows": int(len(event_feature_store)),
+            "symbols": int(event_feature_store["symbol"].nunique()),
+        }
 
     # Fetch SPY once for cross-asset features in ML model
     spy_frame = history("SPY", period="6mo")
@@ -740,6 +801,7 @@ def scan_symbols_with_diagnostics(
                 frame,
                 z_score,
                 spy_frame,
+                event_feature_store,
                 return_diagnostics=True,
             )
         except Exception as exc:
@@ -758,14 +820,19 @@ def scan_symbols_with_diagnostics(
             scout_diagnostics["counter_regime_survivors"] += 1
         side_aware = signal_diagnostics.get("side_aware")
         if isinstance(side_aware, dict):
+            active_direction = signal.direction if signal is not None else signal_diagnostics.get("pre_veto_direction")
             preferred_side = _preferred_side_from_probabilities(side_aware)
             if side_aware.get("model_mode") == "trained_option_payoff_three_class":
+                comparison_direction = active_direction if active_direction in {"call", "put"} else pre_direction
                 if preferred_side == "no_trade":
                     scout_diagnostics["side_aware_no_trade_disagreements"] += 1
-                elif pre_direction in {"call", "put"} and preferred_side != pre_direction:
+                elif comparison_direction in {"call", "put"} and preferred_side != comparison_direction:
                     scout_diagnostics["side_aware_directional_disagreements"] += 1
             shadow_guard = side_aware.get("shadow_guard") if isinstance(side_aware.get("shadow_guard"), dict) else {}
-            if shadow_guard.get("reason") == "shadow_no_trade_veto":
+            if shadow_guard.get("reason") == "shadow_no_trade_veto" or signal_diagnostics.get("reason") in {
+                "shadow_no_trade_veto",
+                "shadow_direction_conflict",
+            }:
                 scout_diagnostics["shadow_side_veto_rejections"] += 1
             scout_diagnostics["side_aware_scores"].append(
                 {
@@ -774,12 +841,12 @@ def scan_symbols_with_diagnostics(
                     "call_edge": side_aware.get("call_edge"),
                     "put_edge": side_aware.get("put_edge"),
                     "no_trade": side_aware.get("no_trade"),
+                    "active_direction": active_direction if active_direction in {"call", "put"} else None,
+                    "active_scout_score": signal.scout_score if signal is not None else None,
+                    "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
                     "shadow_preferred_side": shadow_guard.get("preferred_side", preferred_side),
                     "shadow_guard_applied": bool(shadow_guard.get("applied")),
                     "shadow_guard_reason": shadow_guard.get("reason"),
-                    "active_direction": signal.direction if signal is not None else None,
-                    "active_scout_score": signal.scout_score if signal is not None else None,
-                    "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
                     "passed": bool(signal is not None),
                     "reason": signal_diagnostics.get("reason"),
                 }
@@ -798,6 +865,16 @@ def scan_symbols_with_diagnostics(
                     "event_type": sentinel.get("event_type"),
                     "event_polarity": sentinel.get("event_polarity"),
                     "directional_relevance": sentinel.get("directional_relevance"),
+                    "time_horizon": sentinel.get("time_horizon"),
+                    "direction_1d": sentinel.get("direction_1d"),
+                    "direction_3d": sentinel.get("direction_3d"),
+                    "direction_5d": sentinel.get("direction_5d"),
+                    "magnitude_bucket": sentinel.get("magnitude_bucket"),
+                    "decay_half_life": sentinel.get("decay_half_life"),
+                    "spot_vs_iv_effect": sentinel.get("spot_vs_iv_effect"),
+                    "call_relevance": sentinel.get("call_relevance"),
+                    "put_relevance": sentinel.get("put_relevance"),
+                    "no_trade_relevance": sentinel.get("no_trade_relevance"),
                     "confidence": sentinel.get("confidence"),
                     "source": sentinel.get("source"),
                 }

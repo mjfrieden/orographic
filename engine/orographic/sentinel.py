@@ -6,6 +6,7 @@ import urllib.error
 import yfinance as yf
 import os
 from dataclasses import dataclass
+from typing import Any
 
 @dataclass
 class SentinelScore:
@@ -24,10 +25,30 @@ class SentinelScore:
     confidence: float = 0.0
     shadow_multiplier: float = 1.0
     mode: str = "shadow"
+    direction_1d: str = "neutral"
+    direction_3d: str = "neutral"
+    direction_5d: str = "neutral"
+    magnitude_bucket: str = "unknown"
+    decay_half_life: str = "unknown"
+    spot_vs_iv_effect: str = "unknown"
+    call_relevance: float = 0.0
+    put_relevance: float = 0.0
+    no_trade_relevance: float = 1.0
+    headlines: list[str] | None = None
+    event_context: dict[str, Any] | None = None
 
 
 def _clip(value: float, low: float = 0.0, high: float = 1.5) -> float:
     return max(low, min(high, value))
+
+
+def _signed_clip(value: float, low: float = -1.0, high: float = 1.0) -> float:
+    return max(low, min(high, value))
+
+
+def _bucket(value: str | None, allowed: set[str], fallback: str) -> str:
+    cleaned = str(value or "").strip().lower()
+    return cleaned if cleaned in allowed else fallback
 
 
 def fetch_ai_multiplier(
@@ -35,6 +56,7 @@ def fetch_ai_multiplier(
     *,
     direction: str | None = None,
     scout_score: float | None = None,
+    event_context: dict[str, Any] | None = None,
 ) -> SentinelScore:
     """
     Fetch the top headlines, route them to the Sentinel event extractor, and
@@ -52,6 +74,7 @@ def fetch_ai_multiplier(
         direction=direction,
         source="default",
         mode=sentinel_mode,
+        headlines=[],
     )
     
     # ── Configuration ──
@@ -83,6 +106,7 @@ def fetch_ai_multiplier(
                 "direction": direction,
                 "scout_score": scout_score,
                 "mode": sentinel_mode,
+                "event_context": event_context or {},
             }
         ).encode("utf-8")
         headers = {"Content-Type": "application/json"}
@@ -104,11 +128,11 @@ def fetch_ai_multiplier(
                     multiplier=live_multiplier if sentinel_mode == "active" else 1.0,
                     catalyst=data.get("catalyst", "none"),
                     rationale=data.get("rationale", ""),
-                    sentiment_score=float(data.get("sentiment_score", 0.0) or 0.0),
+                    sentiment_score=_signed_clip(float(data.get("sentiment_score", 0.0) or 0.0)),
                     direction=data.get("direction") or direction,
                     source=data.get("source", "cloudflare_ai"),
                     event_type=str(data.get("event_type", data.get("catalyst", "none")) or "none"),
-                    event_polarity=float(data.get("event_polarity", data.get("sentiment_score", 0.0)) or 0.0),
+                    event_polarity=_signed_clip(float(data.get("event_polarity", data.get("sentiment_score", 0.0)) or 0.0)),
                     directional_relevance=str(data.get("directional_relevance", "neither") or "neither"),
                     novelty=str(data.get("novelty", "unknown") or "unknown"),
                     source_reliability=str(data.get("source_reliability", "unknown") or "unknown"),
@@ -116,6 +140,17 @@ def fetch_ai_multiplier(
                     confidence=float(data.get("confidence", 0.0) or 0.0),
                     shadow_multiplier=shadow_multiplier,
                     mode=str(data.get("mode", sentinel_mode) or sentinel_mode),
+                    direction_1d=_bucket(data.get("direction_1d"), {"up", "down", "neutral"}, "neutral"),
+                    direction_3d=_bucket(data.get("direction_3d"), {"up", "down", "neutral"}, "neutral"),
+                    direction_5d=_bucket(data.get("direction_5d"), {"up", "down", "neutral"}, "neutral"),
+                    magnitude_bucket=_bucket(data.get("magnitude_bucket"), {"small", "medium", "large", "unknown"}, "unknown"),
+                    decay_half_life=_bucket(data.get("decay_half_life"), {"intraday", "one_day", "three_days", "one_week", "longer", "unknown"}, "unknown"),
+                    spot_vs_iv_effect=_bucket(data.get("spot_vs_iv_effect"), {"spot", "iv", "mixed", "unknown"}, "unknown"),
+                    call_relevance=_clip(float(data.get("call_relevance", 0.0) or 0.0), 0.0, 1.0),
+                    put_relevance=_clip(float(data.get("put_relevance", 0.0) or 0.0), 0.0, 1.0),
+                    no_trade_relevance=_clip(float(data.get("no_trade_relevance", 1.0) or 0.0), 0.0, 1.0),
+                    headlines=headlines,
+                    event_context=event_context or {},
                 )
     except Exception:
         # Graceful degradation ensures execution engine never halts
