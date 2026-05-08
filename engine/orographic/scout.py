@@ -36,6 +36,8 @@ SIDE_MODEL_MODE_ENV = "OROGRAPHIC_SIDE_MODEL_MODE"
 REGIME_SAME_SIDE_BONUS = 0.08
 REGIME_COUNTERTREND_PENALTY = 0.18
 REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
+SHADOW_SIDE_VETO_MIN_PROB = 0.50
+SHADOW_SIDE_VETO_MIN_MARGIN = 0.10
 
 
 # ── Model loader (singleton, loaded once per process) ────────────────────────
@@ -129,6 +131,73 @@ def _side_aware_probabilities(score: float) -> dict[str, float]:
 def _side_model_activation_mode() -> str:
     mode = os.getenv(SIDE_MODEL_MODE_ENV, "shadow").strip().lower()
     return "active" if mode in {"active", "live"} else "shadow"
+
+
+def _preferred_side_from_probabilities(side_probs: dict[str, float]) -> str:
+    numeric = {
+        "call": float(side_probs.get("call_edge", 0.0)),
+        "put": float(side_probs.get("put_edge", 0.0)),
+        "no_trade": float(side_probs.get("no_trade", 0.0)),
+    }
+    return max(numeric.items(), key=lambda item: item[1])[0]
+
+
+def _side_probability(side_probs: dict[str, float], side: str) -> float:
+    if side == "call":
+        return float(side_probs.get("call_edge", 0.0))
+    if side == "put":
+        return float(side_probs.get("put_edge", 0.0))
+    if side == "no_trade":
+        return float(side_probs.get("no_trade", 0.0))
+    return 0.0
+
+
+def _apply_shadow_side_guard(
+    *,
+    direction: str,
+    side_probs: dict[str, float],
+    side_model_mode: str,
+    side_activation_mode: str,
+) -> tuple[bool, dict[str, object]]:
+    preferred = _preferred_side_from_probabilities(side_probs)
+    preferred_prob = round(_side_probability(side_probs, preferred), 4)
+    direction_prob = round(_side_probability(side_probs, direction), 4)
+    margin = round(preferred_prob - direction_prob, 4)
+    diagnostics = {
+        "applied": False,
+        "passed": True,
+        "preferred_side": preferred,
+        "preferred_probability": preferred_prob,
+        "direction_probability": direction_prob,
+        "margin_vs_direction": margin,
+        "reason": None,
+        "note": None,
+    }
+    if side_model_mode != "trained_option_payoff_three_class" or side_activation_mode == "active":
+        return True, diagnostics
+
+    if preferred_prob < SHADOW_SIDE_VETO_MIN_PROB or margin < SHADOW_SIDE_VETO_MIN_MARGIN:
+        return True, diagnostics
+
+    diagnostics["applied"] = True
+    if preferred == "no_trade":
+        diagnostics["passed"] = False
+        diagnostics["reason"] = "shadow_no_trade_veto"
+        diagnostics["note"] = (
+            "side-aware shadow model vetoed the setup as no-trade dominant "
+            f"({preferred_prob:.2%}, margin {margin:.2%})"
+        )
+        return False, diagnostics
+
+    if preferred != direction:
+        diagnostics["reason"] = "shadow_direction_conflict"
+        diagnostics["note"] = (
+            "side-aware shadow model flagged an opposite-side conflict "
+            f"was dominant ({preferred} {preferred_prob:.2%}, margin {margin:.2%})"
+        )
+        return True, diagnostics
+
+    return True, diagnostics
 
 
 def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tuple[dict[str, float], str]:
@@ -480,6 +549,13 @@ def build_signal(
         "model_mode": side_model_mode,
         **side_probs,
     }
+    shadow_guard_passed, shadow_guard = _apply_shadow_side_guard(
+        direction=direction,
+        side_probs=side_probs,
+        side_model_mode=side_model_mode,
+        side_activation_mode=side_activation_mode,
+    )
+    diagnostics["side_aware"]["shadow_guard"] = shadow_guard
 
     passed_alignment, regime_adjustment, rejection_reason, alignment_note = _apply_regime_alignment(
         direction=direction,
@@ -490,6 +566,10 @@ def build_signal(
     diagnostics["counter_regime_survivor"] = bool(
         passed_alignment and regime_adjustment < 0 and regime.mode in {"risk_on", "risk_off"}
     )
+    if not shadow_guard_passed:
+        diagnostics["reason"] = shadow_guard["reason"]
+        diagnostics["shadow_side_guard_note"] = shadow_guard["note"]
+        return (None, diagnostics) if return_diagnostics else None
     if not passed_alignment:
         diagnostics["reason"] = rejection_reason
         return (None, diagnostics) if return_diagnostics else None
@@ -534,6 +614,8 @@ def build_signal(
         notes.append("heuristic fallback active (model not found)")
     if alignment_note:
         notes.append(alignment_note)
+    if shadow_guard.get("applied") and shadow_guard.get("note"):
+        notes.append(str(shadow_guard["note"]))
     if ai_score.multiplier != 1.0:
         notes.append(
             f"AI Sentinel ({ai_score.multiplier}x: {ai_score.catalyst}) \u2014 {ai_score.rationale}"
@@ -598,6 +680,9 @@ def scan_symbols_with_diagnostics(
         "pre_veto_direction_counts": _empty_direction_counts(),
         "final_direction_counts": _empty_direction_counts(),
         "counter_regime_survivors": 0,
+        "side_aware_directional_disagreements": 0,
+        "side_aware_no_trade_disagreements": 0,
+        "shadow_side_veto_rejections": 0,
         "side_aware_scores": [],
         "sentinel_scores": [],
         "rejections": [],
@@ -673,6 +758,15 @@ def scan_symbols_with_diagnostics(
             scout_diagnostics["counter_regime_survivors"] += 1
         side_aware = signal_diagnostics.get("side_aware")
         if isinstance(side_aware, dict):
+            preferred_side = _preferred_side_from_probabilities(side_aware)
+            if side_aware.get("model_mode") == "trained_option_payoff_three_class":
+                if preferred_side == "no_trade":
+                    scout_diagnostics["side_aware_no_trade_disagreements"] += 1
+                elif pre_direction in {"call", "put"} and preferred_side != pre_direction:
+                    scout_diagnostics["side_aware_directional_disagreements"] += 1
+            shadow_guard = side_aware.get("shadow_guard") if isinstance(side_aware.get("shadow_guard"), dict) else {}
+            if shadow_guard.get("reason") == "shadow_no_trade_veto":
+                scout_diagnostics["shadow_side_veto_rejections"] += 1
             scout_diagnostics["side_aware_scores"].append(
                 {
                     "symbol": cleaned,
@@ -680,6 +774,9 @@ def scan_symbols_with_diagnostics(
                     "call_edge": side_aware.get("call_edge"),
                     "put_edge": side_aware.get("put_edge"),
                     "no_trade": side_aware.get("no_trade"),
+                    "shadow_preferred_side": shadow_guard.get("preferred_side", preferred_side),
+                    "shadow_guard_applied": bool(shadow_guard.get("applied")),
+                    "shadow_guard_reason": shadow_guard.get("reason"),
                     "active_direction": signal.direction if signal is not None else None,
                     "active_scout_score": signal.scout_score if signal is not None else None,
                     "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
