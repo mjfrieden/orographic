@@ -37,6 +37,13 @@ class ScoutTests(unittest.TestCase):
         with (
             mock.patch("engine.orographic.scout._ml_scout_score", return_value=-0.6),
             mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.10, "put_edge": 0.75, "no_trade": 0.15},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
                 "engine.orographic.scout.fetch_ai_multiplier",
                 return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
             ),
@@ -59,6 +66,13 @@ class ScoutTests(unittest.TestCase):
     def test_weak_counter_regime_put_is_rejected_in_risk_on(self) -> None:
         with (
             mock.patch("engine.orographic.scout._ml_scout_score", return_value=-0.2),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.10, "put_edge": 0.60, "no_trade": 0.30},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
             mock.patch(
                 "engine.orographic.scout.fetch_ai_multiplier",
                 return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
@@ -107,7 +121,7 @@ class ScoutTests(unittest.TestCase):
         self.assertEqual(signal.scout_model_mode, "trained_option_payoff_three_class")
         self.assertEqual(diagnostics["side_model_override"]["target"], "strict_real_option_payoff")
 
-    def test_option_payoff_side_model_is_shadow_by_default(self) -> None:
+    def test_option_payoff_side_model_shadow_conflict_is_logged_but_not_blocked(self) -> None:
         with (
             mock.patch.dict("os.environ", {}, clear=True),
             mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.5),
@@ -133,9 +147,68 @@ class ScoutTests(unittest.TestCase):
 
         self.assertIsNotNone(signal)
         assert signal is not None
+        self.assertEqual(diagnostics["side_model_override"]["mode"], "shadow")
+        self.assertEqual(diagnostics["side_aware"]["shadow_guard"]["reason"], "shadow_direction_conflict")
+        self.assertEqual(diagnostics["side_aware"]["shadow_guard"]["preferred_side"], "put")
+        self.assertTrue(diagnostics["side_aware"]["shadow_guard"]["passed"])
+
+    def test_option_payoff_side_model_shadow_no_trade_blocks_trade(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.5),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.20, "put_edge": 0.10, "no_trade": 0.70},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNone(signal)
+        self.assertEqual(diagnostics["reason"], "shadow_no_trade_veto")
+        self.assertFalse(diagnostics["side_aware"]["shadow_guard"]["passed"])
+
+    def test_option_payoff_side_model_shadow_allows_small_disagreement(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.5),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.46, "put_edge": 0.36, "no_trade": 0.18},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
         self.assertEqual(signal.direction, "call")
         self.assertAlmostEqual(signal.scout_score, 0.5, places=4)
-        self.assertEqual(diagnostics["side_model_override"]["mode"], "shadow")
+        self.assertTrue(diagnostics["side_aware"]["shadow_guard"]["passed"])
 
     def test_option_direction_target_updates_ml_note(self) -> None:
         with (
@@ -168,6 +241,92 @@ class ScoutTests(unittest.TestCase):
         assert signal is not None
         self.assertEqual(diagnostics["primary_target"], "strict_real_option_direction")
         self.assertIn("p_call_edge", signal.notes[0])
+
+    def test_sentinel_v2_fields_are_captured_in_diagnostics_and_signal(self) -> None:
+        with (
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.45),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(
+                    multiplier=1.0,
+                    catalyst="earnings beat",
+                    rationale="Short horizon upside catalyst.",
+                    event_type="earnings",
+                    event_polarity=0.7,
+                    directional_relevance="call",
+                    time_horizon="one_to_three_days",
+                    direction_1d="up",
+                    direction_3d="up",
+                    direction_5d="neutral",
+                    magnitude_bucket="medium",
+                    decay_half_life="three_days",
+                    spot_vs_iv_effect="spot",
+                    call_relevance=0.8,
+                    put_relevance=0.1,
+                    no_trade_relevance=0.2,
+                    confidence=0.75,
+                    headlines=["Company beats estimates"],
+                ),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(diagnostics["sentinel"]["direction_3d"], "up")
+        self.assertEqual(diagnostics["sentinel"]["decay_half_life"], "three_days")
+        self.assertAlmostEqual(diagnostics["sentinel"]["call_relevance"], 0.8, places=4)
+        self.assertEqual(signal.sentinel_event["magnitude_bucket"], "medium")
+        self.assertEqual(signal.sentinel_event["spot_vs_iv_effect"], "spot")
+        self.assertIn("Sentinel horizon one_to_three_days", " ".join(signal.notes))
+
+    def test_dataset_backed_event_features_flow_into_diagnostics_and_sentinel_context(self) -> None:
+        event_store = pd.DataFrame(
+            [
+                {
+                    "symbol": "TEST",
+                    "date": pd.Timestamp("2026-04-21"),
+                    "fnspid_news_volume_1d": 9.0,
+                    "fnspid_catalyst_density": 0.8,
+                    "edt_event_intensity": 0.6,
+                    "dataset_tags": "fnspid,edt",
+                }
+            ]
+        )
+        sentinel_mock = mock.Mock(
+            return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale="")
+        )
+        frame = _frame()
+        frame.index = pd.date_range("2026-01-22", periods=len(frame), freq="D")
+        with (
+            mock.patch("engine.orographic.scout._ml_scout_score", return_value=0.45),
+            mock.patch("engine.orographic.scout.fetch_ai_multiplier", sentinel_mock),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                frame,
+                0.0,
+                event_feature_store=event_store,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(diagnostics["event_dataset_features"]["dataset_tags"], "fnspid,edt")
+        self.assertEqual(diagnostics["event_dataset_features"]["fnspid_news_volume_1d"], 9.0)
+        self.assertEqual(diagnostics["sentinel"]["event_context"]["edt_event_intensity"], 0.6)
+        self.assertIn("Dataset-backed event context active", " ".join(signal.notes))
+        self.assertEqual(
+            sentinel_mock.call_args.kwargs["event_context"]["fnspid_catalyst_density"],
+            0.8,
+        )
 
 
 if __name__ == "__main__":

@@ -46,6 +46,11 @@ except ImportError:
     print("ERROR: lightgbm not installed. Run: pip install lightgbm")
     sys.exit(1)
 
+from engine.orographic.event_features import (
+    build_event_feature_history,
+    load_event_feature_frame,
+)
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s")
 log = logging.getLogger(__name__)
 
@@ -61,6 +66,26 @@ DEFAULT_OPTION_OUTCOME_INPUT_CANDIDATES = [
 ]
 PRIMARY_TARGET_UNDERLYING = "underlying_forward_return"
 PRIMARY_TARGET_OPTION_DIRECTION = "strict_real_option_direction"
+NON_SEC_EVENT_PREFIXES = ("fnspid_", "edt_", "mirai_", "stocktwits_")
+SEC_CURATED_EVENT_FEATURE_COLUMNS = [
+    "sec_8k_flag",
+    "sec_10q_flag",
+    "sec_10k_flag",
+    "sec_offering_flag",
+    "sec_proxy_flag",
+    "sec_signal_count_1d",
+    "sec_signal_count_5d",
+    "sec_material_event_score",
+    "sec_material_event_score_5d",
+    "sec_signal_ratio",
+]
+SEC_FALLBACK_EVENT_FEATURE_COLUMNS = [
+    "sec_8k_count",
+    "sec_10q_count",
+    "sec_10k_count",
+    "sec_offering_count",
+    "sec_proxy_count",
+]
 
 
 def _load_training_universe() -> list[str]:
@@ -85,6 +110,16 @@ def _default_option_outcome_inputs() -> list[Path]:
     return [path for path in DEFAULT_OPTION_OUTCOME_INPUT_CANDIDATES if path.exists()]
 
 
+def _selected_event_feature_columns(columns: pd.Index | list[str]) -> list[str]:
+    available_columns = [str(column) for column in columns]
+    event_columns = [column for column in available_columns if column.startswith(NON_SEC_EVENT_PREFIXES)]
+    curated_sec = [column for column in SEC_CURATED_EVENT_FEATURE_COLUMNS if column in available_columns]
+    if curated_sec:
+        return event_columns + curated_sec
+    fallback_sec = [column for column in SEC_FALLBACK_EVENT_FEATURE_COLUMNS if column in available_columns]
+    return event_columns + fallback_sec
+
+
 # ── Feature engineering ──────────────────────────────────────────────────────
 
 def _rsi(close: pd.Series, period: int = 14) -> pd.Series:
@@ -107,7 +142,13 @@ def _atr_pct(df: pd.DataFrame, period: int = 14) -> pd.Series:
     return tr.rolling(period).mean() / close
 
 
-def build_feature_matrix(df: pd.DataFrame, spy_df: pd.DataFrame | None = None) -> pd.DataFrame:
+def build_feature_matrix(
+    df: pd.DataFrame,
+    spy_df: pd.DataFrame | None = None,
+    *,
+    symbol: str | None = None,
+    event_feature_frame: pd.DataFrame | None = None,
+) -> pd.DataFrame:
     """
     Engineer per-bar features from OHLCV + optional SPY overlay.
     Returns a DataFrame with NaN rows dropped.
@@ -170,10 +211,25 @@ def build_feature_matrix(df: pd.DataFrame, spy_df: pd.DataFrame | None = None) -
         # Relative strength vs SPY
         features["rel_strength_20d"] = features["mom_20d"] - features["spy_mom_20d"]
 
+    if symbol:
+        event_history = build_event_feature_history(symbol, features.index, event_feature_frame)
+        for column in event_history.columns:
+            features[column] = event_history[column]
+
     # ── Forward return label (5d) ──
     features["fwd_5d_return"] = close.pct_change(5).shift(-5)
     features["fwd_5d_label_date"] = pd.Series(close.index, index=df.index).shift(-5)
     features["label"] = (features["fwd_5d_return"] > 0).astype(int)
+
+    event_columns = [
+        column
+        for column in features.columns
+        if column.startswith(("fnspid_", "edt_", "mirai_", "sec_", "stocktwits_"))
+    ]
+    if "dataset_tags" in features.columns:
+        features["dataset_tags"] = features["dataset_tags"].fillna("").astype(str)
+    if event_columns:
+        features[event_columns] = features[event_columns].fillna(0.0)
 
     return features.dropna()
 
@@ -465,6 +521,32 @@ def _drift_baseline(combined: pd.DataFrame, feature_cols: list[str]) -> dict[str
     return baseline
 
 
+def _event_feature_activation_report(frame: pd.DataFrame, event_feature_cols: list[str]) -> dict[str, Any]:
+    if not event_feature_cols:
+        return {
+            "feature_cols": [],
+            "rows_with_any_event_feature": 0,
+            "row_coverage_pct": 0.0,
+            "by_feature": {},
+        }
+    numeric = frame[event_feature_cols].apply(pd.to_numeric, errors="coerce").fillna(0.0)
+    active_mask = numeric.abs().gt(0).any(axis=1)
+    by_feature: dict[str, Any] = {}
+    total_rows = max(int(len(frame)), 1)
+    for column in event_feature_cols:
+        nonzero_rows = int(numeric[column].abs().gt(0).sum())
+        by_feature[column] = {
+            "nonzero_rows": nonzero_rows,
+            "row_coverage_pct": round(nonzero_rows / total_rows, 4),
+        }
+    return {
+        "feature_cols": list(event_feature_cols),
+        "rows_with_any_event_feature": int(active_mask.sum()),
+        "row_coverage_pct": round(float(active_mask.mean()), 4) if len(active_mask) else 0.0,
+        "by_feature": by_feature,
+    }
+
+
 def _safe_float(value: object, default: float = 0.0) -> float:
     try:
         if value is None:
@@ -652,6 +734,7 @@ def train(
     calibration_method: str = "isotonic",
     option_outcome_inputs: list[Path] | None = None,
     primary_target: str = PRIMARY_TARGET_UNDERLYING,
+    event_features_path: Path | None = None,
 ) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -666,13 +749,25 @@ def train(
     except Exception as e:
         log.warning("SPY fetch failed (%s) — cross-asset features disabled", e)
         spy_df = None
+    event_feature_frame = load_event_feature_frame(event_features_path)
+    if not event_feature_frame.empty:
+        log.info(
+            "Loaded event-feature store: %d rows across %d symbols",
+            len(event_feature_frame),
+            int(event_feature_frame["symbol"].nunique()),
+        )
 
     all_features: list[pd.DataFrame] = []
 
     for symbol in symbols:
         try:
             df = fetch_history(symbol, years)
-            feat = build_feature_matrix(df, spy_df)
+            feat = build_feature_matrix(
+                df,
+                spy_df,
+                symbol=symbol,
+                event_feature_frame=event_feature_frame,
+            )
             feat["symbol"] = symbol
             if len(feat) < 60:
                 log.warning("  Skipping %s — insufficient rows after feature engineering", symbol)
@@ -706,6 +801,8 @@ def train(
     ]
     if spy_df is not None:
         FEATURE_COLS += ["spy_mom_5d", "spy_mom_20d", "spy_rv20", "rel_strength_20d"]
+    event_feature_cols = _selected_event_feature_columns(combined.columns)
+    FEATURE_COLS += event_feature_cols
 
     available = [c for c in FEATURE_COLS if c in combined.columns]
     option_labels = pd.DataFrame()
@@ -889,6 +986,13 @@ def train(
             "rows": int(len(primary_training_frame)),
             "source_metadata": primary_source_metadata,
             "balance_report": primary_health,
+        },
+        "event_feature_store": {
+            "configured": bool(event_features_path or not event_feature_frame.empty),
+            "rows": int(len(event_feature_frame)),
+            "symbols": int(event_feature_frame["symbol"].nunique()) if not event_feature_frame.empty else 0,
+            "feature_cols": event_feature_cols,
+            "activation": _event_feature_activation_report(primary_training_frame, event_feature_cols),
         },
     }
 
@@ -1138,6 +1242,12 @@ def main() -> None:
         default=None,
         help="Primary Scout target. Defaults to strict-real option direction when option-outcome inputs are available.",
     )
+    parser.add_argument(
+        "--event-features-path",
+        type=Path,
+        default=None,
+        help="Optional canonical event-feature store (.parquet/.csv/.json/.jsonl).",
+    )
     args = parser.parse_args()
 
     cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
@@ -1159,6 +1269,7 @@ def main() -> None:
         calibration_method=args.calibration,
         option_outcome_inputs=option_inputs,
         primary_target=primary_target,
+        event_features_path=args.event_features_path,
     )
 
 

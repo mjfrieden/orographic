@@ -8,8 +8,11 @@ from engine.train_scout_model import (
     _balanced_sample_weights,
     _class_balance_report,
     _directional_option_training_frame,
+    _event_feature_activation_report,
     _infer_regime_labels,
     _merge_option_outcome_labels,
+    _selected_event_feature_columns,
+    build_feature_matrix,
 )
 
 
@@ -100,6 +103,85 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertEqual(report["class_counts"], {"put_edge": 2, "call_edge": 2})
         self.assertEqual(report["minority_share"], 0.5)
         self.assertEqual(report["class_regime_counts"]["put_edge"]["risk_off"], 2)
+
+    def test_build_feature_matrix_includes_event_features_without_dropping_rows(self) -> None:
+        rows = 90
+        index = pd.date_range("2026-01-01", periods=rows, freq="D")
+        close = pd.Series(
+            [100 + i * 0.1 + (0.6 if i % 6 < 3 else -0.4) for i in range(rows)],
+            dtype=float,
+            index=index,
+        )
+        df = pd.DataFrame(
+            {
+                "Close": close,
+                "High": close + 1.0,
+                "Low": close - 1.0,
+                "Volume": pd.Series([1_000_000 + i * 1000 for i in range(rows)], dtype=float, index=index),
+            },
+            index=index,
+        )
+        event_feature_frame = pd.DataFrame(
+            [
+                {
+                    "symbol": "AAA",
+                    "date": pd.Timestamp("2026-03-20"),
+                    "fnspid_news_volume_1d": 7.0,
+                    "edt_event_intensity": 0.6,
+                    "dataset_tags": "fnspid,edt",
+                }
+            ]
+        )
+
+        features = build_feature_matrix(
+            df,
+            symbol="AAA",
+            event_feature_frame=event_feature_frame,
+        )
+
+        self.assertIn("fnspid_news_volume_1d", features.columns)
+        self.assertIn("edt_event_intensity", features.columns)
+        self.assertGreater(len(features), 0)
+        self.assertEqual(float(features.loc[pd.Timestamp("2026-03-20"), "fnspid_news_volume_1d"]), 7.0)
+        self.assertEqual(float(features.iloc[-1]["edt_event_intensity"]), 0.0)
+
+    def test_event_feature_activation_report_counts_nonzero_rows(self) -> None:
+        frame = pd.DataFrame(
+            {
+                "fnspid_news_volume_1d": [0.0, 2.0, 0.0],
+                "mirai_macro_shock_score": [0.0, 0.0, 0.5],
+            }
+        )
+
+        report = _event_feature_activation_report(
+            frame,
+            ["fnspid_news_volume_1d", "mirai_macro_shock_score"],
+        )
+
+        self.assertEqual(report["rows_with_any_event_feature"], 2)
+        self.assertEqual(report["row_coverage_pct"], 0.6667)
+        self.assertEqual(report["by_feature"]["fnspid_news_volume_1d"]["nonzero_rows"], 1)
+        self.assertEqual(report["by_feature"]["mirai_macro_shock_score"]["nonzero_rows"], 1)
+
+    def test_selected_event_feature_columns_prefers_curated_sec_slice(self) -> None:
+        selected = _selected_event_feature_columns(
+            [
+                "mom_5d",
+                "fnspid_news_volume_1d",
+                "sec_filing_count_1d",
+                "sec_insider_count",
+                "sec_signal_count_1d",
+                "sec_signal_ratio",
+                "sec_8k_flag",
+            ]
+        )
+
+        self.assertIn("fnspid_news_volume_1d", selected)
+        self.assertIn("sec_signal_count_1d", selected)
+        self.assertIn("sec_signal_ratio", selected)
+        self.assertIn("sec_8k_flag", selected)
+        self.assertNotIn("sec_filing_count_1d", selected)
+        self.assertNotIn("sec_insider_count", selected)
 
 
 if __name__ == "__main__":

@@ -81,10 +81,60 @@ Build the local historical options store and coverage manifest:
 
 The store builder accepts raw `.csv`, `.csv.gz`, `.gz`, and `.zip` archives dropped into `engine/data/optionsdx`.
 
+Build the optional canonical daily event-feature store used by Scout and Sentinel shadow diagnostics:
+
+```bash
+./.venv/bin/python scripts/build_event_features.py \
+  --fnspid-input /path/to/fnspid_news.csv \
+  --edt-input /path/to/edt_events.jsonl \
+  --mirai-input /path/to/mirai_events.csv \
+  --stockemotions-input /path/to/stockemotions.csv
+```
+
+This writes `engine/data/event_features/daily_event_features.parquet` by default. Override the path with `OROGRAPHIC_EVENT_FEATURES_PATH` or `engine/train_scout_model.py --event-features-path`.
+
+SEC filing inputs are now curated before Scout training: raw filing counts stay in the canonical store for diagnostics, but the model prefers higher-signal SEC features such as `8-K`, `10-Q`, `10-K`, proxy, and targeted offering flags plus compact rolling aggregates instead of training directly on the noisiest insider and ownership traffic. Broad capital-markets traffic like `424B2` and `FWP` is retained for diagnostics, but kept out of the Scout signal slice.
+
+To build an overlapping MIRAI/GDELT-style macro overlay for a real backtest window, fetch raw GDELT article rows first and then feed that CSV into `--mirai-input`:
+
+```bash
+./.venv/bin/python scripts/fetch_gdelt_macro.py \
+  --start-date 2026-01-05 \
+  --end-date 2026-04-13 \
+  --mondays-only \
+  --max-records-per-day 10 \
+  --continue-on-error \
+  --output .local/raw_event_features/gdelt_macro_mondays_2026q1_q2.csv
+
+PYTHONPATH=. ./.venv/bin/python scripts/build_event_features.py \
+  --mirai-input .local/raw_event_features/gdelt_macro_mondays_2026q1_q2.csv \
+  --output .local/event_features/daily_event_features_with_macro_overlap.parquet \
+  --replace
+```
+
 Run a strict replay that only accepts real historical option-chain data:
 
 ```bash
-./.venv/bin/python -m engine.backtest.runner --months 3 --base-budget-usd 300 --hard-cost-ceiling-usd 600 --strict-options-data --min-real-coverage-pct 0.9
+./.venv/bin/python -m engine.backtest.runner \
+  --months 3 \
+  --base-budget-usd 300 \
+  --hard-cost-ceiling-usd 600 \
+  --strict-options-data \
+  --min-real-coverage-pct 0.9
+```
+
+The replay now writes a canonical friction-aware option outcome dataset automatically:
+
+- default: `output/option_outcomes_latest.json`
+- override with `--option-outcome-output /your/path.json` when needed
+
+Those canonical rows now carry explicit replay regime fields as well, including `regime_mode`, `regime_bias`, and `regime_source_symbol`, so downstream training and evaluation can segment true `risk_on` / `risk_off` / `neutral` regimes end to end.
+
+If you already have an older `backtest_results.json` artifact and do not want to rerun replay, convert it with:
+
+```bash
+./.venv/bin/python scripts/convert_backtest_to_option_outcomes.py \
+  --input output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json
 ```
 
 Run the walk-forward alpha experiment with the same sizing policy:
@@ -92,6 +142,16 @@ Run the walk-forward alpha experiment with the same sizing policy:
 ```bash
 ./.venv/bin/python -m engine.backtest.alpha_experiment --months 12 --base-budget-usd 300 --hard-cost-ceiling-usd 600 --cost-cap-usd 600 --strict-options-data --min-real-coverage-pct 0.9
 ```
+
+The alpha experiment now also writes one canonical `option_outcome_dataset` artifact per variant into `output/` by default. Override the directory with `--option-outcome-dir`.
+
+Current production decision as of May 6, 2026:
+
+- keep `council_cost_cap` as the production default validation and deployment variant
+- keep the conservative path-aware tie-breaker as research-only
+- treat the loose path-aware tie-breaker as rejected
+
+The May 6, 2026 comparison note lives in [model-deployment-decision-2026-05-06.md](/Users/mjfrieden/Desktop/2026/Orographic/docs/model-deployment-decision-2026-05-06.md).
 
 Preview the game board:
 
@@ -138,6 +198,7 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `OROGRAPHIC_SENTINEL_MODE`: optional; defaults to `shadow`. Set to `active` only when Sentinel event multipliers should affect Scout scoring.
 - `OROGRAPHIC_SIDE_MODEL_MODE`: optional; defaults to `shadow`. Set to `active` only after promotion gates pass if the option-payoff side-aware Scout model should steer live call/put direction.
 - `OROGRAPHIC_PAYOFF_MODEL_MODE`: optional; defaults to `active` for the existing payoff ranker. Set to `shadow` for observation-only scoring.
+- `OROGRAPHIC_PATH_MODEL_MODE`: optional; defaults to `shadow` and currently remains shadow-only even if set. This layer records hold-window quality, early profit-taking odds, and decay risk for research/promotion analysis.
 
 Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel is logged as a model-observation signal and does not steer live recommendations.
 
@@ -152,6 +213,40 @@ python scripts/validate_model_artifacts.py
 Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. That side model remains shadow-only unless `OROGRAPHIC_SIDE_MODEL_MODE=active` is explicitly set.
 
 Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the active-by-default activation policy for the recovered payoff ranker.
+
+Path-model training writes both the requested report and `engine/orographic/models/path_model_card.json` with hold-window path targets, quote-path coverage, walk-forward early-take-profit calibration, and a shadow-only activation policy.
+
+Production status today:
+
+- live production path: `council_cost_cap`
+- research-only path: `council_cost_cap_path_tiebreaker`
+- rejected experimental path: `council_cost_cap_path_tiebreaker_loose`
+
+Recommended payoff-model training flow:
+
+```bash
+./.venv/bin/python -m engine.backtest.runner \
+  --months 12 \
+  --base-budget-usd 300 \
+  --hard-cost-ceiling-usd 600 \
+  --strict-options-data \
+  --min-real-coverage-pct 0.9 \
+  --option-outcome-output output/option_outcomes_12mo.json
+
+./.venv/bin/python engine/train_payoff_model.py \
+  --input output/option_outcomes_12mo.json
+```
+
+`engine/train_payoff_model.py` now prefers canonical `option_outcome_dataset` artifacts first, records those paths as the primary training source in the report/model card, and still accepts legacy backtest results JSON as a fallback. The report/model card now also includes canonical dataset summaries, friction-flip counts, side and regime segmentation, promotion-gate status derived from both dataset coverage and walk-forward metrics, plus a walk-forward family bakeoff across linear, tree, and ensemble model families with an explicit selected family.
+
+Recommended path-model training flow:
+
+```bash
+./.venv/bin/python engine/train_path_model.py \
+  --input output/option_outcomes_12mo.json
+```
+
+`engine/train_path_model.py` reuses the canonical replay loader and strict-real quote-path reconstruction so the shadow path-quality observer can graduate from heuristics to a learned artifact.
 
 Promotion gates should stay pending until a shadow model beats the active system where they disagree, after costs, across 3/6/12-month validation windows and at least 30 live shadow trading days. Promote one layer at a time.
 
