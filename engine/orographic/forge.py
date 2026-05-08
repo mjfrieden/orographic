@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+import logging
 from typing import Iterable
 
 import pandas as pd
@@ -14,6 +15,8 @@ from .market_data import (
     option_expiries,
 )
 from .schemas import ContractCandidate, MarketRegime, ScoutSignal
+
+log = logging.getLogger(__name__)
 
 
 def _clip(value: float, low: float = 0.0, high: float = 1.0) -> float:
@@ -92,6 +95,59 @@ def _expected_edge_after_friction_pct(candidate: ContractCandidate) -> float:
     if gross_edge is None:
         gross_edge = candidate.expected_return_pct
     return round(float(gross_edge) - _friction_buffer_pct(candidate), 4)
+
+
+def _sentinel_effect_flags(effect: object) -> tuple[float, float]:
+    label = str(effect or "").strip().lower()
+    if label == "spot":
+        return 1.0, 0.0
+    if label == "iv":
+        return 0.0, 1.0
+    if label == "mixed":
+        return 1.0, 1.0
+    return 0.0, 0.0
+
+
+def _sentinel_holding_window_fit(signal: ScoutSignal, days_to_expiry: int) -> tuple[float | None, str | None]:
+    sentinel = getattr(signal, "sentinel_event", None)
+    if not isinstance(sentinel, dict) or not sentinel:
+        return None, None
+
+    horizon = str(sentinel.get("time_horizon") or "unknown")
+    decay = str(sentinel.get("decay_half_life") or "unknown")
+    confidence = float(sentinel.get("confidence") or 0.0)
+    if confidence <= 0:
+        return None, None
+
+    horizon_days = {
+        "intraday": 1,
+        "one_to_three_days": 3,
+        "one_to_two_weeks": 10,
+        "longer": 20,
+        "unknown": None,
+    }.get(horizon)
+    decay_days = {
+        "intraday": 1,
+        "one_day": 1,
+        "three_days": 3,
+        "one_week": 7,
+        "longer": 14,
+        "unknown": None,
+    }.get(decay)
+    anchor_days = decay_days or horizon_days
+    if anchor_days is None:
+        return None, None
+
+    gap = abs(days_to_expiry - anchor_days)
+    fit_score = _clip(1.0 - gap / max(anchor_days, 1), 0.0, 1.0)
+    fit_score = round(fit_score * min(max(confidence, 0.25), 1.0), 4)
+    if fit_score >= 0.7:
+        label = "well_matched"
+    elif fit_score >= 0.4:
+        label = "acceptable"
+    else:
+        label = "mismatch"
+    return fit_score, label
 
 
 def _dedupe_candidates(
@@ -281,6 +337,8 @@ def rank_contracts_with_diagnostics(
     min_expected_edge_after_friction_pct: float = 0.05,
     max_structures_per_symbol_side: int = 2,
     min_moneyness_gap: float = 0.01,
+    prior_live_board_symbols: list[str] | None = None,
+    turnover_switch_penalty: float = 0.03,
 ) -> tuple[list[ContractCandidate], dict[str, object]]:
     candidates: list[ContractCandidate] = []
     today = date.today()
@@ -326,6 +384,12 @@ def rank_contracts_with_diagnostics(
             "rows_passing_net_debit": 0,
             "final_candidates": 0,
         }
+        sentinel_event = signal.sentinel_event if isinstance(signal.sentinel_event, dict) else {}
+        if sentinel_event:
+            symbol_diag["sentinel_event_type"] = sentinel_event.get("event_type")
+            symbol_diag["sentinel_time_horizon"] = sentinel_event.get("time_horizon")
+            symbol_diag["sentinel_decay_half_life"] = sentinel_event.get("decay_half_life")
+            symbol_diag["sentinel_direction_3d"] = sentinel_event.get("direction_3d")
 
         expiry = next_expiry(
             option_expiries(signal.symbol),
@@ -413,6 +477,14 @@ def rank_contracts_with_diagnostics(
         projected_spot = signal.spot * (1 + projected_move_pct if signal.direction == "call" else 1 - projected_move_pct)
         days_to_expiry = max((date.fromisoformat(expiry) - today).days, 1)
         time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
+        holding_window_fit, holding_window_label = _sentinel_holding_window_fit(signal, days_to_expiry)
+        if holding_window_fit is not None:
+            symbol_diag["sentinel_holding_window_fit"] = holding_window_fit
+            symbol_diag["sentinel_holding_window_label"] = holding_window_label
+            if holding_window_label == "mismatch":
+                symbol_diag["sentinel_shadow_note"] = (
+                    f"Sentinel horizon mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
+                )
         clean["delta"] = clean.apply(
             lambda row: black_scholes_delta(
                 spot=signal.spot,
@@ -462,7 +534,16 @@ def rank_contracts_with_diagnostics(
 
             ivr = compute_iv_rank(signal.symbol, iv)
             ivr_penalty = max(ivr - ivr_gate, 0.0) * 0.4
-            vrp_penalty = max(iv - signal.realized_vol_20d - 0.10, 0.0) * 2.0
+            vrp_gap = max(iv - signal.realized_vol_20d, 0.0)
+            vrp_penalty = max(vrp_gap - 0.10, 0.0) * 2.0
+            premium_pct_of_spot = actual_premium / signal.spot if signal.spot > 0 else 0.0
+            sentinel_confidence = _clip(float(sentinel_event.get("confidence") or 0.0))
+            sentinel_call_relevance = _clip(float(sentinel_event.get("call_relevance") or 0.0))
+            sentinel_put_relevance = _clip(float(sentinel_event.get("put_relevance") or 0.0))
+            sentinel_no_trade_relevance = _clip(float(sentinel_event.get("no_trade_relevance") or 0.0))
+            sentinel_spot_effect, sentinel_iv_effect = _sentinel_effect_flags(
+                sentinel_event.get("spot_vs_iv_effect")
+            )
             liquidity_score = _clip(
                 0.45
                 + 0.18 * min(open_interest / 800.0, 1.0)
@@ -495,6 +576,14 @@ def rank_contracts_with_diagnostics(
                 notes.append(f"IVR penalty applied: IV rank {ivr:.0%} above gate")
             if 0.20 <= abs(delta) <= 0.45:
                 notes.append("delta sits in the preferred weekly range")
+            if holding_window_label == "mismatch":
+                notes.append(
+                    f"Sentinel shadow mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
+                )
+            elif holding_window_label == "well_matched":
+                notes.append(
+                    f"Sentinel shadow fit: {sentinel_event.get('time_horizon', 'unknown')} catalyst aligns with {days_to_expiry} DTE"
+                )
 
             candidates.append(
                 ContractCandidate(
@@ -527,6 +616,20 @@ def rank_contracts_with_diagnostics(
                     spread_cost=round(actual_premium, 4),
                     allocation_weight=allocation_weight,
                     iv_rank=round(ivr, 4),
+                    realized_vol_20d=round(signal.realized_vol_20d, 4),
+                    atr_pct_14d=round(signal.atr_pct_14d, 4),
+                    premium_pct_of_spot=round(premium_pct_of_spot, 4),
+                    vrp_gap=round(vrp_gap, 4),
+                    sentinel_holding_window_fit=holding_window_fit,
+                    sentinel_holding_window_label=holding_window_label,
+                    sentinel_decay_half_life=sentinel_event.get("decay_half_life"),
+                    sentinel_time_horizon=sentinel_event.get("time_horizon"),
+                    sentinel_confidence=round(sentinel_confidence, 4),
+                    sentinel_call_relevance=round(sentinel_call_relevance, 4),
+                    sentinel_put_relevance=round(sentinel_put_relevance, 4),
+                    sentinel_no_trade_relevance=round(sentinel_no_trade_relevance, 4),
+                    sentinel_spot_effect=round(sentinel_spot_effect, 4),
+                    sentinel_iv_effect=round(sentinel_iv_effect, 4),
                     notes=notes,
                 )
             )
@@ -543,9 +646,35 @@ def rank_contracts_with_diagnostics(
     try:
         from engine.orographic.payoff_model import score_candidates
 
-        score_candidates(candidates, regime, as_of=today)
+        score_candidates(
+            candidates,
+            regime,
+            as_of=today,
+            prior_live_board_symbols=prior_live_board_symbols,
+            turnover_switch_penalty=turnover_switch_penalty,
+        )
     except Exception as exc:
         log.warning("Payoff model scoring skipped: %s", exc)
+
+    path_model_summary: dict[str, object] = {
+        "mode_counts": {},
+        "scored_candidates": 0,
+        "avg_holding_quality_score": None,
+        "avg_early_profit_take_prob": None,
+        "avg_decay_risk": None,
+    }
+    try:
+        from engine.orographic.path_model import score_candidates as score_path_candidates
+        from engine.orographic.path_model import summarize_candidates as summarize_path_candidates
+
+        score_path_candidates(
+            candidates,
+            regime,
+            as_of=today,
+        )
+        path_model_summary = summarize_path_candidates(candidates)
+    except Exception as exc:
+        log.warning("Path model scoring skipped: %s", exc)
 
     candidates.sort(key=_candidate_sort_score, reverse=True)
     candidates, friction_diag = _apply_pre_council_gate(
@@ -576,6 +705,7 @@ def rank_contracts_with_diagnostics(
             "scored_candidates": len(learned_scores),
             "avg_learned_rank_score": round(sum(learned_scores) / len(learned_scores), 4) if learned_scores else None,
         },
+        "path_model": path_model_summary,
         "pre_council_gate": friction_diag,
         "deduplication": {
             "max_structures_per_symbol_side": max_structures_per_symbol_side,
@@ -596,6 +726,8 @@ def rank_contracts_with_diagnostics(
             "min_expected_edge_after_friction_pct": min_expected_edge_after_friction_pct,
             "max_structures_per_symbol_side": max_structures_per_symbol_side,
             "min_moneyness_gap": min_moneyness_gap,
+            "turnover_switch_penalty": turnover_switch_penalty,
+            "prior_live_board_symbols": list(prior_live_board_symbols or []),
         },
     }
 

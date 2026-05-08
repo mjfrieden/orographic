@@ -80,6 +80,26 @@ class CouncilTests(unittest.TestCase):
             ["AAPL"],
         )
 
+    def test_council_prefers_prior_board_when_replacement_uplift_is_small(self) -> None:
+        candidates = [
+            _candidate("AAPL", "call", 0.90),
+            _candidate("NVDA", "put", 0.89),
+            _candidate("XOM", "put", 0.88),
+        ]
+        with mock.patch("engine.orographic.council._fetch_corr_matrix", return_value=None):
+            result = select_board(
+                candidates,
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                live_size=2,
+                prior_live_board_symbols=["AAPL", "XOM"],
+                turnover_switch_penalty=0.03,
+            )
+
+        self.assertEqual([row.symbol for row in result.live_board], ["AAPL", "XOM"])
+        self.assertTrue(result.summary["turnover"]["applied"])
+        self.assertEqual(result.summary["turnover"]["reason"], "retained_prior_board")
+        self.assertIn("Turnover penalty kept the prior live board", " ".join(result.summary["notes"]))
+
 
 if __name__ == "__main__":
     unittest.main()

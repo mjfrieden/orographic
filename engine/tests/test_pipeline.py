@@ -2,18 +2,22 @@ from __future__ import annotations
 
 from datetime import date
 import json
+from pathlib import Path
 import tempfile
 import unittest
 from unittest import mock
 
 import pandas as pd
 
-from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, select_signals_for_forge
+from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, rank_contracts_with_diagnostics, select_signals_for_forge
 from engine.orographic.pipeline import (
+    _load_prior_live_board_symbols,
     append_board_recommendation_history,
+    append_research_run_ledger,
     append_side_aware_shadow_ledger,
     build_board_recommendation_history_entry,
     build_live_shadow_attribution_artifact,
+    build_research_run_ledger_entry,
     build_forge_rejection_waterfall_artifact,
     build_promotion_readiness,
     build_side_aware_shadow_ledger_entry,
@@ -64,6 +68,20 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
 
 
 class PipelineTests(unittest.TestCase):
+    def test_load_prior_live_board_symbols_reads_latest_entry(self) -> None:
+        payload = {
+            "entries": [
+                {"live_board": [{"symbol": "OLD"}]},
+                {"live_board": [{"symbol": "AAPL"}, {"symbol": "MSFT"}]},
+            ]
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = f"{tmpdir}/board_history.json"
+            Path(path).write_text(json.dumps(payload), encoding="utf-8")
+            symbols = _load_prior_live_board_symbols(path)
+
+        self.assertEqual(symbols, ["AAPL", "MSFT"])
+
     def test_default_universe_expands_to_100_symbols(self) -> None:
         universe = load_universe(None)
         self.assertEqual(len(universe), 100)
@@ -91,6 +109,55 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([signal.symbol for signal in selected], ["BBB", "CCC"])
         self.assertEqual(diagnostics["signals_selected"], 2)
         self.assertIn("AAA", [row["symbol"] for row in diagnostics["rejections"]])
+
+    def test_forge_logs_sentinel_horizon_mismatch_in_shadow_diagnostics(self) -> None:
+        signal = _signal("AAA")
+        signal.sentinel_event = {
+            "event_type": "analyst",
+            "time_horizon": "one_to_three_days",
+            "decay_half_life": "one_day",
+            "confidence": 0.8,
+            "direction_3d": "up",
+        }
+        liquid_chain = pd.DataFrame(
+            [
+                {
+                    "contractSymbol": "AAA260417C00100000",
+                    "bid": 1.0,
+                    "ask": 1.08,
+                    "lastPrice": 1.04,
+                    "strike": 100.0,
+                    "openInterest": 400,
+                    "volume": 120,
+                    "impliedVolatility": 0.25,
+                }
+            ]
+        )
+
+        with (
+            mock.patch("engine.orographic.forge.option_expiries", return_value=["2026-04-17"]),
+            mock.patch("engine.orographic.forge.option_chain", return_value=(liquid_chain.copy(), pd.DataFrame())),
+            mock.patch("engine.orographic.forge.fetch_risk_free_rate", return_value=0.04),
+            mock.patch("engine.orographic.forge.compute_iv_rank", return_value=0.35),
+            mock.patch(
+                "engine.orographic.payoff_model.score_candidates",
+                side_effect=lambda candidates, regime, as_of=None, prior_live_board_symbols=None, turnover_switch_penalty=0.03: None,
+            ),
+            mock.patch("engine.orographic.forge.date") as date_mock,
+        ):
+            date_mock.today.return_value = date(2026, 4, 10)
+            date_mock.fromisoformat.side_effect = date.fromisoformat
+            candidates, diagnostics = rank_contracts_with_diagnostics(
+                [signal],
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                minimum_days_to_expiry=2,
+                maximum_days_to_expiry=8,
+            )
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0].sentinel_holding_window_label, "mismatch")
+        self.assertEqual(diagnostics["per_symbol"][0]["sentinel_holding_window_label"], "mismatch")
+        self.assertIn("Sentinel shadow mismatch", " ".join(candidates[0].notes))
 
     def test_build_forge_rejection_waterfall_artifact_summarizes_rejections(self) -> None:
         payload = {
@@ -245,6 +312,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(models["Side-Aware Scout"]["side_mix"]["put"], 2)
         self.assertEqual(models["Sentinel Event Extractor"]["non_neutral_events"], 1)
         self.assertEqual(models["Payoff Ranker"]["mode"], "active")
+        self.assertEqual(models["Path Quality Model"]["mode"], "shadow")
         self.assertEqual(models["Council Risk Intelligence"]["live_risk_flags"], 1)
         self.assertEqual(len(readiness["gates"]), 6)
 
@@ -510,6 +578,84 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["council"]["summary"]["candidate_count"], len(payload["forge_candidates"]))
         self.assertEqual(payload["council"]["summary"]["live_count"], len(payload["council"]["live_board"]))
         self.assertEqual(payload["attribution"]["artifact"], "live_shadow_attribution")
+        self.assertEqual(payload["scan_settings"]["live_size"], 1)
+        self.assertEqual(payload["scan_settings"]["forge_intake"], 1)
+        self.assertIn("directional_scout", payload["model_modes"])
+        self.assertIn("payoff_ranker", payload["model_modes"])
+        self.assertIn("model_artifacts", payload["attribution"])
+        self.assertEqual(payload["attribution"]["scan_settings"]["shadow_size"], 1)
+
+    def test_run_scan_passes_prior_live_board_symbols_into_council(self) -> None:
+        signal = _signal("AAA")
+        live_candidate = {
+            "symbol": "AAA",
+            "contract_symbol": "AAA1",
+            "option_type": "call",
+            "expiry": "2026-04-17",
+            "strike": 100.0,
+            "forge_score": 0.72,
+            "contract_cost": 110.0,
+            "notes": [],
+        }
+        council_payload = {
+            "live_board": [live_candidate],
+            "shadow_board": [],
+            "abstain": False,
+            "summary": {
+                "candidate_count": 1,
+                "live_count": 1,
+                "shadow_count": 0,
+                "notes": [],
+            },
+        }
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(
+                    MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                    [signal],
+                    {"pre_veto_direction_counts": {"call": 1}, "final_direction_counts": {"call": 1}, "counter_regime_survivors": 0},
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_signals_for_forge",
+                return_value=([signal], {}),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.rank_contracts_with_diagnostics",
+                return_value=([mock.Mock(to_dict=lambda: live_candidate, forge_score=0.72)], {"waterfall": {}, "learned_ranker": {}}),
+            ) as rank_contracts_mock,
+            mock.patch("engine.orographic.pipeline._load_prior_live_board_symbols", return_value=["AAPL", "MSFT"]),
+            mock.patch(
+                "engine.orographic.pipeline.select_board",
+                return_value=mock.Mock(
+                    to_dict=lambda: council_payload,
+                    live_board=[mock.Mock(forge_score=0.72)],
+                    abstain=False,
+                    summary={"candidate_count": 1, "live_count": 1, "shadow_count": 0, "notes": []},
+                ),
+            ) as select_board_mock,
+        ):
+            payload = run_scan(
+                mock.Mock(
+                    universe=["AAA"],
+                    forge_intake=1,
+                    live_size=1,
+                    shadow_size=1,
+                    board_history_path="board_history.json",
+                )
+            )
+
+        self.assertEqual(payload["summary"]["prior_live_board_symbols"], ["AAPL", "MSFT"])
+        self.assertEqual(
+            rank_contracts_mock.call_args.kwargs["prior_live_board_symbols"],
+            ["AAPL", "MSFT"],
+        )
+        self.assertEqual(
+            select_board_mock.call_args.kwargs["prior_live_board_symbols"],
+            ["AAPL", "MSFT"],
+        )
 
     def test_rank_contracts_filters_friction_and_deduplicates_symbol_structures(self) -> None:
         candidates = [
@@ -760,6 +906,101 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rendered["aggregate"]["live_picks_emitted"], 1)
         self.assertEqual(rendered["aggregate"]["shadow_picks_emitted"], 1)
         self.assertEqual(rendered["aggregate"]["abstain_primary_reasons"], [])
+
+    def test_research_run_ledger_records_vetoes_holdouts_and_metadata(self) -> None:
+        payload = {
+            "generated_at_utc": "2026-05-05T13:45:00+00:00",
+            "regime": {"mode": "risk_on", "bias": 0.3, "source_symbol": "SPY"},
+            "scan_settings": {"live_size": 3, "shadow_size": 3, "forge_intake": 6, "universe_size": 100},
+            "model_modes": {
+                "directional_scout": "artifact",
+                "side_aware_scout": "shadow",
+                "sentinel": "shadow",
+                "payoff_ranker": "active",
+                "side_model_source": "artifact",
+            },
+            "model_artifacts": {
+                "scout_model": {"present": True, "sha256": "abc"},
+                "payoff_model": {"present": True, "sha256": "def"},
+            },
+            "summary": {
+                "universe_size": 100,
+                "scout_signal_count": 12,
+                "pre_forge_signal_count": 4,
+                "forge_candidate_count": 3,
+                "abstain": False,
+            },
+            "council": {
+                "abstain": False,
+                "live_board": [
+                    {
+                        "symbol": "AAA",
+                        "contract_symbol": "AAA1",
+                        "option_type": "call",
+                        "expiry": "2026-05-09",
+                        "strike": 100.0,
+                        "forge_score": 0.72,
+                        "payoff_edge_score": 0.61,
+                        "expected_edge_after_friction_pct": 0.14,
+                        "contract_cost": 120.0,
+                        "council_risk_flags": [],
+                        "notes": [],
+                    }
+                ],
+                "shadow_board": [
+                    {
+                        "symbol": "BBB",
+                        "contract_symbol": "BBB1",
+                        "option_type": "put",
+                        "expiry": "2026-05-09",
+                        "strike": 80.0,
+                        "forge_score": 0.66,
+                        "payoff_edge_score": 0.55,
+                        "expected_edge_after_friction_pct": 0.09,
+                        "contract_cost": 95.0,
+                        "council_risk_flags": ["wide_spread"],
+                        "notes": ["Shadow only"],
+                    }
+                ],
+                "summary": {
+                    "candidate_count": 3,
+                    "live_count": 1,
+                    "shadow_count": 1,
+                    "abstain_audit": {
+                        "primary_reason": "live_board_available",
+                        "primary_reason_label": "Live board available",
+                    },
+                },
+            },
+            "attribution": {
+                "friction_vetoes": [{"symbol": "CCC", "reason": "friction_gate"}],
+                "council_holdouts": [{"symbol": "DDD", "contract_symbol": "DDD1"}],
+                "pre_forge_rejections": [{"symbol": "EEE", "reason": "liquidity_gate"}],
+            },
+        }
+
+        entry = build_research_run_ledger_entry(payload)
+
+        self.assertEqual(entry["summary"]["friction_veto_count"], 1)
+        self.assertEqual(entry["summary"]["council_holdout_count"], 1)
+        self.assertEqual(entry["summary"]["pre_forge_rejection_count"], 1)
+        self.assertEqual(entry["scan_settings"]["forge_intake"], 6)
+        self.assertEqual(entry["model_modes"]["payoff_ranker"], "active")
+        self.assertEqual(entry["live_board"][0]["symbol"], "AAA")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger_path = append_research_run_ledger(
+                f"{tmpdir}/research_run_ledger.json",
+                payload,
+                max_entries=2,
+            )
+            rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(rendered["artifact"], "research_run_ledger")
+        self.assertEqual(rendered["aggregate"]["runs"], 1)
+        self.assertEqual(rendered["aggregate"]["friction_vetoes"], 1)
+        self.assertEqual(rendered["aggregate"]["council_holdouts"], 1)
+        self.assertEqual(rendered["aggregate"]["pre_forge_rejections"], 1)
 
 
 if __name__ == "__main__":

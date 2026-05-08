@@ -75,6 +75,7 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
 
     scout_card_path = _artifact_path(artifacts.get("scout_model_card", {}).get("path", ""))
     payoff_card_path = _artifact_path(artifacts.get("payoff_model_card", {}).get("path", ""))
+    path_card_path = _artifact_path(artifacts.get("path_model_card", {}).get("path", ""))
 
     if scout_card_path.exists():
         scout = _load_json(scout_card_path)
@@ -130,6 +131,22 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
             errors.append("payoff_model_card: missing side-specific validation")
     else:
         errors.append("payoff_model_card: file missing")
+
+    if path_card_path.exists():
+        path_card = _load_json(path_card_path)
+        path_artifacts = path_card.get("artifacts", {})
+        if path_artifacts.get("model_sha256") != expected_hashes.get("path_model"):
+            errors.append("path_model_card: model_sha256 does not match manifest")
+        cv = path_card.get("cross_validation", {})
+        if cv.get("early_take_profit_auc_mean") is None:
+            errors.append("path_model_card: missing early_take_profit_auc_mean")
+        if cv.get("path_expected_mfe_mae_mean") is None or cv.get("path_decay_risk_mae_mean") is None:
+            errors.append("path_model_card: missing path regression MAE metrics")
+        activation = path_card.get("activation_policy", {})
+        if activation.get("default") != "shadow":
+            errors.append("path_model_card: activation policy default is not shadow")
+    elif isinstance(artifacts.get("path_model_card"), dict) and artifacts.get("path_model_card", {}).get("required"):
+        errors.append("path_model_card: file missing")
 
     return errors
 

@@ -196,6 +196,150 @@ def _abstain_reason_label(reason: str) -> str:
     return ABSTAIN_REASON_LABELS.get(reason, "Council abstained after applying the live-board filters.")
 
 
+def _effective_candidate_score(candidate: ContractCandidate) -> float:
+    learned = getattr(candidate, "learned_rank_score", None)
+    if learned is not None:
+        return float(learned)
+    adjusted = getattr(candidate, "risk_adjusted_score", None)
+    if adjusted is not None:
+        return float(adjusted)
+    return float(candidate.forge_score)
+
+
+def _board_utility(board: list[ContractCandidate]) -> float:
+    return round(sum(_effective_candidate_score(row) for row in board), 6)
+
+
+def _board_passes_diversification(
+    board: list[ContractCandidate],
+    *,
+    max_same_side_share: float,
+    max_same_sector_share: float,
+) -> bool:
+    if not board:
+        return True
+    side_counts = Counter(row.option_type for row in board)
+    if max(side_counts.values()) / len(board) > max_same_side_share:
+        return False
+    sector_counts = Counter(sector_for_symbol(row.symbol) for row in board)
+    if max(sector_counts.values()) / len(board) > max_same_sector_share:
+        return False
+    return True
+
+
+def _apply_turnover_penalty(
+    live_board: list[ContractCandidate],
+    unique_eligible: list[ContractCandidate],
+    *,
+    live_size: int,
+    prior_live_board_symbols: list[str],
+    max_same_side_share: float,
+    max_same_sector_share: float,
+    turnover_switch_penalty: float,
+) -> tuple[list[ContractCandidate], dict[str, Any]]:
+    normalized_prior = [str(symbol).upper() for symbol in prior_live_board_symbols if str(symbol).strip()]
+    if not live_board or not normalized_prior:
+        return live_board, {
+            "applied": False,
+            "reason": "no_prior_live_board",
+            "prior_live_symbols": normalized_prior,
+            "retained_symbols": [],
+            "new_symbols": [row.symbol for row in live_board],
+            "replacements": 0,
+            "required_uplift": 0.0,
+            "actual_uplift": 0.0,
+        }
+
+    eligible_by_symbol = {row.symbol: row for row in unique_eligible}
+    preferred_board: list[ContractCandidate] = []
+    preferred_symbols: set[str] = set()
+    for symbol in normalized_prior:
+        candidate = eligible_by_symbol.get(symbol)
+        if candidate is None or symbol in preferred_symbols or len(preferred_board) >= live_size:
+            continue
+        preferred_board.append(candidate)
+        preferred_symbols.add(symbol)
+    if not preferred_board:
+        return live_board, {
+            "applied": False,
+            "reason": "prior_symbols_no_longer_eligible",
+            "prior_live_symbols": normalized_prior,
+            "retained_symbols": [],
+            "new_symbols": [row.symbol for row in live_board],
+            "replacements": 0,
+            "required_uplift": 0.0,
+            "actual_uplift": 0.0,
+        }
+
+    fill_pool = list(live_board) + [
+        row for row in sorted(unique_eligible, key=_effective_candidate_score, reverse=True)
+        if row.symbol not in {candidate.symbol for candidate in live_board}
+    ]
+    for candidate in fill_pool:
+        if len(preferred_board) >= live_size:
+            break
+        if candidate.symbol in preferred_symbols:
+            continue
+        preferred_board.append(candidate)
+        preferred_symbols.add(candidate.symbol)
+
+    if {row.symbol for row in preferred_board} == {row.symbol for row in live_board}:
+        return live_board, {
+            "applied": False,
+            "reason": "board_already_matches_prior_bias",
+            "prior_live_symbols": normalized_prior,
+            "retained_symbols": [row.symbol for row in live_board if row.symbol in normalized_prior],
+            "new_symbols": [row.symbol for row in live_board if row.symbol not in normalized_prior],
+            "replacements": len([row for row in live_board if row.symbol not in normalized_prior]),
+            "required_uplift": 0.0,
+            "actual_uplift": 0.0,
+        }
+
+    if not _board_passes_diversification(
+        preferred_board,
+        max_same_side_share=max_same_side_share,
+        max_same_sector_share=max_same_sector_share,
+    ):
+        return live_board, {
+            "applied": False,
+            "reason": "preferred_board_failed_diversification",
+            "prior_live_symbols": normalized_prior,
+            "retained_symbols": [row.symbol for row in preferred_board if row.symbol in normalized_prior],
+            "new_symbols": [row.symbol for row in preferred_board if row.symbol not in normalized_prior],
+            "replacements": len([row for row in live_board if row.symbol not in normalized_prior]),
+            "required_uplift": 0.0,
+            "actual_uplift": 0.0,
+        }
+
+    current_symbols = [row.symbol for row in live_board]
+    replacements = len([symbol for symbol in current_symbols if symbol not in normalized_prior])
+    current_utility = _board_utility(live_board)
+    preferred_utility = _board_utility(preferred_board)
+    actual_uplift = round(current_utility - preferred_utility, 6)
+    required_uplift = round(replacements * turnover_switch_penalty, 6)
+    if actual_uplift < required_uplift:
+        return preferred_board, {
+            "applied": True,
+            "reason": "retained_prior_board",
+            "prior_live_symbols": normalized_prior,
+            "retained_symbols": [row.symbol for row in preferred_board if row.symbol in normalized_prior],
+            "new_symbols": [row.symbol for row in preferred_board if row.symbol not in normalized_prior],
+            "replacements": replacements,
+            "required_uplift": required_uplift,
+            "actual_uplift": actual_uplift,
+        }
+    return live_board, {
+        "applied": False,
+        "reason": "new_board_cleared_turnover_threshold",
+        "prior_live_symbols": normalized_prior,
+        "retained_symbols": [row.symbol for row in live_board if row.symbol in normalized_prior],
+        "new_symbols": [row.symbol for row in live_board if row.symbol not in normalized_prior],
+        "replacements": replacements,
+        "required_uplift": required_uplift,
+        "actual_uplift": actual_uplift,
+    }
+
+
 # ── Main selector ─────────────────────────────────────────────────────────────
 
 def select_board(
@@ -210,6 +354,8 @@ def select_board(
     max_live_extrinsic_ratio: float = 0.96,
     corr_matrix: np.ndarray | None = None,
     fetch_live_corr: bool = True,
+    prior_live_board_symbols: list[str] | None = None,
+    turnover_switch_penalty: float = 0.03,
 ) -> CouncilResult:
     notes: list[str] = []
     _annotate_risk(candidates, max_sector_share=max_same_sector_share)
@@ -322,6 +468,39 @@ def select_board(
                 side_balance_demotions += 1
             live_board = calls + puts
 
+    turnover_diag = {
+        "applied": False,
+        "reason": "not_evaluated",
+        "prior_live_symbols": [str(symbol).upper() for symbol in (prior_live_board_symbols or []) if str(symbol).strip()],
+        "retained_symbols": [],
+        "new_symbols": [row.symbol for row in live_board],
+        "replacements": 0,
+        "required_uplift": 0.0,
+        "actual_uplift": 0.0,
+    }
+    if prior_live_board_symbols:
+        live_board, turnover_diag = _apply_turnover_penalty(
+            live_board,
+            unique_eligible,
+            live_size=live_size,
+            prior_live_board_symbols=prior_live_board_symbols,
+            max_same_side_share=max_same_side_share,
+            max_same_sector_share=max_same_sector_share,
+            turnover_switch_penalty=turnover_switch_penalty,
+        )
+        if turnover_diag["applied"]:
+            notes.append(
+                "Turnover penalty kept the prior live board because replacement uplift "
+                f"({turnover_diag['actual_uplift']:.3f}) stayed below the switch threshold "
+                f"({turnover_diag['required_uplift']:.3f})."
+            )
+        elif turnover_diag["reason"] == "new_board_cleared_turnover_threshold":
+            notes.append(
+                "Board change cleared the turnover threshold with "
+                f"{turnover_diag['actual_uplift']:.3f} utility uplift against a "
+                f"{turnover_diag['required_uplift']:.3f} switch hurdle."
+            )
+
     # ── Shadow board ──
     shadow_board: list[ContractCandidate] = []
     shadow_seen: set[str] = {c.symbol for c in live_board}
@@ -392,7 +571,9 @@ def select_board(
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
             "max_same_side_share": max_same_side_share,
             "max_same_sector_share": max_same_sector_share,
+            "turnover_switch_penalty": turnover_switch_penalty,
         },
+        "turnover": turnover_diag,
         "abstain_audit": {
             "primary_reason": primary_reason,
             "primary_reason_label": _abstain_reason_label(primary_reason),

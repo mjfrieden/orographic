@@ -32,6 +32,7 @@ class ScoutSignal:
     put_edge_prob: float | None = None
     no_trade_prob: float | None = None
     scout_model_mode: str = "directional"
+    sentinel_event: dict[str, Any] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -71,6 +72,10 @@ class ContractCandidate:
     iv_rank: float = 0.5          # IV Rank percentile [0, 1]; 0=IV low, 1=IV high-cycle
     entry_data_source: str = "real_chain"
     entry_quote_type: str = "ask"
+    realized_vol_20d: float | None = None
+    atr_pct_14d: float | None = None
+    premium_pct_of_spot: float | None = None
+    vrp_gap: float | None = None
     pre_payoff_forge_score: float | None = None
     directional_edge: float | None = None
     liquidity_score: float | None = None
@@ -86,6 +91,10 @@ class ContractCandidate:
     friction_buffer_pct: float | None = None
     expected_edge_after_friction_pct: float | None = None
     friction_gate_passed: bool | None = None
+    utility_after_friction_score: float | None = None
+    stability_adjustment: float | None = None
+    turnover_risk_penalty: float | None = None
+    prior_live_board_symbol: bool | None = None
     payoff_model_score: float | None = None
     final_candidate_score: float | None = None
     learned_rank_score: float | None = None
@@ -94,6 +103,22 @@ class ContractCandidate:
     risk_adjusted_score: float | None = None
     sector: str | None = None
     suggested_allocation_pct: float | None = None
+    sentinel_holding_window_fit: float | None = None
+    sentinel_holding_window_label: str | None = None
+    sentinel_decay_half_life: str | None = None
+    sentinel_time_horizon: str | None = None
+    sentinel_confidence: float | None = None
+    sentinel_call_relevance: float | None = None
+    sentinel_put_relevance: float | None = None
+    sentinel_no_trade_relevance: float | None = None
+    sentinel_spot_effect: float | None = None
+    sentinel_iv_effect: float | None = None
+    path_early_profit_take_prob: float | None = None
+    path_expected_mfe_pct: float | None = None
+    path_decay_risk: float | None = None
+    path_holding_quality_score: float | None = None
+    path_model_mode: str | None = None
+    path_model_artifact_sha256: str | None = None
     council_risk_flags: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 

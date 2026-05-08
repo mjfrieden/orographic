@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 import logging
 from numbers import Number
+import os
 from pathlib import Path
 from typing import Any
 import json
@@ -49,6 +50,7 @@ class PipelineConfig:
     live_size: int = 3
     shadow_size: int = 3
     forge_intake: int = 6
+    board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
 
 log = logging.getLogger(__name__)
 
@@ -85,6 +87,31 @@ def _sorted_reason_counts(rows: list[dict[str, Any]], *, reason_key: str) -> lis
     ]
 
 
+def _load_prior_live_board_symbols(path: str | Path | None) -> list[str]:
+    if not path or not isinstance(path, (str, os.PathLike, Path)):
+        return []
+    target = Path(path)
+    if not target.exists():
+        return []
+    try:
+        loaded = json.loads(target.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return []
+    entries = loaded.get("entries") if isinstance(loaded, dict) else None
+    if not isinstance(entries, list) or not entries:
+        return []
+    latest = entries[-1] if isinstance(entries[-1], dict) else {}
+    live_board = latest.get("live_board") if isinstance(latest.get("live_board"), list) else []
+    symbols: list[str] = []
+    for row in live_board:
+        if not isinstance(row, dict):
+            continue
+        symbol = str(row.get("symbol") or "").upper().strip()
+        if symbol:
+            symbols.append(symbol)
+    return symbols
+
+
 def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]]:
     compact: list[dict[str, object]] = []
     for row in rows:
@@ -100,6 +127,10 @@ def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]
                 "contract_cost": row.get("contract_cost"),
                 "sector": row.get("sector"),
                 "risk_adjusted_score": row.get("risk_adjusted_score"),
+                "path_holding_quality_score": row.get("path_holding_quality_score"),
+                "path_early_profit_take_prob": row.get("path_early_profit_take_prob"),
+                "path_decay_risk": row.get("path_decay_risk"),
+                "path_model_mode": row.get("path_model_mode"),
                 "is_spread": bool(row.get("is_spread")),
             }
         )
@@ -119,6 +150,10 @@ def _compact_attribution_contract_view(rows: list[dict[str, Any]]) -> list[dict[
                 "forge_score": row.get("forge_score"),
                 "payoff_edge_score": row.get("payoff_edge_score"),
                 "expected_edge_after_friction_pct": row.get("expected_edge_after_friction_pct"),
+                "path_holding_quality_score": row.get("path_holding_quality_score"),
+                "path_early_profit_take_prob": row.get("path_early_profit_take_prob"),
+                "path_decay_risk": row.get("path_decay_risk"),
+                "path_model_mode": row.get("path_model_mode"),
                 "contract_cost": row.get("contract_cost"),
                 "council_risk_flags": row.get("council_risk_flags", []),
                 "notes": row.get("notes", []),
@@ -165,8 +200,10 @@ def _model_artifact_status() -> dict[str, Any]:
         "scout_scaler": MODEL_DIR / "scout_scaler.pkl",
         "scout_side_model": MODEL_DIR / "scout_side_model.pkl",
         "payoff_model": MODEL_DIR / "payoff_model.pkl",
+        "path_model": MODEL_DIR / "path_model.pkl",
         "scout_model_card": MODEL_DIR / "scout_model_card.json",
         "payoff_model_card": MODEL_DIR / "payoff_model_card.json",
+        "path_model_card": MODEL_DIR / "path_model_card.json",
     }
     return {
         name: {
@@ -174,6 +211,62 @@ def _model_artifact_status() -> dict[str, Any]:
             "sha256": _sha256_file(path),
         }
         for name, path in artifacts.items()
+    }
+
+
+def _normalize_mode(raw: object, *, active_values: set[str], shadow_values: set[str], default: str) -> str:
+    value = str(raw or "").strip().lower()
+    if value in active_values:
+        return "active"
+    if value in shadow_values:
+        return "shadow"
+    return default
+
+
+def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str]:
+    artifact_status = artifacts or _model_artifact_status()
+    scout_model = artifact_status.get("scout_model", {}) if isinstance(artifact_status, dict) else {}
+    scout_scaler = artifact_status.get("scout_scaler", {}) if isinstance(artifact_status, dict) else {}
+    side_model = artifact_status.get("scout_side_model", {}) if isinstance(artifact_status, dict) else {}
+    payoff_model = artifact_status.get("payoff_model", {}) if isinstance(artifact_status, dict) else {}
+    path_model = artifact_status.get("path_model", {}) if isinstance(artifact_status, dict) else {}
+    directional_mode = (
+        "artifact"
+        if bool(scout_model.get("present")) and bool(scout_scaler.get("present"))
+        else "heuristic_fallback"
+    )
+    return {
+        "directional_scout": directional_mode,
+        "side_aware_scout": _normalize_mode(
+            os.getenv("OROGRAPHIC_SIDE_MODEL_MODE", "shadow"),
+            active_values={"active", "live"},
+            shadow_values={"shadow", "observe", "off"},
+            default="shadow",
+        ),
+        "sentinel": _normalize_mode(
+            os.getenv("OROGRAPHIC_SENTINEL_MODE", "shadow"),
+            active_values={"active"},
+            shadow_values={"shadow", "observe", "off"},
+            default="shadow",
+        ),
+        "payoff_ranker": (
+            _normalize_mode(
+                os.getenv("OROGRAPHIC_PAYOFF_MODEL_MODE", "active"),
+                active_values={"active", "live", "on"},
+                shadow_values={"shadow", "observe", "off"},
+                default="active",
+            )
+            if bool(payoff_model.get("present"))
+            else "unavailable"
+        ),
+        "path_model": _normalize_mode(
+            os.getenv("OROGRAPHIC_PATH_MODEL_MODE", "shadow"),
+            active_values=set(),
+            shadow_values={"shadow", "observe", "off"},
+            default="shadow",
+        ),
+        "side_model_source": "artifact" if bool(side_model.get("present")) else "derived",
+        "path_model_source": "artifact" if bool(path_model.get("present")) else "heuristic",
     }
 
 
@@ -271,7 +364,9 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             sentinel_non_neutral += 1
 
     learned_ranker = forge.get("learned_ranker") if isinstance(forge.get("learned_ranker"), dict) else {}
+    path_model = forge.get("path_model") if isinstance(forge.get("path_model"), dict) else {}
     ranker_modes = learned_ranker.get("mode_counts") if isinstance(learned_ranker.get("mode_counts"), dict) else {}
+    path_modes = path_model.get("mode_counts") if isinstance(path_model.get("mode_counts"), dict) else {}
     live_rows = council.get("live_board") if isinstance(council.get("live_board"), list) else []
     shadow_rows = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
     live_risk_flags = sum(
@@ -353,6 +448,19 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "mode_counts": ranker_modes,
             "avg_learned_rank_score": learned_ranker.get("avg_learned_rank_score"),
             "promotion_step": "active",
+        },
+        {
+            "name": "Path Quality Model",
+            "mode": "shadow",
+            "role": "hold-window quality, take-profit odds, and decay risk",
+            "status": "collecting_evidence",
+            "recommendation": "Keep shadow until path metrics improve disagreement handling without increasing decay-driven losers.",
+            "observations": int(path_model.get("scored_candidates") or 0),
+            "mode_counts": path_modes,
+            "avg_holding_quality_score": path_model.get("avg_holding_quality_score"),
+            "avg_early_profit_take_prob": path_model.get("avg_early_profit_take_prob"),
+            "avg_decay_risk": path_model.get("avg_decay_risk"),
+            "promotion_step": "shadow",
         },
         {
             "name": "Council Risk Intelligence",
@@ -464,6 +572,8 @@ def build_board_recommendation_history_entry(payload: dict[str, Any]) -> dict[st
     return {
         "run_generated_at_utc": generated_at,
         "regime": payload.get("regime", {}),
+        "scan_settings": payload.get("scan_settings", {}),
+        "model_modes": payload.get("model_modes", {}),
         "abstain": bool(council.get("abstain", summary.get("abstain", False))),
         "summary": {
             "universe_size": _coerce_int(summary.get("universe_size")),
@@ -479,6 +589,107 @@ def build_board_recommendation_history_entry(payload: dict[str, Any]) -> dict[st
         "live_board": _compact_attribution_contract_view(live_board),
         "shadow_board": _compact_attribution_contract_view(shadow_board),
     }
+
+
+def build_research_run_ledger_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    generated_at = _normalize_timestamp(payload.get("generated_at_utc")).replace(microsecond=0).isoformat()
+    summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    council_summary = council.get("summary") if isinstance(council.get("summary"), dict) else {}
+    attribution = (
+        payload.get("attribution")
+        if isinstance(payload.get("attribution"), dict)
+        else build_live_shadow_attribution_artifact(payload)
+    )
+    live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    vetoed_candidates = attribution.get("friction_vetoes") if isinstance(attribution.get("friction_vetoes"), list) else []
+    council_holdouts = attribution.get("council_holdouts") if isinstance(attribution.get("council_holdouts"), list) else []
+    pre_forge_rejections = attribution.get("pre_forge_rejections") if isinstance(attribution.get("pre_forge_rejections"), list) else []
+    return {
+        "run_generated_at_utc": generated_at,
+        "regime": payload.get("regime", {}),
+        "scan_settings": payload.get("scan_settings", {}),
+        "model_modes": payload.get("model_modes", {}),
+        "model_artifacts": payload.get("model_artifacts", {}),
+        "abstain": bool(council.get("abstain", summary.get("abstain", False))),
+        "summary": {
+            "universe_size": _coerce_int(summary.get("universe_size")),
+            "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
+            "pre_forge_signal_count": _coerce_int(summary.get("pre_forge_signal_count")),
+            "forge_candidate_count": _coerce_int(summary.get("forge_candidate_count")),
+            "live_count": _coerce_int(council_summary.get("live_count")),
+            "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+            "abstain_audit": council_summary.get("abstain_audit", {}),
+            "friction_veto_count": len(vetoed_candidates),
+            "council_holdout_count": len(council_holdouts),
+            "pre_forge_rejection_count": len(pre_forge_rejections),
+            "live_side_mix": _count_side_mix(live_board, key="option_type"),
+            "shadow_side_mix": _count_side_mix(shadow_board, key="option_type"),
+        },
+        "live_board": _compact_attribution_contract_view(live_board),
+        "shadow_board": _compact_attribution_contract_view(shadow_board),
+        "vetoed_candidates": vetoed_candidates,
+        "council_holdouts": council_holdouts,
+        "pre_forge_rejections": pre_forge_rejections,
+    }
+
+
+def append_research_run_ledger(
+    path: str | Path,
+    payload: dict[str, Any],
+    *,
+    max_entries: int = 500,
+) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    entry = build_research_run_ledger_entry(payload)
+    ledger: dict[str, Any]
+    if output.exists():
+        try:
+            loaded = json.loads(output.read_text(encoding="utf-8"))
+            ledger = loaded if isinstance(loaded, dict) else {}
+        except json.JSONDecodeError:
+            ledger = {}
+    else:
+        ledger = {}
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    entries.append(entry)
+    entries = entries[-max(max_entries, 1):]
+    abstain_reason_counts = _sorted_reason_counts(
+        [
+            {
+                "reason": (
+                    row.get("summary", {})
+                    .get("abstain_audit", {})
+                    .get("primary_reason", "unknown")
+                )
+            }
+            for row in entries
+            if bool(row.get("abstain"))
+        ],
+        reason_key="reason",
+    )
+    aggregate = {
+        "runs": len(entries),
+        "abstain_runs": sum(1 for row in entries if bool(row.get("abstain"))),
+        "live_picks_emitted": sum(_coerce_int(row.get("summary", {}).get("live_count")) for row in entries),
+        "shadow_picks_emitted": sum(_coerce_int(row.get("summary", {}).get("shadow_count")) for row in entries),
+        "friction_vetoes": sum(_coerce_int(row.get("summary", {}).get("friction_veto_count")) for row in entries),
+        "council_holdouts": sum(_coerce_int(row.get("summary", {}).get("council_holdout_count")) for row in entries),
+        "pre_forge_rejections": sum(_coerce_int(row.get("summary", {}).get("pre_forge_rejection_count")) for row in entries),
+        "abstain_primary_reasons": abstain_reason_counts,
+    }
+    rendered = {
+        "artifact": "research_run_ledger",
+        "schema_version": 1,
+        "updated_at_utc": entry["run_generated_at_utc"],
+        "max_entries": max(max_entries, 1),
+        "aggregate": aggregate,
+        "entries": entries,
+    }
+    output.write_text(json.dumps(rendered, indent=2), encoding="utf-8")
+    return output
 
 
 def append_side_aware_shadow_ledger(
@@ -611,6 +822,9 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
         "generated_at_utc": generated_at_utc,
         "trading_day": trading_day,
         "timezone": "America/Chicago",
+        "scan_settings": payload.get("scan_settings", {}),
+        "model_modes": payload.get("model_modes", {}),
+        "model_artifacts": payload.get("model_artifacts", {}),
         "summary": {
             "universe_size": _coerce_int(summary.get("universe_size")),
             "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
@@ -729,6 +943,9 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
         "generated_at_utc": generated_at_utc,
         "trading_day": trading_day,
         "timezone": "America/Chicago",
+        "scan_settings": payload.get("scan_settings", {}),
+        "model_modes": payload.get("model_modes", {}),
+        "model_artifacts": payload.get("model_artifacts", {}),
         "summary": {
             "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
             "pre_forge_signal_count": _coerce_int(summary.get("pre_forge_signal_count")),
@@ -747,6 +964,8 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
             "shadow_avg_forge_score": _average_metric(shadow_board, "forge_score"),
             "live_avg_edge_after_friction_pct": _average_metric(live_board, "expected_edge_after_friction_pct"),
             "shadow_avg_edge_after_friction_pct": _average_metric(shadow_board, "expected_edge_after_friction_pct"),
+            "live_avg_path_holding_quality_score": _average_metric(live_board, "path_holding_quality_score"),
+            "shadow_avg_path_holding_quality_score": _average_metric(shadow_board, "path_holding_quality_score"),
             "side_aware_directional_disagreements": _coerce_int(summary.get("scout_side_aware_directional_disagreements")),
             "side_aware_no_trade_disagreements": _coerce_int(summary.get("scout_side_aware_no_trade_disagreements")),
             "shadow_side_veto_rejections": _coerce_int(summary.get("scout_shadow_side_veto_rejections")),
@@ -765,6 +984,7 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
             },
             "forge": {
                 "waterfall": forge.get("waterfall", {}),
+                "path_model": forge.get("path_model", {}),
                 "pre_council_gate": {
                     "kept": _coerce_int(friction_gate.get("kept")),
                     "dropped": _coerce_int(friction_gate.get("dropped")),
@@ -826,6 +1046,8 @@ def write_live_shadow_attribution_artifacts(snapshot_path: str, payload: dict[st
 def run_scan(config: PipelineConfig) -> dict[str, Any]:
     log.info("Orographic pipeline started with universe of %d symbols.", len(config.universe))
     try:
+        model_artifacts = _model_artifact_status()
+        model_modes = _model_mode_status(model_artifacts)
         regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
         log.info("Scout signal generation complete. Evaluating candidates...")
 
@@ -838,10 +1060,14 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             len(forge_input_signals),
             len(scout_signals),
         )
+        prior_live_board_symbols = _load_prior_live_board_symbols(
+            getattr(config, "board_history_path", None),
+        )
 
         forge_candidates, forge_diagnostics = rank_contracts_with_diagnostics(
             forge_input_signals,
             regime,
+            prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
 
@@ -850,6 +1076,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             regime,
             live_size=config.live_size,
             shadow_size=config.shadow_size,
+            prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
 
@@ -862,6 +1089,13 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         payload = {
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
+            "scan_settings": {
+                "live_size": int(config.live_size),
+                "shadow_size": int(config.shadow_size),
+                "forge_intake": int(config.forge_intake),
+                "universe_size": len(config.universe),
+            },
+            "model_modes": model_modes,
             "regime": regime.to_dict(),
             "scout_signals": [row.to_dict() for row in scout_signals],
             "forge_candidates": [row.to_dict() for row in forge_candidates],
@@ -871,7 +1105,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
             },
-            "model_artifacts": _model_artifact_status(),
+            "model_artifacts": model_artifacts,
             "summary": {
                 "universe_size": len(config.universe),
                 "scout_signal_count": len(scout_signals),
@@ -884,6 +1118,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
                 "forge_learned_ranker": forge_diagnostics.get("learned_ranker", {}),
+                "prior_live_board_symbols": prior_live_board_symbols,
                 "abstain": council.abstain,
                 "live_avg_score": live_avg_score,
                 "forge_input_symbols": [row.symbol for row in forge_input_signals],
