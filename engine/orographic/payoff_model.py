@@ -7,6 +7,7 @@ liquidity, and regime context are considered.
 """
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 import os
 import warnings
@@ -31,14 +32,19 @@ FEATURE_COLS = [
     "moneyness",
     "abs_delta",
     "premium",
+    "premium_pct_of_spot",
     "spread_pct",
     "log_open_interest",
     "log_volume",
     "implied_volatility",
     "iv_rank",
+    "realized_vol_20d",
+    "atr_pct_14d",
+    "vrp_gap",
     "projected_move_pct",
     "breakeven_move_pct",
     "expected_return_pct",
+    "heuristic_edge_after_friction_pct",
     "extrinsic_ratio",
     "allocation_weight",
     "dte",
@@ -47,10 +53,50 @@ FEATURE_COLS = [
     "regime_is_risk_on",
     "regime_is_risk_off",
     "regime_alignment_score",
+    "sentinel_holding_window_fit",
+    "sentinel_confidence",
+    "sentinel_side_relevance",
+    "sentinel_no_trade_relevance",
+    "sentinel_spot_effect",
+    "sentinel_iv_effect",
 ]
 
 _ARTIFACT: dict[str, Any] | None = None
 _ARTIFACT_LOAD_ATTEMPTED = False
+
+
+@dataclass
+class AveragedClassifier:
+    models: list[Any]
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        if not self.models:
+            return np.column_stack([np.ones(len(X)), np.zeros(len(X))])
+        probs = []
+        for model in self.models:
+            if hasattr(model, "predict_proba"):
+                model_probs = model.predict_proba(X)
+                if model_probs.ndim == 2 and model_probs.shape[1] > 1:
+                    probs.append(model_probs[:, 1].astype(float))
+                    continue
+            probs.append(np.asarray(model.predict(X), dtype=float))
+        mean_prob = np.mean(np.vstack(probs), axis=0)
+        return np.column_stack([1.0 - mean_prob, mean_prob])
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        probs = self.predict_proba(X)
+        return (probs[:, 1] >= 0.5).astype(int)
+
+
+@dataclass
+class AveragedRegressor:
+    models: list[Any]
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        if not self.models:
+            return np.zeros(len(X), dtype=float)
+        predictions = [np.asarray(model.predict(X), dtype=float) for model in self.models]
+        return np.mean(np.vstack(predictions), axis=0)
 
 
 def _activation_mode() -> str:
@@ -139,21 +185,45 @@ def feature_row(
         getattr(candidate, "pre_payoff_forge_score", None),
         _safe_float(candidate.forge_score),
     )
+    premium = max(_safe_float(candidate.premium, _safe_float(candidate.ask)), 0.0)
+    premium_pct_of_spot = _safe_float(getattr(candidate, "premium_pct_of_spot", None))
+    realized_vol_20d = max(_safe_float(getattr(candidate, "realized_vol_20d", None)), 0.0)
+    atr_pct_14d = max(_safe_float(getattr(candidate, "atr_pct_14d", None)), 0.0)
+    vrp_gap = _safe_float(
+        getattr(candidate, "vrp_gap", None),
+        max(_safe_float(candidate.implied_volatility, 0.0) - realized_vol_20d, 0.0),
+    )
+    heuristic_edge_after_friction_pct = _safe_float(
+        getattr(candidate, "expected_edge_after_friction_pct", None),
+        _safe_float(candidate.expected_return_pct) - _friction_buffer_pct(candidate),
+    )
+    sentinel_side_relevance = _safe_float(
+        getattr(
+            candidate,
+            "sentinel_call_relevance" if candidate.option_type == "call" else "sentinel_put_relevance",
+            None,
+        )
+    )
     return {
         "option_type_is_call": 1.0 if candidate.option_type == "call" else 0.0,
         "side_aligned_directional_edge": directional,
         "heuristic_forge_score": heuristic_score,
         "moneyness": _safe_float(candidate.moneyness),
         "abs_delta": abs(_safe_float(candidate.delta)),
-        "premium": max(_safe_float(candidate.premium, _safe_float(candidate.ask)), 0.0),
+        "premium": premium,
+        "premium_pct_of_spot": premium_pct_of_spot,
         "spread_pct": max(_safe_float(candidate.spread_pct), 0.0),
         "log_open_interest": log1p(max(_safe_float(candidate.open_interest), 0.0)),
         "log_volume": log1p(max(_safe_float(candidate.volume), 0.0)),
         "implied_volatility": max(_safe_float(candidate.implied_volatility, 0.35), 0.0),
         "iv_rank": _clip(_safe_float(candidate.iv_rank, 0.5)),
+        "realized_vol_20d": realized_vol_20d,
+        "atr_pct_14d": atr_pct_14d,
+        "vrp_gap": max(vrp_gap, 0.0),
         "projected_move_pct": _safe_float(candidate.projected_move_pct),
         "breakeven_move_pct": _safe_float(candidate.breakeven_move_pct),
         "expected_return_pct": _safe_float(candidate.expected_return_pct),
+        "heuristic_edge_after_friction_pct": heuristic_edge_after_friction_pct,
         "extrinsic_ratio": _clip(_safe_float(candidate.extrinsic_ratio, 1.0)),
         "allocation_weight": max(_safe_float(candidate.allocation_weight, 1.0), 0.0),
         "dte": float(_days_to_expiry(candidate, as_of=as_of)),
@@ -162,6 +232,12 @@ def feature_row(
         "regime_is_risk_on": 1.0 if getattr(regime, "mode", None) == "risk_on" else 0.0,
         "regime_is_risk_off": 1.0 if getattr(regime, "mode", None) == "risk_off" else 0.0,
         "regime_alignment_score": regime_alignment,
+        "sentinel_holding_window_fit": _safe_float(getattr(candidate, "sentinel_holding_window_fit", None)),
+        "sentinel_confidence": _safe_float(getattr(candidate, "sentinel_confidence", None)),
+        "sentinel_side_relevance": sentinel_side_relevance,
+        "sentinel_no_trade_relevance": _safe_float(getattr(candidate, "sentinel_no_trade_relevance", None)),
+        "sentinel_spot_effect": _safe_float(getattr(candidate, "sentinel_spot_effect", None)),
+        "sentinel_iv_effect": _safe_float(getattr(candidate, "sentinel_iv_effect", None)),
     }
 
 
@@ -248,6 +324,41 @@ def _rank_percentile(values: np.ndarray) -> np.ndarray:
     return ranks
 
 
+def _friction_buffer_pct(candidate: ContractCandidate) -> float:
+    spread_drag = min(max(_safe_float(candidate.spread_pct), 0.0) * 0.60, 0.25)
+    extrinsic_drag = max(_safe_float(candidate.extrinsic_ratio, 0.0) - 0.45, 0.0) * 0.45
+    return round(spread_drag + 0.03 + 0.03 + extrinsic_drag, 4)
+
+
+def _expected_edge_after_friction_pct(
+    candidate: ContractCandidate,
+    expected_return_pct_model: float,
+) -> float:
+    gross_edge = expected_return_pct_model if np.isfinite(expected_return_pct_model) else _safe_float(candidate.expected_return_pct)
+    return round(float(gross_edge) - _friction_buffer_pct(candidate), 4)
+
+
+def _utility_after_friction_score(edge_after_friction: float) -> float:
+    return _clip(0.5 + edge_after_friction / 0.40, 0.0, 1.0)
+
+
+def _stability_adjustment(
+    *,
+    candidate: ContractCandidate,
+    edge_after_friction: float,
+    prior_live_board_symbols: set[str],
+    turnover_switch_penalty: float,
+) -> tuple[float, float, bool]:
+    is_prior_live_symbol = candidate.symbol.upper() in prior_live_board_symbols
+    if is_prior_live_symbol:
+        return 0.02, 0.0, True
+    penalty = max(turnover_switch_penalty - max(edge_after_friction, 0.0), 0.0)
+    if penalty <= 0:
+        return 0.0, 0.0, False
+    scaled_penalty = min(penalty * 0.75, 0.04)
+    return -scaled_penalty, scaled_penalty, False
+
+
 def score_candidates(
     candidates: list[ContractCandidate],
     regime: MarketRegime | None = None,
@@ -255,6 +366,8 @@ def score_candidates(
     as_of: date | None = None,
     model_path: Path = MODEL_PATH,
     activation_mode: str | None = None,
+    prior_live_board_symbols: list[str] | None = None,
+    turnover_switch_penalty: float = 0.03,
 ) -> list[ContractCandidate]:
     """
     Add payoff-aware predictions and final scores to candidates in-place.
@@ -271,6 +384,11 @@ def score_candidates(
     artifact_hash = _sha256_file(model_path) if artifact else None
     feature_cols = list((artifact or {}).get("feature_cols", FEATURE_COLS))
     X_all = feature_matrix(candidates, regime, as_of=as_of, feature_cols=feature_cols)
+    prior_live_symbols = {
+        str(symbol).upper()
+        for symbol in (prior_live_board_symbols or [])
+        if str(symbol).strip()
+    }
 
     expected_return = np.zeros(len(candidates), dtype=float)
     prob_positive = np.zeros(len(candidates), dtype=float)
@@ -329,13 +447,23 @@ def score_candidates(
         directional = side_aligned_directional_edge(candidate)
         liquidity = liquidity_score(candidate)
         regime_alignment = regime_alignment_score(candidate, regime)
-        final_score = _clip(
+        edge_after_friction = _expected_edge_after_friction_pct(candidate, float(expected_return[i]))
+        utility_after_friction = _utility_after_friction_score(edge_after_friction)
+        stability_adjustment, turnover_risk_penalty, is_prior_live_symbol = _stability_adjustment(
+            candidate=candidate,
+            edge_after_friction=edge_after_friction,
+            prior_live_board_symbols=prior_live_symbols,
+            turnover_switch_penalty=turnover_switch_penalty,
+        )
+        base_final_score = _clip(
             0.25 * directional
-            + 0.35 * _clip(float(prob_positive[i]))
-            + 0.20 * _clip(float(expected_return_rank[i]))
+            + 0.30 * _clip(float(prob_positive[i]))
+            + 0.15 * _clip(float(expected_return_rank[i]))
             + 0.10 * liquidity
             + 0.10 * regime_alignment
+            + 0.10 * utility_after_friction
         )
+        final_score = _clip(base_final_score + stability_adjustment)
 
         candidate.pre_payoff_forge_score = round(pre_payoff_score, 4)
         candidate.directional_edge = round(directional, 4)
@@ -349,7 +477,13 @@ def score_candidates(
         candidate.breakeven_edge_score = candidate.prob_exceeds_breakeven
         candidate.max_favorable_excursion_before_expiry = round(float(mfe[i]), 4)
         candidate.adverse_excursion_risk = round(float(adverse[i]), 4)
-        candidate.payoff_model_score = round(final_score, 4)
+        candidate.friction_buffer_pct = _friction_buffer_pct(candidate)
+        candidate.expected_edge_after_friction_pct = edge_after_friction
+        candidate.utility_after_friction_score = round(utility_after_friction, 4)
+        candidate.stability_adjustment = round(stability_adjustment, 4)
+        candidate.turnover_risk_penalty = round(turnover_risk_penalty, 4)
+        candidate.prior_live_board_symbol = is_prior_live_symbol
+        candidate.payoff_model_score = round(base_final_score, 4)
         candidate.final_candidate_score = round(final_score, 4)
         candidate.learned_rank_score = round(final_score, 4)
         candidate.ranker_artifact_sha256 = artifact_hash
@@ -359,6 +493,12 @@ def score_candidates(
                 candidate.forge_score = round(final_score, 4)
                 if not any("payoff model" in note.lower() for note in candidate.notes):
                     candidate.notes.append("Payoff model ranker active")
+                if stability_adjustment > 0:
+                    candidate.notes.append("Stability bonus applied for prior live-board continuity")
+                elif turnover_risk_penalty > 0:
+                    candidate.notes.append(
+                        f"Turnover penalty applied ({turnover_risk_penalty:.2f}) because post-friction edge is thin"
+                    )
             else:
                 candidate.forge_score = round(pre_payoff_score, 4)
                 if not any("payoff model shadow" in note.lower() for note in candidate.notes):

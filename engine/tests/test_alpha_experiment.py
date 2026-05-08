@@ -1,11 +1,17 @@
 from __future__ import annotations
 
 from datetime import date
+from pathlib import Path
 import unittest
 
 from engine.backtest.alpha_experiment import (
+    _path_shadow_board,
+    _summarize_path_shadow_week,
+    apply_path_tiebreaker,
     apply_symbol_priors,
     build_symbol_priors,
+    build_variants,
+    default_variant_option_outcome_paths,
     estimated_cost_basis,
     filter_by_cost_basis,
 )
@@ -70,6 +76,92 @@ def _trade(symbol: str, exit_day: date, pnl: float, pnl_pct: float) -> TradeLeg:
 
 
 class AlphaExperimentTests(unittest.TestCase):
+    def test_build_variants_includes_path_tiebreaker_variant(self) -> None:
+        variants = build_variants(600.0)
+        names = [row.name for row in variants]
+        self.assertIn("council_cost_cap_path_tiebreaker", names)
+        self.assertIn("council_cost_cap_path_tiebreaker_loose", names)
+
+    def test_path_shadow_board_prefers_higher_holding_quality(self) -> None:
+        live = _candidate("LIVE", forge_score=0.7)
+        live.path_holding_quality_score = 0.45
+        alt = _candidate("ALT", forge_score=0.65)
+        alt.path_holding_quality_score = 0.82
+        board = _path_shadow_board([live, alt], board_size=1)
+
+        self.assertEqual([row.symbol for row in board], ["ALT"])
+
+    def test_path_shadow_summary_tracks_disagreement_and_pnl(self) -> None:
+        chosen = [_candidate("LIVE")]
+        chosen[0].path_holding_quality_score = 0.45
+        path_shadow = [_candidate("ALT")]
+        path_shadow[0].path_holding_quality_score = 0.82
+
+        live_trade = _trade("LIVE", date(2026, 4, 14), 20.0, 0.20)
+        alt_trade = _trade("ALT", date(2026, 4, 14), 35.0, 0.35)
+        summary = _summarize_path_shadow_week(chosen, path_shadow, [live_trade], [alt_trade])
+
+        self.assertTrue(summary["disagreement"])
+        self.assertEqual(summary["chosen_contracts"], [chosen[0].contract_symbol])
+        self.assertEqual(summary["path_shadow_contracts"], [path_shadow[0].contract_symbol])
+        self.assertEqual(summary["chosen_week_pnl"], 20.0)
+        self.assertEqual(summary["path_shadow_week_pnl"], 35.0)
+
+    def test_apply_path_tiebreaker_boosts_high_quality_near_ties(self) -> None:
+        lead = _candidate("LEAD", forge_score=0.60)
+        lead.path_holding_quality_score = 0.50
+        alt = _candidate("ALT", forge_score=0.595)
+        alt.path_holding_quality_score = 0.90
+
+        adjusted, diag = apply_path_tiebreaker([lead], [lead, alt], max_swaps=1, max_forge_gap=0.03, min_path_quality_edge=0.10)
+
+        self.assertEqual(adjusted[0].symbol, "ALT")
+        self.assertEqual(diag["swaps"], 1)
+        self.assertEqual(diag["top_symbols_before"][0], "LEAD")
+        self.assertEqual(diag["top_symbols_after"][0], "ALT")
+        self.assertEqual(diag["considered_candidates"], 1)
+
+    def test_apply_path_tiebreaker_records_near_miss_reason(self) -> None:
+        lead = _candidate("LEAD", forge_score=0.60)
+        lead.path_holding_quality_score = 0.50
+        alt = _candidate("ALT", forge_score=0.52)
+        alt.path_holding_quality_score = 0.90
+
+        adjusted, diag = apply_path_tiebreaker([lead], [lead, alt], max_swaps=1, max_forge_gap=0.03, min_path_quality_edge=0.10)
+
+        self.assertEqual(adjusted[0].symbol, "LEAD")
+        self.assertEqual(diag["swaps"], 0)
+        self.assertEqual(diag["considered_candidates"], 1)
+        self.assertEqual(diag["near_miss_details"][0]["candidate_symbol"], "ALT")
+        self.assertEqual(diag["near_miss_details"][0]["blocker"], "forge_gap_above_maximum")
+
+    def test_default_variant_option_outcome_paths_target_output_directory(self) -> None:
+        paths = default_variant_option_outcome_paths(
+            Path("docs/alpha_experiment_results.json"),
+            ["council_only", "council_cost_cap"],
+        )
+
+        self.assertEqual(
+            paths["council_only"],
+            Path("output/option_outcomes_alpha_experiment_council_only.json"),
+        )
+        self.assertEqual(
+            paths["council_cost_cap"],
+            Path("output/option_outcomes_alpha_experiment_council_cost_cap.json"),
+        )
+
+    def test_default_variant_option_outcome_paths_respect_custom_base_name(self) -> None:
+        paths = default_variant_option_outcome_paths(
+            Path("docs/walkforward_april.json"),
+            ["baseline_all_candidates"],
+            output_dir=Path("tmp"),
+        )
+
+        self.assertEqual(
+            paths["baseline_all_candidates"],
+            Path("tmp/option_outcomes_walkforward_april_baseline_all_candidates.json"),
+        )
+
     def test_filter_by_cost_basis_drops_expensive_candidates(self) -> None:
         cheap = _candidate(symbol="CHEAP", ask=1.5, premium=1.5, contract_cost=150.0)
         expensive = _candidate(

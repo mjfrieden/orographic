@@ -17,18 +17,24 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 import joblib
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 from sklearn.dummy import DummyClassifier, DummyRegressor
+from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import brier_score_loss, log_loss, mean_absolute_error, roc_auc_score
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import RobustScaler
 
 from engine.backtest.options_provider import HistoricalOptionsProvider
+from engine.backtest.results import build_option_outcome_dataset_summary, canonicalize_option_outcome_row
 from engine.orographic.forge import _breakeven_move_pct, _candidate_moneyness
-from engine.orographic.payoff_model import FEATURE_COLS, feature_matrix
+from engine.orographic.payoff_model import AveragedClassifier, AveragedRegressor, FEATURE_COLS, feature_matrix
 from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 try:
@@ -39,11 +45,17 @@ except ImportError:  # pragma: no cover - exercised only in minimal local envs
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s")
 log = logging.getLogger(__name__)
 
-DEFAULT_INPUT = Path("output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json")
+DEFAULT_INPUT_CANDIDATES = [
+    Path("output/option_outcomes_latest.json"),
+    Path("output/option_outcomes_12mo.json"),
+    Path("output/option_outcomes_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"),
+    Path("output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"),
+]
 DEFAULT_MODEL_PATH = Path("engine/orographic/models/payoff_model.pkl")
 DEFAULT_REPORT_PATH = Path("output/payoff_model_training_report_2026-04-18.json")
 DEFAULT_MODEL_CARD_PATH = Path("engine/orographic/models/payoff_model_card.json")
 DEFAULT_OPTIONS_DATA_DIR = Path("engine/data/options/blended")
+MODEL_FAMILIES = ("linear", "tree", "ensemble")
 
 
 @dataclass
@@ -53,12 +65,33 @@ class TradeExample:
     exit_date: date | None
     entry_spot: float
     exit_spot: float | None
+    regime_bucket: str
     pnl_pct: float
     prob_positive_option_pnl: int
     expected_option_return_pct: float
     prob_exceeds_breakeven: int
     max_favorable_excursion_before_expiry: float
     adverse_excursion_risk: float
+
+
+def _artifact_rows(data: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
+    artifact = str(data.get("artifact") or "").strip()
+    if artifact == "option_outcome_dataset":
+        rows = data.get("rows")
+        if isinstance(rows, list):
+            return [row for row in rows if isinstance(row, dict)], artifact
+        return [], artifact
+    rows = data.get("all_trades")
+    if isinstance(rows, list):
+        return [row for row in rows if isinstance(row, dict)], artifact or "backtest_results"
+    return [], artifact or "unknown"
+
+
+def default_input_paths() -> list[Path]:
+    existing = [path for path in DEFAULT_INPUT_CANDIDATES if path.exists()]
+    if existing:
+        return [existing[0]]
+    return [DEFAULT_INPUT_CANDIDATES[0]]
 
 
 def _safe_float(value: object, default: float = 0.0) -> float:
@@ -152,10 +185,33 @@ def _candidate_from_trade(trade: dict[str, Any]) -> ContractCandidate:
         iv_rank=_safe_float(trade.get("iv_rank"), 0.5),
         entry_data_source=str(trade.get("entry_data_source", "real_chain")),
         entry_quote_type=str(trade.get("entry_quote_type", "ask")),
+        realized_vol_20d=trade.get("realized_vol_20d"),
+        atr_pct_14d=trade.get("atr_pct_14d"),
+        premium_pct_of_spot=_safe_float(
+            trade.get("premium_pct_of_spot"),
+            entry_price / entry_spot if entry_spot > 0 else 0.0,
+        ),
+        vrp_gap=_safe_float(
+            trade.get("vrp_gap"),
+            max(_safe_float(trade.get("implied_volatility"), 0.35) - _safe_float(trade.get("realized_vol_20d")), 0.0),
+        ),
+        expected_edge_after_friction_pct=trade.get("expected_edge_after_friction_pct"),
+        sentinel_holding_window_fit=trade.get("sentinel_holding_window_fit"),
+        sentinel_holding_window_label=trade.get("sentinel_holding_window_label"),
+        sentinel_decay_half_life=trade.get("sentinel_decay_half_life"),
+        sentinel_time_horizon=trade.get("sentinel_time_horizon"),
+        sentinel_confidence=trade.get("sentinel_confidence"),
+        sentinel_call_relevance=trade.get("sentinel_call_relevance"),
+        sentinel_put_relevance=trade.get("sentinel_put_relevance"),
+        sentinel_no_trade_relevance=trade.get("sentinel_no_trade_relevance"),
+        sentinel_spot_effect=trade.get("sentinel_spot_effect"),
+        sentinel_iv_effect=trade.get("sentinel_iv_effect"),
     )
 
 
 def _breakeven_label(trade: dict[str, Any]) -> int:
+    if trade.get("breakeven_after_friction") is not None:
+        return int(bool(trade.get("breakeven_after_friction")))
     option_type = str(trade.get("option_type", "call"))
     exit_spot = _safe_float(trade.get("exit_spot"))
     strike = _safe_float(trade.get("strike"))
@@ -171,7 +227,7 @@ def _quote_return_path(
     trade: dict[str, Any],
     options_provider: HistoricalOptionsProvider | None,
 ) -> tuple[float, float, int]:
-    realized = _safe_float(trade.get("pnl_pct"))
+    realized = _safe_float(trade.get("hold_period_return_after_friction_pct"), _safe_float(trade.get("pnl_pct")))
     entry_price = _safe_float(trade.get("entry_price"))
     if options_provider is None or entry_price <= 0:
         return max(0.0, realized), min(0.0, realized), 0
@@ -213,6 +269,82 @@ def _quote_return_path(
     return max(returns), min(returns), exact_marks
 
 
+def _regime_bucket_from_trade(trade: dict[str, Any]) -> str:
+    explicit_mode = str(trade.get("regime_mode") or "").strip().lower()
+    if explicit_mode in {"risk_on", "risk_off", "neutral"}:
+        return explicit_mode
+
+    if trade.get("regime_is_risk_on") is not None and bool(trade.get("regime_is_risk_on")):
+        return "risk_on"
+    if trade.get("regime_is_risk_off") is not None and bool(trade.get("regime_is_risk_off")):
+        return "risk_off"
+
+    bias_raw = trade.get("regime_bias")
+    if bias_raw is not None:
+        bias = _safe_float(bias_raw, 0.0)
+        if bias >= 0.1:
+            return "risk_on"
+        if bias <= -0.1:
+            return "risk_off"
+        return "neutral"
+
+    alignment_raw = trade.get("regime_alignment_score")
+    if alignment_raw is not None:
+        alignment = _safe_float(alignment_raw, 0.0)
+        if alignment >= 0.15:
+            return "aligned"
+        if alignment <= -0.15:
+            return "counter_regime"
+        return "neutral_or_mixed"
+
+    return "unclassified"
+
+
+def _segment_summary(
+    rows: list[dict[str, Any]],
+    segment_getter: Any,
+) -> dict[str, Any]:
+    grouped: dict[str, list[dict[str, Any]]] = {}
+    for row in rows:
+        segment = str(segment_getter(row) or "unclassified")
+        grouped.setdefault(segment, []).append(row)
+
+    summary: dict[str, Any] = {}
+    for segment, segment_rows in sorted(grouped.items()):
+        count = len(segment_rows)
+        after_returns = [_safe_float(r.get("hold_period_return_after_friction_pct")) for r in segment_rows]
+        before_returns = [
+            _safe_float(
+                r.get("hold_period_return_before_friction_pct"),
+                _safe_float(r.get("raw_pnl_pct")),
+            )
+            for r in segment_rows
+        ]
+        summary[segment] = {
+            "rows": count,
+            "positive_pnl_after_friction_rate": round(
+                sum(1 for r in segment_rows if bool(r.get("positive_pnl_after_friction"))) / count,
+                4,
+            ),
+            "breakeven_after_friction_rate": round(
+                sum(1 for r in segment_rows if bool(r.get("breakeven_after_friction"))) / count,
+                4,
+            ),
+            "friction_flip_count": sum(1 for r in segment_rows if bool(r.get("friction_flipped_winner_to_loser"))),
+            "friction_flip_rate": round(
+                sum(1 for r in segment_rows if bool(r.get("friction_flipped_winner_to_loser"))) / count,
+                4,
+            ),
+            "avg_return_after_friction_pct": round(float(np.mean(after_returns)), 4) if after_returns else 0.0,
+            "avg_return_before_friction_pct": round(float(np.mean(before_returns)), 4) if before_returns else 0.0,
+            "avg_friction_drag_pct": round(
+                float(np.mean([_safe_float(r.get("friction_drag_pct")) for r in segment_rows])),
+                4,
+            ),
+        }
+    return summary
+
+
 def load_examples(
     input_paths: list[Path],
     *,
@@ -224,11 +356,19 @@ def load_examples(
         options_provider = HistoricalOptionsProvider(options_data_dir)
 
     examples: list[TradeExample] = []
+    canonical_rows: list[dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
     exact_mark_count = 0
+    input_artifacts: dict[str, int] = {}
+    input_artifact_by_file: dict[str, str] = {}
+    input_rows_by_file: dict[str, int] = {}
     for path in input_paths:
         data = json.loads(path.read_text(encoding="utf-8"))
-        for trade in data.get("all_trades", []):
+        trade_rows, artifact_name = _artifact_rows(data)
+        input_artifacts[artifact_name] = input_artifacts.get(artifact_name, 0) + 1
+        input_artifact_by_file[str(path)] = artifact_name
+        input_rows_by_file[str(path)] = len(trade_rows)
+        for trade in trade_rows:
             key = (
                 trade.get("symbol"),
                 trade.get("option_type"),
@@ -240,37 +380,69 @@ def load_examples(
             if key in seen:
                 continue
             seen.add(key)
+            canonical_trade = canonicalize_option_outcome_row(trade)
             try:
-                entry_date = date.fromisoformat(str(trade["entry_date"]))
+                entry_date = date.fromisoformat(str(canonical_trade["entry_date"]))
             except (KeyError, TypeError, ValueError):
                 continue
             exit_date = None
-            if trade.get("exit_date"):
+            if canonical_trade.get("exit_date"):
                 try:
-                    exit_date = date.fromisoformat(str(trade["exit_date"]))
+                    exit_date = date.fromisoformat(str(canonical_trade["exit_date"]))
                 except ValueError:
                     exit_date = None
-            pnl_pct = _safe_float(trade.get("pnl_pct"))
-            mfe, adverse, marks = _quote_return_path(trade, options_provider)
+            pnl_pct = _safe_float(canonical_trade.get("pnl_pct"))
+            if canonical_trade.get("hold_period_return_after_friction_pct") is not None:
+                pnl_pct = _safe_float(canonical_trade.get("hold_period_return_after_friction_pct"))
+            mfe, adverse, marks = _quote_return_path(canonical_trade, options_provider)
             exact_mark_count += marks
+            canonical_rows.append(canonical_trade)
             examples.append(
                 TradeExample(
-                    candidate=_candidate_from_trade(trade),
+                    candidate=_candidate_from_trade(canonical_trade),
                     entry_date=entry_date,
                     exit_date=exit_date,
-                    entry_spot=_safe_float(trade.get("entry_spot")),
-                    exit_spot=_safe_float(trade.get("exit_spot"), None),
+                    entry_spot=_safe_float(canonical_trade.get("entry_spot")),
+                    exit_spot=_safe_float(canonical_trade.get("exit_spot"), None),
+                    regime_bucket=_regime_bucket_from_trade(canonical_trade),
                     pnl_pct=pnl_pct,
-                    prob_positive_option_pnl=int(pnl_pct > 0.0),
+                    prob_positive_option_pnl=(
+                        int(bool(canonical_trade.get("positive_pnl_after_friction")))
+                        if canonical_trade.get("positive_pnl_after_friction") is not None
+                        else int(pnl_pct > 0.0)
+                    ),
                     expected_option_return_pct=_clip(pnl_pct, -1.0, return_cap),
-                    prob_exceeds_breakeven=_breakeven_label(trade),
+                    prob_exceeds_breakeven=_breakeven_label(canonical_trade),
                     max_favorable_excursion_before_expiry=_clip(mfe, -1.0, return_cap),
                     adverse_excursion_risk=_clip(adverse, -1.0, return_cap),
                 )
             )
 
+    canonical_dataset_files = [
+        path
+        for path, artifact_name in input_artifact_by_file.items()
+        if artifact_name == "option_outcome_dataset"
+    ]
+    legacy_result_files = [
+        path
+        for path, artifact_name in input_artifact_by_file.items()
+        if artifact_name != "option_outcome_dataset"
+    ]
+    dataset_summary = build_option_outcome_dataset_summary(canonical_rows)
+    side_dataset_summary = _segment_summary(canonical_rows, lambda row: row.get("option_type", "unknown"))
+    regime_dataset_summary = _segment_summary(canonical_rows, _regime_bucket_from_trade)
     metadata = {
         "input_files": [str(path) for path in input_paths],
+        "input_artifacts": input_artifacts,
+        "input_artifact_by_file": input_artifact_by_file,
+        "input_rows_by_file": input_rows_by_file,
+        "canonical_dataset_files": canonical_dataset_files,
+        "legacy_result_files": legacy_result_files,
+        "primary_training_source_artifact": "option_outcome_dataset" if canonical_dataset_files else "backtest_results",
+        "primary_training_source_files": canonical_dataset_files or [str(path) for path in input_paths],
+        "dataset_summary": dataset_summary,
+        "side_dataset_summary": side_dataset_summary,
+        "regime_dataset_summary": regime_dataset_summary,
         "deduplicated_examples": len(examples),
         "exact_quote_marks_used": exact_mark_count,
         "options_data_dir": str(options_data_dir) if options_data_dir else None,
@@ -278,9 +450,15 @@ def load_examples(
     return examples, metadata
 
 
-def _classifier(random_state: int = 42) -> Any:
+def _tree_classifier(random_state: int = 42) -> Any:
     if lgb is None:
-        return DummyClassifier(strategy="prior")
+        return HistGradientBoostingClassifier(
+            learning_rate=0.05,
+            max_depth=4,
+            max_iter=180,
+            min_samples_leaf=20,
+            random_state=random_state,
+        )
     return lgb.LGBMClassifier(
         n_estimators=240,
         learning_rate=0.04,
@@ -295,9 +473,15 @@ def _classifier(random_state: int = 42) -> Any:
     )
 
 
-def _regressor(random_state: int = 42) -> Any:
+def _tree_regressor(random_state: int = 42) -> Any:
     if lgb is None:
-        return DummyRegressor(strategy="mean")
+        return HistGradientBoostingRegressor(
+            learning_rate=0.05,
+            max_depth=4,
+            max_iter=220,
+            min_samples_leaf=20,
+            random_state=random_state,
+        )
     return lgb.LGBMRegressor(
         n_estimators=260,
         learning_rate=0.04,
@@ -311,8 +495,34 @@ def _regressor(random_state: int = 42) -> Any:
     )
 
 
-def _fit_classifier(X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None) -> Pipeline:
-    estimator = _classifier()
+def _linear_classifier(random_state: int = 42) -> Any:
+    return LogisticRegression(
+        C=0.7,
+        class_weight="balanced",
+        max_iter=1000,
+        random_state=random_state,
+    )
+
+
+def _linear_regressor(random_state: int = 42) -> Any:
+    return Ridge(alpha=1.0, random_state=random_state)
+
+
+def _fit_classifier(
+    X: np.ndarray,
+    y: np.ndarray,
+    sample_weight: np.ndarray | None = None,
+    *,
+    family: str = "tree",
+) -> Any:
+    if family == "ensemble":
+        return AveragedClassifier(
+            [
+                _fit_classifier(X, y, sample_weight, family="linear"),
+                _fit_classifier(X, y, sample_weight, family="tree"),
+            ]
+        )
+    estimator = _linear_classifier() if family == "linear" else _tree_classifier()
     if len(set(y.tolist())) < 2:
         estimator = DummyClassifier(strategy="constant", constant=int(y[0]) if len(y) else 0)
     model = Pipeline([("scaler", RobustScaler()), ("model", estimator)])
@@ -321,8 +531,21 @@ def _fit_classifier(X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | No
     return model
 
 
-def _fit_regressor(X: np.ndarray, y: np.ndarray, sample_weight: np.ndarray | None = None) -> Pipeline:
-    model = Pipeline([("scaler", RobustScaler()), ("model", _regressor())])
+def _fit_regressor(
+    X: np.ndarray,
+    y: np.ndarray,
+    sample_weight: np.ndarray | None = None,
+    *,
+    family: str = "tree",
+) -> Any:
+    if family == "ensemble":
+        return AveragedRegressor(
+            [
+                _fit_regressor(X, y, sample_weight, family="linear"),
+                _fit_regressor(X, y, sample_weight, family="tree"),
+            ]
+        )
+    model = Pipeline([("scaler", RobustScaler()), ("model", _linear_regressor() if family == "linear" else _tree_regressor())])
     fit_kwargs = {"model__sample_weight": sample_weight} if sample_weight is not None else {}
     model.fit(X, y, **fit_kwargs)
     return model
@@ -366,29 +589,44 @@ def _balanced_sample_weight(sides: np.ndarray, y: np.ndarray | None = None) -> n
     return weights / max(float(np.mean(weights)), 1e-9)
 
 
-def _side_metric_report(y_true: np.ndarray, probs: np.ndarray, sides: np.ndarray) -> dict[str, Any]:
+def _segment_metric_report(
+    y_true: np.ndarray,
+    probs: np.ndarray,
+    segments: np.ndarray,
+    *,
+    min_rows: int = 20,
+) -> dict[str, Any]:
     rows: dict[str, Any] = {}
-    for side in ("call", "put"):
-        idx = np.where(sides == side)[0]
-        if len(idx) < 20:
-            rows[side] = {"rows": int(len(idx)), "reason": "insufficient_rows"}
+    segment_names = sorted({str(segment) for segment in segments.tolist()})
+    for segment in segment_names:
+        idx = np.where(segments == segment)[0]
+        if len(idx) < min_rows:
+            rows[segment] = {"rows": int(len(idx)), "reason": "insufficient_rows"}
             continue
-        side_y = y_true[idx]
-        side_probs = probs[idx]
-        rows[side] = {
+        segment_y = y_true[idx]
+        segment_probs = probs[idx]
+        rows[segment] = {
             "rows": int(len(idx)),
-            "positive_rate": round(float(side_y.mean()), 4),
-            "brier": round(float(brier_score_loss(side_y, side_probs)), 4),
-            "auc": round(float(roc_auc_score(side_y, side_probs)), 4)
-            if len(set(side_y.tolist())) > 1
+            "positive_rate": round(float(segment_y.mean()), 4),
+            "brier": round(float(brier_score_loss(segment_y, segment_probs)), 4),
+            "auc": round(float(roc_auc_score(segment_y, segment_probs)), 4)
+            if len(set(segment_y.tolist())) > 1
             else None,
         }
     return rows
 
 
-def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], sides: np.ndarray) -> dict[str, Any]:
+def _family_cv_report(
+    X: np.ndarray,
+    labels: dict[str, np.ndarray],
+    dates: list[date],
+    sides: np.ndarray,
+    regime_buckets: np.ndarray,
+    *,
+    family: str,
+) -> dict[str, Any]:
     if len(X) < 80:
-        return {"folds": 0, "reason": "insufficient_examples"}
+        return {"family": family, "folds": 0, "reason": "insufficient_examples"}
 
     order = np.argsort(np.array([d.toordinal() for d in dates]))
     X_sorted = X[order]
@@ -396,6 +634,7 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], 
     y_breakeven = labels["prob_exceeds_breakeven"][order]
     y_return = labels["expected_option_return_pct"][order]
     sides_sorted = sides[order]
+    regimes_sorted = regime_buckets[order]
     tscv = TimeSeriesSplit(n_splits=min(5, max(2, len(X) // 120)))
     positive_auc: list[float] = []
     breakeven_auc: list[float] = []
@@ -415,9 +654,9 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], 
 
         train_sides = sides_sorted[train_idx]
         side_weights = _balanced_sample_weight(train_sides)
-        pos_model = _fit_classifier(X_train, pos_train, _balanced_sample_weight(train_sides, pos_train))
-        be_model = _fit_classifier(X_train, be_train, _balanced_sample_weight(train_sides, be_train))
-        ret_model = _fit_regressor(X_train, ret_train, side_weights)
+        pos_model = _fit_classifier(X_train, pos_train, _balanced_sample_weight(train_sides, pos_train), family=family)
+        be_model = _fit_classifier(X_train, be_train, _balanced_sample_weight(train_sides, be_train), family=family)
+        ret_model = _fit_regressor(X_train, ret_train, side_weights, family=family)
         pos_probs = np.clip(_positive_proba(pos_model, X_val), 1e-6, 1 - 1e-6)
         be_probs = np.clip(_positive_proba(be_model, X_val), 1e-6, 1 - 1e-6)
         oof_positive[val_idx] = pos_probs
@@ -436,6 +675,7 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], 
     valid_positive = np.isfinite(oof_positive)
     valid_breakeven = np.isfinite(oof_breakeven)
     return {
+        "family": family,
         "folds": int(tscv.n_splits),
         "positive_pnl_auc_mean": round(float(np.mean(positive_auc)), 4) if positive_auc else None,
         "breakeven_auc_mean": round(float(np.mean(breakeven_auc)), 4) if breakeven_auc else None,
@@ -448,13 +688,39 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], 
             "prob_positive_option_pnl": _probability_buckets(oof_positive[valid_positive], y_positive[valid_positive]),
             "prob_exceeds_breakeven": _probability_buckets(oof_breakeven[valid_breakeven], y_breakeven[valid_breakeven]),
         },
+        "by_segment": {
+            "side": {
+                "prob_positive_option_pnl": _segment_metric_report(
+                    y_positive[valid_positive],
+                    oof_positive[valid_positive],
+                    sides_sorted[valid_positive],
+                ),
+                "prob_exceeds_breakeven": _segment_metric_report(
+                    y_breakeven[valid_breakeven],
+                    oof_breakeven[valid_breakeven],
+                    sides_sorted[valid_breakeven],
+                ),
+            },
+            "regime": {
+                "prob_positive_option_pnl": _segment_metric_report(
+                    y_positive[valid_positive],
+                    oof_positive[valid_positive],
+                    regimes_sorted[valid_positive],
+                ),
+                "prob_exceeds_breakeven": _segment_metric_report(
+                    y_breakeven[valid_breakeven],
+                    oof_breakeven[valid_breakeven],
+                    regimes_sorted[valid_breakeven],
+                ),
+            },
+        },
         "by_side": {
-            "prob_positive_option_pnl": _side_metric_report(
+            "prob_positive_option_pnl": _segment_metric_report(
                 y_positive[valid_positive],
                 oof_positive[valid_positive],
                 sides_sorted[valid_positive],
             ),
-            "prob_exceeds_breakeven": _side_metric_report(
+            "prob_exceeds_breakeven": _segment_metric_report(
                 y_breakeven[valid_breakeven],
                 oof_breakeven[valid_breakeven],
                 sides_sorted[valid_breakeven],
@@ -463,13 +729,61 @@ def _cv_report(X: np.ndarray, labels: dict[str, np.ndarray], dates: list[date], 
     }
 
 
-def _fit_bundle(X: np.ndarray, labels: dict[str, np.ndarray], sample_weight: np.ndarray | None = None) -> dict[str, Any]:
+def _family_sort_key(report: dict[str, Any]) -> tuple[float, ...]:
+    def val(name: str) -> float:
+        raw = report.get(name)
+        if raw is None:
+            return float("inf")
+        return float(raw)
+
+    return (
+        val("positive_pnl_brier_mean"),
+        val("breakeven_brier_mean"),
+        val("expected_return_mae_mean"),
+        -float(report.get("positive_pnl_auc_mean") or 0.0),
+        -float(report.get("breakeven_auc_mean") or 0.0),
+    )
+
+
+def _cv_report(
+    X: np.ndarray,
+    labels: dict[str, np.ndarray],
+    dates: list[date],
+    sides: np.ndarray,
+    regime_buckets: np.ndarray,
+) -> dict[str, Any]:
+    family_reports = {
+        family: _family_cv_report(
+            X,
+            labels,
+            dates,
+            sides,
+            regime_buckets,
+            family=family,
+        )
+        for family in MODEL_FAMILIES
+    }
+    selected_family = min(family_reports, key=lambda family: _family_sort_key(family_reports[family]))
+    selected = dict(family_reports[selected_family])
+    selected["selected_family"] = selected_family
+    selected["family_bakeoff"] = family_reports
+    return selected
+
+
+def _fit_bundle(
+    X: np.ndarray,
+    labels: dict[str, np.ndarray],
+    sample_weight: np.ndarray | None = None,
+    *,
+    family: str = "tree",
+) -> dict[str, Any]:
     return {
-        "positive_classifier": _fit_classifier(X, labels["prob_positive_option_pnl"], sample_weight),
-        "breakeven_classifier": _fit_classifier(X, labels["prob_exceeds_breakeven"], sample_weight),
-        "expected_return_regressor": _fit_regressor(X, labels["expected_option_return_pct"], sample_weight),
-        "mfe_regressor": _fit_regressor(X, labels["max_favorable_excursion_before_expiry"], sample_weight),
-        "adverse_regressor": _fit_regressor(X, labels["adverse_excursion_risk"], sample_weight),
+        "family": family,
+        "positive_classifier": _fit_classifier(X, labels["prob_positive_option_pnl"], sample_weight, family=family),
+        "breakeven_classifier": _fit_classifier(X, labels["prob_exceeds_breakeven"], sample_weight, family=family),
+        "expected_return_regressor": _fit_regressor(X, labels["expected_option_return_pct"], sample_weight, family=family),
+        "mfe_regressor": _fit_regressor(X, labels["max_favorable_excursion_before_expiry"], sample_weight, family=family),
+        "adverse_regressor": _fit_regressor(X, labels["adverse_excursion_risk"], sample_weight, family=family),
     }
 
 
@@ -488,6 +802,113 @@ def _side_observability(examples: list[TradeExample], labels: dict[str, np.ndarr
             "avg_expected_option_return_pct": round(float(returns[idx].mean()), 4),
         }
     return rows
+
+
+def _regime_observability(examples: list[TradeExample], labels: dict[str, np.ndarray], regime_buckets: np.ndarray) -> dict[str, Any]:
+    rows: dict[str, Any] = {}
+    returns = labels["expected_option_return_pct"]
+    for regime_bucket in sorted({str(bucket) for bucket in regime_buckets.tolist()}):
+        idx = np.where(regime_buckets == regime_bucket)[0]
+        if len(idx) == 0:
+            continue
+        rows[regime_bucket] = {
+            "rows": int(len(idx)),
+            "positive_pnl_rate": round(float(labels["prob_positive_option_pnl"][idx].mean()), 4),
+            "breakeven_rate": round(float(labels["prob_exceeds_breakeven"][idx].mean()), 4),
+            "avg_expected_option_return_pct": round(float(returns[idx].mean()), 4),
+        }
+    return rows
+
+
+def _baseline_brier(y: np.ndarray) -> float:
+    if len(y) == 0:
+        return 0.0
+    base_rate = float(np.mean(y))
+    return float(brier_score_loss(y, np.full(len(y), base_rate)))
+
+
+def _promotion_gate_report(
+    *,
+    training_examples: int,
+    min_side_examples: int,
+    side_counts: dict[str, int],
+    dataset_summary: dict[str, Any],
+    regime_dataset_summary: dict[str, Any],
+    cv: dict[str, Any],
+    positive_baseline_brier: float,
+    breakeven_baseline_brier: float,
+    primary_artifact: str,
+) -> dict[str, Any]:
+    positive_brier = cv.get("positive_pnl_brier_mean")
+    breakeven_brier = cv.get("breakeven_brier_mean")
+    positive_auc = cv.get("positive_pnl_auc_mean")
+    breakeven_auc = cv.get("breakeven_auc_mean")
+    regime_segments_with_depth = sum(
+        1 for row in regime_dataset_summary.values()
+        if isinstance(row, dict) and int(row.get("rows", 0)) >= 25
+    )
+    friction_flip_count = int(dataset_summary.get("friction_flip_count", 0))
+    gates = {
+        "canonical_dataset_source": {
+            "passed": primary_artifact == "option_outcome_dataset",
+            "actual": primary_artifact,
+            "required": "option_outcome_dataset",
+        },
+        "minimum_training_examples": {
+            "passed": training_examples >= 150,
+            "actual": training_examples,
+            "required_min": 150,
+        },
+        "side_coverage": {
+            "passed": min(side_counts.values()) >= min_side_examples if side_counts else False,
+            "actual": side_counts,
+            "required_min_per_side": min_side_examples,
+        },
+        "regime_segment_coverage": {
+            "passed": regime_segments_with_depth >= 2,
+            "actual_segments_with_min_rows": regime_segments_with_depth,
+            "required_min_segments": 2,
+            "segment_rows": regime_dataset_summary,
+        },
+        "friction_flip_observability": {
+            "passed": friction_flip_count >= 5,
+            "actual": friction_flip_count,
+            "required_min": 5,
+        },
+        "positive_pnl_auc": {
+            "passed": positive_auc is not None and positive_auc >= 0.53,
+            "actual": positive_auc,
+            "required_min": 0.53,
+        },
+        "breakeven_auc": {
+            "passed": breakeven_auc is not None and breakeven_auc >= 0.53,
+            "actual": breakeven_auc,
+            "required_min": 0.53,
+        },
+        "positive_pnl_brier_vs_baseline": {
+            "passed": positive_brier is not None and positive_brier < positive_baseline_brier,
+            "actual": positive_brier,
+            "baseline": round(positive_baseline_brier, 4),
+        },
+        "breakeven_brier_vs_baseline": {
+            "passed": breakeven_brier is not None and breakeven_brier < breakeven_baseline_brier,
+            "actual": breakeven_brier,
+            "baseline": round(breakeven_baseline_brier, 4),
+        },
+    }
+    all_passed = all(bool(gate.get("passed")) for gate in gates.values())
+    return {
+        "status": "pending_shadow_validation" if all_passed else "hold",
+        "gates": gates,
+        "summary": (
+            "Training-data and walk-forward gates passed; keep shadow/disagreement validation in place before promotion."
+            if all_passed
+            else "One or more dataset-coverage or walk-forward gates remain below threshold; hold promotion and keep gathering evidence."
+        ),
+        "required_next_step": (
+            "Run shadow disagreement evaluation across 3/6/12-month windows and at least 30 live shadow trading days."
+        ),
+    }
 
 
 def train(
@@ -514,17 +935,24 @@ def train(
     }
     dates = [example.entry_date for example in examples]
     sides = np.array([example.candidate.option_type for example in examples], dtype=object)
+    regime_buckets = np.array([example.regime_bucket for example in examples], dtype=object)
+    cv = _cv_report(X, labels, dates, sides, regime_buckets)
+    selected_family = str(cv.get("selected_family") or "tree")
 
     artifact: dict[str, Any] = {
-        "version": 3,
+        "version": 5,
         "feature_cols": FEATURE_COLS,
-        "global": _fit_bundle(X, labels, _balanced_sample_weight(sides)),
+        "selected_family": selected_family,
+        "global": _fit_bundle(X, labels, _balanced_sample_weight(sides), family=selected_family),
         "by_side": {},
         "metadata": {
             **source_metadata,
             "trained_at": date.today().isoformat(),
             "min_side_examples": min_side_examples,
             "label_means": {name: round(float(values.mean()), 4) for name, values in labels.items()},
+            "regime_counts": dict(sorted(Counter(regime_buckets.tolist()).items())),
+            "selected_family": selected_family,
+            "family_bakeoff": cv.get("family_bakeoff", {}),
             "activation_policy": "active_by_default_for_existing payoff ranker; set OROGRAPHIC_PAYOFF_MODEL_MODE=shadow for observation-only scoring",
         },
     }
@@ -537,6 +965,7 @@ def train(
             X[side_idx],
             {name: values[side_idx] for name, values in labels.items()},
             _balanced_sample_weight(sides[side_idx]),
+            family=selected_family,
         )
 
     side_counts = {side: int((sides == side).sum()) for side in ("call", "put")}
@@ -546,13 +975,29 @@ def train(
         "entry_date_end": max(dates).isoformat(),
         "months": {month: int(count) for month, count in sorted(month_counts.items())},
         "side_counts": side_counts,
+        "regime_counts": dict(sorted(Counter(regime_buckets.tolist()).items())),
         "exact_quote_marks_used": int(source_metadata.get("exact_quote_marks_used", 0)),
         "option_chain_coverage_ratio": round(
             float(source_metadata.get("exact_quote_marks_used", 0)) / max(len(examples), 1),
             4,
         ),
     }
-    cv = _cv_report(X, labels, dates, sides)
+    dataset_summary = source_metadata.get("dataset_summary", {})
+    side_dataset_summary = source_metadata.get("side_dataset_summary", {})
+    regime_dataset_summary = source_metadata.get("regime_dataset_summary", {})
+    positive_baseline_brier = _baseline_brier(labels["prob_positive_option_pnl"])
+    breakeven_baseline_brier = _baseline_brier(labels["prob_exceeds_breakeven"])
+    promotion_gates = _promotion_gate_report(
+        training_examples=len(examples),
+        min_side_examples=min_side_examples,
+        side_counts=side_counts,
+        dataset_summary=dataset_summary,
+        regime_dataset_summary=regime_dataset_summary,
+        cv=cv,
+        positive_baseline_brier=positive_baseline_brier,
+        breakeven_baseline_brier=breakeven_baseline_brier,
+        primary_artifact=str(source_metadata.get("primary_training_source_artifact", "")),
+    )
     report = {
         "artifact": "payoff_model",
         "version": artifact["version"],
@@ -565,6 +1010,7 @@ def train(
         "avg_mfe_before_expiry": round(float(labels["max_favorable_excursion_before_expiry"].mean()), 4),
         "avg_adverse_excursion_risk": round(float(labels["adverse_excursion_risk"].mean()), 4),
         "side_models_trained": sorted(artifact["by_side"].keys()),
+        "selected_family": selected_family,
         "feature_cols": FEATURE_COLS,
         "cross_validation": cv,
         "calibration": {
@@ -573,11 +1019,17 @@ def train(
             "brier": {
                 "prob_positive_option_pnl": cv.get("positive_pnl_brier_mean"),
                 "prob_exceeds_breakeven": cv.get("breakeven_brier_mean"),
+                "baseline_prob_positive_option_pnl": round(positive_baseline_brier, 4),
+                "baseline_prob_exceeds_breakeven": round(breakeven_baseline_brier, 4),
             },
         },
         "coverage": coverage,
         "observability": {
+            "dataset_summary": dataset_summary,
             "by_side": _side_observability(examples, labels, sides),
+            "by_side_dataset": side_dataset_summary,
+            "by_regime": _regime_observability(examples, labels, regime_buckets),
+            "by_regime_dataset": regime_dataset_summary,
             "coverage": coverage,
         },
         "activation_policy": {
@@ -585,11 +1037,22 @@ def train(
             "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
             "reason": "The payoff ranker was already part of the prior edge-bearing system; new side-aware and Sentinel models remain shadow-only until promoted.",
         },
+        "training_data": {
+            "primary_artifact": source_metadata.get("primary_training_source_artifact"),
+            "primary_source_files": source_metadata.get("primary_training_source_files", []),
+            "canonical_dataset_files": source_metadata.get("canonical_dataset_files", []),
+            "legacy_result_files": source_metadata.get("legacy_result_files", []),
+            "input_artifact_by_file": source_metadata.get("input_artifact_by_file", {}),
+            "dataset_summary": dataset_summary,
+        },
+        "promotion_gates": promotion_gates,
         "source_metadata": source_metadata,
         "training_policy": {
             "global_fit": "side-balanced sample weights",
             "side_fit": "separate call and put bundles when side has enough examples",
             "min_side_examples": min_side_examples,
+            "selected_family": selected_family,
+            "evaluated_families": list(MODEL_FAMILIES),
         },
     }
 
@@ -620,8 +1083,14 @@ def train(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train option payoff model from strict-real replay output")
-    parser.add_argument("--input", action="append", type=Path, default=None, help="Backtest JSON path; may be repeated")
+    parser = argparse.ArgumentParser(description="Train option payoff model from canonical option-outcome datasets or legacy backtest JSON")
+    parser.add_argument(
+        "--input",
+        action="append",
+        type=Path,
+        default=None,
+        help="Input JSON path; may be repeated. Accepts canonical option_outcome_dataset artifacts and legacy backtest results JSON.",
+    )
     parser.add_argument("--output-model", type=Path, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--output-report", type=Path, default=DEFAULT_REPORT_PATH)
     parser.add_argument("--output-model-card", type=Path, default=DEFAULT_MODEL_CARD_PATH)
@@ -629,7 +1098,7 @@ def main() -> None:
     parser.add_argument("--min-side-examples", type=int, default=75)
     args = parser.parse_args()
 
-    input_paths = args.input or [DEFAULT_INPUT]
+    input_paths = args.input or default_input_paths()
     missing = [path for path in input_paths if not path.exists()]
     if missing:
         for path in missing:

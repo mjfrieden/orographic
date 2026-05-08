@@ -643,6 +643,12 @@ def replay_week(
         score_candidates(candidates, regime, as_of=monday)
     except Exception as exc:
         log.warning("Payoff model scoring skipped for %s: %s", monday, exc)
+    try:
+        from engine.orographic.path_model import score_candidates as score_path_candidates
+
+        score_path_candidates(candidates, regime, as_of=monday)
+    except Exception as exc:
+        log.warning("Path model scoring skipped for %s: %s", monday, exc)
 
     candidates.sort(key=lambda c: c.forge_score, reverse=True)
 

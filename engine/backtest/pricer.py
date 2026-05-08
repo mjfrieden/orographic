@@ -16,7 +16,7 @@ from math import erf, exp, log as math_log, sqrt
 
 import pandas as pd
 
-from engine.orographic.schemas import ContractCandidate
+from engine.orographic.schemas import ContractCandidate, MarketRegime
 from engine.backtest.fetcher import get_open_on, get_price_on, nearest_trading_day
 from engine.backtest.options_provider import HistoricalOptionsProvider
 
@@ -143,6 +143,29 @@ class TradeLeg:
     extrinsic_ratio: float | None = None
     iv_rank: float | None = None
     allocation_weight: float | None = None
+    realized_vol_20d: float | None = None
+    atr_pct_14d: float | None = None
+    premium_pct_of_spot: float | None = None
+    vrp_gap: float | None = None
+    regime_mode: str | None = None
+    regime_bias: float | None = None
+    regime_source_symbol: str | None = None
+    sentinel_holding_window_fit: float | None = None
+    sentinel_holding_window_label: str | None = None
+    sentinel_decay_half_life: str | None = None
+    sentinel_time_horizon: str | None = None
+    sentinel_confidence: float | None = None
+    sentinel_call_relevance: float | None = None
+    sentinel_put_relevance: float | None = None
+    sentinel_no_trade_relevance: float | None = None
+    sentinel_spot_effect: float | None = None
+    sentinel_iv_effect: float | None = None
+    path_early_profit_take_prob: float | None = None
+    path_expected_mfe_pct: float | None = None
+    path_decay_risk: float | None = None
+    path_holding_quality_score: float | None = None
+    path_model_mode: str | None = None
+    path_model_artifact_sha256: str | None = None
 
 
 def _safe_float(value: object, default: float = 0.0) -> float:
@@ -197,6 +220,7 @@ def price_trade(
     friday: date,
     history_df: pd.DataFrame,
     options_provider: HistoricalOptionsProvider,
+    regime: MarketRegime | None = None,
     *,
     budget: float | None = None,
     hard_cost_ceiling: float | None = HARD_COST_CEILING_USD,
@@ -438,4 +462,27 @@ def price_trade(
         extrinsic_ratio=getattr(candidate, "extrinsic_ratio", None),
         iv_rank=getattr(candidate, "iv_rank", None),
         allocation_weight=getattr(candidate, "allocation_weight", None),
+        realized_vol_20d=getattr(candidate, "realized_vol_20d", None),
+        atr_pct_14d=getattr(candidate, "atr_pct_14d", None),
+        premium_pct_of_spot=getattr(candidate, "premium_pct_of_spot", None),
+        vrp_gap=getattr(candidate, "vrp_gap", None),
+        regime_mode=getattr(regime, "mode", None),
+        regime_bias=round(float(getattr(regime, "bias", 0.0)), 4) if regime is not None else None,
+        regime_source_symbol=getattr(regime, "source_symbol", None),
+        sentinel_holding_window_fit=getattr(candidate, "sentinel_holding_window_fit", None),
+        sentinel_holding_window_label=getattr(candidate, "sentinel_holding_window_label", None),
+        sentinel_decay_half_life=getattr(candidate, "sentinel_decay_half_life", None),
+        sentinel_time_horizon=getattr(candidate, "sentinel_time_horizon", None),
+        sentinel_confidence=getattr(candidate, "sentinel_confidence", None),
+        sentinel_call_relevance=getattr(candidate, "sentinel_call_relevance", None),
+        sentinel_put_relevance=getattr(candidate, "sentinel_put_relevance", None),
+        sentinel_no_trade_relevance=getattr(candidate, "sentinel_no_trade_relevance", None),
+        sentinel_spot_effect=getattr(candidate, "sentinel_spot_effect", None),
+        sentinel_iv_effect=getattr(candidate, "sentinel_iv_effect", None),
+        path_early_profit_take_prob=getattr(candidate, "path_early_profit_take_prob", None),
+        path_expected_mfe_pct=getattr(candidate, "path_expected_mfe_pct", None),
+        path_decay_risk=getattr(candidate, "path_decay_risk", None),
+        path_holding_quality_score=getattr(candidate, "path_holding_quality_score", None),
+        path_model_mode=getattr(candidate, "path_model_mode", None),
+        path_model_artifact_sha256=getattr(candidate, "path_model_artifact_sha256", None),
     )
