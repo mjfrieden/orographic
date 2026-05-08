@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-04-22",
+  "generated_at": "2026-05-06",
   "artifacts": {
     "scout_model": {
       "path": "engine/orographic/models/scout_model.pkl",
@@ -28,6 +28,13 @@
       "role": "active option payoff ranker",
       "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
     },
+    "path_model": {
+      "path": "engine/orographic/models/path_model.pkl",
+      "sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9",
+      "required": false,
+      "role": "shadow-only path-quality observer",
+      "shadow_env": "OROGRAPHIC_PATH_MODEL_MODE=shadow"
+    },
     "scout_model_card": {
       "path": "engine/orographic/models/scout_model_card.json",
       "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
@@ -36,9 +43,15 @@
     },
     "payoff_model_card": {
       "path": "engine/orographic/models/payoff_model_card.json",
-      "sha256": "88a5c5cffdba71e605f9d7472debf294e0e0a5be30540f72a8900f226e2f073c",
+      "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
       "required": true,
       "role": "payoff ranker model governance card"
+    },
+    "path_model_card": {
+      "path": "engine/orographic/models/path_model_card.json",
+      "sha256": "f9483d315cd4bc1010d09e270d1fbd92cf895197b439cbe40cac96537043e239",
+      "required": false,
+      "role": "path-quality model governance card"
     }
   },
   "promotion_policy": {
@@ -49,6 +62,25 @@
       "materially improved side-balanced validation, especially put-edge coverage"
     ],
     "payoff_ranker_default": "active",
+    "path_model_default": "shadow",
+    "path_model_required_before_any_live_use": [
+      "positive disagreement analysis against the terminal payoff ranker",
+      "stable quote-path coverage across at least 30 live shadow trading days",
+      "no increase in decay-driven false positives"
+    ],
     "artifact_change_rule": "Any artifact hash change must update this manifest and the corresponding model card."
+  },
+  "deployment_decision": {
+    "effective_date": "2026-05-06",
+    "production_default_variant": "council_cost_cap",
+    "production_default_label": "Council + Cost Cap",
+    "research_only_variants": [
+      "council_cost_cap_path_tiebreaker"
+    ],
+    "rejected_variants": [
+      "council_cost_cap_path_tiebreaker_loose"
+    ],
+    "decision_reason": "The conservative path-aware tie-breaker improved the 3- and 6-month walk-forward windows but lagged the production default over 12 months on both total P&L and Sharpe. The loose tie-breaker degraded materially and is not eligible for promotion.",
+    "evidence_note_path": "docs/model-deployment-decision-2026-05-06.md"
   }
 }

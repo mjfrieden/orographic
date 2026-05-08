@@ -2152,6 +2152,9 @@ function renderBacktest(bt) {
     if (noData) noData.hidden = false;
     const sizingPolicy = document.getElementById("bt-sizing-policy");
     const researchNotes = document.getElementById("bt-research-notes");
+    const regimeWrap = document.getElementById("bt-regimes");
+    const symbolWrap = document.getElementById("bt-symbols");
+    const tradesWrap = document.getElementById("bt-trades-wrap");
     if (sizingPolicy)
       sizingPolicy.innerHTML = summaryItemHtml(
         "Status",
@@ -2162,6 +2165,9 @@ function renderBacktest(bt) {
         "Status",
         "No validation methodology data",
       );
+    if (regimeWrap) regimeWrap.hidden = true;
+    if (symbolWrap) symbolWrap.hidden = true;
+    if (tradesWrap) tradesWrap.hidden = true;
     return;
   }
 
@@ -2193,6 +2199,10 @@ function renderBacktest(bt) {
   const isWalkForward = studyKind === "walk_forward";
   const config = bt.config || {};
   const variantLabel = String(bt.variant_label || "").trim();
+  const formatRegimeLabel = (value) =>
+    String(value || "unclassified")
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
 
   if (sectionTitleEl) {
     sectionTitleEl.textContent = isWalkForward
@@ -2345,6 +2355,36 @@ function renderBacktest(bt) {
         })
         .join("");
     }
+  } else {
+    const wrap = document.getElementById("bt-symbols");
+    if (wrap) wrap.hidden = true;
+  }
+
+  if (bt.regime_breakdown && bt.regime_breakdown.length > 0) {
+    const wrap = document.getElementById("bt-regimes");
+    const grid = document.getElementById("bt-regime-grid");
+    if (wrap && grid) {
+      wrap.hidden = false;
+      grid.innerHTML = bt.regime_breakdown
+        .map((row) => {
+          const pnlPos = Number(row.total_pnl) >= 0;
+          const bias = Number(row.avg_regime_bias);
+          const hasBias = Number.isFinite(bias);
+          return `
+          <div class="bt-sym-card">
+            <span class="bt-sym-label">${formatRegimeLabel(row.regime_mode)}</span>
+            <span class="bt-sym-meta">${integer(row.trades)} trades · ${(Number(row.win_rate || 0) * 100).toFixed(0)}% win</span>
+            <span class="bt-sym-meta">${hasBias ? `avg bias ${bias >= 0 ? "+" : ""}${bias.toFixed(2)}` : "avg bias —"}</span>
+            <span class="bt-sym-meta ${pnlPos ? "positive" : "negative"}" style="color:${pnlPos ? "var(--green)" : "var(--red)"}">
+              ${pnlPos ? "+" : ""}$${Number(row.total_pnl || 0).toFixed(2)}
+            </span>
+          </div>`;
+        })
+        .join("");
+    }
+  } else {
+    const wrap = document.getElementById("bt-regimes");
+    if (wrap) wrap.hidden = true;
   }
 
   // Trade log (last 20)
@@ -2371,6 +2411,9 @@ function renderBacktest(bt) {
         })
         .join("");
     }
+  } else {
+    const wrap = document.getElementById("bt-trades-wrap");
+    if (wrap) wrap.hidden = true;
   }
 }
 
