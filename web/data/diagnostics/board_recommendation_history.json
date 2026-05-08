@@ -1,21 +1,21 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-07T21:14:07+00:00",
+  "updated_at_utc": "2026-05-08T15:48:21+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 34,
+    "runs": 35,
     "live_picks_emitted": 18,
-    "shadow_picks_emitted": 60,
-    "abstain_runs": 21,
+    "shadow_picks_emitted": 62,
+    "abstain_runs": 22,
     "abstain_primary_reasons": [
       {
-        "reason": "unknown",
+        "reason": "extrinsic_limit",
         "count": 9
       },
       {
-        "reason": "extrinsic_limit",
-        "count": 8
+        "reason": "unknown",
+        "count": 9
       },
       {
         "reason": "no_forge_candidates",
@@ -2880,6 +2880,94 @@
       },
       "live_board": [],
       "shadow_board": []
+    },
+    {
+      "run_generated_at_utc": "2026-05-08T15:48:21+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.544,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 38,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 2,
+        "live_count": 0,
+        "shadow_count": 2,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 2,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 2,
+          "score_and_extrinsic_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "QQQ",
+              "KO"
+            ],
+            "score_and_extrinsic": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 2
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "QQQ",
+          "contract_symbol": "QQQ260511P00702000",
+          "option_type": "put",
+          "expiry": "2026-05-11",
+          "strike": 702.0,
+          "forge_score": 0.8001,
+          "payoff_edge_score": 0.7603,
+          "expected_edge_after_friction_pct": 0.7167,
+          "contract_cost": 242.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "KO",
+          "contract_symbol": "KO260515P00078000",
+          "option_type": "put",
+          "expiry": "2026-05-15",
+          "strike": 78.0,
+          "forge_score": 0.6256,
+          "payoff_edge_score": 0.2926,
+          "expected_edge_after_friction_pct": 0.386,
+          "contract_cost": 51.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
     }
   ]
 }
