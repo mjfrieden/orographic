@@ -1,17 +1,17 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-11T14:10:41+00:00",
+  "updated_at_utc": "2026-05-11T16:40:56+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 39,
+    "runs": 40,
     "live_picks_emitted": 19,
-    "shadow_picks_emitted": 65,
-    "abstain_runs": 25,
+    "shadow_picks_emitted": 68,
+    "abstain_runs": 26,
     "abstain_primary_reasons": [
       {
         "reason": "extrinsic_limit",
-        "count": 11
+        "count": 12
       },
       {
         "reason": "unknown",
@@ -3237,6 +3237,117 @@
             "projected payoff is asymmetric",
             "VRP penalty applied: IV is highly elevated over RV",
             "IVR penalty applied: IV rank 155% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-11T16:40:56+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.5696,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 23,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 4,
+        "live_count": 0,
+        "shadow_count": 3,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 4,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 4,
+          "score_and_extrinsic_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "T",
+              "AXP",
+              "SCHW"
+            ],
+            "score_and_extrinsic": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 3,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "T",
+          "contract_symbol": "T260515C00025000",
+          "option_type": "call",
+          "expiry": "2026-05-15",
+          "strike": 25.0,
+          "forge_score": 0.8815,
+          "payoff_edge_score": 0.9677,
+          "expected_edge_after_friction_pct": 0.5397,
+          "contract_cost": 25.0,
+          "council_risk_flags": [
+            "high_extrinsic",
+            "wide_spread"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 77% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "AXP",
+          "contract_symbol": "AXP260515C00320000",
+          "option_type": "call",
+          "expiry": "2026-05-15",
+          "strike": 320.0,
+          "forge_score": 0.6702,
+          "payoff_edge_score": 0.5604,
+          "expected_edge_after_friction_pct": 0.1771,
+          "contract_cost": 169.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260515C00089000",
+          "option_type": "call",
+          "expiry": "2026-05-15",
+          "strike": 89.0,
+          "forge_score": 0.6569,
+          "payoff_edge_score": 0.4531,
+          "expected_edge_after_friction_pct": 0.229,
+          "contract_cost": 112.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 93% above gate",
             "delta sits in the preferred weekly range",
             "Payoff model ranker active"
           ]
