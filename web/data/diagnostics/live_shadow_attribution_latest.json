@@ -1,18 +1,18 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-05-12T19:06:34+00:00",
+  "generated_at_utc": "2026-05-12T21:37:44+00:00",
   "trading_day": "2026-05-12",
   "timezone": "America/Chicago",
   "summary": {
-    "scout_signal_count": 23,
+    "scout_signal_count": 29,
     "pre_forge_signal_count": 6,
     "forge_candidate_count": 4,
-    "live_count": 1,
+    "live_count": 2,
     "shadow_count": 1,
     "abstain": false,
     "live_side_mix": {
-      "call": 1,
+      "call": 2,
       "put": 0
     },
     "shadow_side_mix": {
@@ -23,90 +23,90 @@
       "call": 4,
       "put": 0
     },
-    "friction_veto_count": 9,
-    "dedupe_removed_count": 1,
-    "pre_forge_rejection_count": 6,
-    "council_holdout_count": 2,
-    "live_avg_forge_score": 0.6289,
-    "shadow_avg_forge_score": 0.6807,
-    "live_avg_edge_after_friction_pct": 0.307,
-    "shadow_avg_edge_after_friction_pct": 0.2877,
-    "side_aware_directional_disagreements": 21,
-    "side_aware_no_trade_disagreements": 57,
-    "shadow_side_veto_rejections": 56,
+    "friction_veto_count": 7,
+    "dedupe_removed_count": 3,
+    "pre_forge_rejection_count": 4,
+    "council_holdout_count": 1,
+    "live_avg_forge_score": 0.7176,
+    "shadow_avg_forge_score": 0.6818,
+    "live_avg_edge_after_friction_pct": 0.3094,
+    "shadow_avg_edge_after_friction_pct": 0.0975,
+    "side_aware_directional_disagreements": 23,
+    "side_aware_no_trade_disagreements": 50,
+    "shadow_side_veto_rejections": 48,
     "abstain_primary_reason": "live_board_available"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 46,
-        "put": 54
+        "call": 51,
+        "put": 49
       },
       "final_direction_counts": {
-        "call": 23,
+        "call": 29,
         "put": 0
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 21,
-      "side_aware_no_trade_disagreements": 57,
-      "shadow_side_veto_rejections": 56
+      "side_aware_directional_disagreements": 23,
+      "side_aware_no_trade_disagreements": 50,
+      "shadow_side_veto_rejections": 48
     },
     "forge": {
       "waterfall": {
         "signals_considered": 6,
         "signals_with_expiry": 6,
         "signals_with_chain": 6,
-        "rows_after_basic": 330,
-        "rows_positive_bid_ask": 177,
-        "rows_within_long_leg_cap": 74,
-        "rows_within_spread_cap": 28,
-        "rows_passing_liquidity": 27,
+        "rows_after_basic": 282,
+        "rows_positive_bid_ask": 162,
+        "rows_within_long_leg_cap": 57,
+        "rows_within_spread_cap": 29,
+        "rows_passing_liquidity": 26,
         "rows_passing_moneyness": 22,
         "rows_passing_delta": 14,
         "rows_passing_net_debit": 14,
         "final_candidates": 14,
-        "candidates_after_friction_gate": 5,
+        "candidates_after_friction_gate": 7,
         "candidates_after_deduplication": 4
       },
       "pre_council_gate": {
-        "kept": 5,
-        "dropped": 9,
+        "kept": 7,
+        "dropped": 7,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
-        "removed_candidates": 1,
+        "removed_candidates": 3,
         "kept_candidates": 4,
         "max_structures_per_symbol_side": 2
       }
     },
     "council": {
       "candidate_count": 4,
-      "live_count": 1,
+      "live_count": 2,
       "shadow_count": 1,
-      "avg_pairwise_correlation": null,
+      "avg_pairwise_correlation": 0.7787,
       "abstain_audit": {
         "primary_reason": "live_board_available",
         "primary_reason_label": "Council abstained after applying the live-board filters.",
         "requested_live_size": 3,
         "candidate_count": 4,
-        "core_filter_pass_count": 1,
-        "unique_eligible_count": 1,
+        "core_filter_pass_count": 2,
+        "unique_eligible_count": 2,
         "score_only_fail_count": 0,
-        "extrinsic_only_fail_count": 3,
+        "extrinsic_only_fail_count": 2,
         "score_and_extrinsic_fail_count": 0,
         "side_balance_rejections": 0,
         "side_balance_demotions": 0,
         "blocked_symbols": {
           "score_only": [],
           "extrinsic_only": [
-            "BAC",
             "WFC",
-            "WFC"
+            "TLT"
           ],
           "score_and_extrinsic": []
         }
       },
       "notes": [
+        "Markowitz optimizer selected 2 contracts (portfolio \u03c3=28.370%, est. Sharpe=2.27)",
         "Side-balance guard demoted an over-concentrated position to shadow.",
         "Council is operating under a risk-on market regime."
       ]
@@ -119,62 +119,17 @@
       "option_type": "call",
       "expiry": "2026-05-15",
       "strike": 50.5,
-      "forge_score": 0.6289,
-      "payoff_edge_score": 0.41,
-      "expected_edge_after_friction_pct": 0.307,
-      "contract_cost": 93.0,
+      "forge_score": 0.6016,
+      "payoff_edge_score": 0.3843,
+      "expected_edge_after_friction_pct": 0.2038,
+      "contract_cost": 77.0,
       "council_risk_flags": [
         "sector_cluster"
       ],
       "notes": [
         "projected payoff is asymmetric",
         "time-value burden is acceptable",
-        "IVR penalty applied: IV rank 87% above gate",
-        "Payoff model ranker active"
-      ]
-    }
-  ],
-  "top_shadow_board": [
-    {
-      "symbol": "WFC",
-      "contract_symbol": "WFC260515C00076000",
-      "option_type": "call",
-      "expiry": "2026-05-15",
-      "strike": 76.0,
-      "forge_score": 0.6807,
-      "payoff_edge_score": 0.3345,
-      "expected_edge_after_friction_pct": 0.2877,
-      "contract_cost": 46.0,
-      "council_risk_flags": [
-        "high_extrinsic",
-        "sector_cluster"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "delta sits in the preferred weekly range",
-        "Payoff model ranker active"
-      ]
-    }
-  ],
-  "council_holdouts": [
-    {
-      "symbol": "BAC",
-      "contract_symbol": "BAC260515C00051500",
-      "option_type": "call",
-      "expiry": "2026-05-15",
-      "strike": 51.5,
-      "forge_score": 0.7415,
-      "payoff_edge_score": 0.6032,
-      "expected_edge_after_friction_pct": 0.2473,
-      "contract_cost": 39.0,
-      "council_risk_flags": [
-        "high_extrinsic",
-        "sector_cluster"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "IVR penalty applied: IV rank 77% above gate",
-        "delta sits in the preferred weekly range",
+        "IVR penalty applied: IV rank 84% above gate",
         "Payoff model ranker active"
       ]
     },
@@ -184,12 +139,11 @@
       "option_type": "call",
       "expiry": "2026-05-15",
       "strike": 75.0,
-      "forge_score": 0.642,
-      "payoff_edge_score": 0.3308,
-      "expected_edge_after_friction_pct": 0.1725,
-      "contract_cost": 89.0,
+      "forge_score": 0.8336,
+      "payoff_edge_score": 0.8204,
+      "expected_edge_after_friction_pct": 0.4149,
+      "contract_cost": 107.0,
       "council_risk_flags": [
-        "high_extrinsic",
         "sector_cluster"
       ],
       "notes": [
@@ -198,41 +152,83 @@
       ]
     }
   ],
+  "top_shadow_board": [
+    {
+      "symbol": "TLT",
+      "contract_symbol": "TLT260515C00085000",
+      "option_type": "call",
+      "expiry": "2026-05-15",
+      "strike": 85.0,
+      "forge_score": 0.6818,
+      "payoff_edge_score": 0.5917,
+      "expected_edge_after_friction_pct": 0.0975,
+      "contract_cost": 34.0,
+      "council_risk_flags": [
+        "high_extrinsic"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "Payoff model ranker active"
+      ]
+    }
+  ],
+  "council_holdouts": [
+    {
+      "symbol": "WFC",
+      "contract_symbol": "WFC260515C00076000",
+      "option_type": "call",
+      "expiry": "2026-05-15",
+      "strike": 76.0,
+      "forge_score": 0.8741,
+      "payoff_edge_score": 0.9335,
+      "expected_edge_after_friction_pct": 0.6147,
+      "contract_cost": 58.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "sector_cluster"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Payoff model ranker active"
+      ]
+    }
+  ],
   "friction_vetoes": [
     {
-      "symbol": "UPS",
-      "contract_symbol": "UPS260515C00100000",
+      "symbol": "BAC",
+      "contract_symbol": "BAC260515C00051500",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": 0.0392,
-      "friction_buffer_pct": 0.4025
-    },
-    {
-      "symbol": "IBM",
-      "contract_symbol": "IBM260515C00225000",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.2433,
-      "friction_buffer_pct": 0.3875
-    },
-    {
-      "symbol": "UPS",
-      "contract_symbol": "UPS260515C00099000",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1065,
-      "friction_buffer_pct": 0.3911
-    },
-    {
-      "symbol": "IBM",
-      "contract_symbol": "IBM260515C00222500",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1637,
-      "friction_buffer_pct": 0.364
+      "expected_edge_after_friction_pct": 0.0006,
+      "friction_buffer_pct": 0.3489
     },
     {
       "symbol": "C",
       "contract_symbol": "C260515C00127000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.3028,
-      "friction_buffer_pct": 0.3577
+      "expected_edge_after_friction_pct": -0.2059,
+      "friction_buffer_pct": 0.3421
+    },
+    {
+      "symbol": "BAC",
+      "contract_symbol": "BAC260515C00051000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": 0.0007,
+      "friction_buffer_pct": 0.3446
+    },
+    {
+      "symbol": "C",
+      "contract_symbol": "C260515C00128000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.1539,
+      "friction_buffer_pct": 0.398
+    },
+    {
+      "symbol": "C",
+      "contract_symbol": "C260515C00126000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.1831,
+      "friction_buffer_pct": 0.263
     }
   ],
   "pre_forge_rejections": [
@@ -244,13 +240,6 @@
       "spread_cap": 0.18
     },
     {
-      "symbol": "LOW",
-      "reason": "liquidity_gate",
-      "expiry": "2026-05-15",
-      "long_leg_cap": 2.75,
-      "spread_cap": 0.18
-    },
-    {
       "symbol": "DHR",
       "reason": "liquidity_gate",
       "expiry": "2026-05-15",
@@ -258,18 +247,18 @@
       "spread_cap": 0.18
     },
     {
-      "symbol": "HYG",
+      "symbol": "COF",
       "reason": "liquidity_gate",
       "expiry": "2026-05-15",
-      "long_leg_cap": 2.25,
+      "long_leg_cap": 2.75,
       "spread_cap": 0.18
     },
     {
-      "symbol": "AMD",
+      "symbol": "LOW",
       "reason": "liquidity_gate",
       "expiry": "2026-05-15",
-      "long_leg_cap": 3.5,
-      "spread_cap": 0.24
+      "long_leg_cap": 2.75,
+      "spread_cap": 0.18
     }
   ]
 }
