@@ -1,17 +1,17 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-11T21:38:33+00:00",
+  "updated_at_utc": "2026-05-12T16:30:21+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 42,
+    "runs": 43,
     "live_picks_emitted": 19,
-    "shadow_picks_emitted": 71,
-    "abstain_runs": 28,
+    "shadow_picks_emitted": 72,
+    "abstain_runs": 29,
     "abstain_primary_reasons": [
       {
         "reason": "extrinsic_limit",
-        "count": 14
+        "count": 15
       },
       {
         "reason": "unknown",
@@ -3507,6 +3507,76 @@
           ],
           "notes": [
             "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-12T16:30:21+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.2713,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 15,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 1,
+        "live_count": 0,
+        "shadow_count": 1,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 1,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 1,
+          "score_and_extrinsic_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "BAC"
+            ],
+            "score_and_extrinsic": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 1
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "BAC",
+          "contract_symbol": "BAC260515P00050000",
+          "option_type": "put",
+          "expiry": "2026-05-15",
+          "strike": 50.0,
+          "forge_score": 0.599,
+          "payoff_edge_score": 0.2725,
+          "expected_edge_after_friction_pct": 0.3413,
+          "contract_cost": 34.0,
+          "council_risk_flags": [
+            "high_extrinsic",
+            "sector_cluster"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 75% above gate",
             "delta sits in the preferred weekly range",
             "Payoff model ranker active"
           ]
