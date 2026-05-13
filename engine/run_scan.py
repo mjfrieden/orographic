@@ -11,6 +11,7 @@ if __package__ in {None, ""}:
 from engine.orographic.pipeline import (
     append_research_run_ledger,
     append_board_recommendation_history,
+    append_prospective_pick_ledger,
     PipelineConfig,
     append_side_aware_shadow_ledger,
     load_universe,
@@ -75,6 +76,22 @@ def parse_args() -> argparse.Namespace:
         help="Disable writing the canonical per-run research ledger.",
     )
     parser.add_argument(
+        "--prospective-ledger-output",
+        default="",
+        help="Optional path for the prospective pick ledger. Defaults beside the snapshot diagnostics.",
+    )
+    parser.add_argument(
+        "--prospective-ledger-max-entries",
+        type=int,
+        default=500,
+        help="Maximum number of scan entries to retain in the prospective pick ledger.",
+    )
+    parser.add_argument(
+        "--no-prospective-ledger",
+        action="store_true",
+        help="Disable writing the prospective pick ledger.",
+    )
+    parser.add_argument(
         "--shadow-ledger-output",
         default="",
         help="Optional path for the side-aware Scout shadow disagreement ledger. Defaults beside the snapshot diagnostics.",
@@ -127,6 +144,24 @@ def parse_args() -> argparse.Namespace:
         help="Maximum option DTE for live scan contract selection. Defaults to the recovered 7-14 DTE policy.",
     )
     parser.add_argument(
+        "--minimum-live-score",
+        type=float,
+        default=0.76,
+        help="Minimum Forge score required for live-board call candidates.",
+    )
+    parser.add_argument(
+        "--minimum-put-live-score",
+        type=float,
+        default=0.84,
+        help="Minimum Forge score required for live-board put candidates.",
+    )
+    parser.add_argument(
+        "--max-live-extrinsic-ratio",
+        type=float,
+        default=0.90,
+        help="Maximum extrinsic ratio allowed on live-board candidates.",
+    )
+    parser.add_argument(
         "--enforce-pre-council-friction-gate",
         action="store_true",
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
@@ -149,6 +184,9 @@ def main() -> int:
             forge_intake=max(int(args.forge_intake), 1),
             minimum_days_to_expiry=max(int(args.minimum_days_to_expiry), 0),
             maximum_days_to_expiry=max(int(args.maximum_days_to_expiry), 0),
+            minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
+            minimum_put_live_score=max(min(float(args.minimum_put_live_score), 1.0), 0.0),
+            max_live_extrinsic_ratio=max(min(float(args.max_live_extrinsic_ratio), 1.0), 0.0),
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
         )
     )
@@ -177,6 +215,18 @@ def main() -> int:
             max_entries=max(int(args.research_ledger_max_entries), 1),
         )
         log.info("Updated research run ledger at %s.", written)
+    if not args.no_prospective_ledger:
+        prospective_ledger_path = (
+            Path(args.prospective_ledger_output)
+            if args.prospective_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "prospective_pick_ledger.json"
+        )
+        written = append_prospective_pick_ledger(
+            prospective_ledger_path,
+            payload,
+            max_entries=max(int(args.prospective_ledger_max_entries), 1),
+        )
+        log.info("Updated prospective pick ledger at %s.", written)
     if not args.no_board_history:
         board_history_path = (
             Path(args.board_history_output)

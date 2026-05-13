@@ -13,10 +13,12 @@ from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates,
 from engine.orographic.pipeline import (
     _load_prior_live_board_symbols,
     append_board_recommendation_history,
+    append_prospective_pick_ledger,
     append_research_run_ledger,
     append_side_aware_shadow_ledger,
     build_board_recommendation_history_entry,
     build_live_shadow_attribution_artifact,
+    build_prospective_pick_ledger_entry,
     build_research_run_ledger_entry,
     build_forge_rejection_waterfall_artifact,
     build_promotion_readiness,
@@ -122,19 +124,25 @@ class PipelineTests(unittest.TestCase):
             mock.patch(
                 "engine.orographic.pipeline.select_board",
                 return_value=mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True),
-            ),
+            ) as select_board_mock,
         ):
             payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None))
 
         self.assertEqual(payload["scan_settings"]["minimum_days_to_expiry"], 7)
         self.assertEqual(payload["scan_settings"]["maximum_days_to_expiry"], 14)
         self.assertEqual(payload["scan_settings"]["forge_intake"], 12)
+        self.assertEqual(payload["scan_settings"]["minimum_live_score"], 0.76)
+        self.assertEqual(payload["scan_settings"]["minimum_put_live_score"], 0.84)
+        self.assertEqual(payload["scan_settings"]["max_live_extrinsic_ratio"], 0.90)
         self.assertEqual(select_signals_mock.call_args.kwargs["target_count"], 12)
         self.assertEqual(select_signals_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
         self.assertEqual(select_signals_mock.call_args.kwargs["maximum_days_to_expiry"], 14)
         self.assertEqual(rank_contracts_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
         self.assertEqual(rank_contracts_mock.call_args.kwargs["maximum_days_to_expiry"], 14)
         self.assertFalse(rank_contracts_mock.call_args.kwargs["enforce_pre_council_friction_gate"])
+        self.assertEqual(select_board_mock.call_args.kwargs["minimum_live_score"], 0.76)
+        self.assertEqual(select_board_mock.call_args.kwargs["minimum_put_live_score"], 0.84)
+        self.assertEqual(select_board_mock.call_args.kwargs["max_live_extrinsic_ratio"], 0.90)
 
     def test_pre_forge_gate_skips_illiquid_signals_and_backfills_next_names(self) -> None:
         signals = [_signal("AAA"), _signal("BBB"), _signal("CCC")]
@@ -1090,6 +1098,85 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rendered["aggregate"]["friction_vetoes"], 1)
         self.assertEqual(rendered["aggregate"]["council_holdouts"], 1)
         self.assertEqual(rendered["aggregate"]["pre_forge_rejections"], 1)
+
+    def test_prospective_pick_ledger_records_all_scored_contracts_and_outcome_slots(self) -> None:
+        def candidate(symbol: str, contract: str, option_type: str, score: float, *, passed: bool = True) -> dict[str, object]:
+            return {
+                "symbol": symbol,
+                "contract_symbol": contract,
+                "option_type": option_type,
+                "expiry": "2026-05-15",
+                "strike": 100.0,
+                "bid": 1.0,
+                "ask": 1.2,
+                "last": 1.1,
+                "spread_pct": 0.09,
+                "open_interest": 500,
+                "volume": 120,
+                "contract_cost": 110.0,
+                "forge_score": score,
+                "learned_rank_score": score + 0.01,
+                "expected_edge_after_friction_pct": 0.12,
+                "friction_buffer_pct": 0.04,
+                "extrinsic_ratio": 0.72,
+                "friction_gate_passed": passed,
+                "entry_quote_type": "mid",
+                "entry_data_source": "scan_quote",
+                "notes": ["test row"],
+            }
+
+        live = candidate("AAA", "AAA1", "call", 0.86)
+        shadow = candidate("BBB", "BBB1", "put", 0.78)
+        veto = candidate("CCC", "CCC1", "call", 0.74, passed=False)
+        holdout = candidate("DDD", "DDD1", "call", 0.71)
+        payload = {
+            "generated_at_utc": "2026-05-05T13:45:00+00:00",
+            "regime": {"mode": "neutral", "bias": 0.0, "source_symbol": "SPY"},
+            "scan_settings": {
+                "live_size": 1,
+                "shadow_size": 1,
+                "forge_intake": 4,
+                "minimum_live_score": 0.76,
+                "minimum_put_live_score": 0.84,
+                "max_live_extrinsic_ratio": 0.90,
+            },
+            "model_modes": {"payoff_ranker": "active"},
+            "model_artifacts": {"payoff_model": {"present": True, "sha256": "abc"}},
+            "forge_candidates": [live, shadow, veto, holdout],
+            "council": {
+                "abstain": False,
+                "live_board": [live],
+                "shadow_board": [shadow],
+                "summary": {"live_count": 1, "shadow_count": 1},
+            },
+            "attribution": {
+                "friction_vetoes": [{"symbol": "CCC", "contract_symbol": "CCC1"}],
+                "council_holdouts": [{"symbol": "DDD", "contract_symbol": "DDD1"}],
+            },
+        }
+
+        entry = build_prospective_pick_ledger_entry(payload)
+
+        self.assertEqual(entry["summary"], {"pick_rows": 4, "live": 1, "shadow": 1, "council_holdout": 1, "friction_veto": 1})
+        lanes = {row["contract_symbol"]: row["lane"] for row in entry["picks"]}
+        self.assertEqual(lanes, {"AAA1": "live", "BBB1": "shadow", "CCC1": "friction_veto", "DDD1": "council_holdout"})
+        self.assertEqual(entry["picks"][0]["emission_quote"]["mid"], 1.1)
+        self.assertEqual(entry["picks"][0]["outcomes"]["status"], "pending")
+        self.assertIsNone(entry["picks"][0]["outcomes"]["fixed_exit_marks"]["friday_close"])
+        self.assertEqual(entry["picks"][0]["context"]["scan_settings"]["minimum_put_live_score"], 0.84)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger_path = append_prospective_pick_ledger(
+                f"{tmpdir}/prospective_pick_ledger.json",
+                payload,
+                max_entries=2,
+            )
+            rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(rendered["artifact"], "prospective_pick_ledger")
+        self.assertEqual(rendered["aggregate"]["runs"], 1)
+        self.assertEqual(rendered["aggregate"]["pick_rows"], 4)
+        self.assertEqual(rendered["aggregate"]["friction_veto"], 1)
 
 
 if __name__ == "__main__":

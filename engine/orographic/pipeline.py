@@ -52,6 +52,9 @@ class PipelineConfig:
     forge_intake: int = 12
     minimum_days_to_expiry: int = 7
     maximum_days_to_expiry: int = 14
+    minimum_live_score: float = 0.76
+    minimum_put_live_score: float = 0.84
+    max_live_extrinsic_ratio: float = 0.90
     enforce_pre_council_friction_gate: bool = False
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
 
@@ -102,6 +105,21 @@ def _config_bool(config: object, name: str, default: bool) -> bool:
         if cleaned in {"0", "false", "no", "off"}:
             return False
     return default
+
+
+def _config_float(config: object, name: str, default: float, *, minimum: float | None = None, maximum: float | None = None) -> float:
+    value = getattr(config, name, default)
+    if not isinstance(value, Number):
+        try:
+            value = float(str(value))
+        except (TypeError, ValueError):
+            value = default
+    parsed = float(value)
+    if minimum is not None:
+        parsed = max(parsed, minimum)
+    if maximum is not None:
+        parsed = min(parsed, maximum)
+    return parsed
 
 
 def _sorted_reason_counts(rows: list[dict[str, Any]], *, reason_key: str) -> list[dict[str, object]]:
@@ -188,6 +206,113 @@ def _compact_attribution_contract_view(rows: list[dict[str, Any]]) -> list[dict[
             }
         )
     return compact
+
+
+def _prospective_outcome_template() -> dict[str, Any]:
+    return {
+        "status": "pending",
+        "quote_verification": {
+            "emission_quote_captured": True,
+            "outcome_quotes_captured": False,
+        },
+        "fixed_exit_marks": {
+            "one_hour": None,
+            "end_of_day": None,
+            "next_day_close": None,
+            "friday_close": None,
+        },
+        "path_rules": {
+            "take_profit_40_pct_before_stop_50_pct": None,
+            "take_profit_25_pct_before_stop_50_pct": None,
+            "max_favorable_excursion_pct": None,
+            "max_adverse_excursion_pct": None,
+            "first_hit": None,
+        },
+        "realized_if_traded": {
+            "entry_fill": None,
+            "exit_fill": None,
+            "contracts": None,
+            "pnl": None,
+            "pnl_pct": None,
+        },
+    }
+
+
+def _prospective_pick_row(
+    row: dict[str, Any],
+    *,
+    lane: str,
+    run_generated_at_utc: str,
+    regime: dict[str, Any],
+    scan_settings: dict[str, Any],
+    model_modes: dict[str, Any],
+    model_artifacts: dict[str, Any],
+) -> dict[str, Any]:
+    bid = row.get("bid")
+    ask = row.get("ask")
+    mid = None
+    if isinstance(bid, Number) and isinstance(ask, Number) and bid > 0 and ask > 0:
+        mid = round((float(bid) + float(ask)) / 2.0, 4)
+    return {
+        "run_generated_at_utc": run_generated_at_utc,
+        "lane": lane,
+        "symbol": row.get("symbol"),
+        "contract_symbol": row.get("contract_symbol"),
+        "option_type": row.get("option_type"),
+        "expiry": row.get("expiry"),
+        "strike": row.get("strike"),
+        "emission_quote": {
+            "bid": bid,
+            "ask": ask,
+            "mid": mid,
+            "last": row.get("last"),
+            "spread_pct": row.get("spread_pct"),
+            "open_interest": row.get("open_interest"),
+            "volume": row.get("volume"),
+            "contract_cost": row.get("contract_cost"),
+            "entry_quote_type": row.get("entry_quote_type"),
+            "entry_data_source": row.get("entry_data_source"),
+        },
+        "scores": {
+            "forge_score": row.get("forge_score"),
+            "learned_rank_score": row.get("learned_rank_score"),
+            "payoff_model_score": row.get("payoff_model_score"),
+            "final_candidate_score": row.get("final_candidate_score"),
+            "prob_positive_option_pnl": row.get("prob_positive_option_pnl"),
+            "expected_option_return_pct_model": row.get("expected_option_return_pct_model"),
+            "expected_edge_after_friction_pct": row.get("expected_edge_after_friction_pct"),
+            "friction_buffer_pct": row.get("friction_buffer_pct"),
+            "path_holding_quality_score": row.get("path_holding_quality_score"),
+            "path_early_profit_take_prob": row.get("path_early_profit_take_prob"),
+            "path_decay_risk": row.get("path_decay_risk"),
+        },
+        "risk_features": {
+            "delta": row.get("delta"),
+            "implied_volatility": row.get("implied_volatility"),
+            "iv_rank": row.get("iv_rank"),
+            "extrinsic_ratio": row.get("extrinsic_ratio"),
+            "moneyness": row.get("moneyness"),
+            "premium_pct_of_spot": row.get("premium_pct_of_spot"),
+            "breakeven_move_pct": row.get("breakeven_move_pct"),
+            "projected_move_pct": row.get("projected_move_pct"),
+            "realized_vol_20d": row.get("realized_vol_20d"),
+            "atr_pct_14d": row.get("atr_pct_14d"),
+            "council_risk_flags": row.get("council_risk_flags", []),
+            "friction_gate_passed": row.get("friction_gate_passed"),
+        },
+        "context": {
+            "regime": regime,
+            "scan_settings": scan_settings,
+            "model_modes": model_modes,
+            "model_artifacts": model_artifacts,
+            "ranker_mode": row.get("ranker_mode"),
+            "ranker_artifact_sha256": row.get("ranker_artifact_sha256"),
+            "path_model_mode": row.get("path_model_mode"),
+            "path_model_artifact_sha256": row.get("path_model_artifact_sha256"),
+        },
+        "notes": row.get("notes", []),
+        "outcomes": _prospective_outcome_template(),
+    }
 
 
 def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
@@ -663,6 +788,109 @@ def build_research_run_ledger_entry(payload: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    generated_at = _normalize_timestamp(payload.get("generated_at_utc")).replace(microsecond=0).isoformat()
+    council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
+    live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
+    shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
+    attribution = (
+        payload.get("attribution")
+        if isinstance(payload.get("attribution"), dict)
+        else build_live_shadow_attribution_artifact(payload)
+    )
+    friction_vetoes = attribution.get("friction_vetoes") if isinstance(attribution.get("friction_vetoes"), list) else []
+
+    live_contracts = {str(row.get("contract_symbol") or "") for row in live_board if isinstance(row, dict)}
+    shadow_contracts = {str(row.get("contract_symbol") or "") for row in shadow_board if isinstance(row, dict)}
+    friction_contracts = {str(row.get("contract_symbol") or "") for row in friction_vetoes if isinstance(row, dict)}
+
+    def lane_for(row: dict[str, Any]) -> str:
+        contract = str(row.get("contract_symbol") or "")
+        if contract in live_contracts:
+            return "live"
+        if contract in shadow_contracts:
+            return "shadow"
+        if contract in friction_contracts or row.get("friction_gate_passed") is False:
+            return "friction_veto"
+        return "council_holdout"
+
+    rows = [
+        _prospective_pick_row(
+            row,
+            lane=lane_for(row),
+            run_generated_at_utc=generated_at,
+            regime=payload.get("regime", {}),
+            scan_settings=payload.get("scan_settings", {}),
+            model_modes=payload.get("model_modes", {}),
+            model_artifacts=payload.get("model_artifacts", {}),
+        )
+        for row in forge_candidates
+        if isinstance(row, dict) and str(row.get("contract_symbol") or "")
+    ]
+
+    return {
+        "run_generated_at_utc": generated_at,
+        "regime": payload.get("regime", {}),
+        "scan_settings": payload.get("scan_settings", {}),
+        "model_modes": payload.get("model_modes", {}),
+        "summary": {
+            "pick_rows": len(rows),
+            "live": sum(1 for row in rows if row["lane"] == "live"),
+            "shadow": sum(1 for row in rows if row["lane"] == "shadow"),
+            "council_holdout": sum(1 for row in rows if row["lane"] == "council_holdout"),
+            "friction_veto": sum(1 for row in rows if row["lane"] == "friction_veto"),
+        },
+        "picks": rows,
+    }
+
+
+def append_prospective_pick_ledger(
+    path: str | Path,
+    payload: dict[str, Any],
+    *,
+    max_entries: int = 500,
+) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    entry = build_prospective_pick_ledger_entry(payload)
+    ledger: dict[str, Any]
+    if output.exists():
+        try:
+            loaded = json.loads(output.read_text(encoding="utf-8"))
+            ledger = loaded if isinstance(loaded, dict) else {}
+        except json.JSONDecodeError:
+            ledger = {}
+    else:
+        ledger = {}
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    entries.append(entry)
+    entries = entries[-max(max_entries, 1):]
+    aggregate = {
+        "runs": len(entries),
+        "pick_rows": sum(_coerce_int(row.get("summary", {}).get("pick_rows")) for row in entries),
+        "live": sum(_coerce_int(row.get("summary", {}).get("live")) for row in entries),
+        "shadow": sum(_coerce_int(row.get("summary", {}).get("shadow")) for row in entries),
+        "council_holdout": sum(_coerce_int(row.get("summary", {}).get("council_holdout")) for row in entries),
+        "friction_veto": sum(_coerce_int(row.get("summary", {}).get("friction_veto")) for row in entries),
+    }
+    rendered = {
+        "artifact": "prospective_pick_ledger",
+        "schema_version": 1,
+        "updated_at_utc": entry["run_generated_at_utc"],
+        "max_entries": max(max_entries, 1),
+        "outcome_policy": {
+            "required_fixed_exits": ["one_hour", "end_of_day", "next_day_close", "friday_close"],
+            "path_rules": ["take_profit_40_pct_before_stop_50_pct", "take_profit_25_pct_before_stop_50_pct"],
+            "purpose": "Judge every emitted contract recommendation, whether traded or not.",
+        },
+        "aggregate": aggregate,
+        "entries": entries,
+    }
+    output.write_text(json.dumps(rendered, indent=2), encoding="utf-8")
+    return output
+
+
 def append_research_run_ledger(
     path: str | Path,
     payload: dict[str, Any],
@@ -1079,6 +1307,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         forge_intake = _config_int(config, "forge_intake", 12, minimum=1)
         minimum_days_to_expiry = _config_int(config, "minimum_days_to_expiry", 7, minimum=0)
         maximum_days_to_expiry = _config_int(config, "maximum_days_to_expiry", 14, minimum=0)
+        minimum_live_score = _config_float(config, "minimum_live_score", 0.76, minimum=0.0, maximum=1.0)
+        minimum_put_live_score = _config_float(config, "minimum_put_live_score", 0.84, minimum=0.0, maximum=1.0)
+        max_live_extrinsic_ratio = _config_float(config, "max_live_extrinsic_ratio", 0.90, minimum=0.0, maximum=1.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
         model_artifacts = _model_artifact_status()
         model_modes = _model_mode_status(model_artifacts)
@@ -1115,6 +1346,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             regime,
             live_size=live_size,
             shadow_size=shadow_size,
+            minimum_live_score=minimum_live_score,
+            minimum_put_live_score=minimum_put_live_score,
+            max_live_extrinsic_ratio=max_live_extrinsic_ratio,
             prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
@@ -1135,6 +1369,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "universe_size": len(config.universe),
                 "minimum_days_to_expiry": minimum_days_to_expiry,
                 "maximum_days_to_expiry": maximum_days_to_expiry,
+                "minimum_live_score": minimum_live_score,
+                "minimum_put_live_score": minimum_put_live_score,
+                "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
             },
             "model_modes": model_modes,
