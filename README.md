@@ -44,6 +44,18 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
+Live scan contract selection defaults to the recovered production DTE window:
+`--minimum-days-to-expiry 7 --maximum-days-to-expiry 14`. Override those only
+for explicit research runs, not routine production scans.
+
+The pre-Council friction gate is observational in production scans so Council
+sees the same candidate surface used by the recovered walk-forward validation.
+Use `--enforce-pre-council-friction-gate` only for explicit research runs.
+
+Live scans send 12 Scout signals into Forge by default. This keeps the live
+candidate surface closer to walk-forward replay and reduces empty-board risk
+from stopping after the first handful of high-extrinsic symbols.
+
 Each scan also writes a Forge bottleneck artifact beside the snapshot:
 
 - `web/data/diagnostics/forge_rejection_waterfall_latest.json`

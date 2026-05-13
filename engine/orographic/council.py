@@ -196,6 +196,26 @@ def _abstain_reason_label(reason: str) -> str:
     return ABSTAIN_REASON_LABELS.get(reason, "Council abstained after applying the live-board filters.")
 
 
+def _audit_candidate(row: ContractCandidate) -> dict[str, Any]:
+    return {
+        "symbol": row.symbol,
+        "contract_symbol": row.contract_symbol,
+        "option_type": row.option_type,
+        "expiry": row.expiry,
+        "strike": row.strike,
+        "forge_score": row.forge_score,
+        "learned_rank_score": row.learned_rank_score,
+        "expected_edge_after_friction_pct": row.expected_edge_after_friction_pct,
+        "friction_buffer_pct": row.friction_buffer_pct,
+        "extrinsic_ratio": row.extrinsic_ratio,
+        "contract_cost": row.contract_cost,
+        "spread_pct": row.spread_pct,
+        "delta": row.delta,
+        "iv_rank": row.iv_rank,
+        "council_risk_flags": row.council_risk_flags,
+    }
+
+
 def _effective_candidate_score(candidate: ContractCandidate) -> float:
     learned = getattr(candidate, "learned_rank_score", None)
     if learned is not None:
@@ -590,6 +610,11 @@ def select_board(
                 "score_only": [row.symbol for row in score_only_blocked[:3]],
                 "extrinsic_only": [row.symbol for row in extrinsic_only_blocked[:3]],
                 "score_and_extrinsic": [row.symbol for row in score_and_extrinsic_blocked[:3]],
+            },
+            "best_rejected_candidates": {
+                "score_only": [_audit_candidate(row) for row in score_only_blocked[:5]],
+                "extrinsic_only": [_audit_candidate(row) for row in extrinsic_only_blocked[:5]],
+                "score_and_extrinsic": [_audit_candidate(row) for row in score_and_extrinsic_blocked[:5]],
             },
         },
         "notes":               notes,

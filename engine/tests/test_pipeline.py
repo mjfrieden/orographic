@@ -22,6 +22,7 @@ from engine.orographic.pipeline import (
     build_promotion_readiness,
     build_side_aware_shadow_ledger_entry,
     load_universe,
+    PipelineConfig,
     run_scan,
     write_forge_rejection_waterfall_artifacts,
     write_live_shadow_attribution_artifacts,
@@ -86,6 +87,54 @@ class PipelineTests(unittest.TestCase):
         universe = load_universe(None)
         self.assertEqual(len(universe), 100)
         self.assertEqual(universe[:4], ["SPY", "QQQ", "IWM", "DIA"])
+
+    def test_run_scan_defaults_to_recovered_dte_window(self) -> None:
+        signal = _signal("AAA")
+        council_payload = {
+            "live_board": [],
+            "shadow_board": [],
+            "abstain": True,
+            "summary": {
+                "candidate_count": 0,
+                "live_count": 0,
+                "shadow_count": 0,
+                "notes": [],
+            },
+        }
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(
+                    MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                    [signal],
+                    {"pre_veto_direction_counts": {"call": 1}, "final_direction_counts": {"call": 1}, "counter_regime_survivors": 0},
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_signals_for_forge",
+                return_value=([signal], {}),
+            ) as select_signals_mock,
+            mock.patch(
+                "engine.orographic.pipeline.rank_contracts_with_diagnostics",
+                return_value=([], {"waterfall": {}, "learned_ranker": {}}),
+            ) as rank_contracts_mock,
+            mock.patch(
+                "engine.orographic.pipeline.select_board",
+                return_value=mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True),
+            ),
+        ):
+            payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None))
+
+        self.assertEqual(payload["scan_settings"]["minimum_days_to_expiry"], 7)
+        self.assertEqual(payload["scan_settings"]["maximum_days_to_expiry"], 14)
+        self.assertEqual(payload["scan_settings"]["forge_intake"], 12)
+        self.assertEqual(select_signals_mock.call_args.kwargs["target_count"], 12)
+        self.assertEqual(select_signals_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
+        self.assertEqual(select_signals_mock.call_args.kwargs["maximum_days_to_expiry"], 14)
+        self.assertEqual(rank_contracts_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
+        self.assertEqual(rank_contracts_mock.call_args.kwargs["maximum_days_to_expiry"], 14)
+        self.assertFalse(rank_contracts_mock.call_args.kwargs["enforce_pre_council_friction_gate"])
 
     def test_pre_forge_gate_skips_illiquid_signals_and_backfills_next_names(self) -> None:
         signals = [_signal("AAA"), _signal("BBB"), _signal("CCC")]
@@ -782,6 +831,46 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([row.contract_symbol for row in deduped], ["AAA1", "AAA4"])
         self.assertEqual(diagnostics["dropped"], 1)
         self.assertEqual(removed, 1)
+
+    def test_pre_council_gate_can_observe_without_vetoing_candidates(self) -> None:
+        weak_edge = ContractCandidate(
+            symbol="AAA",
+            contract_symbol="AAA1",
+            option_type="call",
+            expiry="2026-04-17",
+            strike=100.0,
+            bid=1.0,
+            ask=1.1,
+            last=1.05,
+            premium=1.1,
+            contract_cost=110.0,
+            spread_pct=0.05,
+            open_interest=400,
+            volume=120,
+            implied_volatility=0.25,
+            delta=0.4,
+            moneyness=0.0,
+            projected_move_pct=0.05,
+            breakeven_move_pct=0.02,
+            expected_return_pct=0.01,
+            extrinsic_ratio=0.7,
+            scout_score=0.6,
+            forge_score=0.72,
+            expected_option_return_pct_model=0.01,
+            learned_rank_score=0.72,
+        )
+
+        observed, diagnostics = _apply_pre_council_gate(
+            [weak_edge],
+            min_expected_edge_after_friction_pct=0.05,
+            enforced=False,
+        )
+
+        self.assertEqual(observed, [])
+        self.assertEqual(diagnostics["dropped"], 1)
+        self.assertFalse(diagnostics["enforced"])
+        self.assertFalse(weak_edge.friction_gate_passed)
+        self.assertNotIn("friction_veto", weak_edge.council_risk_flags)
 
     def test_side_aware_shadow_ledger_records_disagreements(self) -> None:
         payload = {
