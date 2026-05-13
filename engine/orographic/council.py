@@ -369,6 +369,7 @@ def select_board(
     live_size: int = 3,
     shadow_size: int = 3,
     minimum_live_score: float = 0.57,
+    minimum_put_live_score: float | None = None,
     max_same_side_share: float = 0.67,
     max_same_sector_share: float = 0.67,
     max_live_extrinsic_ratio: float = 0.96,
@@ -387,7 +388,12 @@ def select_board(
     score_and_extrinsic_blocked: list[ContractCandidate] = []
 
     for candidate in candidates:
-        score_ok = candidate.forge_score >= minimum_live_score
+        required_score = (
+            minimum_put_live_score
+            if candidate.option_type == "put" and minimum_put_live_score is not None
+            else minimum_live_score
+        )
+        score_ok = candidate.forge_score >= required_score
         extrinsic_ok = candidate.extrinsic_ratio <= max_live_extrinsic_ratio
         if score_ok and extrinsic_ok:
             eligible.append(candidate)
@@ -588,6 +594,7 @@ def select_board(
         "avg_pairwise_correlation": _avg_pairwise_corr(corr_used),
         "no_trade_discipline": {
             "minimum_live_score": minimum_live_score,
+            "minimum_put_live_score": minimum_put_live_score,
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
             "max_same_side_share": max_same_side_share,
             "max_same_sector_share": max_same_sector_share,
