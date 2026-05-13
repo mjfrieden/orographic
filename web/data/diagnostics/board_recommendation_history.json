@@ -1,17 +1,17 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-12T21:37:44+00:00",
+  "updated_at_utc": "2026-05-13T15:54:41+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 46,
+    "runs": 47,
     "live_picks_emitted": 22,
-    "shadow_picks_emitted": 76,
-    "abstain_runs": 30,
+    "shadow_picks_emitted": 79,
+    "abstain_runs": 31,
     "abstain_primary_reasons": [
       {
         "reason": "extrinsic_limit",
-        "count": 16
+        "count": 17
       },
       {
         "reason": "unknown",
@@ -3866,6 +3866,114 @@
           ],
           "notes": [
             "projected payoff is asymmetric",
+            "Payoff model ranker active"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-13T15:54:41+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3039,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 47,
+        "pre_forge_signal_count": 6,
+        "forge_candidate_count": 5,
+        "live_count": 0,
+        "shadow_count": 3,
+        "abstain_audit": {
+          "primary_reason": "extrinsic_limit",
+          "primary_reason_label": "All candidates failed the extrinsic ceiling.",
+          "requested_live_size": 3,
+          "candidate_count": 5,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 5,
+          "score_and_extrinsic_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [
+              "USO",
+              "ORCL",
+              "NOW"
+            ],
+            "score_and_extrinsic": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 3,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "USO",
+          "contract_symbol": "USO260515C00146000",
+          "option_type": "call",
+          "expiry": "2026-05-15",
+          "strike": 146.0,
+          "forge_score": 0.8583,
+          "payoff_edge_score": 0.8608,
+          "expected_edge_after_friction_pct": 0.1553,
+          "contract_cost": 203.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "ORCL",
+          "contract_symbol": "ORCL260515C00192500",
+          "option_type": "call",
+          "expiry": "2026-05-15",
+          "strike": 192.5,
+          "forge_score": 0.8157,
+          "payoff_edge_score": 0.8955,
+          "expected_edge_after_friction_pct": 0.1409,
+          "contract_cost": 264.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active"
+          ]
+        },
+        {
+          "symbol": "NOW",
+          "contract_symbol": "NOW260515C00089000",
+          "option_type": "call",
+          "expiry": "2026-05-15",
+          "strike": 89.0,
+          "forge_score": 0.7717,
+          "payoff_edge_score": 0.7283,
+          "expected_edge_after_friction_pct": 0.1725,
+          "contract_cost": 100.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
             "Payoff model ranker active"
           ]
         }
