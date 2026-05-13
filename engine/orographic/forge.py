@@ -182,6 +182,7 @@ def _apply_pre_council_gate(
     candidates: list[ContractCandidate],
     *,
     min_expected_edge_after_friction_pct: float = 0.05,
+    enforced: bool = True,
 ) -> tuple[list[ContractCandidate], dict[str, object]]:
     kept: list[ContractCandidate] = []
     dropped: list[dict[str, object]] = []
@@ -192,8 +193,9 @@ def _apply_pre_council_gate(
         candidate.expected_edge_after_friction_pct = edge_after_friction
         candidate.friction_gate_passed = edge_after_friction >= min_expected_edge_after_friction_pct
         if not candidate.friction_gate_passed:
-            candidate.council_risk_flags = sorted(set([*candidate.council_risk_flags, "friction_veto"]))
-            candidate.notes = [*candidate.notes, "Pre-Council friction veto"]
+            if enforced:
+                candidate.council_risk_flags = sorted(set([*candidate.council_risk_flags, "friction_veto"]))
+                candidate.notes = [*candidate.notes, "Pre-Council friction veto"]
             dropped.append(
                 {
                     "symbol": candidate.symbol,
@@ -201,6 +203,12 @@ def _apply_pre_council_gate(
                     "reason": "friction_gate",
                     "expected_edge_after_friction_pct": edge_after_friction,
                     "friction_buffer_pct": friction_buffer,
+                    "extrinsic_ratio": candidate.extrinsic_ratio,
+                    "forge_score": candidate.forge_score,
+                    "learned_rank_score": candidate.learned_rank_score,
+                    "contract_cost": candidate.contract_cost,
+                    "spread_pct": candidate.spread_pct,
+                    "delta": candidate.delta,
                 }
             )
             continue
@@ -210,6 +218,7 @@ def _apply_pre_council_gate(
     return kept, {
         "kept": len(kept),
         "dropped": len(dropped),
+        "enforced": enforced,
         "min_expected_edge_after_friction_pct": min_expected_edge_after_friction_pct,
         "rejections": dropped,
     }
@@ -335,6 +344,7 @@ def rank_contracts_with_diagnostics(
     max_abs_delta: float = 0.75,
     ivr_gate: float = 0.70,
     min_expected_edge_after_friction_pct: float = 0.05,
+    enforce_pre_council_friction_gate: bool = False,
     max_structures_per_symbol_side: int = 2,
     min_moneyness_gap: float = 0.01,
     prior_live_board_symbols: list[str] | None = None,
@@ -677,11 +687,14 @@ def rank_contracts_with_diagnostics(
         log.warning("Path model scoring skipped: %s", exc)
 
     candidates.sort(key=_candidate_sort_score, reverse=True)
-    candidates, friction_diag = _apply_pre_council_gate(
+    friction_passed_candidates, friction_diag = _apply_pre_council_gate(
         candidates,
         min_expected_edge_after_friction_pct=min_expected_edge_after_friction_pct,
+        enforced=enforce_pre_council_friction_gate,
     )
-    stage_totals["candidates_after_friction_gate"] = len(candidates)
+    stage_totals["candidates_after_friction_gate"] = len(friction_passed_candidates)
+    if enforce_pre_council_friction_gate:
+        candidates = friction_passed_candidates
     candidates, dedupe_removed = _dedupe_candidates(
         candidates,
         max_structures_per_symbol_side=max_structures_per_symbol_side,
@@ -724,6 +737,7 @@ def rank_contracts_with_diagnostics(
             "max_abs_delta": max_abs_delta,
             "iv_rank_gate": ivr_gate,
             "min_expected_edge_after_friction_pct": min_expected_edge_after_friction_pct,
+            "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
             "max_structures_per_symbol_side": max_structures_per_symbol_side,
             "min_moneyness_gap": min_moneyness_gap,
             "turnover_switch_penalty": turnover_switch_penalty,
@@ -746,6 +760,7 @@ def rank_contracts(
     max_abs_delta: float = 0.75,
     ivr_gate: float = 0.70,
     min_expected_edge_after_friction_pct: float = 0.05,
+    enforce_pre_council_friction_gate: bool = False,
     max_structures_per_symbol_side: int = 2,
     min_moneyness_gap: float = 0.01,
 ) -> list[ContractCandidate]:
@@ -762,6 +777,7 @@ def rank_contracts(
         max_abs_delta=max_abs_delta,
         ivr_gate=ivr_gate,
         min_expected_edge_after_friction_pct=min_expected_edge_after_friction_pct,
+        enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
         max_structures_per_symbol_side=max_structures_per_symbol_side,
         min_moneyness_gap=min_moneyness_gap,
     )

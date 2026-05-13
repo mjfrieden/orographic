@@ -108,6 +108,29 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--live-size", type=int, default=3)
     parser.add_argument("--shadow-size", type=int, default=3)
+    parser.add_argument(
+        "--forge-intake",
+        type=int,
+        default=12,
+        help="Number of Scout signals to send into Forge. Defaults to 12 to reduce live-board starvation.",
+    )
+    parser.add_argument(
+        "--minimum-days-to-expiry",
+        type=int,
+        default=7,
+        help="Minimum option DTE for live scan contract selection. Defaults to the recovered 7-14 DTE policy.",
+    )
+    parser.add_argument(
+        "--maximum-days-to-expiry",
+        type=int,
+        default=14,
+        help="Maximum option DTE for live scan contract selection. Defaults to the recovered 7-14 DTE policy.",
+    )
+    parser.add_argument(
+        "--enforce-pre-council-friction-gate",
+        action="store_true",
+        help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
+    )
     return parser.parse_args()
 
 
@@ -123,6 +146,10 @@ def main() -> int:
             universe=universe,
             live_size=max(int(args.live_size), 1),
             shadow_size=max(int(args.shadow_size), 1),
+            forge_intake=max(int(args.forge_intake), 1),
+            minimum_days_to_expiry=max(int(args.minimum_days_to_expiry), 0),
+            maximum_days_to_expiry=max(int(args.maximum_days_to_expiry), 0),
+            enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
         )
     )
     write_snapshot(args.output, payload)

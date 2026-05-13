@@ -49,7 +49,10 @@ class PipelineConfig:
     universe: list[str]
     live_size: int = 3
     shadow_size: int = 3
-    forge_intake: int = 6
+    forge_intake: int = 12
+    minimum_days_to_expiry: int = 7
+    maximum_days_to_expiry: int = 14
+    enforce_pre_council_friction_gate: bool = False
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
 
 log = logging.getLogger(__name__)
@@ -74,6 +77,31 @@ def _coerce_int(value: object) -> int:
         return int(float(str(value)))
     except (TypeError, ValueError):
         return 0
+
+
+def _config_int(config: object, name: str, default: int, *, minimum: int = 0) -> int:
+    value = getattr(config, name, default)
+    if not isinstance(value, Number):
+        try:
+            value = int(float(str(value)))
+        except (TypeError, ValueError):
+            value = default
+    return max(int(value), minimum)
+
+
+def _config_bool(config: object, name: str, default: bool) -> bool:
+    value = getattr(config, name, default)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, Number):
+        return bool(value)
+    if isinstance(value, str):
+        cleaned = value.strip().lower()
+        if cleaned in {"1", "true", "yes", "on"}:
+            return True
+        if cleaned in {"0", "false", "no", "off"}:
+            return False
+    return default
 
 
 def _sorted_reason_counts(rows: list[dict[str, Any]], *, reason_key: str) -> list[dict[str, object]]:
@@ -1046,6 +1074,12 @@ def write_live_shadow_attribution_artifacts(snapshot_path: str, payload: dict[st
 def run_scan(config: PipelineConfig) -> dict[str, Any]:
     log.info("Orographic pipeline started with universe of %d symbols.", len(config.universe))
     try:
+        live_size = _config_int(config, "live_size", 3, minimum=1)
+        shadow_size = _config_int(config, "shadow_size", 3, minimum=1)
+        forge_intake = _config_int(config, "forge_intake", 12, minimum=1)
+        minimum_days_to_expiry = _config_int(config, "minimum_days_to_expiry", 7, minimum=0)
+        maximum_days_to_expiry = _config_int(config, "maximum_days_to_expiry", 14, minimum=0)
+        enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
         model_artifacts = _model_artifact_status()
         model_modes = _model_mode_status(model_artifacts)
         regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
@@ -1053,7 +1087,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
 
         forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
             scout_signals,
-            target_count=max(int(config.forge_intake), 1),
+            target_count=forge_intake,
+            minimum_days_to_expiry=minimum_days_to_expiry,
+            maximum_days_to_expiry=maximum_days_to_expiry,
         )
         log.info(
             "Pre-Forge liquidity gate selected %d/%d signals for contract ranking.",
@@ -1067,6 +1103,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         forge_candidates, forge_diagnostics = rank_contracts_with_diagnostics(
             forge_input_signals,
             regime,
+            minimum_days_to_expiry=minimum_days_to_expiry,
+            maximum_days_to_expiry=maximum_days_to_expiry,
+            enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
             prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
@@ -1074,8 +1113,8 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         council = select_board(
             forge_candidates,
             regime,
-            live_size=config.live_size,
-            shadow_size=config.shadow_size,
+            live_size=live_size,
+            shadow_size=shadow_size,
             prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
@@ -1090,10 +1129,13 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
             "scan_settings": {
-                "live_size": int(config.live_size),
-                "shadow_size": int(config.shadow_size),
-                "forge_intake": int(config.forge_intake),
+                "live_size": live_size,
+                "shadow_size": shadow_size,
+                "forge_intake": forge_intake,
                 "universe_size": len(config.universe),
+                "minimum_days_to_expiry": minimum_days_to_expiry,
+                "maximum_days_to_expiry": maximum_days_to_expiry,
+                "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
             },
             "model_modes": model_modes,
             "regime": regime.to_dict(),
