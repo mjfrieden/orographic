@@ -19,6 +19,9 @@ jobs:
       OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
       OROGRAPHIC_SITE_URL: https://orographic.pages.dev
+      TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
+      OROGRAPHIC_TRADIER_ACCESS_TOKEN: ${{ secrets.OROGRAPHIC_TRADIER_ACCESS_TOKEN }}
+      TRADIER_BASE_URL: ${{ secrets.TRADIER_BASE_URL }}
       PYTHONPATH: .
     steps:
       - name: Checkout
@@ -43,6 +46,12 @@ jobs:
       - name: Run Orographic scan
         run: |
           python engine/run_scan.py --output web/data/latest_run.json
+
+      - name: Mark due prospective pick outcomes
+        if: ${{ env.TRADIER_ACCESS_TOKEN != '' || env.OROGRAPHIC_TRADIER_ACCESS_TOKEN != '' }}
+        run: |
+          python engine/mark_prospective_outcomes.py \
+            --ledger web/data/diagnostics/prospective_pick_ledger.json
 
       - name: Sync dashboard validation artifacts
         run: |
@@ -81,6 +90,9 @@ jobs:
           ledger = Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json")
           if not ledger.exists():
               raise SystemExit("side-aware Scout shadow ledger was not written")
+          prospective_ledger = Path("web/data/diagnostics/prospective_pick_ledger.json")
+          if not prospective_ledger.exists():
+              raise SystemExit("prospective pick ledger was not written")
           attribution = payload.get("attribution", {})
           if attribution.get("artifact") != "live_shadow_attribution":
               raise SystemExit("snapshot attribution artifact missing")
