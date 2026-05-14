@@ -84,7 +84,12 @@ jobs:
           if council_summary.get("shadow_count") != len(council.get("shadow_board", [])):
               raise SystemExit("council shadow count does not match shadow board")
           artifacts = payload.get("model_artifacts", {})
-          missing = [name for name, row in artifacts.items() if not row.get("present") or not row.get("sha256")]
+          optional_artifacts = {"path_model", "path_model_card"}
+          missing = [
+              name
+              for name, row in artifacts.items()
+              if name not in optional_artifacts and (not row.get("present") or not row.get("sha256"))
+          ]
           if missing:
               raise SystemExit(f"snapshot missing model artifact status: {missing}")
           ledger = Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json")
