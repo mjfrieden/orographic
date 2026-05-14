@@ -1,7 +1,7 @@
 {
   "artifact": "prospective_pick_ledger",
   "schema_version": 1,
-  "updated_at_utc": "2026-05-14T00:07:14+00:00",
+  "updated_at_utc": "2026-05-14T14:42:05+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -17,12 +17,12 @@
     "purpose": "Judge every emitted contract recommendation, whether traded or not."
   },
   "aggregate": {
-    "runs": 3,
-    "pick_rows": 26,
+    "runs": 4,
+    "pick_rows": 35,
     "live": 0,
-    "shadow": 9,
-    "council_holdout": 2,
-    "friction_veto": 15
+    "shadow": 12,
+    "council_holdout": 3,
+    "friction_veto": 20
   },
   "entries": [
     {
@@ -186,22 +186,31 @@
             "Path model shadow: hold quality 0.52, take-profit 0.31, decay 0.54"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 0.44,
+                "mark_source": "mid",
+                "bid": 0.41,
+                "ask": 0.47,
+                "last": 0.42,
+                "close": null,
+                "pnl_pct_from_emission": 0.0864
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0864,
+              "max_adverse_excursion_pct": 0.0864,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -335,23 +344,35 @@
             "Path model shadow: hold quality 0.45, take-profit 0.31, decay 0.50"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 0.53,
+                "mark_source": "mid",
+                "bid": 0.52,
+                "ask": 0.54,
+                "last": 0.48,
+                "close": null,
+                "pnl_pct_from_emission": 0.493
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null
+              "take_profit_40_pct_before_stop_50_pct": true,
+              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": 0.493,
+              "max_adverse_excursion_pct": 0.493,
+              "first_hit": {
+                "window": "one_hour",
+                "rule": "take_profit_40_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -486,22 +507,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.22, decay 0.56"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.195,
+                "mark_source": "mid",
+                "bid": 1.13,
+                "ask": 1.26,
+                "last": 1.14,
+                "close": null,
+                "pnl_pct_from_emission": -0.0808
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.0808,
+              "max_adverse_excursion_pct": -0.0808,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -637,22 +667,31 @@
             "Path model shadow: hold quality 0.24, take-profit 0.22, decay 0.60"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.475,
+                "mark_source": "mid",
+                "bid": 1.43,
+                "ask": 1.52,
+                "last": 1.61,
+                "close": null,
+                "pnl_pct_from_emission": 0.126
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.126,
+              "max_adverse_excursion_pct": 0.126,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -788,22 +827,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.22, decay 0.56"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.395,
+                "mark_source": "mid",
+                "bid": 1.34,
+                "ask": 1.45,
+                "last": 1.43,
+                "close": null,
+                "pnl_pct_from_emission": 0.0941
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0941,
+              "max_adverse_excursion_pct": 0.0941,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -938,22 +986,31 @@
             "Path model shadow: hold quality 0.21, take-profit 0.22, decay 0.57"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 2.28,
+                "mark_source": "mid",
+                "bid": 2.16,
+                "ask": 2.4,
+                "last": 2.31,
+                "close": null,
+                "pnl_pct_from_emission": 0.0704
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0704,
+              "max_adverse_excursion_pct": 0.0704,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -1090,22 +1147,31 @@
             "Path model shadow: hold quality 0.20, take-profit 0.22, decay 0.62"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.83,
+                "mark_source": "mid",
+                "bid": 1.78,
+                "ask": 1.88,
+                "last": 1.79,
+                "close": null,
+                "pnl_pct_from_emission": 0.0223
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0223,
+              "max_adverse_excursion_pct": 0.0223,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -1241,22 +1307,31 @@
             "Path model shadow: hold quality 0.21, take-profit 0.22, decay 0.57"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 2.035,
+                "mark_source": "mid",
+                "bid": 1.85,
+                "ask": 2.22,
+                "last": 2.29,
+                "close": null,
+                "pnl_pct_from_emission": -0.0073
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.0073,
+              "max_adverse_excursion_pct": -0.0073,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -1429,23 +1504,35 @@
             "Path model shadow: hold quality 0.57, take-profit 0.34, decay 0.49"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 0.625,
+                "mark_source": "mid",
+                "bid": 0.62,
+                "ask": 0.63,
+                "last": 0.62,
+                "close": null,
+                "pnl_pct_from_emission": 0.4205
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null
+              "take_profit_40_pct_before_stop_50_pct": true,
+              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": 0.4205,
+              "max_adverse_excursion_pct": 0.4205,
+              "first_hit": {
+                "window": "one_hour",
+                "rule": "take_profit_40_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -1580,22 +1667,31 @@
             "Path model shadow: hold quality 0.52, take-profit 0.32, decay 0.54"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 0.44,
+                "mark_source": "mid",
+                "bid": 0.41,
+                "ask": 0.47,
+                "last": 0.42,
+                "close": null,
+                "pnl_pct_from_emission": 0.0864
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0864,
+              "max_adverse_excursion_pct": 0.0864,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -1728,22 +1824,31 @@
             "Path model shadow: hold quality 0.30, take-profit 0.24, decay 0.37"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.42,
+                "mark_source": "mid",
+                "bid": 1.4,
+                "ask": 1.44,
+                "last": 1.43,
+                "close": null,
+                "pnl_pct_from_emission": 0.2851
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": 0.2851,
+              "max_adverse_excursion_pct": 0.2851,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -1879,22 +1984,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.55"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.195,
+                "mark_source": "mid",
+                "bid": 1.13,
+                "ask": 1.26,
+                "last": 1.14,
+                "close": null,
+                "pnl_pct_from_emission": -0.0808
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.0808,
+              "max_adverse_excursion_pct": -0.0808,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -2030,22 +2144,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.55"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.395,
+                "mark_source": "mid",
+                "bid": 1.34,
+                "ask": 1.45,
+                "last": 1.43,
+                "close": null,
+                "pnl_pct_from_emission": 0.0941
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0941,
+              "max_adverse_excursion_pct": 0.0941,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -2181,22 +2304,31 @@
             "Path model shadow: hold quality 0.25, take-profit 0.23, decay 0.60"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.475,
+                "mark_source": "mid",
+                "bid": 1.43,
+                "ask": 1.52,
+                "last": 1.61,
+                "close": null,
+                "pnl_pct_from_emission": 0.126
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.126,
+              "max_adverse_excursion_pct": 0.126,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -2331,22 +2463,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 2.28,
+                "mark_source": "mid",
+                "bid": 2.16,
+                "ask": 2.4,
+                "last": 2.31,
+                "close": null,
+                "pnl_pct_from_emission": 0.0704
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0704,
+              "max_adverse_excursion_pct": 0.0704,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -2483,22 +2624,31 @@
             "Path model shadow: hold quality 0.20, take-profit 0.23, decay 0.62"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.83,
+                "mark_source": "mid",
+                "bid": 1.78,
+                "ask": 1.88,
+                "last": 1.79,
+                "close": null,
+                "pnl_pct_from_emission": 0.0223
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0223,
+              "max_adverse_excursion_pct": 0.0223,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -2634,22 +2784,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 2.035,
+                "mark_source": "mid",
+                "bid": 1.85,
+                "ask": 2.22,
+                "last": 2.29,
+                "close": null,
+                "pnl_pct_from_emission": -0.0073
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.0073,
+              "max_adverse_excursion_pct": -0.0073,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -2822,23 +2981,35 @@
             "Path model shadow: hold quality 0.57, take-profit 0.34, decay 0.49"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 0.625,
+                "mark_source": "mid",
+                "bid": 0.62,
+                "ask": 0.63,
+                "last": 0.62,
+                "close": null,
+                "pnl_pct_from_emission": 0.4205
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null
+              "take_profit_40_pct_before_stop_50_pct": true,
+              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": 0.4205,
+              "max_adverse_excursion_pct": 0.4205,
+              "first_hit": {
+                "window": "one_hour",
+                "rule": "take_profit_40_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -2973,22 +3144,31 @@
             "Path model shadow: hold quality 0.52, take-profit 0.32, decay 0.54"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 0.44,
+                "mark_source": "mid",
+                "bid": 0.41,
+                "ask": 0.47,
+                "last": 0.42,
+                "close": null,
+                "pnl_pct_from_emission": 0.0864
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0864,
+              "max_adverse_excursion_pct": 0.0864,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -3121,22 +3301,31 @@
             "Path model shadow: hold quality 0.30, take-profit 0.24, decay 0.37"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.42,
+                "mark_source": "mid",
+                "bid": 1.4,
+                "ask": 1.44,
+                "last": 1.43,
+                "close": null,
+                "pnl_pct_from_emission": 0.2851
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": 0.2851,
+              "max_adverse_excursion_pct": 0.2851,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -3272,22 +3461,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.55"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.195,
+                "mark_source": "mid",
+                "bid": 1.13,
+                "ask": 1.26,
+                "last": 1.14,
+                "close": null,
+                "pnl_pct_from_emission": -0.0808
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.0808,
+              "max_adverse_excursion_pct": -0.0808,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -3423,22 +3621,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.55"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.395,
+                "mark_source": "mid",
+                "bid": 1.34,
+                "ask": 1.45,
+                "last": 1.43,
+                "close": null,
+                "pnl_pct_from_emission": 0.0941
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0941,
+              "max_adverse_excursion_pct": 0.0941,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -3574,22 +3781,31 @@
             "Path model shadow: hold quality 0.25, take-profit 0.23, decay 0.60"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.475,
+                "mark_source": "mid",
+                "bid": 1.43,
+                "ask": 1.52,
+                "last": 1.61,
+                "close": null,
+                "pnl_pct_from_emission": 0.126
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.126,
+              "max_adverse_excursion_pct": 0.126,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -3724,22 +3940,31 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 2.28,
+                "mark_source": "mid",
+                "bid": 2.16,
+                "ask": 2.4,
+                "last": 2.31,
+                "close": null,
+                "pnl_pct_from_emission": 0.0704
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0704,
+              "max_adverse_excursion_pct": 0.0704,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -3876,22 +4101,31 @@
             "Path model shadow: hold quality 0.20, take-profit 0.23, decay 0.62"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 1.83,
+                "mark_source": "mid",
+                "bid": 1.78,
+                "ask": 1.88,
+                "last": 1.79,
+                "close": null,
+                "pnl_pct_from_emission": 0.0223
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": 0.0223,
+              "max_adverse_excursion_pct": 0.0223,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -4027,6 +4261,1413 @@
             "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
           ],
           "outcomes": {
+            "status": "partial",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": true
+            },
+            "fixed_exit_marks": {
+              "one_hour": {
+                "captured_at_utc": "2026-05-14T14:42:05+00:00",
+                "mark": 2.035,
+                "mark_source": "mid",
+                "bid": 1.85,
+                "ask": 2.22,
+                "last": 2.29,
+                "close": null,
+                "pnl_pct_from_emission": -0.0073
+              },
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.0073,
+              "max_adverse_excursion_pct": -0.0073,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3917,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "summary": {
+        "pick_rows": 9,
+        "live": 0,
+        "shadow": 3,
+        "council_holdout": 1,
+        "friction_veto": 5
+      },
+      "picks": [
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "shadow",
+          "symbol": "WFC",
+          "contract_symbol": "WFC260522C00076000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 76.0,
+          "emission_quote": {
+            "bid": 0.66,
+            "ask": 0.72,
+            "mid": 0.69,
+            "last": 0.68,
+            "spread_pct": 0.087,
+            "open_interest": 3776,
+            "volume": 79,
+            "contract_cost": 72.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.7218,
+            "learned_rank_score": 0.7218,
+            "payoff_model_score": 0.7218,
+            "final_candidate_score": 0.7218,
+            "prob_positive_option_pnl": 0.553,
+            "expected_option_return_pct_model": 1.1443,
+            "expected_edge_after_friction_pct": 0.7846,
+            "friction_buffer_pct": 0.3597,
+            "path_holding_quality_score": 0.6222,
+            "path_early_profit_take_prob": 0.3672,
+            "path_decay_risk": 0.4988
+          },
+          "risk_features": {
+            "delta": 0.3027,
+            "implied_volatility": 0.3218,
+            "iv_rank": 0.7308,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0269,
+            "premium_pct_of_spot": 0.0097,
+            "breakeven_move_pct": 0.0366,
+            "projected_move_pct": 0.0884,
+            "realized_vol_20d": 0.2627,
+            "atr_pct_14d": 0.0259,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 73% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.62, take-profit 0.37, decay 0.50"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "shadow",
+          "symbol": "UBER",
+          "contract_symbol": "UBER260522C00075000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 75.0,
+          "emission_quote": {
+            "bid": 1.05,
+            "ask": 1.15,
+            "mid": 1.1,
+            "last": 1.13,
+            "spread_pct": 0.0909,
+            "open_interest": 557,
+            "volume": 817,
+            "contract_cost": 115.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.6989,
+            "learned_rank_score": 0.6989,
+            "payoff_model_score": 0.6989,
+            "final_candidate_score": 0.6989,
+            "prob_positive_option_pnl": 0.5607,
+            "expected_option_return_pct_model": 0.7405,
+            "expected_edge_after_friction_pct": 0.3785,
+            "friction_buffer_pct": 0.362,
+            "path_holding_quality_score": 0.4394,
+            "path_early_profit_take_prob": 0.2941,
+            "path_decay_risk": 0.5257
+          },
+          "risk_features": {
+            "delta": 0.3688,
+            "implied_volatility": 0.3999,
+            "iv_rank": 0.7933,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0226,
+            "premium_pct_of_spot": 0.0157,
+            "breakeven_move_pct": 0.0383,
+            "projected_move_pct": 0.0623,
+            "realized_vol_20d": 0.396,
+            "atr_pct_14d": 0.0357,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 79% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.44, take-profit 0.29, decay 0.53"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "shadow",
+          "symbol": "C",
+          "contract_symbol": "C260522C00128000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 128.0,
+          "emission_quote": {
+            "bid": 1.17,
+            "ask": 1.3,
+            "mid": 1.235,
+            "last": 1.42,
+            "spread_pct": 0.1053,
+            "open_interest": 498,
+            "volume": 33,
+            "contract_cost": 130.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.6804,
+            "learned_rank_score": 0.6804,
+            "payoff_model_score": 0.6804,
+            "final_candidate_score": 0.6804,
+            "prob_positive_option_pnl": 0.4437,
+            "expected_option_return_pct_model": 1.3356,
+            "expected_edge_after_friction_pct": 0.9649,
+            "friction_buffer_pct": 0.3707,
+            "path_holding_quality_score": 0.6308,
+            "path_early_profit_take_prob": 0.3997,
+            "path_decay_risk": 0.5164
+          },
+          "risk_features": {
+            "delta": 0.3047,
+            "implied_volatility": 0.3423,
+            "iv_rank": 0.5741,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0284,
+            "premium_pct_of_spot": 0.0104,
+            "breakeven_move_pct": 0.0388,
+            "projected_move_pct": 0.0522,
+            "realized_vol_20d": 0.1964,
+            "atr_pct_14d": 0.0263,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "VRP penalty applied: IV is highly elevated over RV",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.63, take-profit 0.40, decay 0.52"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "council_holdout",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260522C00155000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 155.0,
+          "emission_quote": {
+            "bid": 1.41,
+            "ask": 1.68,
+            "mid": 1.545,
+            "last": 1.58,
+            "spread_pct": 0.1748,
+            "open_interest": 2349,
+            "volume": 189,
+            "contract_cost": 168.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.6126,
+            "learned_rank_score": 0.6126,
+            "payoff_model_score": 0.6126,
+            "final_candidate_score": 0.6126,
+            "prob_positive_option_pnl": 0.5274,
+            "expected_option_return_pct_model": 0.5522,
+            "expected_edge_after_friction_pct": 0.1398,
+            "friction_buffer_pct": 0.4124,
+            "path_holding_quality_score": 0.3067,
+            "path_early_profit_take_prob": 0.2512,
+            "path_decay_risk": 0.5436
+          },
+          "risk_features": {
+            "delta": 0.3616,
+            "implied_volatility": 0.2927,
+            "iv_rank": 0.7087,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0172,
+            "premium_pct_of_spot": 0.011,
+            "breakeven_move_pct": 0.0283,
+            "projected_move_pct": 0.0556,
+            "realized_vol_20d": 0.2872,
+            "atr_pct_14d": 0.0252,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "wide_spread"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 71% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.31, take-profit 0.25, decay 0.54"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "friction_veto",
+          "symbol": "NOW",
+          "contract_symbol": "NOW260522C00090000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 90.0,
+          "emission_quote": {
+            "bid": 2.05,
+            "ask": 2.25,
+            "mid": 2.15,
+            "last": 2.16,
+            "spread_pct": 0.093,
+            "open_interest": 3347,
+            "volume": 349,
+            "contract_cost": 225.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.5356,
+            "learned_rank_score": 0.5356,
+            "payoff_model_score": 0.5581,
+            "final_candidate_score": 0.5356,
+            "prob_positive_option_pnl": 0.4911,
+            "expected_option_return_pct_model": 0.2715,
+            "expected_edge_after_friction_pct": -0.0918,
+            "friction_buffer_pct": 0.3633,
+            "path_holding_quality_score": 0.2204,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5753
+          },
+          "risk_features": {
+            "delta": 0.4732,
+            "implied_volatility": 0.4605,
+            "iv_rank": 0.3968,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0077,
+            "premium_pct_of_spot": 0.0252,
+            "breakeven_move_pct": 0.0329,
+            "projected_move_pct": 0.0732,
+            "realized_vol_20d": 0.7723,
+            "atr_pct_14d": 0.047,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.58"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "friction_veto",
+          "symbol": "WFC",
+          "contract_symbol": "WFC260522C00074000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 74.0,
+          "emission_quote": {
+            "bid": 1.44,
+            "ask": 1.56,
+            "mid": 1.5,
+            "last": 1.61,
+            "spread_pct": 0.08,
+            "open_interest": 574,
+            "volume": 40,
+            "contract_cost": 156.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.4439,
+            "learned_rank_score": 0.4439,
+            "payoff_model_score": 0.4664,
+            "final_candidate_score": 0.4439,
+            "prob_positive_option_pnl": 0.3772,
+            "expected_option_return_pct_model": -0.031,
+            "expected_edge_after_friction_pct": -0.3836,
+            "friction_buffer_pct": 0.3526,
+            "path_holding_quality_score": 0.2301,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5969
+          },
+          "risk_features": {
+            "delta": 0.5173,
+            "implied_volatility": 0.3355,
+            "iv_rank": 0.7877,
+            "extrinsic_ratio": 0.9936,
+            "moneyness": -0.0001,
+            "premium_pct_of_spot": 0.0211,
+            "breakeven_move_pct": 0.0209,
+            "projected_move_pct": 0.0884,
+            "realized_vol_20d": 0.2627,
+            "atr_pct_14d": 0.0259,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 79% above gate",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.23, decay 0.60"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "friction_veto",
+          "symbol": "NOW",
+          "contract_symbol": "NOW260522C00091000",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 91.0,
+          "emission_quote": {
+            "bid": 1.75,
+            "ask": 1.95,
+            "mid": 1.85,
+            "last": 1.75,
+            "spread_pct": 0.1081,
+            "open_interest": 414,
+            "volume": 36,
+            "contract_cost": 195.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.4161,
+            "learned_rank_score": 0.4161,
+            "payoff_model_score": 0.4386,
+            "final_candidate_score": 0.4161,
+            "prob_positive_option_pnl": 0.2452,
+            "expected_option_return_pct_model": 0.2255,
+            "expected_edge_after_friction_pct": -0.1469,
+            "friction_buffer_pct": 0.3724,
+            "path_holding_quality_score": 0.2253,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5705
+          },
+          "risk_features": {
+            "delta": 0.4143,
+            "implied_volatility": 0.481,
+            "iv_rank": 0.4225,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0189,
+            "premium_pct_of_spot": 0.0218,
+            "breakeven_move_pct": 0.0408,
+            "projected_move_pct": 0.0732,
+            "realized_vol_20d": 0.7723,
+            "atr_pct_14d": 0.047,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.23, decay 0.57"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "friction_veto",
+          "symbol": "CRM",
+          "contract_symbol": "CRM260522C00172500",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 172.5,
+          "emission_quote": {
+            "bid": 2.43,
+            "ask": 2.59,
+            "mid": 2.51,
+            "last": 2.63,
+            "spread_pct": 0.0637,
+            "open_interest": 439,
+            "volume": 51,
+            "contract_cost": 259.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3824,
+            "learned_rank_score": 0.3824,
+            "payoff_model_score": 0.4049,
+            "final_candidate_score": 0.3824,
+            "prob_positive_option_pnl": 0.2602,
+            "expected_option_return_pct_model": -0.1074,
+            "expected_edge_after_friction_pct": -0.4531,
+            "friction_buffer_pct": 0.3457,
+            "path_holding_quality_score": 0.265,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5617
+          },
+          "risk_features": {
+            "delta": 0.3471,
+            "implied_volatility": 0.4414,
+            "iv_rank": 0.7784,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.029,
+            "premium_pct_of_spot": 0.0155,
+            "breakeven_move_pct": 0.0445,
+            "projected_move_pct": 0.117,
+            "realized_vol_20d": 0.4726,
+            "atr_pct_14d": 0.0399,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 78% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.26, take-profit 0.23, decay 0.56"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-05-14T14:42:04+00:00",
+          "lane": "friction_veto",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260522C00152500",
+          "option_type": "call",
+          "expiry": "2026-05-22",
+          "strike": 152.5,
+          "emission_quote": {
+            "bid": 2.47,
+            "ask": 2.67,
+            "mid": 2.57,
+            "last": 2.45,
+            "spread_pct": 0.0778,
+            "open_interest": 1143,
+            "volume": 266,
+            "contract_cost": 267.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3686,
+            "learned_rank_score": 0.3686,
+            "payoff_model_score": 0.3911,
+            "final_candidate_score": 0.3686,
+            "prob_positive_option_pnl": 0.2565,
+            "expected_option_return_pct_model": -0.1411,
+            "expected_edge_after_friction_pct": -0.4953,
+            "friction_buffer_pct": 0.3542,
+            "path_holding_quality_score": 0.219,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5651
+          },
+          "risk_features": {
+            "delta": 0.5082,
+            "implied_volatility": 0.2888,
+            "iv_rank": 0.6927,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0008,
+            "premium_pct_of_spot": 0.0175,
+            "breakeven_move_pct": 0.0183,
+            "projected_move_pct": 0.0556,
+            "realized_vol_20d": 0.2872,
+            "atr_pct_14d": 0.0252,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3917,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.57"
+          ],
+          "outcomes": {
             "status": "pending",
             "quote_verification": {
               "emission_quote_captured": true,
@@ -4058,9 +5699,9 @@
     }
   ],
   "last_mark_summary": {
-    "entries_seen": 3,
-    "picks_seen": 26,
-    "marks_written": 0,
+    "entries_seen": 4,
+    "picks_seen": 35,
+    "marks_written": 26,
     "quotes_missing": 0
   }
 }
