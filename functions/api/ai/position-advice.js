@@ -59,6 +59,15 @@ export async function onRequestPost(context) {
     regime,
   });
 
+  if (view.open_pl_pct !== null && view.open_pl_pct <= -0.5) {
+    return jsonResponse({
+      ok: true,
+      advice: buildFallbackAdvice(view),
+      ai_model: "mechanical-policy",
+      scoring_role: "exit_advice_only",
+    });
+  }
+
   if (!context.env?.AI) {
     return jsonResponse({
       ok: true,
@@ -357,7 +366,16 @@ function buildFallbackAdvice(view) {
   let rationale =
     "The live option still has enough runway relative to its current mark and regime context to justify patience.";
 
-  if (view.dte !== null && view.dte <= 1) {
+  if (view.open_pl_pct !== null && view.open_pl_pct <= -0.5) {
+    action = "sell";
+    confidence = 0.96;
+    urgency = "high";
+    thesisStatus = "broken";
+    headline = "Mechanical stop reached";
+    flags.push("mechanical_stop_50_pct", "drawdown");
+    rationale =
+      "The long option is down at least 50% from cost basis. The mechanical exit rule says to sell and preserve remaining capital.";
+  } else if (view.dte !== null && view.dte <= 1) {
     action = "sell";
     confidence = 0.9;
     urgency = "high";

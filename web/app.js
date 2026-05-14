@@ -4,6 +4,7 @@
  */
 
 const SNAPSHOT_SOURCE = "./data/latest_run.json";
+const PROSPECTIVE_LEDGER_SOURCE = "./data/diagnostics/prospective_pick_ledger.json";
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
 
@@ -403,12 +404,31 @@ function renderPositions() {
         ? `<span class="position-chip ${contract.side === "call" ? "is-call" : "is-put"}">${contract.side.toUpperCase()}</span>`
         : `<span class="position-chip is-neutral">EQUITY</span>`;
       const statusChip = `<span class="position-chip ${markMeta.toneClass}">${escapeHtml(markMeta.label)}</span>`;
+      const exitPolicy = pos.exit_policy || {};
+      const mechanicalStop = exitPolicy.action === "sell_to_close";
+      const exitPolicyChip = mechanicalStop
+        ? `<span class="position-chip is-warning">50% stop</span>`
+        : exitPolicy.action === "harvest_profit"
+          ? `<span class="position-chip is-positive">Harvest zone</span>`
+          : "";
+      const exitPolicyDetail =
+        exitPolicy.reason && exitPolicy.action !== "hold"
+          ? `<span class="position-detail ${mechanicalStop ? "is-negative" : "is-positive"}">${escapeHtml(exitPolicy.reason)}</span>`
+          : "";
       const adviceHtml = isOpt ? renderPositionAdviceHtml(sym) : "";
       const closeBtnClass = `mini-action close-position-btn${
-        POSITION_ADVICE.get(sym)?.action === "sell" ? " is-advised-sell" : ""
+        POSITION_ADVICE.get(sym)?.action === "sell" || mechanicalStop
+          ? " is-advised-sell"
+          : ""
       }`;
       const actionCell = isOpt
-        ? `<button class="${closeBtnClass}" type="button" data-contract="${sym}" data-qty="${pos.quantity}">${POSITION_ADVICE.get(sym)?.action === "sell" ? "Close Suggested" : "Close"}</button>`
+        ? `<button class="${closeBtnClass}" type="button" data-contract="${sym}" data-qty="${pos.quantity}" data-exit-policy-action="${escapeHtml(exitPolicy.action || "")}">${
+            mechanicalStop
+              ? "Close Required"
+              : POSITION_ADVICE.get(sym)?.action === "sell"
+                ? "Close Suggested"
+                : "Close"
+          }</button>`
         : ``;
       return `<tr class="position-row ${cv === null ? "is-mark-pending" : "is-marked"}">
       <td data-label="Symbol" class="position-cell-symbol ${tone}">
@@ -419,8 +439,9 @@ function renderPositions() {
       </td>
       <td data-label="Status" class="position-cell-status">
         <div class="position-status-stack">
-          <div class="position-chip-row">${instrumentChip}${statusChip}</div>
+          <div class="position-chip-row">${instrumentChip}${statusChip}${exitPolicyChip}</div>
           <span class="position-detail">${escapeHtml(markMeta.detail)}</span>
+          ${exitPolicyDetail}
           ${adviceHtml}
         </div>
       </td>
@@ -479,8 +500,13 @@ function updatePositionAdviceDom(symbol, advice) {
     `.close-position-btn[data-contract="${symbol}"]`,
   );
   if (closeBtn) {
-    closeBtn.classList.toggle("is-advised-sell", advice?.action === "sell");
-    closeBtn.textContent = advice?.action === "sell" ? "Close Suggested" : "Close";
+    const required = closeBtn.dataset.exitPolicyAction === "sell_to_close";
+    closeBtn.classList.toggle("is-advised-sell", advice?.action === "sell" || required);
+    closeBtn.textContent = required
+      ? "Close Required"
+      : advice?.action === "sell"
+        ? "Close Suggested"
+        : "Close";
   }
 }
 
@@ -566,11 +592,18 @@ function bindBoardControls() {
 // ── Snapshot / Board ────────────────────────────────────────────────────────
 
 let SNAPSHOT = null;
+let PROSPECTIVE_LEDGER = null;
 let LIVE_QUOTES = new Map();
 let BOARD_STATE = {
   loading: false,
   fetchedAt: null,
   snapshotGeneratedAt: null,
+  lastError: null,
+};
+
+let PROSPECTIVE_STATE = {
+  loading: false,
+  updatedAt: null,
   lastError: null,
 };
 
@@ -617,15 +650,49 @@ async function loadSnapshot() {
   return SNAPSHOT;
 }
 
+async function loadProspectiveLedger() {
+  const r = await fetch(PROSPECTIVE_LEDGER_SOURCE, { cache: "no-store" });
+  if (!r.ok) {
+    throw new Error(`Prospective ledger unavailable (${r.status})`);
+  }
+  PROSPECTIVE_LEDGER = await r.json();
+  return PROSPECTIVE_LEDGER;
+}
+
 async function refreshBoard() {
   BOARD_STATE = {
     ...BOARD_STATE,
     loading: true,
   };
+  PROSPECTIVE_STATE = {
+    ...PROSPECTIVE_STATE,
+    loading: true,
+  };
   renderBoardMeta();
+  renderProspectiveMeta();
   try {
-    const payload = await loadSnapshot();
+    const [payload, ledgerResult] = await Promise.all([
+      loadSnapshot(),
+      loadProspectiveLedger()
+        .then((ledger) => ({ ok: true, ledger }))
+        .catch((error) => ({ ok: false, error })),
+    ]);
     await renderBoard(payload);
+    if (ledgerResult.ok) {
+      PROSPECTIVE_STATE = {
+        loading: false,
+        updatedAt: ledgerResult.ledger?.updated_at_utc || null,
+        lastError: null,
+      };
+      renderProspectiveScoreboard(ledgerResult.ledger);
+    } else {
+      PROSPECTIVE_STATE = {
+        loading: false,
+        updatedAt: null,
+        lastError: String(ledgerResult.error?.message || ledgerResult.error),
+      };
+      renderProspectiveScoreboard(null);
+    }
     BOARD_STATE = {
       loading: false,
       fetchedAt: new Date().toISOString(),
@@ -633,6 +700,7 @@ async function refreshBoard() {
       lastError: null,
     };
     renderBoardMeta();
+    renderProspectiveMeta();
     return payload;
   } catch (error) {
     BOARD_STATE = {
@@ -641,6 +709,11 @@ async function refreshBoard() {
       lastError: String(error.message || error),
     };
     renderBoardMeta();
+    PROSPECTIVE_STATE = {
+      ...PROSPECTIVE_STATE,
+      loading: false,
+    };
+    renderProspectiveMeta();
     throw error;
   }
 }
@@ -657,6 +730,177 @@ async function refreshQuotes(contractSymbols) {
   } catch {
     // Non-fatal; fall back to snapshot premium
   }
+}
+
+function renderProspectiveMeta() {
+  const el = document.getElementById("prospective-sync-status");
+  if (!el) return;
+  let text = "Waiting for prospective ledger.";
+  let className = "positions-sync-status";
+  if (PROSPECTIVE_STATE.loading) {
+    text = "Refreshing forward outcome ledger…";
+    className += " is-loading";
+  } else if (PROSPECTIVE_STATE.lastError) {
+    text = PROSPECTIVE_STATE.lastError;
+    className += " is-warning";
+  } else if (PROSPECTIVE_STATE.updatedAt) {
+    text = `Updated ${formatTs(PROSPECTIVE_STATE.updatedAt)} · ${timeAgo(PROSPECTIVE_STATE.updatedAt)}`;
+    className += " is-live";
+  }
+  el.textContent = text;
+  el.className = className;
+}
+
+function pickOutcomeReturns(pick) {
+  const fixed = pick?.outcomes?.fixed_exit_marks || {};
+  return Object.entries(fixed)
+    .map(([windowName, mark]) => ({
+      windowName,
+      value: Number(mark?.pnl_pct_from_emission),
+      mark: Number(mark?.mark),
+    }))
+    .filter((row) => Number.isFinite(row.value));
+}
+
+function entryMid(pick) {
+  const quote = pick?.emission_quote || {};
+  const mid = Number(quote.mid);
+  if (Number.isFinite(mid) && mid > 0) return mid;
+  const bid = Number(quote.bid);
+  const ask = Number(quote.ask);
+  if (Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask > 0) {
+    return (bid + ask) / 2;
+  }
+  return Number(quote.last || quote.ask || quote.bid || NaN);
+}
+
+function latestProspectivePicks(ledger, limit = 12) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  return entries
+    .flatMap((entry) =>
+      (Array.isArray(entry.picks) ? entry.picks : []).map((pick) => ({
+        ...pick,
+        run_generated_at_utc:
+          pick.run_generated_at_utc || entry.run_generated_at_utc,
+      })),
+    )
+    .reverse()
+    .slice(0, limit);
+}
+
+function summarizeProspectiveLedger(ledger) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  const picks = entries.flatMap((entry) =>
+    Array.isArray(entry.picks) ? entry.picks : [],
+  );
+  const withMarks = picks.filter((pick) => pickOutcomeReturns(pick).length > 0);
+  const live = picks.filter((pick) => pick.lane === "live");
+  const shadow = picks.filter((pick) => pick.lane === "shadow");
+  const bestReturns = withMarks.map((pick) =>
+    Math.max(...pickOutcomeReturns(pick).map((row) => row.value)),
+  );
+  const worstReturns = withMarks.map((pick) =>
+    Math.min(...pickOutcomeReturns(pick).map((row) => row.value)),
+  );
+  const takeProfitHits = picks.filter(
+    (pick) =>
+      pick?.outcomes?.path_rules?.take_profit_40_pct_before_stop_50_pct ===
+      true,
+  ).length;
+  const stopHits = picks.filter((pick) => {
+    const firstHit = pick?.outcomes?.path_rules?.first_hit || {};
+    return String(firstHit.rule || "").includes("stop_50");
+  }).length;
+  return {
+    runs: entries.length,
+    picks: picks.length,
+    live: live.length,
+    shadow: shadow.length,
+    marked: withMarks.length,
+    takeProfitHits,
+    stopHits,
+    avgBest:
+      bestReturns.length
+        ? bestReturns.reduce((sum, value) => sum + value, 0) /
+          bestReturns.length
+        : null,
+    avgWorst:
+      worstReturns.length
+        ? worstReturns.reduce((sum, value) => sum + value, 0) /
+          worstReturns.length
+        : null,
+  };
+}
+
+function renderProspectiveScoreboard(ledger) {
+  const grid = document.getElementById("prospective-overview-grid");
+  const tbody = document.getElementById("prospective-tbody");
+  if (!grid && !tbody) return;
+
+  if (!ledger || !Array.isArray(ledger.entries)) {
+    if (grid) {
+      grid.innerHTML = `
+        <article class="summary-item admin-card">
+          <span class="summary-label">Prospective Ledger</span>
+          <span class="summary-value">Not available yet</span>
+          <span class="summary-note">Run the scan with prospective ledger output to populate forward outcomes.</span>
+        </article>
+      `;
+    }
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No prospective pick ledger found.</td></tr>`;
+    }
+    return;
+  }
+
+  const summary = summarizeProspectiveLedger(ledger);
+  if (grid) {
+    grid.innerHTML = [
+      summaryItemHtml("Runs", integer(summary.runs)),
+      summaryItemHtml("Contracts Judged", integer(summary.picks)),
+      summaryItemHtml("Live / Shadow", `${integer(summary.live)} / ${integer(summary.shadow)}`),
+      summaryItemHtml("Marked Outcomes", integer(summary.marked)),
+      summaryItemHtml("+40% Hits", integer(summary.takeProfitHits)),
+      summaryItemHtml("-50% Stops", integer(summary.stopHits)),
+      summaryItemHtml("Avg Best Mark", pct(summary.avgBest)),
+      summaryItemHtml("Avg Worst Mark", pct(summary.avgWorst)),
+    ]
+      .join("");
+  }
+
+  if (!tbody) return;
+  const rows = latestProspectivePicks(ledger, 12);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Prospective ledger has no picks yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((pick) => {
+      const returns = pickOutcomeReturns(pick);
+      const best = returns.length
+        ? Math.max(...returns.map((row) => row.value))
+        : null;
+      const worst = returns.length
+        ? Math.min(...returns.map((row) => row.value))
+        : null;
+      const firstHit = pick?.outcomes?.path_rules?.first_hit;
+      const ruleHit = firstHit?.rule
+        ? `${String(firstHit.rule).replaceAll("_", " ")} · ${firstHit.window || ""}`
+        : returns.length
+          ? "No threshold hit"
+          : "Pending marks";
+      const lane = String(pick.lane || "unknown");
+      return `<tr>
+        <td data-label="Run" style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${formatTs(pick.run_generated_at_utc)}</td>
+        <td data-label="Lane"><span class="position-chip ${lane === "live" ? "is-positive" : lane === "shadow" ? "is-neutral" : "is-warning"}">${escapeHtml(lane.replaceAll("_", " "))}</span></td>
+        <td data-label="Contract" style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${escapeHtml(pick.contract_symbol || "--")}</td>
+        <td data-label="Entry Mid" class="is-num">${money(entryMid(pick))}</td>
+        <td data-label="Best Mark" class="is-num ${best !== null && best >= 0 ? "is-positive" : best !== null ? "is-negative" : ""}">${best !== null ? pct(best) : "--"}</td>
+        <td data-label="Worst Mark" class="is-num ${worst !== null && worst >= 0 ? "is-positive" : worst !== null ? "is-negative" : ""}">${worst !== null ? pct(worst) : "--"}</td>
+        <td data-label="Rule Hit">${escapeHtml(ruleHit)}</td>
+      </tr>`;
+    })
+    .join("");
 }
 
 // ── Explanation-only AI Rationale ───────────────────────────────────────────
@@ -1692,6 +1936,7 @@ function bindModal() {
             price: PENDING_ORDER.price,
             preview: false,
             confirm_live: PENDING_ORDER.isLiveOrder ? true : undefined,
+            exit_policy_action: PENDING_ORDER.exit_policy_action || undefined,
           }),
         });
         const data = await r.json();
@@ -1864,7 +2109,7 @@ async function handleDirectExecute(
   }
 }
 
-async function handleClosePosition(contractSymbol, qty) {
+async function handleClosePosition(contractSymbol, qty, exitPolicyAction = "") {
   const match = contractSymbol.match(/^[A-Z]+/);
   const underlyingSymbol = match ? match[0] : contractSymbol;
 
@@ -1890,6 +2135,7 @@ async function handleClosePosition(contractSymbol, qty) {
         type: "limit",
         duration: "day",
         price,
+        exit_policy_action: exitPolicyAction || undefined,
       }),
     });
     const data = await r.json();
@@ -1939,6 +2185,7 @@ async function handleClosePosition(contractSymbol, qty) {
       type: "limit",
       duration: "day",
       price: order.price || price,
+      exit_policy_action: exitPolicyAction || undefined,
     };
 
     openModal("Close Position Preview", bodyHtml, canExec, pendingOrder, {
@@ -1961,7 +2208,11 @@ function bindPositionsTable() {
   document.querySelectorAll(".close-position-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      handleClosePosition(btn.dataset.contract, btn.dataset.qty);
+      handleClosePosition(
+        btn.dataset.contract,
+        btn.dataset.qty,
+        btn.dataset.exitPolicyAction || "",
+      );
     });
   });
 }
@@ -2448,10 +2699,7 @@ async function main() {
     }
   }
 
-  // Load backtest results (non-blocking — shows placeholder if not yet generated)
-  loadBacktest()
-    .then((bt) => renderBacktest(bt))
-    .catch(() => {});
+  // Historical validation remains available in code, but the active dashboard now centers prospective outcomes.
 }
 
 main();

@@ -1,4 +1,8 @@
 import {
+  buildOrderProvenanceEvent,
+  safeRecordOrderProvenance,
+} from "../../_lib/order_ledger.js";
+import {
   buildEligibility,
   buildOrderEnvelope,
   buildSubmissionPreview,
@@ -60,6 +64,9 @@ export async function onRequestPost(context) {
     price,
     confirm_live: confirmLive,
   } = body || {};
+  const requestedExitPolicyAction = String(
+    body?.exit_policy_action || "",
+  ).trim();
 
   if (!optionSymbol) {
     return jsonResponse({ ok: false, error: "option_symbol is required." }, 400);
@@ -143,6 +150,22 @@ export async function onRequestPost(context) {
 
     try {
       const result = await previewOrPlaceOrder(context.env, envelope, { preview: true });
+      const provenance = await safeRecordOrderProvenance(
+        context.env,
+        buildOrderProvenanceEvent({
+          eventType: "preview",
+          config,
+          session,
+          snapshot,
+          snapshotInfo,
+          lane,
+          candidate,
+          quote: liveQuote,
+          envelope,
+          result,
+          exitPolicyAction: requestedExitPolicyAction,
+        }),
+      );
       return jsonResponse({
         ok: true,
         preview: true,
@@ -150,6 +173,7 @@ export async function onRequestPost(context) {
         envelope,
         eligibility,
         submission,
+        provenance,
         rate_limits: result.rateLimits,
       });
     } catch (error) {
@@ -213,6 +237,22 @@ export async function onRequestPost(context) {
 
   try {
     const result = await previewOrPlaceOrder(context.env, envelope, { preview: false });
+    const provenance = await safeRecordOrderProvenance(
+      context.env,
+      buildOrderProvenanceEvent({
+        eventType: "submit",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        quote: liveQuote,
+        envelope,
+        result,
+        exitPolicyAction: requestedExitPolicyAction,
+      }),
+    );
     return jsonResponse({
       ok: true,
       preview: false,
@@ -221,6 +261,7 @@ export async function onRequestPost(context) {
       envelope,
       eligibility,
       submission,
+      provenance,
       rate_limits: result.rateLimits,
     });
   } catch (error) {

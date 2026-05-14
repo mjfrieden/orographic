@@ -1,0 +1,207 @@
+{
+  "artifact": "prospective_pick_ledger",
+  "schema_version": 1,
+  "updated_at_utc": "2026-05-07T20:37:06+00:00",
+  "max_entries": 500,
+  "outcome_policy": {
+    "required_fixed_exits": [
+      "one_hour",
+      "end_of_day",
+      "next_day_close",
+      "friday_close"
+    ],
+    "path_rules": [
+      "take_profit_40_pct_before_stop_50_pct",
+      "take_profit_25_pct_before_stop_50_pct"
+    ],
+    "purpose": "Judge every emitted contract recommendation, whether traded or not."
+  },
+  "aggregate": {
+    "runs": 1,
+    "pick_rows": 1,
+    "live": 0,
+    "shadow": 1,
+    "council_holdout": 0,
+    "friction_veto": 0
+  },
+  "entries": [
+    {
+      "run_generated_at_utc": "2026-05-07T20:37:06+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.4863,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 6,
+        "universe_size": 100
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "artifact"
+      },
+      "summary": {
+        "pick_rows": 1,
+        "live": 0,
+        "shadow": 1,
+        "council_holdout": 0,
+        "friction_veto": 0
+      },
+      "picks": [
+        {
+          "run_generated_at_utc": "2026-05-07T20:37:06+00:00",
+          "lane": "shadow",
+          "symbol": "QQQ",
+          "contract_symbol": "QQQ260511P00689000",
+          "option_type": "put",
+          "expiry": "2026-05-11",
+          "strike": 689.0,
+          "emission_quote": {
+            "bid": 2.13,
+            "ask": 2.16,
+            "mid": 2.145,
+            "last": 2.1,
+            "spread_pct": 0.014,
+            "open_interest": 885,
+            "volume": 2007,
+            "contract_cost": 216.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.809,
+            "learned_rank_score": 0.809,
+            "payoff_model_score": 0.809,
+            "final_candidate_score": 0.809,
+            "prob_positive_option_pnl": 0.7603,
+            "expected_option_return_pct_model": 0.9366,
+            "expected_edge_after_friction_pct": 0.6207,
+            "friction_buffer_pct": 0.3159,
+            "path_holding_quality_score": 0.6661,
+            "path_early_profit_take_prob": 0.5485,
+            "path_decay_risk": 0.4694
+          },
+          "risk_features": {
+            "delta": -0.2677,
+            "implied_volatility": 0.14,
+            "iv_rank": 0.4114,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0085,
+            "premium_pct_of_spot": 0.0031,
+            "breakeven_move_pct": 0.0117,
+            "projected_move_pct": 0.0916,
+            "realized_vol_20d": 0.1453,
+            "atr_pct_14d": 0.0134,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "sector_cluster"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.4863,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 6,
+              "universe_size": 100
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "artifact"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+              },
+              "path_model": {
+                "present": true,
+                "sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9"
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+              },
+              "path_model_card": {
+                "present": true,
+                "sha256": "f9483d315cd4bc1010d09e270d1fbd92cf895197b439cbe40cac96537043e239"
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9"
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.67, take-profit 0.55, decay 0.47"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1044,7 +1044,22 @@ section + section {
   border-top: 1px solid var(--border);
 }
 
-/* ── Positions & Orders tables ── */
+/* ── Prospective scoreboard, positions & orders tables ── */
+.prospective-section {
+  margin-top: 24px;
+}
+.prospective-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.prospective-grid .summary-item {
+  min-height: 72px;
+}
+.prospective-table-wrap {
+  overflow-x: auto;
+}
 .positions-section,
 .orders-section {
   margin-top: 24px;
@@ -1089,7 +1104,8 @@ section + section {
   min-width: 180px;
 }
 #positions-table-wrap,
-#orders-table-wrap {
+#orders-table-wrap,
+.prospective-table-wrap {
   overflow-x: auto;
 }
 .data-table {
@@ -2204,6 +2220,9 @@ section + section {
   .picks-grid {
     grid-template-columns: 1fr;
   }
+  .prospective-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
   .card-order-config {
     flex-direction: column;
     align-items: stretch;
@@ -2292,6 +2311,12 @@ section + section {
   .data-table-responsive .position-primary-value,
   .data-table-responsive .position-symbol {
     font-size: 0.88rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .prospective-grid {
+    grid-template-columns: 1fr;
   }
 }
 

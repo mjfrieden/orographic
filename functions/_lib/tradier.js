@@ -202,6 +202,36 @@ function enrichPositionsWithQuotes(positions, quotes) {
       enriched.open_pl = null;
     }
 
+    const openPlPct =
+      enriched.open_pl !== null && Number(enriched.cost_basis || 0) > 0
+        ? enriched.open_pl / Number(enriched.cost_basis)
+        : null;
+    enriched.open_pl_pct =
+      openPlPct !== null ? Number(openPlPct.toFixed(4)) : null;
+
+    if (isOptionContractSymbol(symbol)) {
+      const exitPolicy = {
+        name: "mechanical_long_option_exit_v1",
+        stop_loss_pct: -0.5,
+        profit_harvest_pct: 0.4,
+        action: "hold",
+        reason: "No mechanical exit threshold has been reached.",
+        required: false,
+      };
+      if (openPlPct !== null && openPlPct <= -0.5) {
+        exitPolicy.action = "sell_to_close";
+        exitPolicy.reason =
+          "Mechanical stop: long option is down at least 50% from cost basis.";
+        exitPolicy.required = true;
+      } else if (openPlPct !== null && openPlPct >= 0.4) {
+        exitPolicy.action = "harvest_profit";
+        exitPolicy.reason =
+          "Mechanical harvest: long option is up at least 40% from cost basis.";
+        exitPolicy.required = false;
+      }
+      enriched.exit_policy = exitPolicy;
+    }
+
     return enriched;
   });
 }
@@ -628,7 +658,7 @@ export async function previewOrPlaceOrder(env, payload, { preview }) {
       duration: payload.duration,
       price: payload.price,
       preview: preview ? "true" : undefined,
-      tag: "orographic-arena",
+      tag: payload.tag || "orographic-arena",
     },
   });
 
