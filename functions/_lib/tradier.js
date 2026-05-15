@@ -159,7 +159,7 @@ function pickQuoteMark(quote) {
   return { price: null, source: null };
 }
 
-function enrichPositionsWithQuotes(positions, quotes) {
+export function enrichPositionsWithQuotes(positions, quotes) {
   const quotesBySymbol = new Map(
     toList(quotes).map((quote) => [
       String(quote?.symbol || "")
@@ -975,6 +975,16 @@ export function validateSubmission({
 
   // Bypassed for closing positions because manual exit does not depend on AI radar freshness
   if (side === "buy_to_open") {
+    if (lane !== "live") {
+      return {
+        ok: false,
+        status: 409,
+        error:
+          lane === "shadow"
+            ? "Shadow-lane contracts are observation-only and cannot be opened through the broker transmitter."
+            : "Manual or untracked contracts cannot be opened through the broker transmitter.",
+      };
+    }
     if (!snapshotInfo?.is_fresh) {
       return {
         ok: false,

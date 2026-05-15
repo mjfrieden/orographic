@@ -107,6 +107,9 @@ export function buildOrderProvenanceEvent({
   envelope,
   result,
   exitPolicyAction,
+  blockReason,
+  httpStatus,
+  error,
 }) {
   const order = result?.confirmation || result?.order || null;
   const mode = cleanText(config?.mode, "disabled");
@@ -134,7 +137,12 @@ export function buildOrderProvenanceEvent({
     quantity: asNumber(envelope?.quantity, 0),
     limit_price: asNumber(envelope?.price, null),
     broker_order_id: cleanText(order?.id || result?.order?.id || ""),
-    broker_status: cleanText(order?.status || result?.order?.status || ""),
+    broker_status: cleanText(
+      order?.status || result?.order?.status || blockReason || "",
+    ),
+    block_reason: cleanText(blockReason || ""),
+    http_status: asNumber(httpStatus, null),
+    error: cleanText(error || ""),
     exit_policy_action: cleanText(exitPolicyAction || ""),
     tag: cleanText(envelope?.tag || ""),
     candidate: compact,

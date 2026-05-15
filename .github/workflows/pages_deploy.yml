@@ -33,6 +33,11 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Run JS/API tests
+        if: ${{ env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        run: |
+          npm run test:js
+
       - name: Deploy to Cloudflare Pages
         if: ${{ env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: |
