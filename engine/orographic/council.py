@@ -36,11 +36,17 @@ ABSTAIN_REASON_LABELS = {
     "no_forge_candidates": "No Forge candidates reached Council.",
     "below_live_score": "All candidates fell below the live-score gate.",
     "extrinsic_limit": "All candidates failed the extrinsic ceiling.",
+    "symbol_probation": "All candidates are live-blocked by symbol probation.",
     "score_and_extrinsic_limit": "Candidates failed both score and extrinsic gates.",
     "mixed_core_filters": "Candidates were blocked by a mix of score and extrinsic gates.",
     "side_balance": "Eligible candidates were rejected by side-balance controls.",
     "selection_threshold": "Eligible candidates survived core filters but did not reach the live board.",
 }
+
+LIVE_PROBATION_SYMBOLS = frozenset({"NFLX", "TLT"})
+LIVE_PROBATION_REASON = (
+    "symbol_probation: insufficient/negative realized option-outcome evidence for live promotion"
+)
 
 
 # ── Markowitz helpers ─────────────────────────────────────────────────────────
@@ -386,8 +392,17 @@ def select_board(
     score_only_blocked: list[ContractCandidate] = []
     extrinsic_only_blocked: list[ContractCandidate] = []
     score_and_extrinsic_blocked: list[ContractCandidate] = []
+    probation_blocked: list[ContractCandidate] = []
 
     for candidate in candidates:
+        symbol_on_probation = candidate.symbol.upper() in LIVE_PROBATION_SYMBOLS
+        if symbol_on_probation:
+            flags = set(candidate.council_risk_flags)
+            flags.add("symbol_probation")
+            candidate.council_risk_flags = sorted(flags)
+            if LIVE_PROBATION_REASON not in candidate.notes:
+                candidate.notes.append(LIVE_PROBATION_REASON)
+
         required_score = (
             minimum_put_live_score
             if candidate.option_type == "put" and minimum_put_live_score is not None
@@ -395,8 +410,10 @@ def select_board(
         )
         score_ok = candidate.forge_score >= required_score
         extrinsic_ok = candidate.extrinsic_ratio <= max_live_extrinsic_ratio
-        if score_ok and extrinsic_ok:
+        if score_ok and extrinsic_ok and not symbol_on_probation:
             eligible.append(candidate)
+        elif symbol_on_probation:
+            probation_blocked.append(candidate)
         elif not score_ok and not extrinsic_ok:
             score_and_extrinsic_blocked.append(candidate)
         elif not score_ok:
@@ -552,17 +569,19 @@ def select_board(
     if not candidates:
         primary_reason = "no_forge_candidates"
     elif not eligible:
-        if len(extrinsic_only_blocked) + len(score_and_extrinsic_blocked) == len(candidates):
+        if len(probation_blocked) == len(candidates):
+            primary_reason = "symbol_probation"
+        elif len(extrinsic_only_blocked) + len(score_and_extrinsic_blocked) + len(probation_blocked) == len(candidates):
             primary_reason = (
                 "score_and_extrinsic_limit"
                 if len(score_and_extrinsic_blocked) == len(candidates)
-                else "extrinsic_limit"
+                else "extrinsic_limit" if not probation_blocked else "mixed_core_filters"
             )
-        elif len(score_only_blocked) + len(score_and_extrinsic_blocked) == len(candidates):
+        elif len(score_only_blocked) + len(score_and_extrinsic_blocked) + len(probation_blocked) == len(candidates):
             primary_reason = (
                 "score_and_extrinsic_limit"
                 if len(score_and_extrinsic_blocked) == len(candidates)
-                else "below_live_score"
+                else "below_live_score" if not probation_blocked else "mixed_core_filters"
             )
         else:
             primary_reason = "mixed_core_filters"
@@ -598,6 +617,7 @@ def select_board(
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
             "max_same_side_share": max_same_side_share,
             "max_same_sector_share": max_same_sector_share,
+            "live_probation_symbols": sorted(LIVE_PROBATION_SYMBOLS),
             "turnover_switch_penalty": turnover_switch_penalty,
         },
         "turnover": turnover_diag,
@@ -611,17 +631,20 @@ def select_board(
             "score_only_fail_count": len(score_only_blocked),
             "extrinsic_only_fail_count": len(extrinsic_only_blocked),
             "score_and_extrinsic_fail_count": len(score_and_extrinsic_blocked),
+            "symbol_probation_fail_count": len(probation_blocked),
             "side_balance_rejections": side_balance_rejections,
             "side_balance_demotions": side_balance_demotions,
             "blocked_symbols": {
                 "score_only": [row.symbol for row in score_only_blocked[:3]],
                 "extrinsic_only": [row.symbol for row in extrinsic_only_blocked[:3]],
                 "score_and_extrinsic": [row.symbol for row in score_and_extrinsic_blocked[:3]],
+                "symbol_probation": [row.symbol for row in probation_blocked[:3]],
             },
             "best_rejected_candidates": {
                 "score_only": [_audit_candidate(row) for row in score_only_blocked[:5]],
                 "extrinsic_only": [_audit_candidate(row) for row in extrinsic_only_blocked[:5]],
                 "score_and_extrinsic": [_audit_candidate(row) for row in score_and_extrinsic_blocked[:5]],
+                "symbol_probation": [_audit_candidate(row) for row in probation_blocked[:5]],
             },
         },
         "notes":               notes,

@@ -100,6 +100,63 @@ class CouncilTests(unittest.TestCase):
         self.assertEqual(result.summary["turnover"]["reason"], "retained_prior_board")
         self.assertIn("Turnover penalty kept the prior live board", " ".join(result.summary["notes"]))
 
+    def test_council_live_blocks_probation_symbols_but_keeps_them_shadow_visible(self) -> None:
+        candidates = [
+            _candidate("NFLX", "call", 0.95),
+            _candidate("TLT", "call", 0.94),
+            _candidate("AAPL", "put", 0.93),
+        ]
+        with mock.patch("engine.orographic.council._fetch_corr_matrix", return_value=None):
+            result = select_board(
+                candidates,
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                live_size=2,
+                shadow_size=3,
+            )
+
+        self.assertEqual([row.symbol for row in result.live_board], ["AAPL"])
+        self.assertEqual({row.symbol for row in result.shadow_board}, {"NFLX", "TLT"})
+        for row in result.shadow_board:
+            self.assertIn("symbol_probation", row.council_risk_flags)
+        self.assertEqual(
+            result.summary["abstain_audit"]["blocked_symbols"]["symbol_probation"],
+            ["NFLX", "TLT"],
+        )
+
+    def test_council_does_not_probation_block_bac(self) -> None:
+        result = select_board(
+            [_candidate("BAC", "put", 0.95)],
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+            live_size=1,
+        )
+
+        self.assertFalse(result.abstain)
+        self.assertEqual([row.symbol for row in result.live_board], ["BAC"])
+        self.assertNotIn("symbol_probation", result.live_board[0].council_risk_flags)
+
+    def test_council_abstains_with_symbol_probation_reason_when_all_live_candidates_are_blocked(self) -> None:
+        result = select_board(
+            [
+                _candidate("NFLX", "call", 0.95),
+                _candidate("TLT", "put", 0.94),
+            ],
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+            live_size=2,
+            shadow_size=2,
+        )
+
+        self.assertTrue(result.abstain)
+        self.assertEqual(result.live_board, [])
+        self.assertEqual({row.symbol for row in result.shadow_board}, {"NFLX", "TLT"})
+        self.assertEqual(
+            result.summary["abstain_audit"]["primary_reason"],
+            "symbol_probation",
+        )
+        self.assertEqual(
+            result.summary["abstain_audit"]["primary_reason_label"],
+            "All candidates are live-blocked by symbol probation.",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
