@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from .council import select_board
 from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
+from .moonshot import select_moonshot_lane
 from .scout import scan_symbols_with_diagnostics
 
 
@@ -55,6 +56,9 @@ class PipelineConfig:
     minimum_live_score: float = 0.76
     minimum_put_live_score: float = 0.84
     max_live_extrinsic_ratio: float = 0.90
+    moonshot_size: int = 1
+    moonshot_threshold: float = 0.68
+    moonshot_max_cost_basis: float = 225.0
     enforce_pre_council_friction_gate: bool = False
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
 
@@ -431,6 +435,13 @@ def _validate_snapshot_contract(payload: dict[str, Any]) -> None:
     forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
     live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
     shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    moonshot_lane = payload.get("moonshot_lane") if isinstance(payload.get("moonshot_lane"), dict) else {}
+    moonshot_summary = (
+        moonshot_lane.get("summary")
+        if isinstance(moonshot_lane.get("summary"), dict)
+        else {}
+    )
+    moonshot_picks = moonshot_lane.get("picks") if isinstance(moonshot_lane.get("picks"), list) else []
 
     expected = {
         "scout_signal_count": len(scout_signals),
@@ -438,6 +449,7 @@ def _validate_snapshot_contract(payload: dict[str, Any]) -> None:
         "candidate_count": len(forge_candidates),
         "live_count": len(live_board),
         "shadow_count": len(shadow_board),
+        "moonshot_pick_count": len(moonshot_picks),
     }
     observed = {
         "scout_signal_count": _coerce_int(summary.get("scout_signal_count")),
@@ -445,6 +457,7 @@ def _validate_snapshot_contract(payload: dict[str, Any]) -> None:
         "candidate_count": _coerce_int(council_summary.get("candidate_count")),
         "live_count": _coerce_int(council_summary.get("live_count")),
         "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+        "moonshot_pick_count": _coerce_int(moonshot_summary.get("pick_count")),
     }
     mismatches = {
         key: {"expected": expected[key], "observed": observed[key]}
@@ -1310,6 +1323,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         minimum_live_score = _config_float(config, "minimum_live_score", 0.76, minimum=0.0, maximum=1.0)
         minimum_put_live_score = _config_float(config, "minimum_put_live_score", 0.84, minimum=0.0, maximum=1.0)
         max_live_extrinsic_ratio = _config_float(config, "max_live_extrinsic_ratio", 0.90, minimum=0.0, maximum=1.0)
+        moonshot_size = _config_int(config, "moonshot_size", 1, minimum=0)
+        moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
+        moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
         model_artifacts = _model_artifact_status()
         model_modes = _model_mode_status(model_artifacts)
@@ -1352,6 +1368,18 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
+        moonshot_lane = select_moonshot_lane(
+            forge_candidates,
+            regime,
+            slot_count=moonshot_size,
+            threshold=moonshot_threshold,
+            max_cost_basis=moonshot_max_cost_basis,
+        )
+        log.info(
+            "Moonshot lane selected %d/%d eligible candidates.",
+            moonshot_lane["summary"]["pick_count"],
+            moonshot_lane["summary"]["eligible_count"],
+        )
 
         live_avg_score = (
             round(sum(row.forge_score for row in council.live_board) / len(council.live_board), 4)
@@ -1372,6 +1400,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "minimum_live_score": minimum_live_score,
                 "minimum_put_live_score": minimum_put_live_score,
                 "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
+                "moonshot_size": moonshot_size,
+                "moonshot_threshold": moonshot_threshold,
+                "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
             },
             "model_modes": model_modes,
@@ -1379,6 +1410,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "scout_signals": [row.to_dict() for row in scout_signals],
             "forge_candidates": [row.to_dict() for row in forge_candidates],
             "council": council.to_dict(),
+            "moonshot_lane": moonshot_lane,
             "diagnostics": {
                 "scout": scout_diagnostics,
                 "pre_forge": pre_forge_diagnostics,
@@ -1396,6 +1428,8 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout_shadow_side_veto_rejections": scout_diagnostics.get("shadow_side_veto_rejections", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
+                "moonshot_pick_count": moonshot_lane["summary"]["pick_count"],
+                "moonshot_eligible_count": moonshot_lane["summary"]["eligible_count"],
                 "forge_learned_ranker": forge_diagnostics.get("learned_ranker", {}),
                 "prior_live_board_symbols": prior_live_board_symbols,
                 "abstain": council.abstain,

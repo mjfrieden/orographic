@@ -162,6 +162,24 @@ def parse_args() -> argparse.Namespace:
         help="Maximum extrinsic ratio allowed on live-board candidates.",
     )
     parser.add_argument(
+        "--moonshot-size",
+        type=int,
+        default=1,
+        help="Number of Nimrod-inspired tail-upside satellite picks to emit.",
+    )
+    parser.add_argument(
+        "--moonshot-threshold",
+        type=float,
+        default=0.68,
+        help="Minimum tail-upside score for the dedicated moonshot lane.",
+    )
+    parser.add_argument(
+        "--moonshot-max-cost-basis",
+        type=float,
+        default=225.0,
+        help="Maximum premium cost basis for moonshot satellite eligibility.",
+    )
+    parser.add_argument(
         "--enforce-pre-council-friction-gate",
         action="store_true",
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
@@ -187,6 +205,9 @@ def main() -> int:
             minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
             minimum_put_live_score=max(min(float(args.minimum_put_live_score), 1.0), 0.0),
             max_live_extrinsic_ratio=max(min(float(args.max_live_extrinsic_ratio), 1.0), 0.0),
+            moonshot_size=max(int(args.moonshot_size), 0),
+            moonshot_threshold=max(min(float(args.moonshot_threshold), 1.0), 0.0),
+            moonshot_max_cost_basis=max(float(args.moonshot_max_cost_basis), 0.0),
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
         )
     )
