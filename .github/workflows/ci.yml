@@ -97,7 +97,11 @@ jobs:
           if not board_history.exists():
               raise SystemExit("board recommendation history was not written")
           artifacts = payload.get("model_artifacts", {})
-          missing = [name for name, row in artifacts.items() if not row.get("present") or not row.get("sha256")]
+          missing = [
+              name
+              for name, row in artifacts.items()
+              if row.get("required", True) and (not row.get("present") or not row.get("sha256"))
+          ]
           if missing:
               raise SystemExit(f"snapshot missing model artifact status: {missing}")
           print("Snapshot smoke test passed.")

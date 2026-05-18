@@ -352,6 +352,15 @@ def _sha256_file(path: Path) -> str | None:
 
 
 def _model_artifact_status() -> dict[str, Any]:
+    manifest_path = MODEL_DIR / "artifact_manifest.json"
+    manifest_artifacts: dict[str, Any] = {}
+    if manifest_path.exists():
+        try:
+            loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+            raw_artifacts = loaded.get("artifacts", {}) if isinstance(loaded, dict) else {}
+            manifest_artifacts = raw_artifacts if isinstance(raw_artifacts, dict) else {}
+        except json.JSONDecodeError:
+            manifest_artifacts = {}
     artifacts = {
         "scout_model": MODEL_DIR / "scout_model.pkl",
         "scout_scaler": MODEL_DIR / "scout_scaler.pkl",
@@ -366,6 +375,11 @@ def _model_artifact_status() -> dict[str, Any]:
         name: {
             "present": path.exists(),
             "sha256": _sha256_file(path),
+            "required": bool(
+                manifest_artifacts.get(name, {}).get("required", True)
+                if isinstance(manifest_artifacts.get(name), dict)
+                else True
+            ),
         }
         for name, path in artifacts.items()
     }
