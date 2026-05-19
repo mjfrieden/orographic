@@ -1552,7 +1552,6 @@ async function renderBoard(payload) {
 
   renderForgeDiagnostics(payload);
   renderLiveShadowAttribution(payload);
-  renderPromotionReadiness(payload);
 
   // Bind card buttons
   bindCardButtons();
