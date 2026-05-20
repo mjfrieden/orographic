@@ -100,6 +100,10 @@ class ContractCandidate:
     learned_rank_score: float | None = None
     ranker_mode: str = "heuristic"
     ranker_artifact_sha256: str | None = None
+    call_selector_model_score: float | None = None
+    call_selector_contract_score: float | None = None
+    call_contract_selector_score: float | None = None
+    call_contract_selector_mode: str | None = None
     risk_adjusted_score: float | None = None
     sector: str | None = None
     suggested_allocation_pct: float | None = None

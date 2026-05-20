@@ -138,9 +138,14 @@ class PayoffModelTests(unittest.TestCase):
                 model_path=model_path,
             )
 
-        self.assertEqual(candidates[0].ranker_mode, "active")
-        self.assertNotEqual(candidates[0].forge_score, 0.51)
-        self.assertTrue(any("Payoff model ranker active" in note for note in candidates[0].notes))
+        call = next(row for row in candidates if row.option_type == "call")
+        put = next(row for row in candidates if row.option_type == "put")
+        self.assertEqual(call.ranker_mode, "active")
+        self.assertNotEqual(call.forge_score, 0.51)
+        self.assertTrue(any("Payoff model ranker active" in note for note in call.notes))
+        self.assertIsNotNone(call.call_contract_selector_score)
+        self.assertTrue(any("Nimrod call contract selector active" in note for note in call.notes))
+        self.assertIsNone(put.call_contract_selector_score)
 
     def test_active_ranker_applies_stability_bonus_and_turnover_penalty(self) -> None:
         incumbent = _candidate("call", 0.4, 0.51)
@@ -186,8 +191,8 @@ class PayoffModelTests(unittest.TestCase):
         self.assertGreater(incumbent.stability_adjustment or 0.0, 0.0)
         self.assertEqual(entrant.prior_live_board_symbol, False)
         self.assertGreater(entrant.turnover_risk_penalty or 0.0, 0.0)
-        self.assertLess(entrant.final_candidate_score, entrant.payoff_model_score)
-        self.assertGreater(incumbent.final_candidate_score, incumbent.payoff_model_score)
+        self.assertLess(entrant.final_candidate_score, entrant.call_contract_selector_score)
+        self.assertGreater(incumbent.final_candidate_score, incumbent.call_contract_selector_score)
 
     def test_feature_row_includes_option_native_and_sentinel_features(self) -> None:
         candidate = _candidate("call", 0.4, 0.55)
