@@ -56,6 +56,8 @@ class MoonshotTests(unittest.TestCase):
         self.assertGreaterEqual(assessment.tail_upside_score, 0.68)
         self.assertIn("cheap premium", " ".join(assessment.reasons))
         self.assertIn("medium delta", " ".join(assessment.reasons))
+        self.assertIsNotNone(candidate.call_contract_selector_score)
+        self.assertEqual(candidate.call_contract_selector_mode, "moonshot_only_nimrod_call_selector")
 
     def test_risk_off_call_is_not_eligible_for_satellite_slot(self) -> None:
         candidate = _candidate()
@@ -80,6 +82,7 @@ class MoonshotTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["pick_count"], 1)
         self.assertEqual(payload["picks"][0]["symbol"], "NVDA")
         self.assertIn("moonshot", payload["picks"][0])
+        self.assertIsNotNone(payload["picks"][0]["call_contract_selector_score"])
 
 
 if __name__ == "__main__":

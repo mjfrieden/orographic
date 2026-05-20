@@ -17,8 +17,6 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import numpy as np
-
-from engine.orographic.call_contract_selector import blend_call_selector_score
 from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 log = logging.getLogger(__name__)
@@ -464,21 +462,7 @@ def score_candidates(
             + 0.10 * regime_alignment
             + 0.10 * utility_after_friction
         )
-        call_selector = (
-            blend_call_selector_score(
-                candidate,
-                model_score=base_final_score,
-                mode=f"{ranker_mode}_nimrod_call_selector",
-            )
-            if artifact
-            else None
-        )
-        selector_base_score = (
-            call_selector.blended_score
-            if call_selector is not None
-            else base_final_score
-        )
-        final_score = _clip(selector_base_score + stability_adjustment)
+        final_score = _clip(base_final_score + stability_adjustment)
 
         candidate.pre_payoff_forge_score = round(pre_payoff_score, 4)
         candidate.directional_edge = round(directional, 4)
@@ -502,26 +486,16 @@ def score_candidates(
         candidate.final_candidate_score = round(final_score, 4)
         candidate.learned_rank_score = round(final_score, 4)
         candidate.ranker_artifact_sha256 = artifact_hash
-        if call_selector is not None:
-            candidate.call_selector_model_score = call_selector.model_score
-            candidate.call_selector_contract_score = call_selector.contract_side_score
-            candidate.call_contract_selector_score = call_selector.blended_score
-            candidate.call_contract_selector_mode = call_selector.mode
-        else:
-            candidate.call_selector_model_score = None
-            candidate.call_selector_contract_score = None
-            candidate.call_contract_selector_score = None
-            candidate.call_contract_selector_mode = None
+        candidate.call_selector_model_score = None
+        candidate.call_selector_contract_score = None
+        candidate.call_contract_selector_score = None
+        candidate.call_contract_selector_mode = None
         if artifact:
             candidate.ranker_mode = ranker_mode
             if ranker_mode == "active":
                 candidate.forge_score = round(final_score, 4)
                 if not any("payoff model" in note.lower() for note in candidate.notes):
                     candidate.notes.append("Payoff model ranker active")
-                if call_selector is not None and not any("call contract selector" in note.lower() for note in candidate.notes):
-                    candidate.notes.append(
-                        "Nimrod call contract selector active (70% model / 30% contract-side)"
-                    )
                 if stability_adjustment > 0:
                     candidate.notes.append("Stability bonus applied for prior live-board continuity")
                 elif turnover_risk_penalty > 0:
