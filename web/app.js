@@ -62,6 +62,18 @@ function toneClass(value) {
   return String(value).toLowerCase() === "call" ? "is-call" : "is-put";
 }
 
+function laneLabel(lane) {
+  if (lane === "live") return "Live";
+  if (lane === "moonshot") return "Moonshot";
+  return "Shadow";
+}
+
+function laneClass(lane) {
+  if (lane === "live") return "is-live";
+  if (lane === "moonshot") return "is-moonshot";
+  return "is-shadow";
+}
+
 function regimeToneClass(mode) {
   if (String(mode).toLowerCase() === "risk_on") return "is-call";
   if (String(mode).toLowerCase() === "risk_off") return "is-put";
@@ -740,6 +752,7 @@ function buildTradeCard(candidate, regime, lane) {
   const role = SESSION?.session?.role || "viewer";
   const isAdmin = role === "admin";
   const isLive = lane === "live";
+  const isMoonshot = lane === "moonshot";
   const tone = toneClass(candidate.option_type);
   const dir = candidate.option_type?.toUpperCase();
   const liveQuote = LIVE_QUOTES.get(candidate.contract_symbol);
@@ -761,7 +774,7 @@ function buildTradeCard(candidate, regime, lane) {
   );
 
   const card = document.createElement("div");
-  card.className = `trade-card ${tone}${!isLive ? " is-shadow" : ""}`;
+  card.className = `trade-card ${tone}${isMoonshot ? " is-moonshot" : !isLive ? " is-shadow" : ""}`;
   card.dataset.contractSymbol = candidate.contract_symbol;
   card.dataset.lane = lane;
 
@@ -777,9 +790,20 @@ function buildTradeCard(candidate, regime, lane) {
     <div class="card-body">
       <div class="card-ticker-row">
         <span class="card-ticker">${candidate.symbol}</span>
-        <span class="card-lane-badge ${isLive ? "is-live" : "is-shadow"}">${isLive ? "Live" : "Shadow"}</span>
+        <span class="card-lane-badge ${laneClass(lane)}">${laneLabel(lane)}</span>
       </div>
       <p class="card-contract">${candidate.contract_symbol}</p>
+
+      ${
+        candidate.moonshot
+          ? `
+      <div class="moonshot-card-strip">
+        <span>Tail score</span>
+        <strong>${Number(candidate.moonshot.tail_upside_score || 0).toFixed(2)}</strong>
+      </div>
+      `
+          : ""
+      }
 
       <div class="card-score-bar-wrap">
         <div class="card-score-bar-label">
@@ -860,6 +884,26 @@ function buildTradeCard(candidate, regime, lane) {
         <div class="card-stat">
           <span class="card-stat-label">Sector</span>
           <span class="card-stat-value">${String(candidate.sector).replaceAll("_", " ")}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          candidate.moonshot?.tail_upside_score != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Tail Score</span>
+          <span class="card-stat-value">${Number(candidate.moonshot.tail_upside_score).toFixed(2)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          candidate.contract_cost != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Cost</span>
+          <span class="card-stat-value">${money(candidate.contract_cost)}</span>
         </div>
         `
             : ""
@@ -947,6 +991,13 @@ function buildTradeCard(candidate, regime, lane) {
           : ""
       }
 
+      ${
+        candidate.moonshot?.reasons?.length
+          ? `
+        <p class="card-notes">Moonshot: ${candidate.moonshot.reasons.join(" · ")}</p>
+      `
+          : ""
+      }
       ${
         candidate.notes?.length
           ? `
@@ -1375,6 +1426,11 @@ async function renderBoard(payload) {
 
   const live = payload.council.live_board || [];
   const shadow = payload.council.shadow_board || [];
+  const hasMoonshotLane = Boolean(payload.moonshot_lane);
+  const moonshot = payload.moonshot_lane || {};
+  const moonshotPicks = Array.isArray(moonshot.picks) ? moonshot.picks : [];
+  const moonshotSummary = moonshot.summary || {};
+  const moonshotPolicy = moonshot.policy || {};
   const summary = payload.council.summary || payload.summary || {};
   const abstainAudit = summary.abstain_audit || {};
   const generatedAt = payload.generated_at_utc || payload.timestamp;
@@ -1437,7 +1493,7 @@ async function renderBoard(payload) {
   }
 
   // Prefetch live quotes for all contracts
-  const allContracts = [...live, ...shadow]
+  const allContracts = [...live, ...shadow, ...moonshotPicks]
     .map((c) => c.contract_symbol)
     .filter(Boolean);
   await refreshQuotes(allContracts);
@@ -1459,6 +1515,55 @@ async function renderBoard(payload) {
     } else {
       live.forEach((c) =>
         liveGrid.appendChild(buildTradeCard(c, payload.regime, "live")),
+      );
+    }
+  }
+
+  const moonshotPolicyStatus = document.getElementById("moonshot-policy-status");
+  if (moonshotPolicyStatus) {
+    if (!hasMoonshotLane) {
+      moonshotPolicyStatus.textContent = "Waiting for next scan";
+      moonshotPolicyStatus.className = "positions-sync-status is-warning";
+    } else {
+      const picked = integer(moonshotSummary.pick_count);
+      const eligible = integer(moonshotSummary.eligible_count);
+      moonshotPolicyStatus.textContent = `${picked} picked · ${eligible} eligible`;
+      moonshotPolicyStatus.className = `positions-sync-status ${moonshotPicks.length ? "is-live" : "is-warning"}`;
+    }
+  }
+
+  const moonshotSummaryGrid = document.getElementById("moonshot-summary-grid");
+  if (moonshotSummaryGrid) {
+    moonshotSummaryGrid.innerHTML = [
+      summaryItemHtml("Picked", integer(moonshotSummary.pick_count)),
+      summaryItemHtml("Eligible", integer(moonshotSummary.eligible_count)),
+      summaryItemHtml("Top Tail Score", moonshotSummary.top_score == null ? "—" : Number(moonshotSummary.top_score).toFixed(2)),
+      summaryItemHtml("Threshold", moonshotSummary.threshold == null ? "—" : Number(moonshotSummary.threshold).toFixed(2)),
+      summaryItemHtml("Cost Cap", money(moonshotSummary.max_cost_basis)),
+      summaryItemHtml("Mode", moonshotPolicy.capital_mode || "satellite_shadow_then_canary"),
+    ].join("");
+  }
+
+  const moonshotGrid = document.getElementById("moonshot-picks-grid");
+  if (moonshotGrid) {
+    moonshotGrid.innerHTML = "";
+    if (!hasMoonshotLane) {
+      moonshotGrid.appendChild(
+        buildEmptyCard(
+          "Moonshot Payload Pending",
+          "The next Orographic scan will write dedicated moonshot candidates into this slot.",
+        ),
+      );
+    } else if (!moonshotPicks.length) {
+      moonshotGrid.appendChild(
+        buildEmptyCard(
+          "Moonshot Lane Quiet",
+          "No contract cleared the dedicated tail-upside slot for this run.",
+        ),
+      );
+    } else {
+      moonshotPicks.forEach((c) =>
+        moonshotGrid.appendChild(buildTradeCard(c, payload.regime, "moonshot")),
       );
     }
   }
