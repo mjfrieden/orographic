@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-20T03:32:46+00:00",
+  "updated_at_utc": "2026-05-20T17:22:54+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 68,
+    "runs": 69,
     "live_picks_emitted": 26,
-    "shadow_picks_emitted": 139,
-    "abstain_runs": 48,
+    "shadow_picks_emitted": 142,
+    "abstain_runs": 49,
     "abstain_primary_reasons": [
       {
         "reason": "extrinsic_limit",
@@ -26,12 +26,12 @@
         "count": 5
       },
       {
-        "reason": "score_and_extrinsic_limit",
+        "reason": "below_live_score",
         "count": 2
       },
       {
-        "reason": "below_live_score",
-        "count": 1
+        "reason": "score_and_extrinsic_limit",
+        "count": 2
       }
     ]
   },
@@ -10397,6 +10397,295 @@
             "Payoff model ranker active",
             "Nimrod call contract selector active (70% model / 30% contract-side)",
             "Path model shadow: hold quality 0.61, take-profit 0.34, decay 0.51"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-20T17:22:54+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.2121,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 35,
+        "pre_forge_signal_count": 12,
+        "forge_candidate_count": 17,
+        "live_count": 0,
+        "shadow_count": 3,
+        "abstain_audit": {
+          "primary_reason": "below_live_score",
+          "primary_reason_label": "All candidates fell below the live-score gate.",
+          "requested_live_size": 3,
+          "candidate_count": 17,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 2,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 15,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [
+              "WFC",
+              "PYPL"
+            ],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              "UBER",
+              "C",
+              "UPS"
+            ],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [
+              {
+                "symbol": "WFC",
+                "contract_symbol": "WFC260529C00075000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 75.0,
+                "forge_score": 0.4878,
+                "learned_rank_score": 0.4878,
+                "expected_edge_after_friction_pct": -0.1987,
+                "friction_buffer_pct": 0.193,
+                "extrinsic_ratio": 0.672,
+                "contract_cost": 186.0,
+                "spread_pct": 0.0552,
+                "delta": 0.5831,
+                "iv_rank": 0.6739,
+                "council_risk_flags": []
+              },
+              {
+                "symbol": "PYPL",
+                "contract_symbol": "PYPL260529C00044000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 44.0,
+                "forge_score": 0.427,
+                "learned_rank_score": 0.427,
+                "expected_edge_after_friction_pct": -0.5386,
+                "friction_buffer_pct": 0.3148,
+                "extrinsic_ratio": 0.8542,
+                "contract_cost": 96.0,
+                "spread_pct": 0.1215,
+                "delta": 0.5431,
+                "iv_rank": 0.2163,
+                "council_risk_flags": []
+              }
+            ],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              {
+                "symbol": "UBER",
+                "contract_symbol": "UBER260529C00076000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 76.0,
+                "forge_score": 0.7289,
+                "learned_rank_score": 0.7289,
+                "expected_edge_after_friction_pct": 0.5189,
+                "friction_buffer_pct": 0.3555,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 117.0,
+                "spread_pct": 0.08,
+                "delta": 0.3889,
+                "iv_rank": 0.6246,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              },
+              {
+                "symbol": "C",
+                "contract_symbol": "C260529C00128000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 128.0,
+                "forge_score": 0.7104,
+                "learned_rank_score": 0.7104,
+                "expected_edge_after_friction_pct": 1.137,
+                "friction_buffer_pct": 0.3707,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 120.0,
+                "spread_pct": 0.1053,
+                "delta": 0.3059,
+                "iv_rank": 0.4417,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              },
+              {
+                "symbol": "UPS",
+                "contract_symbol": "UPS260529C00101000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 101.0,
+                "forge_score": 0.6847,
+                "learned_rank_score": 0.6847,
+                "expected_edge_after_friction_pct": 0.6245,
+                "friction_buffer_pct": 0.3513,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 71.0,
+                "spread_pct": 0.073,
+                "delta": 0.279,
+                "iv_rank": 0.3258,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              },
+              {
+                "symbol": "UBER",
+                "contract_symbol": "UBER260529C00075000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 75.0,
+                "forge_score": 0.6416,
+                "learned_rank_score": 0.6416,
+                "expected_edge_after_friction_pct": 0.0072,
+                "friction_buffer_pct": 0.3539,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 161.0,
+                "spread_pct": 0.0774,
+                "delta": 0.4819,
+                "iv_rank": 0.6531,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              },
+              {
+                "symbol": "T",
+                "contract_symbol": "T260529C00025000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 25.0,
+                "forge_score": 0.6391,
+                "learned_rank_score": 0.6391,
+                "expected_edge_after_friction_pct": -0.0632,
+                "friction_buffer_pct": 0.3724,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 39.0,
+                "spread_pct": 0.1081,
+                "delta": 0.491,
+                "iv_rank": 0.6425,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              }
+            ],
+            "symbol_probation": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 3,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "UBER",
+          "contract_symbol": "UBER260529C00076000",
+          "option_type": "call",
+          "expiry": "2026-05-29",
+          "strike": 76.0,
+          "forge_score": 0.7289,
+          "payoff_edge_score": 0.5616,
+          "expected_edge_after_friction_pct": 0.5189,
+          "path_holding_quality_score": 0.5128,
+          "path_early_profit_take_prob": 0.3114,
+          "path_decay_risk": 0.5201,
+          "path_model_mode": "shadow",
+          "contract_cost": 117.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.51, take-profit 0.31, decay 0.52"
+          ]
+        },
+        {
+          "symbol": "C",
+          "contract_symbol": "C260529C00128000",
+          "option_type": "call",
+          "expiry": "2026-05-29",
+          "strike": 128.0,
+          "forge_score": 0.7104,
+          "payoff_edge_score": 0.5312,
+          "expected_edge_after_friction_pct": 1.137,
+          "path_holding_quality_score": 0.6504,
+          "path_early_profit_take_prob": 0.4227,
+          "path_decay_risk": 0.4747,
+          "path_model_mode": "shadow",
+          "contract_cost": 120.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.65, take-profit 0.42, decay 0.47"
+          ]
+        },
+        {
+          "symbol": "UPS",
+          "contract_symbol": "UPS260529C00101000",
+          "option_type": "call",
+          "expiry": "2026-05-29",
+          "strike": 101.0,
+          "forge_score": 0.6847,
+          "payoff_edge_score": 0.3348,
+          "expected_edge_after_friction_pct": 0.6245,
+          "path_holding_quality_score": 0.5872,
+          "path_early_profit_take_prob": 0.3304,
+          "path_decay_risk": 0.4976,
+          "path_model_mode": "shadow",
+          "contract_cost": 71.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.59, take-profit 0.33, decay 0.50"
           ]
         }
       ]
