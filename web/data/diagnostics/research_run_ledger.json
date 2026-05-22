@@ -1,16 +1,16 @@
 {
   "artifact": "research_run_ledger",
   "schema_version": 1,
-  "updated_at_utc": "2026-05-22T19:01:52+00:00",
+  "updated_at_utc": "2026-05-22T21:21:15+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 26,
-    "abstain_runs": 22,
+    "runs": 27,
+    "abstain_runs": 23,
     "live_picks_emitted": 4,
-    "shadow_picks_emitted": 78,
-    "friction_vetoes": 126,
+    "shadow_picks_emitted": 79,
+    "friction_vetoes": 131,
     "council_holdouts": 126,
-    "pre_forge_rejections": 130,
+    "pre_forge_rejections": 135,
     "abstain_primary_reasons": [
       {
         "reason": "mixed_core_filters",
@@ -22,7 +22,7 @@
       },
       {
         "reason": "score_and_extrinsic_limit",
-        "count": 2
+        "count": 3
       },
       {
         "reason": "extrinsic_limit",
@@ -15229,6 +15229,276 @@
         },
         {
           "symbol": "AMD",
+          "reason": "liquidity_gate",
+          "expiry": "2026-05-29",
+          "long_leg_cap": 3.5,
+          "spread_cap": 0.24
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-22T21:21:15+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3995,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "model_artifacts": {
+        "scout_model": {
+          "present": true,
+          "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+        },
+        "scout_scaler": {
+          "present": true,
+          "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+        },
+        "scout_side_model": {
+          "present": true,
+          "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+        },
+        "payoff_model": {
+          "present": true,
+          "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+        },
+        "path_model": {
+          "present": false,
+          "sha256": null
+        },
+        "scout_model_card": {
+          "present": true,
+          "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+        },
+        "payoff_model_card": {
+          "present": true,
+          "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+        },
+        "path_model_card": {
+          "present": false,
+          "sha256": null
+        }
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 6,
+        "pre_forge_signal_count": 1,
+        "forge_candidate_count": 1,
+        "live_count": 0,
+        "shadow_count": 1,
+        "abstain_audit": {
+          "primary_reason": "score_and_extrinsic_limit",
+          "primary_reason_label": "Candidates failed both score and extrinsic gates.",
+          "requested_live_size": 3,
+          "candidate_count": 1,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 1,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              "SPY"
+            ],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              {
+                "symbol": "SPY",
+                "contract_symbol": "SPY260529C00752000",
+                "option_type": "call",
+                "expiry": "2026-05-29",
+                "strike": 752.0,
+                "forge_score": 0.7137,
+                "learned_rank_score": 0.7137,
+                "expected_edge_after_friction_pct": 0.0089,
+                "friction_buffer_pct": 0.3149,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 243.0,
+                "spread_pct": 0.0124,
+                "delta": 0.3109,
+                "iv_rank": 0.3704,
+                "council_risk_flags": [
+                  "high_extrinsic",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "symbol_probation": []
+          }
+        },
+        "friction_veto_count": 5,
+        "council_holdout_count": 0,
+        "pre_forge_rejection_count": 5,
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 1,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260529C00752000",
+          "option_type": "call",
+          "expiry": "2026-05-29",
+          "strike": 752.0,
+          "forge_score": 0.7137,
+          "payoff_edge_score": 0.6423,
+          "expected_edge_after_friction_pct": 0.0089,
+          "path_holding_quality_score": 0.2344,
+          "path_early_profit_take_prob": 0.2356,
+          "path_decay_risk": 0.5375,
+          "path_model_mode": "shadow",
+          "contract_cost": 243.0,
+          "council_risk_flags": [
+            "high_extrinsic",
+            "sector_cluster"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.24, decay 0.54"
+          ]
+        }
+      ],
+      "vetoed_candidates": [
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260529C00752000",
+          "reason": "friction_gate",
+          "expected_edge_after_friction_pct": 0.0089,
+          "friction_buffer_pct": 0.3149,
+          "extrinsic_ratio": 1.0,
+          "forge_score": 0.7137,
+          "learned_rank_score": 0.7137,
+          "contract_cost": 243.0,
+          "spread_pct": 0.0124,
+          "delta": 0.3109
+        },
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260529C00753000",
+          "reason": "friction_gate",
+          "expected_edge_after_friction_pct": -0.1405,
+          "friction_buffer_pct": 0.3162,
+          "extrinsic_ratio": 1.0,
+          "forge_score": 0.6469,
+          "learned_rank_score": 0.6469,
+          "contract_cost": 209.0,
+          "spread_pct": 0.0145,
+          "delta": 0.279
+        },
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260529C00748000",
+          "reason": "friction_gate",
+          "expected_edge_after_friction_pct": -0.2359,
+          "friction_buffer_pct": 0.3119,
+          "extrinsic_ratio": 1.0,
+          "forge_score": 0.4815,
+          "learned_rank_score": 0.4815,
+          "contract_cost": 415.0,
+          "spread_pct": 0.0073,
+          "delta": 0.4436
+        },
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260529C00749000",
+          "reason": "friction_gate",
+          "expected_edge_after_friction_pct": -0.2455,
+          "friction_buffer_pct": 0.3124,
+          "extrinsic_ratio": 1.0,
+          "forge_score": 0.4513,
+          "learned_rank_score": 0.4513,
+          "contract_cost": 366.0,
+          "spread_pct": 0.0082,
+          "delta": 0.4103
+        },
+        {
+          "symbol": "SPY",
+          "contract_symbol": "SPY260529C00750000",
+          "reason": "friction_gate",
+          "expected_edge_after_friction_pct": -0.2708,
+          "friction_buffer_pct": 0.3131,
+          "extrinsic_ratio": 1.0,
+          "forge_score": 0.421,
+          "learned_rank_score": 0.421,
+          "contract_cost": 321.0,
+          "spread_pct": 0.0094,
+          "delta": 0.3768
+        }
+      ],
+      "council_holdouts": [],
+      "pre_forge_rejections": [
+        {
+          "symbol": "QCOM",
+          "reason": "liquidity_gate",
+          "expiry": "2026-05-29",
+          "long_leg_cap": 2.75,
+          "spread_cap": 0.18
+        },
+        {
+          "symbol": "INTC",
+          "reason": "liquidity_gate",
+          "expiry": "2026-05-29",
+          "long_leg_cap": 2.25,
+          "spread_cap": 0.18
+        },
+        {
+          "symbol": "AMD",
+          "reason": "liquidity_gate",
+          "expiry": "2026-05-29",
+          "long_leg_cap": 3.5,
+          "spread_cap": 0.24
+        },
+        {
+          "symbol": "MU",
+          "reason": "liquidity_gate",
+          "expiry": "2026-05-29",
+          "long_leg_cap": 4.5,
+          "spread_cap": 0.28
+        },
+        {
+          "symbol": "TXN",
           "reason": "liquidity_gate",
           "expiry": "2026-05-29",
           "long_leg_cap": 3.5,
