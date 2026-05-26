@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-05-26T17:34:00+00:00",
+  "updated_at_utc": "2026-05-26T21:56:56+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 80,
+    "runs": 81,
     "live_picks_emitted": 27,
-    "shadow_picks_emitted": 164,
-    "abstain_runs": 59,
+    "shadow_picks_emitted": 167,
+    "abstain_runs": 60,
     "abstain_primary_reasons": [
       {
         "reason": "extrinsic_limit",
@@ -26,12 +26,12 @@
         "count": 8
       },
       {
-        "reason": "score_and_extrinsic_limit",
+        "reason": "below_live_score",
         "count": 4
       },
       {
-        "reason": "below_live_score",
-        "count": 3
+        "reason": "score_and_extrinsic_limit",
+        "count": 4
       }
     ]
   },
@@ -13266,6 +13266,222 @@
             "delta sits in the preferred weekly range",
             "Payoff model ranker active",
             "Path model shadow: hold quality 0.50, take-profit 0.28, decay 0.54"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-05-26T21:56:56+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.427,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 14,
+        "pre_forge_signal_count": 4,
+        "forge_candidate_count": 3,
+        "live_count": 0,
+        "shadow_count": 3,
+        "abstain_audit": {
+          "primary_reason": "below_live_score",
+          "primary_reason_label": "All candidates fell below the live-score gate.",
+          "requested_live_size": 3,
+          "candidate_count": 3,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 1,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 2,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [
+              "SCHW"
+            ],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              "PG",
+              "PEP"
+            ],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [
+              {
+                "symbol": "SCHW",
+                "contract_symbol": "SCHW260605P00090000",
+                "option_type": "put",
+                "expiry": "2026-06-05",
+                "strike": 90.0,
+                "forge_score": 0.4522,
+                "learned_rank_score": 0.4522,
+                "expected_edge_after_friction_pct": -0.3306,
+                "friction_buffer_pct": 0.2341,
+                "extrinsic_ratio": 0.7073,
+                "contract_cost": 205.0,
+                "spread_pct": 0.0972,
+                "delta": -0.54,
+                "iv_rank": 0.5869,
+                "council_risk_flags": []
+              }
+            ],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              {
+                "symbol": "PG",
+                "contract_symbol": "PG260605P00141000",
+                "option_type": "put",
+                "expiry": "2026-06-05",
+                "strike": 141.0,
+                "forge_score": 0.3716,
+                "learned_rank_score": 0.3716,
+                "expected_edge_after_friction_pct": -0.6873,
+                "friction_buffer_pct": 0.3984,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 142.0,
+                "spread_pct": 0.1515,
+                "delta": -0.3421,
+                "iv_rank": 0.7767,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              },
+              {
+                "symbol": "PEP",
+                "contract_symbol": "PEP260605P00143000",
+                "option_type": "put",
+                "expiry": "2026-06-05",
+                "strike": 143.0,
+                "forge_score": 0.306,
+                "learned_rank_score": 0.306,
+                "expected_edge_after_friction_pct": -0.7273,
+                "friction_buffer_pct": 0.3696,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 193.0,
+                "spread_pct": 0.1035,
+                "delta": -0.3416,
+                "iv_rank": 0.7987,
+                "council_risk_flags": [
+                  "high_extrinsic"
+                ]
+              }
+            ],
+            "symbol_probation": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 3
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260605P00090000",
+          "option_type": "put",
+          "expiry": "2026-06-05",
+          "strike": 90.0,
+          "forge_score": 0.4522,
+          "payoff_edge_score": 0.1161,
+          "expected_edge_after_friction_pct": -0.3306,
+          "path_holding_quality_score": 0.1919,
+          "path_early_profit_take_prob": 0.12,
+          "path_decay_risk": 0.5375,
+          "path_model_mode": "shadow",
+          "contract_cost": 205.0,
+          "council_risk_flags": [],
+          "notes": [
+            "projected payoff is asymmetric",
+            "time-value burden is acceptable",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.19, take-profit 0.12, decay 0.54"
+          ]
+        },
+        {
+          "symbol": "PG",
+          "contract_symbol": "PG260605P00141000",
+          "option_type": "put",
+          "expiry": "2026-06-05",
+          "strike": 141.0,
+          "forge_score": 0.3716,
+          "payoff_edge_score": 0.143,
+          "expected_edge_after_friction_pct": -0.6873,
+          "path_holding_quality_score": 0.1883,
+          "path_early_profit_take_prob": 0.12,
+          "path_decay_risk": 0.5902,
+          "path_model_mode": "shadow",
+          "contract_cost": 142.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 78% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.19, take-profit 0.12, decay 0.59"
+          ]
+        },
+        {
+          "symbol": "PEP",
+          "contract_symbol": "PEP260605P00143000",
+          "option_type": "put",
+          "expiry": "2026-06-05",
+          "strike": 143.0,
+          "forge_score": 0.306,
+          "payoff_edge_score": 0.1493,
+          "expected_edge_after_friction_pct": -0.7273,
+          "path_holding_quality_score": 0.1803,
+          "path_early_profit_take_prob": 0.12,
+          "path_decay_risk": 0.6088,
+          "path_model_mode": "shadow",
+          "contract_cost": 193.0,
+          "council_risk_flags": [
+            "high_extrinsic"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 80% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.18, take-profit 0.12, decay 0.61"
           ]
         }
       ]
