@@ -50,7 +50,17 @@ def main() -> int:
         base = next((path for path in args.paths if path in file_path.parents or path == file_path), file_path.parent)
         relative = file_path.name if base == file_path else str(file_path.relative_to(base))
         object_key = f"{prefix}/{base.name}/{relative}".replace("\\", "/")
-        command = ["npx", "wrangler", "r2", "object", "put", f"{bucket}/{object_key}", "--file", str(file_path)]
+        command = [
+            "npx",
+            "wrangler",
+            "r2",
+            "object",
+            "put",
+            f"{bucket}/{object_key}",
+            "--remote",
+            "--file",
+            str(file_path),
+        ]
         subprocess.run(command, check=True)
         print(f"Uploaded {file_path} -> r2://{bucket}/{object_key}")
     return 0
