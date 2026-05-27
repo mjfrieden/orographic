@@ -113,7 +113,7 @@ Audit research data capture after archiving and dataset generation:
 
 The scheduled workflow runs this audit and fails if the live chain archive is empty, required ledgers are missing, or the generated datasets are internally inconsistent.
 
-For durable storage beyond GitHub's short-lived workflow artifacts, configure `OROGRAPHIC_RESEARCH_R2_BUCKET` as a GitHub secret alongside the Cloudflare account/token secrets. When present, the scheduled workflow uploads `engine/data/live_options_archive/` and `output/research_datasets/` to Cloudflare R2.
+For durable storage beyond GitHub's short-lived workflow artifacts, configure `OROGRAPHIC_RESEARCH_R2_BUCKET` and `CLOUDFLARE_R2_API_TOKEN` as GitHub secrets alongside `CLOUDFLARE_ACCOUNT_ID`. The R2 token should include Cloudflare's `Workers R2 Storage Edit` permission for the account or target bucket. When present, the scheduled workflow uploads `engine/data/live_options_archive/` and `output/research_datasets/` to Cloudflare R2.
 
 Optionally capture standing-position value on each run into a private local file:
 

@@ -16,6 +16,7 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
       OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
       OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
@@ -181,13 +182,15 @@ jobs:
           retention-days: 90
 
       - name: Set up Node for R2 research export
-        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
         uses: actions/setup-node@v6
         with:
           node-version: "22"
 
       - name: Upload research data to R2
-        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
           python scripts/upload_research_artifacts_to_r2.py \
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
