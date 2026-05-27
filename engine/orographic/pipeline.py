@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 import logging
 from numbers import Number
 import os
@@ -77,6 +77,19 @@ def _normalize_timestamp(raw: object) -> datetime:
     return datetime.now(timezone.utc).replace(microsecond=0)
 
 
+def _parse_date(raw: object) -> date | None:
+    if isinstance(raw, date) and not isinstance(raw, datetime):
+        return raw
+    if isinstance(raw, datetime):
+        return raw.date()
+    if isinstance(raw, str) and raw.strip():
+        try:
+            return date.fromisoformat(raw.strip()[:10])
+        except ValueError:
+            return None
+    return None
+
+
 def _coerce_int(value: object) -> int:
     if isinstance(value, Number):
         return int(value)
@@ -84,6 +97,24 @@ def _coerce_int(value: object) -> int:
         return int(float(str(value)))
     except (TypeError, ValueError):
         return 0
+
+
+def _recommendation_id(run_generated_at_utc: str, contract_symbol: object, lane: str) -> str:
+    contract = str(contract_symbol or "").strip().upper()
+    return f"{run_generated_at_utc}|{contract}|{lane}"
+
+
+def _days_to_expiry(run_generated_at_utc: str, expiry: object) -> int | None:
+    expiry_date = _parse_date(expiry)
+    if expiry_date is None:
+        return None
+    return (expiry_date - _normalize_timestamp(run_generated_at_utc).date()).days
+
+
+def _dollar_spread(bid: object, ask: object) -> float | None:
+    if isinstance(bid, Number) and isinstance(ask, Number) and bid > 0 and ask > 0:
+        return round(float(ask) - float(bid), 4)
+    return None
 
 
 def _config_int(config: object, name: str, default: int, *, minimum: int = 0) -> int:
@@ -246,30 +277,45 @@ def _prospective_pick_row(
     row: dict[str, Any],
     *,
     lane: str,
+    lane_reason: str,
     run_generated_at_utc: str,
     regime: dict[str, Any],
     scan_settings: dict[str, Any],
     model_modes: dict[str, Any],
     model_artifacts: dict[str, Any],
+    scout_spot: float | None = None,
 ) -> dict[str, Any]:
     bid = row.get("bid")
     ask = row.get("ask")
     mid = None
     if isinstance(bid, Number) and isinstance(ask, Number) and bid > 0 and ask > 0:
         mid = round((float(bid) + float(ask)) / 2.0, 4)
+    underlying_spot = row.get("spot") if isinstance(row.get("spot"), Number) else scout_spot
+    dte = _days_to_expiry(run_generated_at_utc, row.get("expiry"))
+    recommendation_id = _recommendation_id(run_generated_at_utc, row.get("contract_symbol"), lane)
     return {
+        "recommendation_id": recommendation_id,
         "run_generated_at_utc": run_generated_at_utc,
         "lane": lane,
+        "lane_reason": lane_reason,
         "symbol": row.get("symbol"),
         "contract_symbol": row.get("contract_symbol"),
         "option_type": row.get("option_type"),
         "expiry": row.get("expiry"),
         "strike": row.get("strike"),
+        "days_to_expiry": dte,
+        "underlying": {
+            "symbol": row.get("symbol"),
+            "spot": underlying_spot,
+            "quote_captured_at_utc": run_generated_at_utc,
+        },
         "emission_quote": {
+            "captured_at_utc": run_generated_at_utc,
             "bid": bid,
             "ask": ask,
             "mid": mid,
             "last": row.get("last"),
+            "spread": _dollar_spread(bid, ask),
             "spread_pct": row.get("spread_pct"),
             "open_interest": row.get("open_interest"),
             "volume": row.get("volume"),
@@ -317,6 +363,39 @@ def _prospective_pick_row(
         "notes": row.get("notes", []),
         "outcomes": _prospective_outcome_template(),
     }
+
+
+def _prospective_outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
+    summary = {
+        "picks": 0,
+        "pending": 0,
+        "partial": 0,
+        "complete": 0,
+        "with_any_mark": 0,
+        "with_all_fixed_marks": 0,
+        "missing_outcome_quotes": 0,
+    }
+    fixed_names = ("one_hour", "end_of_day", "next_day_close", "friday_close")
+    for entry in entries:
+        picks = entry.get("picks") if isinstance(entry, dict) and isinstance(entry.get("picks"), list) else []
+        for pick in picks:
+            if not isinstance(pick, dict):
+                continue
+            summary["picks"] += 1
+            outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+            status = str(outcomes.get("status") or "pending")
+            if status in {"pending", "partial", "complete"}:
+                summary[status] += 1
+            fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
+            marked = [name for name in fixed_names if fixed_marks.get(name) is not None]
+            if marked:
+                summary["with_any_mark"] += 1
+            if len(marked) == len(fixed_names):
+                summary["with_all_fixed_marks"] += 1
+            quote_verification = outcomes.get("quote_verification") if isinstance(outcomes.get("quote_verification"), dict) else {}
+            if marked and not quote_verification.get("outcome_quotes_captured"):
+                summary["missing_outcome_quotes"] += 1
+    return summary
 
 
 def _count_side_mix(rows: list[dict[str, Any]], *, key: str) -> dict[str, int]:
@@ -821,40 +900,70 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
     live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
     shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
     forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
+    scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
+    scout_spots = {
+        str(row.get("symbol") or "").strip().upper(): float(row["spot"])
+        for row in scout_signals
+        if isinstance(row, dict)
+        and str(row.get("symbol") or "").strip()
+        and isinstance(row.get("spot"), Number)
+    }
     attribution = (
         payload.get("attribution")
         if isinstance(payload.get("attribution"), dict)
         else build_live_shadow_attribution_artifact(payload)
     )
     friction_vetoes = attribution.get("friction_vetoes") if isinstance(attribution.get("friction_vetoes"), list) else []
+    council_holdouts = attribution.get("council_holdouts") if isinstance(attribution.get("council_holdouts"), list) else []
 
     live_contracts = {str(row.get("contract_symbol") or "") for row in live_board if isinstance(row, dict)}
     shadow_contracts = {str(row.get("contract_symbol") or "") for row in shadow_board if isinstance(row, dict)}
     friction_contracts = {str(row.get("contract_symbol") or "") for row in friction_vetoes if isinstance(row, dict)}
+    holdout_contracts = {str(row.get("contract_symbol") or "") for row in council_holdouts if isinstance(row, dict)}
+    reasons_by_contract = {
+        str(row.get("contract_symbol") or ""): str(
+            row.get("reason")
+            or row.get("primary_reason")
+            or row.get("rejection_reason")
+            or ""
+        ).strip()
+        for row in [*friction_vetoes, *council_holdouts]
+        if isinstance(row, dict) and str(row.get("contract_symbol") or "")
+    }
 
-    def lane_for(row: dict[str, Any]) -> str:
+    def lane_for(row: dict[str, Any]) -> tuple[str, str]:
         contract = str(row.get("contract_symbol") or "")
         if contract in live_contracts:
-            return "live"
+            return "live", "selected_live_board"
         if contract in shadow_contracts:
-            return "shadow"
+            flags = row.get("council_risk_flags") if isinstance(row.get("council_risk_flags"), list) else []
+            suffix = f":{','.join(str(flag) for flag in flags)}" if flags else ""
+            return "shadow", f"selected_shadow_board{suffix}"
         if contract in friction_contracts or row.get("friction_gate_passed") is False:
-            return "friction_veto"
-        return "council_holdout"
+            return "friction_veto", reasons_by_contract.get(contract) or "failed_friction_gate"
+        if contract in holdout_contracts:
+            return "council_holdout", reasons_by_contract.get(contract) or "not_selected_by_council"
+        return "council_holdout", "not_selected_by_council"
 
-    rows = [
-        _prospective_pick_row(
-            row,
-            lane=lane_for(row),
-            run_generated_at_utc=generated_at,
-            regime=payload.get("regime", {}),
-            scan_settings=payload.get("scan_settings", {}),
-            model_modes=payload.get("model_modes", {}),
-            model_artifacts=payload.get("model_artifacts", {}),
+    rows = []
+    for row in forge_candidates:
+        if not isinstance(row, dict) or not str(row.get("contract_symbol") or ""):
+            continue
+        lane, lane_reason = lane_for(row)
+        symbol = str(row.get("symbol") or "").strip().upper()
+        rows.append(
+            _prospective_pick_row(
+                row,
+                lane=lane,
+                lane_reason=lane_reason,
+                run_generated_at_utc=generated_at,
+                regime=payload.get("regime", {}),
+                scan_settings=payload.get("scan_settings", {}),
+                model_modes=payload.get("model_modes", {}),
+                model_artifacts=payload.get("model_artifacts", {}),
+                scout_spot=scout_spots.get(symbol),
+            )
         )
-        for row in forge_candidates
-        if isinstance(row, dict) and str(row.get("contract_symbol") or "")
-    ]
 
     return {
         "run_generated_at_utc": generated_at,
@@ -867,6 +976,62 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
             "shadow": sum(1 for row in rows if row["lane"] == "shadow"),
             "council_holdout": sum(1 for row in rows if row["lane"] == "council_holdout"),
             "friction_veto": sum(1 for row in rows if row["lane"] == "friction_veto"),
+        },
+        "picks": rows,
+    }
+
+
+def build_moonshot_prospective_ledger_entry(payload: dict[str, Any]) -> dict[str, Any]:
+    generated_at = _normalize_timestamp(payload.get("generated_at_utc")).replace(microsecond=0).isoformat()
+    moonshot_lane = payload.get("moonshot_lane") if isinstance(payload.get("moonshot_lane"), dict) else {}
+    picks = moonshot_lane.get("picks") if isinstance(moonshot_lane.get("picks"), list) else []
+    shadow = moonshot_lane.get("shadow") if isinstance(moonshot_lane.get("shadow"), list) else []
+    scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
+    scout_spots = {
+        str(row.get("symbol") or "").strip().upper(): float(row["spot"])
+        for row in scout_signals
+        if isinstance(row, dict)
+        and str(row.get("symbol") or "").strip()
+        and isinstance(row.get("spot"), Number)
+    }
+
+    rows: list[dict[str, Any]] = []
+    for lane, source_rows in (("moonshot_pick", picks), ("moonshot_shadow", shadow)):
+        for row in source_rows:
+            if not isinstance(row, dict) or not str(row.get("contract_symbol") or ""):
+                continue
+            symbol = str(row.get("symbol") or "").strip().upper()
+            rendered = _prospective_pick_row(
+                row,
+                lane=lane,
+                lane_reason="selected_moonshot_lane" if lane == "moonshot_pick" else "moonshot_shadow_observation",
+                run_generated_at_utc=generated_at,
+                regime=payload.get("regime", {}),
+                scan_settings=payload.get("scan_settings", {}),
+                model_modes=payload.get("model_modes", {}),
+                model_artifacts=payload.get("model_artifacts", {}),
+                scout_spot=scout_spots.get(symbol),
+            )
+            moonshot = row.get("moonshot") if isinstance(row.get("moonshot"), dict) else {}
+            rendered["moonshot"] = {
+                "tail_upside_score": moonshot.get("tail_upside_score"),
+                "eligible": bool(moonshot.get("eligible", lane == "moonshot_pick")),
+                "reasons": moonshot.get("reasons") if isinstance(moonshot.get("reasons"), list) else [],
+                "policy": moonshot_lane.get("policy", {}),
+            }
+            rows.append(rendered)
+
+    return {
+        "run_generated_at_utc": generated_at,
+        "regime": payload.get("regime", {}),
+        "scan_settings": payload.get("scan_settings", {}),
+        "model_modes": payload.get("model_modes", {}),
+        "moonshot_policy": moonshot_lane.get("policy", {}),
+        "summary": {
+            "candidate_rows": len(rows),
+            "moonshot_pick": sum(1 for row in rows if row["lane"] == "moonshot_pick"),
+            "moonshot_shadow": sum(1 for row in rows if row["lane"] == "moonshot_shadow"),
+            "eligible": sum(1 for row in rows if bool(row.get("moonshot", {}).get("eligible"))),
         },
         "picks": rows,
     }
@@ -891,6 +1056,14 @@ def append_prospective_pick_ledger(
     else:
         ledger = {}
     entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    entries = [
+        row
+        for row in entries
+        if not (
+            isinstance(row, dict)
+            and str(row.get("run_generated_at_utc") or "") == str(entry.get("run_generated_at_utc") or "")
+        )
+    ]
     entries.append(entry)
     entries = entries[-max(max_entries, 1):]
     aggregate = {
@@ -903,7 +1076,7 @@ def append_prospective_pick_ledger(
     }
     rendered = {
         "artifact": "prospective_pick_ledger",
-        "schema_version": 1,
+        "schema_version": 2,
         "updated_at_utc": entry["run_generated_at_utc"],
         "max_entries": max(max_entries, 1),
         "outcome_policy": {
@@ -912,6 +1085,61 @@ def append_prospective_pick_ledger(
             "purpose": "Judge every emitted contract recommendation, whether traded or not.",
         },
         "aggregate": aggregate,
+        "outcome_summary": _prospective_outcome_summary(entries),
+        "entries": entries,
+    }
+    output.write_text(json.dumps(rendered, indent=2), encoding="utf-8")
+    return output
+
+
+def append_moonshot_prospective_ledger(
+    path: str | Path,
+    payload: dict[str, Any],
+    *,
+    max_entries: int = 500,
+) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    entry = build_moonshot_prospective_ledger_entry(payload)
+    ledger: dict[str, Any]
+    if output.exists():
+        try:
+            loaded = json.loads(output.read_text(encoding="utf-8"))
+            ledger = loaded if isinstance(loaded, dict) else {}
+        except json.JSONDecodeError:
+            ledger = {}
+    else:
+        ledger = {}
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    entries = [
+        row
+        for row in entries
+        if not (
+            isinstance(row, dict)
+            and str(row.get("run_generated_at_utc") or "") == str(entry.get("run_generated_at_utc") or "")
+        )
+    ]
+    entries.append(entry)
+    entries = entries[-max(max_entries, 1):]
+    aggregate = {
+        "runs": len(entries),
+        "candidate_rows": sum(_coerce_int(row.get("summary", {}).get("candidate_rows")) for row in entries),
+        "moonshot_pick": sum(_coerce_int(row.get("summary", {}).get("moonshot_pick")) for row in entries),
+        "moonshot_shadow": sum(_coerce_int(row.get("summary", {}).get("moonshot_shadow")) for row in entries),
+        "eligible": sum(_coerce_int(row.get("summary", {}).get("eligible")) for row in entries),
+    }
+    rendered = {
+        "artifact": "moonshot_prospective_ledger",
+        "schema_version": 2,
+        "updated_at_utc": entry["run_generated_at_utc"],
+        "max_entries": max(max_entries, 1),
+        "outcome_policy": {
+            "required_fixed_exits": ["one_hour", "end_of_day", "next_day_close", "friday_close"],
+            "path_rules": ["take_profit_40_pct_before_stop_50_pct", "take_profit_25_pct_before_stop_50_pct"],
+            "purpose": "Judge every dedicated moonshot pick and near-miss shadow candidate.",
+        },
+        "aggregate": aggregate,
+        "outcome_summary": _prospective_outcome_summary(entries),
         "entries": entries,
     }
     output.write_text(json.dumps(rendered, indent=2), encoding="utf-8")

@@ -1,0 +1,69 @@
+{
+  "artifact": "moonshot_prospective_ledger",
+  "schema_version": 2,
+  "updated_at_utc": "2026-05-07T20:37:06+00:00",
+  "max_entries": 500,
+  "outcome_policy": {
+    "required_fixed_exits": [
+      "one_hour",
+      "end_of_day",
+      "next_day_close",
+      "friday_close"
+    ],
+    "path_rules": [
+      "take_profit_40_pct_before_stop_50_pct",
+      "take_profit_25_pct_before_stop_50_pct"
+    ],
+    "purpose": "Judge every dedicated moonshot pick and near-miss shadow candidate."
+  },
+  "aggregate": {
+    "runs": 1,
+    "candidate_rows": 0,
+    "moonshot_pick": 0,
+    "moonshot_shadow": 0,
+    "eligible": 0
+  },
+  "outcome_summary": {
+    "picks": 0,
+    "pending": 0,
+    "partial": 0,
+    "complete": 0,
+    "with_any_mark": 0,
+    "with_all_fixed_marks": 0,
+    "missing_outcome_quotes": 0
+  },
+  "entries": [
+    {
+      "run_generated_at_utc": "2026-05-07T20:37:06+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.4863,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 6,
+        "universe_size": 100
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "artifact"
+      },
+      "moonshot_policy": {},
+      "summary": {
+        "candidate_rows": 0,
+        "moonshot_pick": 0,
+        "moonshot_shadow": 0,
+        "eligible": 0
+      },
+      "picks": []
+    }
+  ]
+}

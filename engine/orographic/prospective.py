@@ -122,6 +122,39 @@ def _update_path_rules(outcomes: dict[str, Any]) -> None:
                 break
 
 
+def _outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
+    summary = {
+        "picks": 0,
+        "pending": 0,
+        "partial": 0,
+        "complete": 0,
+        "with_any_mark": 0,
+        "with_all_fixed_marks": 0,
+        "missing_outcome_quotes": 0,
+    }
+    fixed_names = ("one_hour", "end_of_day", "next_day_close", "friday_close")
+    for entry in entries:
+        picks = entry.get("picks") if isinstance(entry, dict) and isinstance(entry.get("picks"), list) else []
+        for pick in picks:
+            if not isinstance(pick, dict):
+                continue
+            summary["picks"] += 1
+            outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+            status = str(outcomes.get("status") or "pending")
+            if status in {"pending", "partial", "complete"}:
+                summary[status] += 1
+            fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
+            marked = [name for name in fixed_names if fixed_marks.get(name) is not None]
+            if marked:
+                summary["with_any_mark"] += 1
+            if len(marked) == len(fixed_names):
+                summary["with_all_fixed_marks"] += 1
+            quote_verification = outcomes.get("quote_verification") if isinstance(outcomes.get("quote_verification"), dict) else {}
+            if marked and not quote_verification.get("outcome_quotes_captured"):
+                summary["missing_outcome_quotes"] += 1
+    return summary
+
+
 def mark_prospective_ledger(
     ledger: dict[str, Any],
     quotes_by_symbol: dict[str, dict[str, Any]],
@@ -132,7 +165,15 @@ def mark_prospective_ledger(
     captured_at = now.replace(microsecond=0).isoformat()
     updated = json.loads(json.dumps(ledger))
     entries = updated.get("entries") if isinstance(updated.get("entries"), list) else []
-    stats = {"entries_seen": len(entries), "picks_seen": 0, "marks_written": 0, "quotes_missing": 0}
+    stats = {
+        "entries_seen": len(entries),
+        "picks_seen": 0,
+        "marks_written": 0,
+        "quotes_missing": 0,
+        "picks_completed": 0,
+        "picks_partial": 0,
+        "picks_pending": 0,
+    }
 
     for entry in entries:
         if not isinstance(entry, dict):
@@ -162,11 +203,18 @@ def mark_prospective_ledger(
                 outcomes["status"] = "complete"
             elif any(fixed_marks.get(name) is not None for name in ("one_hour", "end_of_day", "next_day_close", "friday_close")):
                 outcomes["status"] = "partial"
+            else:
+                outcomes["status"] = "pending"
             quote_verification = outcomes.setdefault("quote_verification", {})
             quote_verification["outcome_quotes_captured"] = outcomes.get("status") in {"partial", "complete"}
 
+    outcome_summary = _outcome_summary(entries)
+    stats["picks_completed"] = outcome_summary["complete"]
+    stats["picks_partial"] = outcome_summary["partial"]
+    stats["picks_pending"] = outcome_summary["pending"]
     updated["updated_at_utc"] = captured_at
     updated["last_mark_summary"] = stats
+    updated["outcome_summary"] = outcome_summary
     return updated, stats
 
 

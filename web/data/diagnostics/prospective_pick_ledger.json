@@ -1,6 +1,6 @@
 {
   "artifact": "prospective_pick_ledger",
-  "schema_version": 1,
+  "schema_version": 2,
   "updated_at_utc": "2026-05-07T20:37:06+00:00",
   "max_entries": 500,
   "outcome_policy": {
@@ -23,6 +23,15 @@
     "shadow": 1,
     "council_holdout": 0,
     "friction_veto": 0
+  },
+  "outcome_summary": {
+    "picks": 1,
+    "pending": 1,
+    "partial": 0,
+    "complete": 0,
+    "with_any_mark": 0,
+    "with_all_fixed_marks": 0,
+    "missing_outcome_quotes": 0
   },
   "entries": [
     {
@@ -57,18 +66,28 @@
       },
       "picks": [
         {
+          "recommendation_id": "2026-05-07T20:37:06+00:00|QQQ260511P00689000|shadow",
           "run_generated_at_utc": "2026-05-07T20:37:06+00:00",
           "lane": "shadow",
+          "lane_reason": "selected_shadow_board:high_extrinsic,sector_cluster",
           "symbol": "QQQ",
           "contract_symbol": "QQQ260511P00689000",
           "option_type": "put",
           "expiry": "2026-05-11",
           "strike": 689.0,
+          "days_to_expiry": 4,
+          "underlying": {
+            "symbol": "QQQ",
+            "spot": 694.94,
+            "quote_captured_at_utc": "2026-05-07T20:37:06+00:00"
+          },
           "emission_quote": {
+            "captured_at_utc": "2026-05-07T20:37:06+00:00",
             "bid": 2.13,
             "ask": 2.16,
             "mid": 2.145,
             "last": 2.1,
+            "spread": 0.03,
             "spread_pct": 0.014,
             "open_interest": 885,
             "volume": 2007,

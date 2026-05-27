@@ -245,6 +245,10 @@ test("recordOrderProvenance and listOrderProvenance round trip event payloads", 
   assert.equal(rows.length, 1);
   assert.equal(rows[0].event_type, "preview");
   assert.equal(rows[0].lane, "live");
+  assert.equal(
+    rows[0].payload.recommendation_id,
+    "2026-05-15T14:00:00Z|AAPL260522C00100000|live",
+  );
   assert.equal(rows[0].payload.candidate.forge_score, 0.91);
 });
 

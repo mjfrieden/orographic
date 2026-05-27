@@ -27,6 +27,7 @@ function compactCandidate(candidate) {
     return null;
   }
   return {
+    recommendation_id: candidate.recommendation_id || null,
     symbol: candidate.symbol || null,
     contract_symbol: candidate.contract_symbol || null,
     option_type: candidate.option_type || null,
@@ -51,6 +52,13 @@ function compactCandidate(candidate) {
 
 function jsonString(value) {
   return JSON.stringify(value ?? null);
+}
+
+function recommendationId({ runGeneratedAtUtc, optionSymbol, lane }) {
+  const run = cleanText(runGeneratedAtUtc);
+  const contract = cleanText(optionSymbol).toUpperCase();
+  const sourceLane = cleanText(lane, "unknown");
+  return run && contract ? `${run}|${contract}|${sourceLane}` : "";
 }
 
 async function ensureSchema(env) {
@@ -115,6 +123,13 @@ export function buildOrderProvenanceEvent({
   const mode = cleanText(config?.mode, "disabled");
   const now = new Date().toISOString();
   const compact = compactCandidate(candidate);
+  const runGeneratedAtUtc = cleanText(
+    snapshot?.generated_at_utc || snapshotInfo?.generated_at_utc || "",
+  );
+  const sourceLane = cleanText(lane, "unknown");
+  const optionSymbol = cleanText(
+    envelope?.option_symbol || candidate?.contract_symbol || "",
+  );
   const event = {
     id:
       globalThis.crypto?.randomUUID?.() ||
@@ -124,15 +139,18 @@ export function buildOrderProvenanceEvent({
     mode,
     username: cleanText(session?.username || session?.user || ""),
     user_role: cleanText(session?.role || ""),
-    run_generated_at_utc: cleanText(
-      snapshot?.generated_at_utc || snapshotInfo?.generated_at_utc || "",
-    ),
+    run_generated_at_utc: runGeneratedAtUtc,
+    recommendation_id:
+      cleanText(candidate?.recommendation_id || "") ||
+      recommendationId({
+        runGeneratedAtUtc,
+        optionSymbol,
+        lane: sourceLane,
+      }),
     snapshot_age_minutes: asNumber(snapshotInfo?.age_minutes, null),
-    lane: cleanText(lane, "unknown"),
+    lane: sourceLane,
     symbol: cleanText(envelope?.symbol || candidate?.symbol || ""),
-    option_symbol: cleanText(
-      envelope?.option_symbol || candidate?.contract_symbol || "",
-    ),
+    option_symbol: optionSymbol,
     side: cleanText(envelope?.side || ""),
     quantity: asNumber(envelope?.quantity, 0),
     limit_price: asNumber(envelope?.price, null),

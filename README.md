@@ -75,6 +75,46 @@ Each scan also appends a rolling board history ledger beside the diagnostics:
 
 This ledger records each run's live board, shadow board, regime, and board counts so recommendations can be tracked over time instead of being overwritten by the newest snapshot.
 
+Each scan also appends a dedicated moonshot prospective ledger:
+
+- `web/data/diagnostics/moonshot_prospective_ledger.json`
+
+This ledger records moonshot picks and near-miss shadow candidates with their tail-upside score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. It is intentionally separate from the all-Forge-candidate prospective ledger so moonshot research can be evaluated as its own lane.
+
+Archive live option chains for future model training:
+
+```bash
+./.venv/bin/python scripts/archive_live_option_chains.py \
+  --snapshot web/data/latest_run.json \
+  --snapshot-symbols-only \
+  --output-dir engine/data/live_options_archive
+```
+
+The archive writes partitioned parquet chains plus a manifest under `engine/data/live_options_archive/`. Use `--snapshot-symbols-only` for a lighter scheduled capture, or omit it to archive the full configured universe.
+
+Build canonical research datasets from prospective ledgers:
+
+```bash
+./.venv/bin/python scripts/build_research_datasets.py \
+  --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
+  --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+  --output-dir output/research_datasets
+```
+
+This produces option-recommendation and moonshot outcome tables suitable for future payoff, path, side-aware, and moonshot model training.
+
+Audit research data capture after archiving and dataset generation:
+
+```bash
+./.venv/bin/python scripts/audit_research_data_capture.py \
+  --live-archive-manifest engine/data/live_options_archive/coverage_manifest.json \
+  --research-dataset-dir output/research_datasets
+```
+
+The scheduled workflow runs this audit and fails if the live chain archive is empty, required ledgers are missing, or the generated datasets are internally inconsistent.
+
+For durable storage beyond GitHub's short-lived workflow artifacts, configure `OROGRAPHIC_RESEARCH_R2_BUCKET` as a GitHub secret alongside the Cloudflare account/token secrets. When present, the scheduled workflow uploads `engine/data/live_options_archive/` and `output/research_datasets/` to Cloudflare R2.
+
 Optionally capture standing-position value on each run into a private local file:
 
 ```bash

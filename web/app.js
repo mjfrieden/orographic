@@ -806,6 +806,7 @@ function summarizeProspectiveLedger(ledger) {
     Array.isArray(entry.picks) ? entry.picks : [],
   );
   const withMarks = picks.filter((pick) => pickOutcomeReturns(pick).length > 0);
+  const complete = picks.filter((pick) => pick?.outcomes?.status === "complete");
   const live = picks.filter((pick) => pick.lane === "live");
   const shadow = picks.filter((pick) => pick.lane === "shadow");
   const bestReturns = withMarks.map((pick) =>
@@ -829,6 +830,8 @@ function summarizeProspectiveLedger(ledger) {
     live: live.length,
     shadow: shadow.length,
     marked: withMarks.length,
+    complete: complete.length,
+    pending: picks.filter((pick) => (pick?.outcomes?.status || "pending") === "pending").length,
     takeProfitHits,
     stopHits,
     avgBest:
@@ -872,6 +875,8 @@ function renderProspectiveScoreboard(ledger) {
       summaryItemHtml("Contracts Judged", integer(summary.picks)),
       summaryItemHtml("Live / Shadow", `${integer(summary.live)} / ${integer(summary.shadow)}`),
       summaryItemHtml("Marked Outcomes", integer(summary.marked)),
+      summaryItemHtml("Fully Marked", integer(summary.complete)),
+      summaryItemHtml("Pending", integer(summary.pending)),
       summaryItemHtml("+40% Hits", integer(summary.takeProfitHits)),
       summaryItemHtml("-50% Stops", integer(summary.stopHits)),
       summaryItemHtml("Avg Best Mark", pct(summary.avgBest)),
