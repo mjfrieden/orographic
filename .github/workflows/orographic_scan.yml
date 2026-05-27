@@ -23,7 +23,6 @@ jobs:
       TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
       OROGRAPHIC_TRADIER_ACCESS_TOKEN: ${{ secrets.OROGRAPHIC_TRADIER_ACCESS_TOKEN }}
       TRADIER_BASE_URL: ${{ secrets.TRADIER_BASE_URL }}
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       PYTHONPATH: .
     steps:
       - name: Checkout
@@ -173,7 +172,7 @@ jobs:
           PY
 
       - name: Upload live research data artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: orographic-live-research-data
           path: |
