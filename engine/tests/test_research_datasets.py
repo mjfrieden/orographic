@@ -31,6 +31,20 @@ class ResearchDatasetTests(unittest.TestCase):
                             "context": {"ranker_artifact_sha256": "abc"},
                             "outcomes": {
                                 "status": "partial",
+                                "archived_quote_path": {
+                                    "status": "observed",
+                                    "observation_count": 2,
+                                    "entry_mark": 1.1,
+                                    "max_favorable_excursion_pct": 0.2727,
+                                    "max_adverse_excursion_pct": -0.1,
+                                    "first_hit": {
+                                        "rule": "take_profit_25_pct",
+                                        "captured_at_utc": "2026-05-22T15:07:00+00:00",
+                                        "pnl_pct_from_emission": 0.2727,
+                                    },
+                                    "take_profit_25_pct_before_stop_50_pct": True,
+                                    "take_profit_40_pct_before_stop_50_pct": None,
+                                },
                                 "fixed_exit_marks": {
                                     "one_hour": {
                                         "mark": 1.4,
@@ -54,6 +68,8 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertEqual(rows[0]["contract_symbol"], "AAA1")
         self.assertEqual(rows[0]["forge_score"], 0.8)
         self.assertEqual(rows[0]["one_hour_pnl_pct_from_emission"], 0.2727)
+        self.assertEqual(rows[0]["archive_path_first_hit_rule"], "take_profit_25_pct")
+        self.assertEqual(rows[0]["archive_path_mfe_pct"], 0.2727)
         self.assertEqual(rows[0]["regime_mode"], "neutral")
 
 

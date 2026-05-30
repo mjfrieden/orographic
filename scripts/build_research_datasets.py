@@ -23,6 +23,12 @@ def _flatten_pick(entry: dict[str, Any], pick: dict[str, Any], *, source_artifac
     outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
     fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
     path_rules = outcomes.get("path_rules") if isinstance(outcomes.get("path_rules"), dict) else {}
+    archived_path = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
+    archived_first_hit = (
+        archived_path.get("first_hit")
+        if isinstance(archived_path.get("first_hit"), dict)
+        else {}
+    )
     emission_quote = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
     scores = pick.get("scores") if isinstance(pick.get("scores"), dict) else {}
     risk = pick.get("risk_features") if isinstance(pick.get("risk_features"), dict) else {}
@@ -84,6 +90,16 @@ def _flatten_pick(entry: dict[str, Any], pick: dict[str, Any], *, source_artifac
         "take_profit_25_pct_before_stop_50_pct": path_rules.get("take_profit_25_pct_before_stop_50_pct"),
         "max_favorable_excursion_pct": path_rules.get("max_favorable_excursion_pct"),
         "max_adverse_excursion_pct": path_rules.get("max_adverse_excursion_pct"),
+        "archive_path_status": archived_path.get("status"),
+        "archive_path_observation_count": archived_path.get("observation_count"),
+        "archive_path_entry_mark": archived_path.get("entry_mark"),
+        "archive_path_mfe_pct": archived_path.get("max_favorable_excursion_pct"),
+        "archive_path_mae_pct": archived_path.get("max_adverse_excursion_pct"),
+        "archive_path_first_hit_rule": archived_first_hit.get("rule"),
+        "archive_path_first_hit_at_utc": archived_first_hit.get("captured_at_utc"),
+        "archive_path_first_hit_pnl_pct": archived_first_hit.get("pnl_pct_from_emission"),
+        "archive_path_take_profit_25_before_stop_50": archived_path.get("take_profit_25_pct_before_stop_50_pct"),
+        "archive_path_take_profit_40_before_stop_50": archived_path.get("take_profit_40_pct_before_stop_50_pct"),
         "moonshot_tail_upside_score": moonshot.get("tail_upside_score"),
         "moonshot_eligible": moonshot.get("eligible"),
         "moonshot_reasons": json.dumps(moonshot.get("reasons", [])),

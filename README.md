@@ -103,6 +103,17 @@ Build canonical research datasets from prospective ledgers:
 
 This produces option-recommendation and moonshot outcome tables suitable for future payoff, path, side-aware, and moonshot model training.
 
+Before building datasets, enrich ledgers with dense path labels from archived option chains:
+
+```bash
+./.venv/bin/python scripts/mark_path_outcomes_from_archive.py \
+  --archive-dir engine/data/live_options_archive \
+  --ledger web/data/diagnostics/prospective_pick_ledger.json \
+  --ledger web/data/diagnostics/moonshot_prospective_ledger.json
+```
+
+This adds an `archived_quote_path` block to each pick when archived chains contain the contract. It records observed quote marks, max favorable/adverse excursion, first hit, and take-profit-before-stop labels.
+
 Audit research data capture after archiving and dataset generation:
 
 ```bash

@@ -76,6 +76,13 @@ jobs:
             --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
             --ignore-missing
 
+      - name: Mark archived quote path outcomes
+        run: |
+          python scripts/mark_path_outcomes_from_archive.py \
+            --archive-dir engine/data/live_options_archive \
+            --ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --ledger web/data/diagnostics/moonshot_prospective_ledger.json
+
       - name: Build research datasets
         run: |
           python scripts/build_research_datasets.py \
