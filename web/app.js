@@ -847,12 +847,54 @@ function summarizeProspectiveLedger(ledger) {
   };
 }
 
+function renderProspectiveExplanation(ledger, summary) {
+  const el = document.getElementById("prospective-performance-explain");
+  if (!el) return;
+  if (!ledger || !Array.isArray(ledger.entries)) {
+    el.innerHTML =
+      "No automatically updated forward ledger is available yet. Each scheduled scan appends picks here and later marks their real quote path.";
+    return;
+  }
+
+  const aggregate = ledger.aggregate || {};
+  const updated = ledger.updated_at_utc
+    ? `Updated ${formatTs(ledger.updated_at_utc)}.`
+    : "";
+  const markedShare =
+    summary.picks > 0 ? summary.marked / summary.picks : null;
+  const completeShare =
+    summary.picks > 0 ? summary.complete / summary.picks : null;
+  const takeProfitShare =
+    summary.marked > 0 ? summary.takeProfitHits / summary.marked : null;
+  const stopShare = summary.marked > 0 ? summary.stopHits / summary.marked : null;
+  const purpose =
+    ledger.outcome_policy?.purpose ||
+    "Judge every emitted contract recommendation, whether traded or not.";
+  const markSummary = ledger.last_mark_summary || {};
+  const missingQuotes = Number(markSummary.quotes_missing || 0);
+  const missingQuoteText = missingQuotes > 0
+    ? `${integer(missingQuotes)} marks are still waiting on quote availability.`
+    : "No quote gaps were reported in the latest marking pass.";
+
+  el.innerHTML = [
+    `<strong>True forward evidence.</strong> ${escapeHtml(purpose)} ${updated}`,
+    `The ledger now covers ${integer(aggregate.runs ?? summary.runs)} scans and ${integer(summary.picks)} emitted contracts.`,
+    `${integer(summary.marked)} contracts have at least one real forward mark (${pct(markedShare)}), and ${integer(summary.complete)} are fully marked (${pct(completeShare)}).`,
+    `Among marked contracts, ${integer(summary.takeProfitHits)} hit the +40% path rule (${pct(takeProfitShare)}) and ${integer(summary.stopHits)} hit the -50% stop path first (${pct(stopShare)}).`,
+    `Average best mark is ${pct(summary.avgBest)} and average worst mark is ${pct(summary.avgWorst)}.`,
+    missingQuoteText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function renderProspectiveScoreboard(ledger) {
   const grid = document.getElementById("prospective-overview-grid");
   const tbody = document.getElementById("prospective-tbody");
   if (!grid && !tbody) return;
 
   if (!ledger || !Array.isArray(ledger.entries)) {
+    renderProspectiveExplanation(null, null);
     if (grid) {
       grid.innerHTML = `
         <article class="summary-item admin-card">
@@ -869,6 +911,7 @@ function renderProspectiveScoreboard(ledger) {
   }
 
   const summary = summarizeProspectiveLedger(ledger);
+  renderProspectiveExplanation(ledger, summary);
   if (grid) {
     grid.innerHTML = [
       summaryItemHtml("Runs", integer(summary.runs)),
@@ -2506,8 +2549,76 @@ function renderEquityCurve(canvas, curve) {
   }
 }
 
+function performanceToneText(value, goodAt, poorAt, goodText, mixedText, poorText) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return mixedText;
+  if (n >= goodAt) return goodText;
+  if (n <= poorAt) return poorText;
+  return mixedText;
+}
+
+function renderPerformanceExplanation(bt) {
+  const explanationEl = document.getElementById("bt-performance-explain");
+  if (!explanationEl) return;
+  if (!bt) {
+    explanationEl.innerHTML =
+      "No walk-forward performance artifact is available yet. The scheduled scan will publish one after validation artifacts are synced.";
+    return;
+  }
+
+  const studyKind = String(bt.study_kind || bt.study_type || "backtest");
+  const isWalkForward = studyKind === "walk_forward";
+  const totalPnl = Number(bt.total_pnl || 0);
+  const netReturn = Number(bt.net_return_pct || 0);
+  const winRate = Number(bt.win_rate || 0);
+  const sharpe = Number(bt.sharpe_ratio || 0);
+  const maxDD = Number(bt.max_drawdown || 0);
+  const avgWin = Number(bt.avg_winner_pct || 0);
+  const avgLoss = Number(bt.avg_loser_pct || 0);
+  const trades = Number(bt.total_trades || 0);
+  const optionsCoverage = bt.options_data_coverage || {};
+  const entryReal = Number(optionsCoverage.entry_real_trade_pct);
+  const exitReal = Number(optionsCoverage.exit_real_trade_pct);
+  const hasRealCoverage =
+    Number.isFinite(entryReal) &&
+    Number.isFinite(exitReal) &&
+    entryReal >= 0.99 &&
+    exitReal >= 0.99;
+  const generated = bt.generated_at ? `Generated ${escapeHtml(bt.generated_at)}.` : "";
+  const sourceText = isWalkForward
+    ? "This is the automatically refreshed walk-forward validation artifact."
+    : "Walk-forward data was unavailable, so this is the fallback historical backtest artifact.";
+  const resultText =
+    totalPnl >= 0
+      ? `The tested strategy made ${money(totalPnl)} on ${integer(trades)} trades, a ${pct(netReturn)} net return.`
+      : `The tested strategy lost ${money(Math.abs(totalPnl))} on ${integer(trades)} trades, a ${pct(netReturn)} net return.`;
+  const hitRateText = `It won ${pct(winRate)} of trades; average winners were ${pct(avgWin)} and average losers were ${pct(avgLoss)}.`;
+  const riskText = `${performanceToneText(
+    sharpe,
+    1.5,
+    0.5,
+    "Risk-adjusted performance is strong",
+    "Risk-adjusted performance is mixed",
+    "Risk-adjusted performance is weak",
+  )} with a ${sharpe.toFixed(2)} Sharpe, but the worst drawdown was ${pct(maxDD)}, so losses can still be sharp.`;
+  const coverageText = hasRealCoverage
+    ? "Entries and exits used real option-chain quotes."
+    : "Some entry or exit marks may not be fully quote-backed, so read the result with extra caution.";
+
+  explanationEl.innerHTML = [
+    `<strong>${sourceText}</strong> ${generated}`,
+    resultText,
+    hitRateText,
+    riskText,
+    coverageText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function renderBacktest(bt) {
   if (!bt) {
+    renderPerformanceExplanation(null);
     const noData = document.getElementById("bt-no-data");
     if (noData) noData.hidden = false;
     const sizingPolicy = document.getElementById("bt-sizing-policy");
@@ -2530,6 +2641,8 @@ function renderBacktest(bt) {
     if (tradesWrap) tradesWrap.hidden = true;
     return;
   }
+
+  renderPerformanceExplanation(bt);
 
   // Stats ribbon
   const setVal = (id, text, positive) => {
@@ -2808,7 +2921,11 @@ async function main() {
     }
   }
 
-  // Historical validation remains available in code, but the active dashboard now centers prospective outcomes.
+  try {
+    renderBacktest(await loadBacktest());
+  } catch {
+    renderBacktest(null);
+  }
 }
 
 main();
