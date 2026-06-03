@@ -93,16 +93,49 @@ def build_audit_report(
             "actual": str(moonshot_ledger),
         },
         {
+            "name": "recommendation_dataset_exists",
+            "passed": recommendation_dataset_rows >= 0,
+            "actual": str(recommendation_dataset),
+        },
+        {
+            "name": "moonshot_dataset_exists",
+            "passed": moonshot_dataset_rows >= 0,
+            "actual": str(moonshot_dataset),
+        },
+        {
+            "name": "combined_dataset_exists",
+            "passed": combined_dataset_rows >= 0,
+            "actual": str(combined_dataset),
+        },
+        {
             "name": "recommendation_dataset_rows",
             "passed": recommendation_dataset_rows >= min_recommendation_rows,
             "actual": recommendation_dataset_rows,
             "required_min": min_recommendation_rows,
         },
         {
+            "name": "recommendation_dataset_matches_ledger",
+            "passed": recommendation_dataset_rows == prospective_rows,
+            "actual": recommendation_dataset_rows,
+            "expected": prospective_rows,
+        },
+        {
+            "name": "moonshot_dataset_matches_ledger",
+            "passed": moonshot_dataset_rows == moonshot_rows,
+            "actual": moonshot_dataset_rows,
+            "expected": moonshot_rows,
+        },
+        {
             "name": "combined_dataset_consistency",
             "passed": combined_dataset_rows == recommendation_dataset_rows + moonshot_dataset_rows,
             "actual": combined_dataset_rows,
             "expected": recommendation_dataset_rows + moonshot_dataset_rows,
+        },
+        {
+            "name": "combined_dataset_matches_ledgers",
+            "passed": combined_dataset_rows == prospective_rows + moonshot_rows,
+            "actual": combined_dataset_rows,
+            "expected": prospective_rows + moonshot_rows,
         },
     ]
     failed = [check for check in checks if not bool(check["passed"])]
