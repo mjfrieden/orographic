@@ -4,6 +4,7 @@
  */
 
 const SNAPSHOT_SOURCE = "./data/latest_run.json";
+const PROSPECTIVE_LEDGER_SOURCE = "./data/diagnostics/prospective_pick_ledger.json";
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
 
@@ -578,11 +579,17 @@ function bindBoardControls() {
 // ── Snapshot / Board ────────────────────────────────────────────────────────
 
 let SNAPSHOT = null;
+let PROSPECTIVE_LEDGER = null;
 let LIVE_QUOTES = new Map();
 let BOARD_STATE = {
   loading: false,
   fetchedAt: null,
   snapshotGeneratedAt: null,
+  lastError: null,
+};
+let PROSPECTIVE_STATE = {
+  loading: false,
+  updatedAt: null,
   lastError: null,
 };
 
@@ -629,15 +636,49 @@ async function loadSnapshot() {
   return SNAPSHOT;
 }
 
+async function loadProspectiveLedger() {
+  const r = await fetch(PROSPECTIVE_LEDGER_SOURCE, { cache: "no-store" });
+  if (!r.ok) {
+    throw new Error(`Prospective ledger unavailable (${r.status})`);
+  }
+  PROSPECTIVE_LEDGER = await r.json();
+  return PROSPECTIVE_LEDGER;
+}
+
 async function refreshBoard() {
   BOARD_STATE = {
     ...BOARD_STATE,
     loading: true,
   };
+  PROSPECTIVE_STATE = {
+    ...PROSPECTIVE_STATE,
+    loading: true,
+  };
   renderBoardMeta();
+  renderProspectiveMeta();
   try {
-    const payload = await loadSnapshot();
+    const [payload, ledgerResult] = await Promise.all([
+      loadSnapshot(),
+      loadProspectiveLedger()
+        .then((ledger) => ({ ok: true, ledger }))
+        .catch((error) => ({ ok: false, error })),
+    ]);
     await renderBoard(payload);
+    if (ledgerResult.ok) {
+      PROSPECTIVE_STATE = {
+        loading: false,
+        updatedAt: ledgerResult.ledger?.updated_at_utc || null,
+        lastError: null,
+      };
+      renderProspectiveScoreboard(ledgerResult.ledger);
+    } else {
+      PROSPECTIVE_STATE = {
+        loading: false,
+        updatedAt: null,
+        lastError: String(ledgerResult.error?.message || ledgerResult.error),
+      };
+      renderProspectiveScoreboard(null);
+    }
     BOARD_STATE = {
       loading: false,
       fetchedAt: new Date().toISOString(),
@@ -645,6 +686,7 @@ async function refreshBoard() {
       lastError: null,
     };
     renderBoardMeta();
+    renderProspectiveMeta();
     return payload;
   } catch (error) {
     BOARD_STATE = {
@@ -653,6 +695,11 @@ async function refreshBoard() {
       lastError: String(error.message || error),
     };
     renderBoardMeta();
+    PROSPECTIVE_STATE = {
+      ...PROSPECTIVE_STATE,
+      loading: false,
+    };
+    renderProspectiveMeta();
     throw error;
   }
 }
@@ -669,6 +716,262 @@ async function refreshQuotes(contractSymbols) {
   } catch {
     // Non-fatal; fall back to snapshot premium
   }
+}
+
+function renderProspectiveMeta() {
+  const el = document.getElementById("prospective-sync-status");
+  if (!el) return;
+  let text = "Waiting for prospective ledger.";
+  let className = "positions-sync-status";
+  if (PROSPECTIVE_STATE.loading) {
+    text = "Refreshing forward outcome ledger…";
+    className += " is-loading";
+  } else if (PROSPECTIVE_STATE.lastError) {
+    text = PROSPECTIVE_STATE.lastError;
+    className += " is-warning";
+  } else if (PROSPECTIVE_STATE.updatedAt) {
+    text = `Updated ${formatTs(PROSPECTIVE_STATE.updatedAt)} · ${timeAgo(PROSPECTIVE_STATE.updatedAt)}`;
+    className += " is-live";
+  }
+  el.textContent = text;
+  el.className = className;
+}
+
+function entryMid(pick) {
+  const quote = pick?.emission_quote || {};
+  const mid = Number(quote.mid);
+  if (Number.isFinite(mid) && mid > 0) return mid;
+  const bid = Number(quote.bid);
+  const ask = Number(quote.ask);
+  if (Number.isFinite(bid) && Number.isFinite(ask) && bid > 0 && ask > 0) {
+    return (bid + ask) / 2;
+  }
+  return Number(quote.last || quote.ask || quote.bid || NaN);
+}
+
+function pickOutcomeReturns(pick) {
+  const marks = pick?.outcomes?.fixed_exit_marks || {};
+  return Object.entries(marks)
+    .map(([window, mark]) => ({
+      window,
+      value: Number(mark?.pnl_pct_from_emission),
+    }))
+    .filter((row) => Number.isFinite(row.value));
+}
+
+function allProspectivePicks(ledger) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  return entries.flatMap((entry) =>
+    (Array.isArray(entry.picks) ? entry.picks : []).map((pick) => ({
+      ...pick,
+      run_generated_at_utc:
+        pick.run_generated_at_utc || entry.run_generated_at_utc,
+    })),
+  );
+}
+
+function latestProspectivePicks(ledger, limit = 12) {
+  return allProspectivePicks(ledger).reverse().slice(0, limit);
+}
+
+function recentProspectivePicks(ledger, entryLimit = 8) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  return entries.slice(-entryLimit).flatMap((entry) =>
+    (Array.isArray(entry.picks) ? entry.picks : []).map((pick) => ({
+      ...pick,
+      run_generated_at_utc:
+        pick.run_generated_at_utc || entry.run_generated_at_utc,
+    })),
+  );
+}
+
+function summarizeProspectivePicks(picks) {
+  const withMarks = picks.filter((pick) => pickOutcomeReturns(pick).length > 0);
+  const complete = picks.filter((pick) => pick?.outcomes?.status === "complete");
+  const bestReturns = withMarks.map((pick) =>
+    Math.max(...pickOutcomeReturns(pick).map((row) => row.value)),
+  );
+  const worstReturns = withMarks.map((pick) =>
+    Math.min(...pickOutcomeReturns(pick).map((row) => row.value)),
+  );
+  const takeProfitHits = withMarks.filter(
+    (pick) =>
+      pick?.outcomes?.path_rules?.take_profit_40_pct_before_stop_50_pct ===
+      true,
+  ).length;
+  const stopHits = withMarks.filter((pick) => {
+    const firstHit = pick?.outcomes?.path_rules?.first_hit || {};
+    return String(firstHit.rule || "").includes("stop_50");
+  }).length;
+  const latestRun = picks
+    .map((pick) => pick.run_generated_at_utc)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  return {
+    picks: picks.length,
+    marked: withMarks.length,
+    complete: complete.length,
+    pending: picks.filter((pick) => (pick?.outcomes?.status || "pending") === "pending").length,
+    takeProfitHits,
+    stopHits,
+    latestRun,
+    avgBest:
+      bestReturns.length
+        ? bestReturns.reduce((sum, value) => sum + value, 0) /
+          bestReturns.length
+        : null,
+    avgWorst:
+      worstReturns.length
+        ? worstReturns.reduce((sum, value) => sum + value, 0) /
+          worstReturns.length
+        : null,
+  };
+}
+
+function summarizeProspectiveLedger(ledger) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  const picks = allProspectivePicks(ledger);
+  const live = picks.filter((pick) => pick.lane === "live");
+  const shadow = picks.filter((pick) => pick.lane === "shadow");
+  return {
+    runs: entries.length,
+    live: live.length,
+    shadow: shadow.length,
+    ...summarizeProspectivePicks(picks),
+  };
+}
+
+function renderRecentForwardPerformance(ledger) {
+  const el = document.getElementById("bt-recent-forward-performance");
+  if (!el) return;
+  if (!ledger || !Array.isArray(ledger.entries)) {
+    el.innerHTML = summaryItemHtml("Status", "No recent forward ledger yet");
+    return;
+  }
+  const summary = summarizeProspectivePicks(recentProspectivePicks(ledger, 8));
+  el.innerHTML = [
+    summaryItemHtml("Latest Scan", summary.latestRun ? formatTs(summary.latestRun) : "—"),
+    summaryItemHtml("Recent Contracts", integer(summary.picks)),
+    summaryItemHtml("Marked", `${integer(summary.marked)} / ${integer(summary.picks)}`),
+    summaryItemHtml("Fully Marked", integer(summary.complete)),
+    summaryItemHtml("Pending", integer(summary.pending)),
+    summaryItemHtml("+40% Hits", integer(summary.takeProfitHits)),
+    summaryItemHtml("-50% Stops", integer(summary.stopHits)),
+    summaryItemHtml("Avg Best Mark", pct(summary.avgBest)),
+    summaryItemHtml("Avg Worst Mark", pct(summary.avgWorst)),
+  ].join("");
+}
+
+function renderProspectiveExplanation(ledger, summary) {
+  const el = document.getElementById("prospective-performance-explain");
+  if (!el) return;
+  if (!ledger || !Array.isArray(ledger.entries)) {
+    el.innerHTML =
+      "No automatically updated forward ledger is available yet. Each scheduled scan appends picks here and later marks their real quote path.";
+    return;
+  }
+
+  const aggregate = ledger.aggregate || {};
+  const updated = ledger.updated_at_utc
+    ? `Updated ${formatTs(ledger.updated_at_utc)}.`
+    : "";
+  const markedShare =
+    summary.picks > 0 ? summary.marked / summary.picks : null;
+  const completeShare =
+    summary.picks > 0 ? summary.complete / summary.picks : null;
+  const takeProfitShare =
+    summary.marked > 0 ? summary.takeProfitHits / summary.marked : null;
+  const stopShare = summary.marked > 0 ? summary.stopHits / summary.marked : null;
+  const purpose =
+    ledger.outcome_policy?.purpose ||
+    "Judge every emitted contract recommendation, whether traded or not.";
+  const markSummary = ledger.last_mark_summary || {};
+  const missingQuotes = Number(markSummary.quotes_missing || 0);
+  const missingQuoteText = missingQuotes > 0
+    ? `${integer(missingQuotes)} marks are still waiting on quote availability.`
+    : "No quote gaps were reported in the latest marking pass.";
+
+  el.innerHTML = [
+    `<strong>True forward evidence.</strong> ${escapeHtml(purpose)} ${updated}`,
+    `The ledger now covers ${integer(aggregate.runs ?? summary.runs)} scans and ${integer(summary.picks)} emitted contracts.`,
+    `${integer(summary.marked)} contracts have at least one real forward mark (${pct(markedShare)}), and ${integer(summary.complete)} are fully marked (${pct(completeShare)}).`,
+    `Among marked contracts, ${integer(summary.takeProfitHits)} hit the +40% path rule (${pct(takeProfitShare)}) and ${integer(summary.stopHits)} hit the -50% stop path first (${pct(stopShare)}).`,
+    `Average best mark is ${pct(summary.avgBest)} and average worst mark is ${pct(summary.avgWorst)}.`,
+    missingQuoteText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
+function renderProspectiveScoreboard(ledger) {
+  const grid = document.getElementById("prospective-overview-grid");
+  const tbody = document.getElementById("prospective-tbody");
+  if (!grid && !tbody) return;
+
+  if (!ledger || !Array.isArray(ledger.entries)) {
+    renderProspectiveExplanation(null, null);
+    renderRecentForwardPerformance(null);
+    if (grid) {
+      grid.innerHTML = summaryItemHtml("Prospective Ledger", "Not available yet");
+    }
+    if (tbody) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No prospective pick ledger found.</td></tr>`;
+    }
+    return;
+  }
+
+  const summary = summarizeProspectiveLedger(ledger);
+  renderProspectiveExplanation(ledger, summary);
+  renderRecentForwardPerformance(ledger);
+  if (grid) {
+    grid.innerHTML = [
+      summaryItemHtml("Runs", integer(summary.runs)),
+      summaryItemHtml("Contracts Judged", integer(summary.picks)),
+      summaryItemHtml("Live / Shadow", `${integer(summary.live)} / ${integer(summary.shadow)}`),
+      summaryItemHtml("Marked Outcomes", integer(summary.marked)),
+      summaryItemHtml("Fully Marked", integer(summary.complete)),
+      summaryItemHtml("Pending", integer(summary.pending)),
+      summaryItemHtml("+40% Hits", integer(summary.takeProfitHits)),
+      summaryItemHtml("-50% Stops", integer(summary.stopHits)),
+      summaryItemHtml("Avg Best Mark", pct(summary.avgBest)),
+      summaryItemHtml("Avg Worst Mark", pct(summary.avgWorst)),
+    ].join("");
+  }
+
+  if (!tbody) return;
+  const rows = latestProspectivePicks(ledger, 12);
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Prospective ledger has no picks yet.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = rows
+    .map((pick) => {
+      const returns = pickOutcomeReturns(pick);
+      const best = returns.length
+        ? Math.max(...returns.map((row) => row.value))
+        : null;
+      const worst = returns.length
+        ? Math.min(...returns.map((row) => row.value))
+        : null;
+      const firstHit = pick?.outcomes?.path_rules?.first_hit;
+      const ruleHit = firstHit?.rule
+        ? `${String(firstHit.rule).replaceAll("_", " ")} · ${firstHit.window || ""}`
+        : returns.length
+          ? "No threshold hit"
+          : "Pending marks";
+      const lane = String(pick.lane || "unknown");
+      return `<tr>
+        <td data-label="Run" style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${formatTs(pick.run_generated_at_utc)}</td>
+        <td data-label="Lane"><span class="position-chip ${lane === "live" ? "is-positive" : lane === "shadow" ? "is-neutral" : "is-warning"}">${escapeHtml(lane.replaceAll("_", " "))}</span></td>
+        <td data-label="Contract" style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${escapeHtml(pick.contract_symbol || "--")}</td>
+        <td data-label="Entry Mid" class="is-num">${money(entryMid(pick))}</td>
+        <td data-label="Best Mark" class="is-num ${best !== null && best >= 0 ? "is-positive" : best !== null ? "is-negative" : ""}">${best !== null ? pct(best) : "--"}</td>
+        <td data-label="Worst Mark" class="is-num ${worst !== null && worst >= 0 ? "is-positive" : worst !== null ? "is-negative" : ""}">${worst !== null ? pct(worst) : "--"}</td>
+        <td data-label="Rule Hit">${escapeHtml(ruleHit)}</td>
+      </tr>`;
+    })
+    .join("");
 }
 
 // ── Explanation-only AI Rationale ───────────────────────────────────────────
@@ -2250,8 +2553,77 @@ function renderEquityCurve(canvas, curve) {
   }
 }
 
+function performanceToneText(value, goodAt, poorAt, goodText, mixedText, poorText) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return mixedText;
+  if (n >= goodAt) return goodText;
+  if (n <= poorAt) return poorText;
+  return mixedText;
+}
+
+function renderPerformanceExplanation(bt) {
+  const explanationEl = document.getElementById("bt-performance-explain");
+  if (!explanationEl) return;
+  if (!bt) {
+    explanationEl.innerHTML =
+      "No walk-forward performance artifact is available yet. The scheduled scan will publish one after validation artifacts are synced.";
+    return;
+  }
+
+  const studyKind = String(bt.study_kind || bt.study_type || "backtest");
+  const isWalkForward = studyKind === "walk_forward";
+  const totalPnl = Number(bt.total_pnl || 0);
+  const netReturn = Number(bt.net_return_pct || 0);
+  const winRate = Number(bt.win_rate || 0);
+  const sharpe = Number(bt.sharpe_ratio || 0);
+  const maxDD = Number(bt.max_drawdown || 0);
+  const avgWin = Number(bt.avg_winner_pct || 0);
+  const avgLoss = Number(bt.avg_loser_pct || 0);
+  const trades = Number(bt.total_trades || 0);
+  const optionsCoverage = bt.options_data_coverage || {};
+  const entryReal = Number(optionsCoverage.entry_real_trade_pct);
+  const exitReal = Number(optionsCoverage.exit_real_trade_pct);
+  const hasRealCoverage =
+    Number.isFinite(entryReal) &&
+    Number.isFinite(exitReal) &&
+    entryReal >= 0.99 &&
+    exitReal >= 0.99;
+  const generated = bt.generated_at ? `Generated ${escapeHtml(bt.generated_at)}.` : "";
+  const sourceText = isWalkForward
+    ? "This is the automatically refreshed walk-forward validation artifact."
+    : "Walk-forward data was unavailable, so this is the fallback historical backtest artifact.";
+  const resultText =
+    totalPnl >= 0
+      ? `The tested strategy made ${money(totalPnl)} on ${integer(trades)} trades, a ${pct(netReturn)} net return.`
+      : `The tested strategy lost ${money(Math.abs(totalPnl))} on ${integer(trades)} trades, a ${pct(netReturn)} net return.`;
+  const hitRateText = `It won ${pct(winRate)} of trades; average winners were ${pct(avgWin)} and average losers were ${pct(avgLoss)}.`;
+  const riskText = `${performanceToneText(
+    sharpe,
+    1.5,
+    0.5,
+    "Risk-adjusted performance is strong",
+    "Risk-adjusted performance is mixed",
+    "Risk-adjusted performance is weak",
+  )} with a ${sharpe.toFixed(2)} Sharpe, but the worst drawdown was ${pct(maxDD)}, so losses can still be sharp.`;
+  const coverageText = hasRealCoverage
+    ? "Entries and exits used real option-chain quotes."
+    : "Some entry or exit marks may not be fully quote-backed, so read the result with extra caution.";
+
+  explanationEl.innerHTML = [
+    `<strong>${sourceText}</strong> ${generated}`,
+    resultText,
+    hitRateText,
+    riskText,
+    coverageText,
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 function renderBacktest(bt) {
   if (!bt) {
+    renderPerformanceExplanation(null);
+    renderRecentForwardPerformance(PROSPECTIVE_LEDGER);
     const noData = document.getElementById("bt-no-data");
     if (noData) noData.hidden = false;
     const sizingPolicy = document.getElementById("bt-sizing-policy");
@@ -2274,6 +2646,9 @@ function renderBacktest(bt) {
     if (tradesWrap) tradesWrap.hidden = true;
     return;
   }
+
+  renderPerformanceExplanation(bt);
+  renderRecentForwardPerformance(PROSPECTIVE_LEDGER);
 
   // Stats ribbon
   const setVal = (id, text, positive) => {
