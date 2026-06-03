@@ -800,6 +800,17 @@ function latestProspectivePicks(ledger, limit = 12) {
     .slice(0, limit);
 }
 
+function recentProspectivePicks(ledger, entryLimit = 8) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  return entries.slice(-entryLimit).flatMap((entry) =>
+    (Array.isArray(entry.picks) ? entry.picks : []).map((pick) => ({
+      ...pick,
+      run_generated_at_utc:
+        pick.run_generated_at_utc || entry.run_generated_at_utc,
+    })),
+  );
+}
+
 function summarizeProspectiveLedger(ledger) {
   const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
   const picks = entries.flatMap((entry) =>
@@ -845,6 +856,71 @@ function summarizeProspectiveLedger(ledger) {
           worstReturns.length
         : null,
   };
+}
+
+function summarizeProspectivePicks(picks) {
+  const withMarks = picks.filter((pick) => pickOutcomeReturns(pick).length > 0);
+  const complete = picks.filter((pick) => pick?.outcomes?.status === "complete");
+  const bestReturns = withMarks.map((pick) =>
+    Math.max(...pickOutcomeReturns(pick).map((row) => row.value)),
+  );
+  const worstReturns = withMarks.map((pick) =>
+    Math.min(...pickOutcomeReturns(pick).map((row) => row.value)),
+  );
+  const takeProfitHits = withMarks.filter(
+    (pick) =>
+      pick?.outcomes?.path_rules?.take_profit_40_pct_before_stop_50_pct ===
+      true,
+  ).length;
+  const stopHits = withMarks.filter((pick) => {
+    const firstHit = pick?.outcomes?.path_rules?.first_hit || {};
+    return String(firstHit.rule || "").includes("stop_50");
+  }).length;
+  const latestRun = picks
+    .map((pick) => pick.run_generated_at_utc)
+    .filter(Boolean)
+    .sort()
+    .at(-1);
+  return {
+    picks: picks.length,
+    marked: withMarks.length,
+    complete: complete.length,
+    pending: picks.filter((pick) => (pick?.outcomes?.status || "pending") === "pending").length,
+    takeProfitHits,
+    stopHits,
+    latestRun,
+    avgBest:
+      bestReturns.length
+        ? bestReturns.reduce((sum, value) => sum + value, 0) /
+          bestReturns.length
+        : null,
+    avgWorst:
+      worstReturns.length
+        ? worstReturns.reduce((sum, value) => sum + value, 0) /
+          worstReturns.length
+        : null,
+  };
+}
+
+function renderRecentForwardPerformance(ledger) {
+  const el = document.getElementById("bt-recent-forward-performance");
+  if (!el) return;
+  if (!ledger || !Array.isArray(ledger.entries)) {
+    el.innerHTML = summaryItemHtml("Status", "No recent forward ledger yet");
+    return;
+  }
+  const summary = summarizeProspectivePicks(recentProspectivePicks(ledger, 8));
+  el.innerHTML = [
+    summaryItemHtml("Latest Scan", summary.latestRun ? formatTs(summary.latestRun) : "—"),
+    summaryItemHtml("Recent Contracts", integer(summary.picks)),
+    summaryItemHtml("Marked", `${integer(summary.marked)} / ${integer(summary.picks)}`),
+    summaryItemHtml("Fully Marked", integer(summary.complete)),
+    summaryItemHtml("Pending", integer(summary.pending)),
+    summaryItemHtml("+40% Hits", integer(summary.takeProfitHits)),
+    summaryItemHtml("-50% Stops", integer(summary.stopHits)),
+    summaryItemHtml("Avg Best Mark", pct(summary.avgBest)),
+    summaryItemHtml("Avg Worst Mark", pct(summary.avgWorst)),
+  ].join("");
 }
 
 function renderProspectiveExplanation(ledger, summary) {
@@ -895,6 +971,7 @@ function renderProspectiveScoreboard(ledger) {
 
   if (!ledger || !Array.isArray(ledger.entries)) {
     renderProspectiveExplanation(null, null);
+    renderRecentForwardPerformance(null);
     if (grid) {
       grid.innerHTML = `
         <article class="summary-item admin-card">
@@ -912,6 +989,7 @@ function renderProspectiveScoreboard(ledger) {
 
   const summary = summarizeProspectiveLedger(ledger);
   renderProspectiveExplanation(ledger, summary);
+  renderRecentForwardPerformance(ledger);
   if (grid) {
     grid.innerHTML = [
       summaryItemHtml("Runs", integer(summary.runs)),
@@ -2619,6 +2697,7 @@ function renderPerformanceExplanation(bt) {
 function renderBacktest(bt) {
   if (!bt) {
     renderPerformanceExplanation(null);
+    renderRecentForwardPerformance(PROSPECTIVE_LEDGER);
     const noData = document.getElementById("bt-no-data");
     if (noData) noData.hidden = false;
     const sizingPolicy = document.getElementById("bt-sizing-policy");
@@ -2643,6 +2722,7 @@ function renderBacktest(bt) {
   }
 
   renderPerformanceExplanation(bt);
+  renderRecentForwardPerformance(PROSPECTIVE_LEDGER);
 
   // Stats ribbon
   const setVal = (id, text, positive) => {
