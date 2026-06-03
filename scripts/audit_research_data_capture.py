@@ -64,11 +64,13 @@ def build_audit_report(
     moonshot_dataset_rows = _dataset_rows(moonshot_dataset)
     combined_dataset_rows = _dataset_rows(combined_dataset)
 
+    archive_required = min_archive_rows > 0
     checks = [
         {
             "name": "live_archive_manifest_exists",
-            "passed": live_archive_manifest.exists(),
+            "passed": live_archive_manifest.exists() or not archive_required,
             "actual": str(live_archive_manifest),
+            "required": archive_required,
         },
         {
             "name": "live_archive_rows",

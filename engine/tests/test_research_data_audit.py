@@ -76,6 +76,26 @@ class ResearchDataAuditTests(unittest.TestCase):
         self.assertEqual(report["status"], "failed")
         self.assertIn("live_archive_rows", {row["name"] for row in report["failed_checks"]})
 
+    def test_build_audit_report_allows_missing_archive_when_archive_rows_not_required(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            ledger = root / "ledger.json"
+            ledger.write_text(json.dumps({"entries": []}), encoding="utf-8")
+            empty_dataset = root / "empty.parquet"
+            pd.DataFrame([]).to_parquet(empty_dataset, index=False)
+
+            report = build_audit_report(
+                live_archive_manifest=root / "missing_manifest.json",
+                prospective_ledger=ledger,
+                moonshot_ledger=ledger,
+                recommendation_dataset=empty_dataset,
+                moonshot_dataset=empty_dataset,
+                combined_dataset=empty_dataset,
+                min_archive_rows=0,
+            )
+
+        self.assertEqual(report["status"], "passed")
+
     def test_build_audit_report_fails_when_dataset_rows_drift_from_ledgers(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
