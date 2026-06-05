@@ -1,7 +1,7 @@
 {
   "artifact": "moonshot_prospective_ledger",
   "schema_version": 2,
-  "updated_at_utc": "2026-06-05T03:50:48+00:00",
+  "updated_at_utc": "2026-06-05T16:37:31+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -17,18 +17,18 @@
     "purpose": "Judge every dedicated moonshot pick and near-miss shadow candidate."
   },
   "aggregate": {
-    "runs": 9,
-    "candidate_rows": 30,
-    "moonshot_pick": 8,
-    "moonshot_shadow": 22,
-    "eligible": 8
+    "runs": 10,
+    "candidate_rows": 34,
+    "moonshot_pick": 9,
+    "moonshot_shadow": 25,
+    "eligible": 9
   },
   "outcome_summary": {
-    "picks": 30,
+    "picks": 34,
     "pending": 4,
-    "partial": 2,
+    "partial": 6,
     "complete": 24,
-    "with_any_mark": 26,
+    "with_any_mark": 30,
     "with_all_fixed_marks": 24,
     "missing_outcome_quotes": 0
   },
@@ -6646,26 +6646,26 @@
               "status": "observed",
               "entry_mark": 0.375,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.9067,
-              "max_adverse_excursion_pct": -0.9067,
+              "max_favorable_excursion_pct": -0.96,
+              "max_adverse_excursion_pct": -0.96,
               "first_hit": {
-                "captured_at_utc": "2026-06-05T03:50:13+00:00",
+                "captured_at_utc": "2026-06-05T16:36:59+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.9067
+                "pnl_pct_from_emission": -0.96
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-05T03:50:13+00:00",
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
                   "quote_date": "2026-06-05",
-                  "mark": 0.035,
+                  "mark": 0.015,
                   "mark_source": "mid",
                   "bid": 0.01,
-                  "ask": 0.06,
-                  "last": 0.01,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=035013/underlying_symbol=T/chain.parquet",
-                  "pnl_pct_from_emission": -0.9067
+                  "ask": 0.02,
+                  "last": 0.03,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=T/chain.parquet",
+                  "pnl_pct_from_emission": -0.96
                 }
               ]
             }
@@ -6889,22 +6889,31 @@
             "symbol_probation: insufficient/negative realized option-outcome evidence for live promotion"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-06-05T16:36:25+00:00",
+                "mark": 0.57,
+                "mark_source": "mid",
+                "bid": 0.56,
+                "ask": 0.58,
+                "last": 0.56,
+                "close": null,
+                "pnl_pct_from_emission": -0.1739
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.1739,
+              "max_adverse_excursion_pct": -0.1739,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -6918,22 +6927,22 @@
               "status": "observed",
               "entry_mark": 0.69,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "max_favorable_excursion_pct": -0.2826,
+              "max_adverse_excursion_pct": -0.2826,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-05T03:50:13+00:00",
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
                   "quote_date": "2026-06-05",
-                  "mark": 0.69,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.68,
-                  "ask": 0.7,
-                  "last": 0.68,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=035013/underlying_symbol=NFLX/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.49,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=NFLX/chain.parquet",
+                  "pnl_pct_from_emission": -0.2826
                 }
               ]
             }
@@ -7106,23 +7115,35 @@
             "Path model shadow: hold quality 0.26, take-profit 0.23, decay 0.56"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-06-05T16:36:25+00:00",
+                "mark": 0.685,
+                "mark_source": "mid",
+                "bid": 0.66,
+                "ask": 0.71,
+                "last": 0.67,
+                "close": null,
+                "pnl_pct_from_emission": -0.5886
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.5886,
+              "max_adverse_excursion_pct": -0.5886,
+              "first_hit": {
+                "window": "one_hour",
+                "rule": "stop_50_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -7135,22 +7156,26 @@
               "status": "observed",
               "entry_mark": 1.665,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": -0.5556,
+              "max_adverse_excursion_pct": -0.5556,
+              "first_hit": {
+                "captured_at_utc": "2026-06-05T16:36:59+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.5556
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-05T03:50:13+00:00",
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
                   "quote_date": "2026-06-05",
-                  "mark": 1.665,
+                  "mark": 0.74,
                   "mark_source": "mid",
-                  "bid": 1.59,
-                  "ask": 1.74,
-                  "last": 1.6,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=035013/underlying_symbol=C/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
+                  "bid": 0.71,
+                  "ask": 0.77,
+                  "last": 0.74,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=C/chain.parquet",
+                  "pnl_pct_from_emission": -0.5556
                 }
               ]
             }
@@ -7322,22 +7347,31 @@
             "Path model shadow: hold quality 0.26, take-profit 0.23, decay 0.57"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false
+              "outcome_quotes_captured": true
             },
             "fixed_exit_marks": {
-              "one_hour": null,
+              "one_hour": {
+                "captured_at_utc": "2026-06-05T16:36:25+00:00",
+                "mark": 1.965,
+                "mark_source": "mid",
+                "bid": 1.95,
+                "ask": 1.98,
+                "last": 1.95,
+                "close": null,
+                "pnl_pct_from_emission": -0.1548
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.1548,
+              "max_adverse_excursion_pct": -0.1548,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -7348,27 +7382,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 2.325,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-05T03:50:13+00:00",
-                  "quote_date": "2026-06-05",
-                  "mark": 2.325,
-                  "mark_source": "mid",
-                  "bid": 2.29,
-                  "ask": 2.36,
-                  "last": 2.31,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=035013/underlying_symbol=AMZN/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
-                }
-              ]
+              "marks": []
             }
           },
           "moonshot": {
@@ -7534,6 +7556,281 @@
             "Path model shadow: hold quality 0.24, take-profit 0.24, decay 0.55"
           ],
           "outcomes": {
+            "status": "partial",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": true
+            },
+            "fixed_exit_marks": {
+              "one_hour": {
+                "captured_at_utc": "2026-06-05T16:36:25+00:00",
+                "mark": 1.51,
+                "mark_source": "mid",
+                "bid": 1.42,
+                "ask": 1.6,
+                "last": 1.5,
+                "close": null,
+                "pnl_pct_from_emission": -0.2488
+              },
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.2488,
+              "max_adverse_excursion_pct": -0.2488,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 2.01,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.1965,
+              "max_adverse_excursion_pct": -0.1965,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
+                  "quote_date": "2026-06-05",
+                  "mark": 1.615,
+                  "mark_source": "mid",
+                  "bid": 1.48,
+                  "ask": 1.75,
+                  "last": 1.64,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=UPS/chain.parquet",
+                  "pnl_pct_from_emission": -0.1965
+                }
+              ]
+            }
+          },
+          "moonshot": {
+            "tail_upside_score": 0.6158,
+            "eligible": false,
+            "reasons": [
+              "Nimrod prior: calls dominated the observed extreme-upside sample",
+              "Nimrod call contract selector applied inside moonshot lane only",
+              "fails moonshot satellite slot gate"
+            ],
+            "policy": {
+              "name": "nimrod_inspired_moonshot_satellite",
+              "slot_count": 1,
+              "threshold": 0.68,
+              "max_cost_basis": 225.0,
+              "capital_mode": "satellite_shadow_then_canary",
+              "notes": [
+                "Dedicated tail-upside lane; does not replace Council live-board picks.",
+                "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-06-05T16:36:58+00:00",
+      "regime": {
+        "mode": "neutral",
+        "bias": -0.1205,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "moonshot_policy": {
+        "name": "nimrod_inspired_moonshot_satellite",
+        "slot_count": 1,
+        "threshold": 0.68,
+        "max_cost_basis": 225.0,
+        "capital_mode": "satellite_shadow_then_canary",
+        "notes": [
+          "Dedicated tail-upside lane; does not replace Council live-board picks.",
+          "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+        ]
+      },
+      "summary": {
+        "candidate_rows": 4,
+        "moonshot_pick": 1,
+        "moonshot_shadow": 3,
+        "eligible": 1
+      },
+      "picks": [
+        {
+          "recommendation_id": "2026-06-05T16:36:58+00:00|C260612C00135000|moonshot_pick",
+          "run_generated_at_utc": "2026-06-05T16:36:58+00:00",
+          "lane": "moonshot_pick",
+          "lane_reason": "selected_moonshot_lane",
+          "symbol": "C",
+          "contract_symbol": "C260612C00135000",
+          "option_type": "call",
+          "expiry": "2026-06-12",
+          "strike": 135.0,
+          "days_to_expiry": 7,
+          "underlying": {
+            "symbol": "C",
+            "spot": 131.68,
+            "quote_captured_at_utc": "2026-06-05T16:36:58+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-05T16:36:58+00:00",
+            "bid": 1.19,
+            "ask": 1.25,
+            "mid": 1.22,
+            "last": 1.24,
+            "spread": 0.06,
+            "spread_pct": 0.0492,
+            "open_interest": 941,
+            "volume": 307,
+            "contract_cost": 125.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.6643,
+            "learned_rank_score": 0.6643,
+            "payoff_model_score": 0.6643,
+            "final_candidate_score": 0.6643,
+            "prob_positive_option_pnl": 0.4441,
+            "expected_option_return_pct_model": 0.9091,
+            "expected_edge_after_friction_pct": 0.5721,
+            "friction_buffer_pct": 0.337,
+            "path_holding_quality_score": 0.5363,
+            "path_early_profit_take_prob": 0.283,
+            "path_decay_risk": 0.493
+          },
+          "risk_features": {
+            "delta": 0.303,
+            "implied_volatility": 0.3247,
+            "iv_rank": 0.5193,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0252,
+            "premium_pct_of_spot": 0.0095,
+            "breakeven_move_pct": 0.0347,
+            "projected_move_pct": 0.0567,
+            "realized_vol_20d": 0.3075,
+            "atr_pct_14d": 0.0264,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "neutral",
+              "bias": -0.1205,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.54, take-profit 0.28, decay 0.49"
+          ],
+          "outcomes": {
             "status": "pending",
             "quote_verification": {
               "emission_quote_captured": true,
@@ -7561,7 +7858,7 @@
             },
             "archived_quote_path": {
               "status": "observed",
-              "entry_mark": 2.01,
+              "entry_mark": 1.22,
               "observation_count": 1,
               "max_favorable_excursion_pct": 0.0,
               "max_adverse_excursion_pct": 0.0,
@@ -7570,24 +7867,671 @@
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-05T03:50:13+00:00",
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
                   "quote_date": "2026-06-05",
-                  "mark": 2.01,
+                  "mark": 1.22,
                   "mark_source": "mid",
-                  "bid": 1.86,
-                  "ask": 2.16,
-                  "last": 1.75,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=035013/underlying_symbol=UPS/chain.parquet",
+                  "bid": 1.19,
+                  "ask": 1.25,
+                  "last": 1.24,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=C/chain.parquet",
                   "pnl_pct_from_emission": 0.0
                 }
               ]
             }
           },
           "moonshot": {
-            "tail_upside_score": 0.6158,
+            "tail_upside_score": 0.8426,
+            "eligible": true,
+            "reasons": [
+              "Nimrod prior: calls dominated the observed extreme-upside sample",
+              "cheap premium fits Nimrod's highest-yield tail bucket",
+              "medium delta matches Nimrod's convexity sweet spot",
+              "Forge score clears the moonshot quality floor",
+              "Nimrod call contract selector applied inside moonshot lane only"
+            ],
+            "policy": {
+              "name": "nimrod_inspired_moonshot_satellite",
+              "slot_count": 1,
+              "threshold": 0.68,
+              "max_cost_basis": 225.0,
+              "capital_mode": "satellite_shadow_then_canary",
+              "notes": [
+                "Dedicated tail-upside lane; does not replace Council live-board picks.",
+                "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-05T16:36:58+00:00|XLF260612C00052000|moonshot_shadow",
+          "run_generated_at_utc": "2026-06-05T16:36:58+00:00",
+          "lane": "moonshot_shadow",
+          "lane_reason": "moonshot_shadow_observation",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260612C00052000",
+          "option_type": "call",
+          "expiry": "2026-06-12",
+          "strike": 52.0,
+          "days_to_expiry": 7,
+          "underlying": {
+            "symbol": "XLF",
+            "spot": 52.125,
+            "quote_captured_at_utc": "2026-06-05T16:36:58+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-05T16:36:58+00:00",
+            "bid": 0.62,
+            "ask": 0.63,
+            "mid": 0.625,
+            "last": 0.69,
+            "spread": 0.01,
+            "spread_pct": 0.016,
+            "open_interest": 7769,
+            "volume": 267,
+            "contract_cost": 63.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.7576,
+            "learned_rank_score": 0.7576,
+            "payoff_model_score": 0.7576,
+            "final_candidate_score": 0.7576,
+            "prob_positive_option_pnl": 0.6993,
+            "expected_option_return_pct_model": 1.0181,
+            "expected_edge_after_friction_pct": 0.7903,
+            "friction_buffer_pct": 0.2278,
+            "path_holding_quality_score": 0.6224,
+            "path_early_profit_take_prob": 0.3223,
+            "path_decay_risk": 0.4262
+          },
+          "risk_features": {
+            "delta": 0.5537,
+            "implied_volatility": 0.1826,
+            "iv_rank": 0.7317,
+            "extrinsic_ratio": 0.8016,
+            "moneyness": -0.0024,
+            "premium_pct_of_spot": 0.0121,
+            "breakeven_move_pct": 0.0097,
+            "projected_move_pct": 0.0297,
+            "realized_vol_20d": 0.148,
+            "atr_pct_14d": 0.0133,
+            "council_risk_flags": [],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "neutral",
+              "bias": -0.1205,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 73% above gate",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.62, take-profit 0.32, decay 0.43"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 0.625,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
+                  "quote_date": "2026-06-05",
+                  "mark": 0.625,
+                  "mark_source": "mid",
+                  "bid": 0.62,
+                  "ask": 0.63,
+                  "last": 0.69,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=XLF/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          },
+          "moonshot": {
+            "tail_upside_score": 0.6816,
             "eligible": false,
             "reasons": [
               "Nimrod prior: calls dominated the observed extreme-upside sample",
+              "cheap premium fits Nimrod's highest-yield tail bucket",
+              "Forge score clears the moonshot quality floor",
+              "Nimrod call contract selector applied inside moonshot lane only",
+              "fails moonshot satellite slot gate"
+            ],
+            "policy": {
+              "name": "nimrod_inspired_moonshot_satellite",
+              "slot_count": 1,
+              "threshold": 0.68,
+              "max_cost_basis": 225.0,
+              "capital_mode": "satellite_shadow_then_canary",
+              "notes": [
+                "Dedicated tail-upside lane; does not replace Council live-board picks.",
+                "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-05T16:36:58+00:00|KO260612C00080000|moonshot_shadow",
+          "run_generated_at_utc": "2026-06-05T16:36:58+00:00",
+          "lane": "moonshot_shadow",
+          "lane_reason": "moonshot_shadow_observation",
+          "symbol": "KO",
+          "contract_symbol": "KO260612C00080000",
+          "option_type": "call",
+          "expiry": "2026-06-12",
+          "strike": 80.0,
+          "days_to_expiry": 7,
+          "underlying": {
+            "symbol": "KO",
+            "spot": 79.775,
+            "quote_captured_at_utc": "2026-06-05T16:36:58+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-05T16:36:58+00:00",
+            "bid": 0.67,
+            "ask": 0.74,
+            "mid": 0.705,
+            "last": 0.69,
+            "spread": 0.07,
+            "spread_pct": 0.0993,
+            "open_interest": 5203,
+            "volume": 2065,
+            "contract_cost": 74.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.4497,
+            "learned_rank_score": 0.4497,
+            "payoff_model_score": 0.4722,
+            "final_candidate_score": 0.4497,
+            "prob_positive_option_pnl": 0.5362,
+            "expected_option_return_pct_model": -0.0614,
+            "expected_edge_after_friction_pct": -0.4285,
+            "friction_buffer_pct": 0.3671,
+            "path_holding_quality_score": 0.1965,
+            "path_early_profit_take_prob": 0.18,
+            "path_decay_risk": 0.543
+          },
+          "risk_features": {
+            "delta": 0.4715,
+            "implied_volatility": 0.1821,
+            "iv_rank": 0.6616,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0028,
+            "premium_pct_of_spot": 0.0093,
+            "breakeven_move_pct": 0.0121,
+            "projected_move_pct": 0.0291,
+            "realized_vol_20d": 0.2158,
+            "atr_pct_14d": 0.0183,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "neutral",
+              "bias": -0.1205,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.20, take-profit 0.18, decay 0.54"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 0.705,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.0142,
+              "max_adverse_excursion_pct": -0.0142,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
+                  "quote_date": "2026-06-05",
+                  "mark": 0.695,
+                  "mark_source": "mid",
+                  "bid": 0.67,
+                  "ask": 0.72,
+                  "last": 0.75,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=KO/chain.parquet",
+                  "pnl_pct_from_emission": -0.0142
+                }
+              ]
+            }
+          },
+          "moonshot": {
+            "tail_upside_score": 0.6113,
+            "eligible": false,
+            "reasons": [
+              "Nimrod prior: calls dominated the observed extreme-upside sample",
+              "cheap premium fits Nimrod's highest-yield tail bucket",
+              "Nimrod call contract selector applied inside moonshot lane only",
+              "fails moonshot satellite slot gate"
+            ],
+            "policy": {
+              "name": "nimrod_inspired_moonshot_satellite",
+              "slot_count": 1,
+              "threshold": 0.68,
+              "max_cost_basis": 225.0,
+              "capital_mode": "satellite_shadow_then_canary",
+              "notes": [
+                "Dedicated tail-upside lane; does not replace Council live-board picks.",
+                "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-05T16:36:58+00:00|XLV260612C00155000|moonshot_shadow",
+          "run_generated_at_utc": "2026-06-05T16:36:58+00:00",
+          "lane": "moonshot_shadow",
+          "lane_reason": "moonshot_shadow_observation",
+          "symbol": "XLV",
+          "contract_symbol": "XLV260612C00155000",
+          "option_type": "call",
+          "expiry": "2026-06-12",
+          "strike": 155.0,
+          "days_to_expiry": 7,
+          "underlying": {
+            "symbol": "XLV",
+            "spot": 154.58,
+            "quote_captured_at_utc": "2026-06-05T16:36:58+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-05T16:36:58+00:00",
+            "bid": 1.25,
+            "ask": 1.39,
+            "mid": 1.32,
+            "last": 1.28,
+            "spread": 0.14,
+            "spread_pct": 0.1061,
+            "open_interest": 155,
+            "volume": 186,
+            "contract_cost": 139.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3976,
+            "learned_rank_score": 0.3976,
+            "payoff_model_score": 0.4201,
+            "final_candidate_score": 0.3976,
+            "prob_positive_option_pnl": 0.3451,
+            "expected_option_return_pct_model": 0.0415,
+            "expected_edge_after_friction_pct": -0.3297,
+            "friction_buffer_pct": 0.3712,
+            "path_holding_quality_score": 0.2063,
+            "path_early_profit_take_prob": 0.18,
+            "path_decay_risk": 0.5426
+          },
+          "risk_features": {
+            "delta": 0.4715,
+            "implied_volatility": 0.1743,
+            "iv_rank": 0.8007,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0027,
+            "premium_pct_of_spot": 0.009,
+            "breakeven_move_pct": 0.0117,
+            "projected_move_pct": 0.0425,
+            "realized_vol_20d": 0.1847,
+            "atr_pct_14d": 0.0156,
+            "council_risk_flags": [
+              "high_extrinsic"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "neutral",
+              "bias": -0.1205,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 80% above gate",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.21, take-profit 0.18, decay 0.54"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.32,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-05T16:36:59+00:00",
+                  "quote_date": "2026-06-05",
+                  "mark": 1.32,
+                  "mark_source": "mid",
+                  "bid": 1.25,
+                  "ask": 1.39,
+                  "last": 1.28,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-05/run_time_utc=163659/underlying_symbol=XLV/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          },
+          "moonshot": {
+            "tail_upside_score": 0.5924,
+            "eligible": false,
+            "reasons": [
+              "Nimrod prior: calls dominated the observed extreme-upside sample",
+              "cheap premium fits Nimrod's highest-yield tail bucket",
               "Nimrod call contract selector applied inside moonshot lane only",
               "fails moonshot satellite slot gate"
             ],
@@ -7608,19 +8552,19 @@
     }
   ],
   "last_mark_summary": {
-    "entries_seen": 9,
-    "picks_seen": 30,
+    "entries_seen": 10,
+    "picks_seen": 34,
     "marks_written": 0,
     "quotes_missing": 0,
     "picks_completed": 24,
-    "picks_partial": 2,
+    "picks_partial": 6,
     "picks_pending": 4
   },
   "archived_quote_path_summary": {
-    "entries_seen": 9,
-    "picks_seen": 30,
-    "labels_observed": 5,
-    "labels_missing": 25,
+    "entries_seen": 10,
+    "picks_seen": 34,
+    "labels_observed": 8,
+    "labels_missing": 26,
     "labels_missing_entry_mark": 0
   }
 }
