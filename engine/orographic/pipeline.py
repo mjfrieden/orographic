@@ -1390,6 +1390,7 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
             "waterfall": forge.get("waterfall", {}),
             "learned_ranker": forge.get("learned_ranker", {}),
             "settings": forge.get("settings", {}),
+            "deduplication": forge.get("deduplication", {}),
             "rejection_counts": _sorted_reason_counts(forge_rejections, reason_key="rejection_reason"),
             "per_symbol": per_symbol,
         },
@@ -1505,6 +1506,14 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
                     "removed_candidates": _coerce_int(deduplication.get("removed_candidates")),
                     "kept_candidates": _coerce_int(deduplication.get("kept_candidates")),
                     "max_structures_per_symbol_side": deduplication.get("max_structures_per_symbol_side"),
+                    "min_moneyness_gap": deduplication.get("min_moneyness_gap"),
+                    "max_structures_per_symbol": deduplication.get("max_structures_per_symbol"),
+                    "strong_ticker_moneyness_gap": deduplication.get("strong_ticker_moneyness_gap"),
+                    "strong_ticker_delta_gap": deduplication.get("strong_ticker_delta_gap"),
+                    "strong_ticker_min_score": deduplication.get("strong_ticker_min_score"),
+                    "strong_ticker_min_edge_after_friction_pct": deduplication.get(
+                        "strong_ticker_min_edge_after_friction_pct"
+                    ),
                 },
             },
             "council": {

@@ -138,9 +138,14 @@ class PayoffModelTests(unittest.TestCase):
                 model_path=model_path,
             )
 
-        self.assertEqual(candidates[0].ranker_mode, "active")
-        self.assertNotEqual(candidates[0].forge_score, 0.51)
-        self.assertTrue(any("Payoff model ranker active" in note for note in candidates[0].notes))
+        call = next(row for row in candidates if row.option_type == "call")
+        put = next(row for row in candidates if row.option_type == "put")
+        self.assertEqual(call.ranker_mode, "active")
+        self.assertNotEqual(call.forge_score, 0.51)
+        self.assertTrue(any("Payoff model ranker active" in note for note in call.notes))
+        self.assertIsNone(call.call_contract_selector_score)
+        self.assertFalse(any("Nimrod call contract selector active" in note for note in call.notes))
+        self.assertIsNone(put.call_contract_selector_score)
 
     def test_active_ranker_applies_stability_bonus_and_turnover_penalty(self) -> None:
         incumbent = _candidate("call", 0.4, 0.51)

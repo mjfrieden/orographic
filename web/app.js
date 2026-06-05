@@ -416,31 +416,12 @@ function renderPositions() {
         ? `<span class="position-chip ${contract.side === "call" ? "is-call" : "is-put"}">${contract.side.toUpperCase()}</span>`
         : `<span class="position-chip is-neutral">EQUITY</span>`;
       const statusChip = `<span class="position-chip ${markMeta.toneClass}">${escapeHtml(markMeta.label)}</span>`;
-      const exitPolicy = pos.exit_policy || {};
-      const mechanicalStop = exitPolicy.action === "sell_to_close";
-      const exitPolicyChip = mechanicalStop
-        ? `<span class="position-chip is-warning">50% stop</span>`
-        : exitPolicy.action === "harvest_profit"
-          ? `<span class="position-chip is-positive">Harvest zone</span>`
-          : "";
-      const exitPolicyDetail =
-        exitPolicy.reason && exitPolicy.action !== "hold"
-          ? `<span class="position-detail ${mechanicalStop ? "is-negative" : "is-positive"}">${escapeHtml(exitPolicy.reason)}</span>`
-          : "";
       const adviceHtml = isOpt ? renderPositionAdviceHtml(sym) : "";
       const closeBtnClass = `mini-action close-position-btn${
-        POSITION_ADVICE.get(sym)?.action === "sell" || mechanicalStop
-          ? " is-advised-sell"
-          : ""
+        POSITION_ADVICE.get(sym)?.action === "sell" ? " is-advised-sell" : ""
       }`;
       const actionCell = isOpt
-        ? `<button class="${closeBtnClass}" type="button" data-contract="${sym}" data-qty="${pos.quantity}" data-exit-policy-action="${escapeHtml(exitPolicy.action || "")}">${
-            mechanicalStop
-              ? "Close Required"
-              : POSITION_ADVICE.get(sym)?.action === "sell"
-                ? "Close Suggested"
-                : "Close"
-          }</button>`
+        ? `<button class="${closeBtnClass}" type="button" data-contract="${sym}" data-qty="${pos.quantity}">${POSITION_ADVICE.get(sym)?.action === "sell" ? "Close Suggested" : "Close"}</button>`
         : ``;
       return `<tr class="position-row ${cv === null ? "is-mark-pending" : "is-marked"}">
       <td data-label="Symbol" class="position-cell-symbol ${tone}">
@@ -451,9 +432,8 @@ function renderPositions() {
       </td>
       <td data-label="Status" class="position-cell-status">
         <div class="position-status-stack">
-          <div class="position-chip-row">${instrumentChip}${statusChip}${exitPolicyChip}</div>
+          <div class="position-chip-row">${instrumentChip}${statusChip}</div>
           <span class="position-detail">${escapeHtml(markMeta.detail)}</span>
-          ${exitPolicyDetail}
           ${adviceHtml}
         </div>
       </td>
@@ -512,13 +492,8 @@ function updatePositionAdviceDom(symbol, advice) {
     `.close-position-btn[data-contract="${symbol}"]`,
   );
   if (closeBtn) {
-    const required = closeBtn.dataset.exitPolicyAction === "sell_to_close";
-    closeBtn.classList.toggle("is-advised-sell", advice?.action === "sell" || required);
-    closeBtn.textContent = required
-      ? "Close Required"
-      : advice?.action === "sell"
-        ? "Close Suggested"
-        : "Close";
+    closeBtn.classList.toggle("is-advised-sell", advice?.action === "sell");
+    closeBtn.textContent = advice?.action === "sell" ? "Close Suggested" : "Close";
   }
 }
 
@@ -612,7 +587,6 @@ let BOARD_STATE = {
   snapshotGeneratedAt: null,
   lastError: null,
 };
-
 let PROSPECTIVE_STATE = {
   loading: false,
   updatedAt: null,
@@ -763,17 +737,6 @@ function renderProspectiveMeta() {
   el.className = className;
 }
 
-function pickOutcomeReturns(pick) {
-  const fixed = pick?.outcomes?.fixed_exit_marks || {};
-  return Object.entries(fixed)
-    .map(([windowName, mark]) => ({
-      windowName,
-      value: Number(mark?.pnl_pct_from_emission),
-      mark: Number(mark?.mark),
-    }))
-    .filter((row) => Number.isFinite(row.value));
-}
-
 function entryMid(pick) {
   const quote = pick?.emission_quote || {};
   const mid = Number(quote.mid);
@@ -786,18 +749,29 @@ function entryMid(pick) {
   return Number(quote.last || quote.ask || quote.bid || NaN);
 }
 
-function latestProspectivePicks(ledger, limit = 12) {
+function pickOutcomeReturns(pick) {
+  const marks = pick?.outcomes?.fixed_exit_marks || {};
+  return Object.entries(marks)
+    .map(([window, mark]) => ({
+      window,
+      value: Number(mark?.pnl_pct_from_emission),
+    }))
+    .filter((row) => Number.isFinite(row.value));
+}
+
+function allProspectivePicks(ledger) {
   const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
-  return entries
-    .flatMap((entry) =>
-      (Array.isArray(entry.picks) ? entry.picks : []).map((pick) => ({
-        ...pick,
-        run_generated_at_utc:
-          pick.run_generated_at_utc || entry.run_generated_at_utc,
-      })),
-    )
-    .reverse()
-    .slice(0, limit);
+  return entries.flatMap((entry) =>
+    (Array.isArray(entry.picks) ? entry.picks : []).map((pick) => ({
+      ...pick,
+      run_generated_at_utc:
+        pick.run_generated_at_utc || entry.run_generated_at_utc,
+    })),
+  );
+}
+
+function latestProspectivePicks(ledger, limit = 12) {
+  return allProspectivePicks(ledger).reverse().slice(0, limit);
 }
 
 function recentProspectivePicks(ledger, entryLimit = 8) {
@@ -809,53 +783,6 @@ function recentProspectivePicks(ledger, entryLimit = 8) {
         pick.run_generated_at_utc || entry.run_generated_at_utc,
     })),
   );
-}
-
-function summarizeProspectiveLedger(ledger) {
-  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
-  const picks = entries.flatMap((entry) =>
-    Array.isArray(entry.picks) ? entry.picks : [],
-  );
-  const withMarks = picks.filter((pick) => pickOutcomeReturns(pick).length > 0);
-  const complete = picks.filter((pick) => pick?.outcomes?.status === "complete");
-  const live = picks.filter((pick) => pick.lane === "live");
-  const shadow = picks.filter((pick) => pick.lane === "shadow");
-  const bestReturns = withMarks.map((pick) =>
-    Math.max(...pickOutcomeReturns(pick).map((row) => row.value)),
-  );
-  const worstReturns = withMarks.map((pick) =>
-    Math.min(...pickOutcomeReturns(pick).map((row) => row.value)),
-  );
-  const takeProfitHits = picks.filter(
-    (pick) =>
-      pick?.outcomes?.path_rules?.take_profit_40_pct_before_stop_50_pct ===
-      true,
-  ).length;
-  const stopHits = picks.filter((pick) => {
-    const firstHit = pick?.outcomes?.path_rules?.first_hit || {};
-    return String(firstHit.rule || "").includes("stop_50");
-  }).length;
-  return {
-    runs: entries.length,
-    picks: picks.length,
-    live: live.length,
-    shadow: shadow.length,
-    marked: withMarks.length,
-    complete: complete.length,
-    pending: picks.filter((pick) => (pick?.outcomes?.status || "pending") === "pending").length,
-    takeProfitHits,
-    stopHits,
-    avgBest:
-      bestReturns.length
-        ? bestReturns.reduce((sum, value) => sum + value, 0) /
-          bestReturns.length
-        : null,
-    avgWorst:
-      worstReturns.length
-        ? worstReturns.reduce((sum, value) => sum + value, 0) /
-          worstReturns.length
-        : null,
-  };
 }
 
 function summarizeProspectivePicks(picks) {
@@ -899,6 +826,19 @@ function summarizeProspectivePicks(picks) {
         ? worstReturns.reduce((sum, value) => sum + value, 0) /
           worstReturns.length
         : null,
+  };
+}
+
+function summarizeProspectiveLedger(ledger) {
+  const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
+  const picks = allProspectivePicks(ledger);
+  const live = picks.filter((pick) => pick.lane === "live");
+  const shadow = picks.filter((pick) => pick.lane === "shadow");
+  return {
+    runs: entries.length,
+    live: live.length,
+    shadow: shadow.length,
+    ...summarizeProspectivePicks(picks),
   };
 }
 
@@ -973,13 +913,7 @@ function renderProspectiveScoreboard(ledger) {
     renderProspectiveExplanation(null, null);
     renderRecentForwardPerformance(null);
     if (grid) {
-      grid.innerHTML = `
-        <article class="summary-item admin-card">
-          <span class="summary-label">Prospective Ledger</span>
-          <span class="summary-value">Not available yet</span>
-          <span class="summary-note">Run the scan with prospective ledger output to populate forward outcomes.</span>
-        </article>
-      `;
+      grid.innerHTML = summaryItemHtml("Prospective Ledger", "Not available yet");
     }
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No prospective pick ledger found.</td></tr>`;
@@ -1002,8 +936,7 @@ function renderProspectiveScoreboard(ledger) {
       summaryItemHtml("-50% Stops", integer(summary.stopHits)),
       summaryItemHtml("Avg Best Mark", pct(summary.avgBest)),
       summaryItemHtml("Avg Worst Mark", pct(summary.avgWorst)),
-    ]
-      .join("");
+    ].join("");
   }
 
   if (!tbody) return;
@@ -2166,7 +2099,6 @@ function bindModal() {
             price: PENDING_ORDER.price,
             preview: false,
             confirm_live: PENDING_ORDER.isLiveOrder ? true : undefined,
-            exit_policy_action: PENDING_ORDER.exit_policy_action || undefined,
           }),
         });
         const data = await r.json();
@@ -2339,7 +2271,7 @@ async function handleDirectExecute(
   }
 }
 
-async function handleClosePosition(contractSymbol, qty, exitPolicyAction = "") {
+async function handleClosePosition(contractSymbol, qty) {
   const match = contractSymbol.match(/^[A-Z]+/);
   const underlyingSymbol = match ? match[0] : contractSymbol;
 
@@ -2365,7 +2297,6 @@ async function handleClosePosition(contractSymbol, qty, exitPolicyAction = "") {
         type: "limit",
         duration: "day",
         price,
-        exit_policy_action: exitPolicyAction || undefined,
       }),
     });
     const data = await r.json();
@@ -2415,7 +2346,6 @@ async function handleClosePosition(contractSymbol, qty, exitPolicyAction = "") {
       type: "limit",
       duration: "day",
       price: order.price || price,
-      exit_policy_action: exitPolicyAction || undefined,
     };
 
     openModal("Close Position Preview", bodyHtml, canExec, pendingOrder, {
@@ -2438,11 +2368,7 @@ function bindPositionsTable() {
   document.querySelectorAll(".close-position-btn").forEach((btn) => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
-      handleClosePosition(
-        btn.dataset.contract,
-        btn.dataset.qty,
-        btn.dataset.exitPolicyAction || "",
-      );
+      handleClosePosition(btn.dataset.contract, btn.dataset.qty);
     });
   });
 }
@@ -3001,11 +2927,10 @@ async function main() {
     }
   }
 
-  try {
-    renderBacktest(await loadBacktest());
-  } catch {
-    renderBacktest(null);
-  }
+  // Load backtest results (non-blocking — shows placeholder if not yet generated)
+  loadBacktest()
+    .then((bt) => renderBacktest(bt))
+    .catch(() => {});
 }
 
 main();

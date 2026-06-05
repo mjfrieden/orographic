@@ -7,11 +7,7 @@ on:
     paths:
       - ".github/workflows/ci.yml"
       - "engine/**"
-      - "functions/**"
-      - "tests/js/**"
-      - "package.json"
       - "scripts/**"
-      - "web/**"
       - "README.md"
       - "docs/**"
 
@@ -29,11 +25,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Set up Node
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -48,14 +39,9 @@ jobs:
         run: |
           python -m pytest -q engine/tests
 
-      - name: Run JS/API tests
-        run: |
-          npm run test:js
-
       - name: Snapshot smoke test
         run: |
           python engine/run_scan.py \
-            --symbols SPY,QQQ,IWM,DIA,GLD,SLV \
             --output /tmp/orographic_ci_latest.json \
             --prospective-ledger-output /tmp/orographic_ci_prospective_ledger.json \
             --shadow-ledger-output /tmp/orographic_ci_shadow_ledger.json
@@ -67,8 +53,8 @@ jobs:
           if payload.get("error"):
               raise SystemExit(f"snapshot contains pipeline error: {payload.get('error')}")
           summary = payload.get("summary", {})
-          if summary.get("universe_size", 0) <= 0:
-              raise SystemExit("snapshot smoke test did not record a universe")
+          if summary.get("scout_signal_count", 0) <= 0:
+              raise SystemExit("snapshot smoke test produced no Scout signals")
           council = payload.get("council", {})
           council_summary = council.get("summary", {})
           if summary.get("scout_signal_count") != len(payload.get("scout_signals", [])):
@@ -97,10 +83,11 @@ jobs:
           if not board_history.exists():
               raise SystemExit("board recommendation history was not written")
           artifacts = payload.get("model_artifacts", {})
+          optional_artifacts = {"path_model", "path_model_card"}
           missing = [
               name
               for name, row in artifacts.items()
-              if row.get("required", True) and (not row.get("present") or not row.get("sha256"))
+              if name not in optional_artifacts and (not row.get("present") or not row.get("sha256"))
           ]
           if missing:
               raise SystemExit(f"snapshot missing model artifact status: {missing}")

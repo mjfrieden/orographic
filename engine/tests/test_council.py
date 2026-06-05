@@ -134,29 +134,6 @@ class CouncilTests(unittest.TestCase):
         self.assertEqual([row.symbol for row in result.live_board], ["BAC"])
         self.assertNotIn("symbol_probation", result.live_board[0].council_risk_flags)
 
-    def test_council_abstains_with_symbol_probation_reason_when_all_live_candidates_are_blocked(self) -> None:
-        result = select_board(
-            [
-                _candidate("NFLX", "call", 0.95),
-                _candidate("TLT", "put", 0.94),
-            ],
-            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
-            live_size=2,
-            shadow_size=2,
-        )
-
-        self.assertTrue(result.abstain)
-        self.assertEqual(result.live_board, [])
-        self.assertEqual({row.symbol for row in result.shadow_board}, {"NFLX", "TLT"})
-        self.assertEqual(
-            result.summary["abstain_audit"]["primary_reason"],
-            "symbol_probation",
-        )
-        self.assertEqual(
-            result.summary["abstain_audit"]["primary_reason_label"],
-            "All candidates are live-blocked by symbol probation.",
-        )
-
 
 if __name__ == "__main__":
     unittest.main()

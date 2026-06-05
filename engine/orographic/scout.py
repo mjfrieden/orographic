@@ -822,13 +822,17 @@ def scan_symbols_with_diagnostics(
         if isinstance(side_aware, dict):
             active_direction = signal.direction if signal is not None else signal_diagnostics.get("pre_veto_direction")
             preferred_side = _preferred_side_from_probabilities(side_aware)
-            if active_direction in {"call", "put"} and preferred_side != active_direction:
+            if side_aware.get("model_mode") == "trained_option_payoff_three_class":
+                comparison_direction = active_direction if active_direction in {"call", "put"} else pre_direction
                 if preferred_side == "no_trade":
                     scout_diagnostics["side_aware_no_trade_disagreements"] += 1
-                elif preferred_side in {"call", "put"}:
+                elif comparison_direction in {"call", "put"} and preferred_side != comparison_direction:
                     scout_diagnostics["side_aware_directional_disagreements"] += 1
             shadow_guard = side_aware.get("shadow_guard") if isinstance(side_aware.get("shadow_guard"), dict) else {}
-            if signal_diagnostics.get("reason") in {"shadow_no_trade_veto", "shadow_direction_conflict"}:
+            if shadow_guard.get("reason") == "shadow_no_trade_veto" or signal_diagnostics.get("reason") in {
+                "shadow_no_trade_veto",
+                "shadow_direction_conflict",
+            }:
                 scout_diagnostics["shadow_side_veto_rejections"] += 1
             scout_diagnostics["side_aware_scores"].append(
                 {

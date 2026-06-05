@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from engine.backtest.risk_controls import sector_for_symbol
+from engine.orographic.call_contract_selector import blend_call_selector_score
 
 from .schemas import ContractCandidate, MarketRegime
 
@@ -151,6 +152,24 @@ def assess_candidate(
         + agreement * 0.12
         + direction * 0.12
     )
+    call_selector = blend_call_selector_score(
+        candidate,
+        model_score=_safe_float(candidate.learned_rank_score, _safe_float(candidate.forge_score)),
+        mode="moonshot_only_nimrod_call_selector",
+    )
+    if call_selector is not None:
+        candidate.call_selector_model_score = call_selector.model_score
+        candidate.call_selector_contract_score = call_selector.contract_side_score
+        candidate.call_contract_selector_score = call_selector.blended_score
+        candidate.call_contract_selector_mode = call_selector.mode
+        score = (score * 0.65) + (call_selector.blended_score * 0.35)
+        reasons.append("Nimrod call contract selector applied inside moonshot lane only")
+    else:
+        candidate.call_selector_model_score = None
+        candidate.call_selector_contract_score = None
+        candidate.call_contract_selector_score = None
+        candidate.call_contract_selector_mode = None
+
     tail_upside_score = round(_clamp(score), 4)
     eligible = (
         tail_upside_score >= threshold

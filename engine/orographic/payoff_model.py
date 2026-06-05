@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any, Iterable
 
 import numpy as np
-
 from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 log = logging.getLogger(__name__)
@@ -487,6 +486,10 @@ def score_candidates(
         candidate.final_candidate_score = round(final_score, 4)
         candidate.learned_rank_score = round(final_score, 4)
         candidate.ranker_artifact_sha256 = artifact_hash
+        candidate.call_selector_model_score = None
+        candidate.call_selector_contract_score = None
+        candidate.call_contract_selector_score = None
+        candidate.call_contract_selector_mode = None
         if artifact:
             candidate.ranker_mode = ranker_mode
             if ranker_mode == "active":
