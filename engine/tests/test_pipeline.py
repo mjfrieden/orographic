@@ -842,8 +842,93 @@ class PipelineTests(unittest.TestCase):
         )
         deduped, removed = _dedupe_candidates(gated)
 
-        self.assertEqual([row.contract_symbol for row in deduped], ["AAA1", "AAA4"])
+        self.assertEqual([row.contract_symbol for row in deduped], ["AAA1"])
         self.assertEqual(diagnostics["dropped"], 1)
+        self.assertEqual(removed, 2)
+
+    def test_symbol_deduplication_keeps_strong_distinct_second_structure(self) -> None:
+        primary = ContractCandidate(
+            symbol="AAA",
+            contract_symbol="AAA1",
+            option_type="call",
+            expiry="2026-04-17",
+            strike=100.0,
+            bid=1.0,
+            ask=1.1,
+            last=1.05,
+            premium=1.1,
+            contract_cost=110.0,
+            spread_pct=0.05,
+            open_interest=500,
+            volume=120,
+            implied_volatility=0.30,
+            delta=0.46,
+            moneyness=-0.005,
+            projected_move_pct=0.05,
+            breakeven_move_pct=0.02,
+            expected_return_pct=0.8,
+            extrinsic_ratio=0.40,
+            scout_score=0.6,
+            forge_score=0.74,
+            expected_option_return_pct_model=0.30,
+            learned_rank_score=0.74,
+        )
+        distinct = ContractCandidate(
+            symbol="AAA",
+            contract_symbol="AAA2",
+            option_type="call",
+            expiry="2026-04-17",
+            strike=104.0,
+            bid=0.7,
+            ask=0.8,
+            last=0.75,
+            premium=0.8,
+            contract_cost=80.0,
+            spread_pct=0.05,
+            open_interest=500,
+            volume=120,
+            implied_volatility=0.30,
+            delta=0.22,
+            moneyness=0.04,
+            projected_move_pct=0.05,
+            breakeven_move_pct=0.02,
+            expected_return_pct=0.7,
+            extrinsic_ratio=0.35,
+            scout_score=0.6,
+            forge_score=0.70,
+            expected_option_return_pct_model=0.28,
+            learned_rank_score=0.70,
+        )
+        adjacent = ContractCandidate(
+            symbol="AAA",
+            contract_symbol="AAA3",
+            option_type="call",
+            expiry="2026-04-17",
+            strike=101.0,
+            bid=0.9,
+            ask=1.0,
+            last=0.95,
+            premium=1.0,
+            contract_cost=100.0,
+            spread_pct=0.05,
+            open_interest=500,
+            volume=120,
+            implied_volatility=0.30,
+            delta=0.40,
+            moneyness=0.004,
+            projected_move_pct=0.05,
+            breakeven_move_pct=0.02,
+            expected_return_pct=0.7,
+            extrinsic_ratio=0.35,
+            scout_score=0.6,
+            forge_score=0.69,
+            expected_option_return_pct_model=0.28,
+            learned_rank_score=0.69,
+        )
+
+        deduped, removed = _dedupe_candidates([primary, distinct, adjacent])
+
+        self.assertEqual([row.contract_symbol for row in deduped], ["AAA1", "AAA2"])
         self.assertEqual(removed, 1)
 
     def test_pre_council_gate_can_observe_without_vetoing_candidates(self) -> None:
