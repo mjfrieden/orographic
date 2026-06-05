@@ -155,8 +155,13 @@ def _dedupe_candidates(
     *,
     max_structures_per_symbol_side: int = 2,
     min_moneyness_gap: float = 0.01,
+    max_structures_per_symbol: int = 1,
+    strong_ticker_moneyness_gap: float = 0.035,
+    strong_ticker_delta_gap: float = 0.20,
+    strong_ticker_min_score: float = 0.68,
+    strong_ticker_min_edge_after_friction_pct: float = 0.15,
 ) -> tuple[list[ContractCandidate], int]:
-    kept: list[ContractCandidate] = []
+    side_kept: list[ContractCandidate] = []
     removed = 0
     grouped: dict[tuple[str, str], list[ContractCandidate]] = {}
     for candidate in sorted(candidates, key=_candidate_sort_score, reverse=True):
@@ -172,10 +177,66 @@ def _dedupe_candidates(
                 removed += 1
                 continue
             selected.append(candidate)
-        kept.extend(selected)
+        side_kept.extend(selected)
+
+    kept: list[ContractCandidate] = []
+    by_symbol: dict[str, list[ContractCandidate]] = {}
+    for candidate in sorted(side_kept, key=_candidate_sort_score, reverse=True):
+        symbol_rows = by_symbol.setdefault(candidate.symbol, [])
+        if len(symbol_rows) < max_structures_per_symbol:
+            symbol_rows.append(candidate)
+            kept.append(candidate)
+            continue
+        if _has_strong_ticker_differentiation(
+            candidate,
+            symbol_rows,
+            min_moneyness_gap=strong_ticker_moneyness_gap,
+            min_delta_gap=strong_ticker_delta_gap,
+            min_score=strong_ticker_min_score,
+            min_edge_after_friction_pct=strong_ticker_min_edge_after_friction_pct,
+        ):
+            symbol_rows.append(candidate)
+            kept.append(candidate)
+            continue
+        removed += 1
 
     kept.sort(key=_candidate_sort_score, reverse=True)
     return kept, removed
+
+
+def _has_strong_ticker_differentiation(
+    candidate: ContractCandidate,
+    selected: list[ContractCandidate],
+    *,
+    min_moneyness_gap: float,
+    min_delta_gap: float,
+    min_score: float,
+    min_edge_after_friction_pct: float,
+) -> bool:
+    score = _candidate_sort_score(candidate)
+    edge_after_friction = candidate.expected_edge_after_friction_pct
+    if edge_after_friction is None:
+        edge_after_friction = _expected_edge_after_friction_pct(candidate)
+    if score < min_score or edge_after_friction < min_edge_after_friction_pct:
+        return False
+
+    for row in selected:
+        expiry_gap = abs((pd.Timestamp(candidate.expiry) - pd.Timestamp(row.expiry)).days)
+        moneyness_gap = abs(candidate.moneyness - row.moneyness)
+        delta_gap = (
+            abs(float(candidate.delta) - float(row.delta))
+            if candidate.delta is not None and row.delta is not None
+            else 0.0
+        )
+        structurally_distinct = (
+            candidate.option_type != row.option_type
+            or expiry_gap >= 7
+            or moneyness_gap >= min_moneyness_gap
+            or delta_gap >= min_delta_gap
+        )
+        if not structurally_distinct:
+            return False
+    return True
 
 
 def _apply_pre_council_gate(
@@ -723,6 +784,11 @@ def rank_contracts_with_diagnostics(
         "deduplication": {
             "max_structures_per_symbol_side": max_structures_per_symbol_side,
             "min_moneyness_gap": min_moneyness_gap,
+            "max_structures_per_symbol": 1,
+            "strong_ticker_moneyness_gap": 0.035,
+            "strong_ticker_delta_gap": 0.20,
+            "strong_ticker_min_score": 0.68,
+            "strong_ticker_min_edge_after_friction_pct": 0.15,
             "removed_candidates": dedupe_removed,
             "kept_candidates": len(candidates),
         },
@@ -740,6 +806,7 @@ def rank_contracts_with_diagnostics(
             "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
             "max_structures_per_symbol_side": max_structures_per_symbol_side,
             "min_moneyness_gap": min_moneyness_gap,
+            "max_structures_per_symbol": 1,
             "turnover_switch_penalty": turnover_switch_penalty,
             "prior_live_board_symbols": list(prior_live_board_symbols or []),
         },

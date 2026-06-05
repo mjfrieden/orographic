@@ -66,7 +66,7 @@
     "universe_size": 100,
     "scout_signal_count": 36,
     "pre_forge_signal_count": 9,
-    "forge_candidate_count": 12,
+    "forge_candidate_count": 9,
     "passed_symbol_count": 9,
     "forge_symbol_pass_rate": 1.0,
     "live_count": 0,
@@ -82,7 +82,7 @@
     },
     "scout_counter_regime_survivors": 0,
     "forge_candidate_side_mix": {
-      "call": 12,
+      "call": 9,
       "put": 0
     },
     "live_board_side_mix": {
@@ -5286,7 +5286,7 @@
       "rows_passing_net_debit": 17,
       "final_candidates": 17,
       "candidates_after_friction_gate": 4,
-      "candidates_after_deduplication": 12
+      "candidates_after_deduplication": 9
     },
     "learned_ranker": {
       "mode_counts": {
@@ -5313,6 +5313,17 @@
       "min_moneyness_gap": 0.01,
       "turnover_switch_penalty": 0.03,
       "prior_live_board_symbols": []
+    },
+    "deduplication": {
+      "max_structures_per_symbol_side": 2,
+      "min_moneyness_gap": 0.01,
+      "removed_candidates": 8,
+      "kept_candidates": 9,
+      "max_structures_per_symbol": 1,
+      "strong_ticker_moneyness_gap": 0.035,
+      "strong_ticker_delta_gap": 0.2,
+      "strong_ticker_min_score": 0.68,
+      "strong_ticker_min_edge_after_friction_pct": 0.15
     },
     "rejection_counts": [],
     "per_symbol": [
@@ -5525,19 +5536,18 @@
       "primary_reason": "mixed_core_filters",
       "primary_reason_label": "Candidates were blocked by a mix of score and extrinsic gates.",
       "requested_live_size": 3,
-      "candidate_count": 12,
+      "candidate_count": 9,
       "core_filter_pass_count": 0,
       "unique_eligible_count": 0,
-      "score_only_fail_count": 2,
+      "score_only_fail_count": 1,
       "extrinsic_only_fail_count": 0,
-      "score_and_extrinsic_fail_count": 8,
-      "symbol_probation_fail_count": 2,
+      "score_and_extrinsic_fail_count": 7,
+      "symbol_probation_fail_count": 1,
       "side_balance_rejections": 0,
       "side_balance_demotions": 0,
       "blocked_symbols": {
         "score_only": [
-          "UPS",
-          "CMG"
+          "UPS"
         ],
         "extrinsic_only": [],
         "score_and_extrinsic": [
@@ -5546,7 +5556,6 @@
           "PG"
         ],
         "symbol_probation": [
-          "NFLX",
           "NFLX"
         ]
       },
@@ -5567,23 +5576,6 @@
             "spread_pct": 0.1493,
             "delta": 0.5341,
             "iv_rank": 0.4501,
-            "council_risk_flags": []
-          },
-          {
-            "symbol": "CMG",
-            "contract_symbol": "CMG260612C00028000",
-            "option_type": "call",
-            "expiry": "2026-06-12",
-            "strike": 28.0,
-            "forge_score": 0.358,
-            "learned_rank_score": 0.358,
-            "expected_edge_after_friction_pct": -0.3013,
-            "friction_buffer_pct": 0.2685,
-            "extrinsic_ratio": 0.7692,
-            "contract_cost": 78.0,
-            "spread_pct": 0.1081,
-            "delta": 0.5611,
-            "iv_rank": 0.3556,
             "council_risk_flags": []
           }
         ],
@@ -5702,26 +5694,6 @@
             "spread_pct": 0.029,
             "delta": 0.2776,
             "iv_rank": 0.3464,
-            "council_risk_flags": [
-              "high_extrinsic",
-              "symbol_probation"
-            ]
-          },
-          {
-            "symbol": "NFLX",
-            "contract_symbol": "NFLX260612C00082000",
-            "option_type": "call",
-            "expiry": "2026-06-12",
-            "strike": 82.0,
-            "forge_score": 0.7329,
-            "learned_rank_score": 0.7329,
-            "expected_edge_after_friction_pct": 0.1885,
-            "friction_buffer_pct": 0.3119,
-            "extrinsic_ratio": 1.0,
-            "contract_cost": 138.0,
-            "spread_pct": 0.0073,
-            "delta": 0.4694,
-            "iv_rank": 0.3351,
             "council_risk_flags": [
               "high_extrinsic",
               "symbol_probation"
