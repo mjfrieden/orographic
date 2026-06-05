@@ -1,0 +1,196 @@
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+if __package__ in {None, ""}:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+import pandas as pd
+
+
+def _load_json(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    loaded = json.loads(path.read_text(encoding="utf-8"))
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _dataset_rows(path: Path) -> int:
+    if not path.exists():
+        return -1
+    if path.suffix.lower() == ".parquet":
+        return int(len(pd.read_parquet(path)))
+    if path.suffix.lower() == ".csv":
+        return int(len(pd.read_csv(path)))
+    if path.suffix.lower() == ".json":
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+        return len(loaded) if isinstance(loaded, list) else -1
+    return -1
+
+
+def _ledger_pick_rows(path: Path) -> int:
+    ledger = _load_json(path)
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    total = 0
+    for entry in entries:
+        if isinstance(entry, dict):
+            picks = entry.get("picks") if isinstance(entry.get("picks"), list) else []
+            total += len(picks)
+    return total
+
+
+def build_audit_report(
+    *,
+    live_archive_manifest: Path,
+    prospective_ledger: Path,
+    moonshot_ledger: Path,
+    recommendation_dataset: Path,
+    moonshot_dataset: Path,
+    combined_dataset: Path,
+    min_archive_rows: int = 1,
+    min_recommendation_rows: int = 0,
+) -> dict[str, Any]:
+    archive = _load_json(live_archive_manifest)
+    archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
+    archived_rows = int(archive_summary.get("rows_archived") or 0)
+    archived_symbols = int(archive_summary.get("symbols_archived") or 0)
+    prospective_rows = _ledger_pick_rows(prospective_ledger)
+    moonshot_rows = _ledger_pick_rows(moonshot_ledger)
+    recommendation_dataset_rows = _dataset_rows(recommendation_dataset)
+    moonshot_dataset_rows = _dataset_rows(moonshot_dataset)
+    combined_dataset_rows = _dataset_rows(combined_dataset)
+
+    archive_required = min_archive_rows > 0
+    checks = [
+        {
+            "name": "live_archive_manifest_exists",
+            "passed": live_archive_manifest.exists() or not archive_required,
+            "actual": str(live_archive_manifest),
+            "required": archive_required,
+        },
+        {
+            "name": "live_archive_rows",
+            "passed": archived_rows >= min_archive_rows,
+            "actual": archived_rows,
+            "required_min": min_archive_rows,
+        },
+        {
+            "name": "live_archive_symbols",
+            "passed": archived_symbols > 0 if min_archive_rows > 0 else True,
+            "actual": archived_symbols,
+            "required_min": 1 if min_archive_rows > 0 else 0,
+        },
+        {
+            "name": "prospective_ledger_exists",
+            "passed": prospective_ledger.exists(),
+            "actual": str(prospective_ledger),
+        },
+        {
+            "name": "moonshot_ledger_exists",
+            "passed": moonshot_ledger.exists(),
+            "actual": str(moonshot_ledger),
+        },
+        {
+            "name": "recommendation_dataset_exists",
+            "passed": recommendation_dataset_rows >= 0,
+            "actual": str(recommendation_dataset),
+        },
+        {
+            "name": "moonshot_dataset_exists",
+            "passed": moonshot_dataset_rows >= 0,
+            "actual": str(moonshot_dataset),
+        },
+        {
+            "name": "combined_dataset_exists",
+            "passed": combined_dataset_rows >= 0,
+            "actual": str(combined_dataset),
+        },
+        {
+            "name": "recommendation_dataset_rows",
+            "passed": recommendation_dataset_rows >= min_recommendation_rows,
+            "actual": recommendation_dataset_rows,
+            "required_min": min_recommendation_rows,
+        },
+        {
+            "name": "recommendation_dataset_matches_ledger",
+            "passed": recommendation_dataset_rows == prospective_rows,
+            "actual": recommendation_dataset_rows,
+            "expected": prospective_rows,
+        },
+        {
+            "name": "moonshot_dataset_matches_ledger",
+            "passed": moonshot_dataset_rows == moonshot_rows,
+            "actual": moonshot_dataset_rows,
+            "expected": moonshot_rows,
+        },
+        {
+            "name": "combined_dataset_consistency",
+            "passed": combined_dataset_rows == recommendation_dataset_rows + moonshot_dataset_rows,
+            "actual": combined_dataset_rows,
+            "expected": recommendation_dataset_rows + moonshot_dataset_rows,
+        },
+        {
+            "name": "combined_dataset_matches_ledgers",
+            "passed": combined_dataset_rows == prospective_rows + moonshot_rows,
+            "actual": combined_dataset_rows,
+            "expected": prospective_rows + moonshot_rows,
+        },
+    ]
+    failed = [check for check in checks if not bool(check["passed"])]
+    return {
+        "artifact": "research_data_capture_audit",
+        "schema_version": 1,
+        "status": "passed" if not failed else "failed",
+        "summary": {
+            "archived_rows": archived_rows,
+            "archived_symbols": archived_symbols,
+            "prospective_ledger_pick_rows": prospective_rows,
+            "moonshot_ledger_pick_rows": moonshot_rows,
+            "recommendation_dataset_rows": recommendation_dataset_rows,
+            "moonshot_dataset_rows": moonshot_dataset_rows,
+            "combined_dataset_rows": combined_dataset_rows,
+        },
+        "checks": checks,
+        "failed_checks": failed,
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Audit Orographic research data capture artifacts.")
+    parser.add_argument("--live-archive-manifest", type=Path, default=Path("engine/data/live_options_archive/coverage_manifest.json"))
+    parser.add_argument("--prospective-ledger", type=Path, default=Path("web/data/diagnostics/prospective_pick_ledger.json"))
+    parser.add_argument("--moonshot-ledger", type=Path, default=Path("web/data/diagnostics/moonshot_prospective_ledger.json"))
+    parser.add_argument("--research-dataset-dir", type=Path, default=Path("output/research_datasets"))
+    parser.add_argument("--min-archive-rows", type=int, default=1)
+    parser.add_argument("--min-recommendation-rows", type=int, default=0)
+    parser.add_argument("--output", type=Path, default=Path("output/research_datasets/research_data_capture_audit.json"))
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    report = build_audit_report(
+        live_archive_manifest=args.live_archive_manifest,
+        prospective_ledger=args.prospective_ledger,
+        moonshot_ledger=args.moonshot_ledger,
+        recommendation_dataset=args.research_dataset_dir / "option_recommendation_outcomes.parquet",
+        moonshot_dataset=args.research_dataset_dir / "moonshot_outcomes.parquet",
+        combined_dataset=args.research_dataset_dir / "all_recommendation_outcomes.parquet",
+        min_archive_rows=max(int(args.min_archive_rows), 0),
+        min_recommendation_rows=max(int(args.min_recommendation_rows), 0),
+    )
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    print(json.dumps(report["summary"], indent=2))
+    if report["status"] != "passed":
+        print(json.dumps(report["failed_checks"], indent=2), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

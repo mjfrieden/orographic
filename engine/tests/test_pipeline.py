@@ -13,11 +13,13 @@ from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates,
 from engine.orographic.pipeline import (
     _load_prior_live_board_symbols,
     append_board_recommendation_history,
+    append_moonshot_prospective_ledger,
     append_prospective_pick_ledger,
     append_research_run_ledger,
     append_side_aware_shadow_ledger,
     build_board_recommendation_history_entry,
     build_live_shadow_attribution_artifact,
+    build_moonshot_prospective_ledger_entry,
     build_prospective_pick_ledger_entry,
     build_research_run_ledger_entry,
     build_forge_rejection_waterfall_artifact,
@@ -1231,6 +1233,12 @@ class PipelineTests(unittest.TestCase):
             },
             "model_modes": {"payoff_ranker": "active"},
             "model_artifacts": {"payoff_model": {"present": True, "sha256": "abc"}},
+            "scout_signals": [
+                {"symbol": "AAA", "spot": 101.25},
+                {"symbol": "BBB", "spot": 99.5},
+                {"symbol": "CCC", "spot": 88.0},
+                {"symbol": "DDD", "spot": 77.0},
+            ],
             "forge_candidates": [live, shadow, veto, holdout],
             "council": {
                 "abstain": False,
@@ -1249,6 +1257,12 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(entry["summary"], {"pick_rows": 4, "live": 1, "shadow": 1, "council_holdout": 1, "friction_veto": 1})
         lanes = {row["contract_symbol"]: row["lane"] for row in entry["picks"]}
         self.assertEqual(lanes, {"AAA1": "live", "BBB1": "shadow", "CCC1": "friction_veto", "DDD1": "council_holdout"})
+        self.assertEqual(entry["picks"][0]["recommendation_id"], "2026-05-05T13:45:00+00:00|AAA1|live")
+        self.assertEqual(entry["picks"][0]["lane_reason"], "selected_live_board")
+        self.assertEqual(entry["picks"][0]["days_to_expiry"], 10)
+        self.assertEqual(entry["picks"][0]["underlying"]["spot"], 101.25)
+        self.assertEqual(entry["picks"][0]["emission_quote"]["captured_at_utc"], "2026-05-05T13:45:00+00:00")
+        self.assertEqual(entry["picks"][0]["emission_quote"]["spread"], 0.2)
         self.assertEqual(entry["picks"][0]["emission_quote"]["mid"], 1.1)
         self.assertEqual(entry["picks"][0]["outcomes"]["status"], "pending")
         self.assertIsNone(entry["picks"][0]["outcomes"]["fixed_exit_marks"]["friday_close"])
@@ -1263,9 +1277,75 @@ class PipelineTests(unittest.TestCase):
             rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
 
         self.assertEqual(rendered["artifact"], "prospective_pick_ledger")
+        self.assertEqual(rendered["schema_version"], 2)
         self.assertEqual(rendered["aggregate"]["runs"], 1)
         self.assertEqual(rendered["aggregate"]["pick_rows"], 4)
         self.assertEqual(rendered["aggregate"]["friction_veto"], 1)
+        self.assertEqual(rendered["outcome_summary"]["pending"], 4)
+
+    def test_moonshot_prospective_ledger_records_pick_and_shadow_candidates(self) -> None:
+        def moonshot_candidate(contract: str, *, eligible: bool, score: float) -> dict[str, object]:
+            return {
+                "symbol": "AAA",
+                "contract_symbol": contract,
+                "option_type": "call",
+                "expiry": "2026-05-15",
+                "strike": 100.0,
+                "bid": 1.0,
+                "ask": 1.2,
+                "last": 1.1,
+                "spread_pct": 0.09,
+                "open_interest": 500,
+                "volume": 120,
+                "contract_cost": 110.0,
+                "forge_score": 0.76,
+                "learned_rank_score": 0.80,
+                "delta": 0.34,
+                "implied_volatility": 0.48,
+                "iv_rank": 0.44,
+                "extrinsic_ratio": 0.72,
+                "moneyness": 0.01,
+                "friction_gate_passed": True,
+                "moonshot": {
+                    "tail_upside_score": score,
+                    "eligible": eligible,
+                    "reasons": ["medium delta matches tail bucket"],
+                },
+            }
+
+        payload = {
+            "generated_at_utc": "2026-05-05T13:45:00+00:00",
+            "regime": {"mode": "neutral", "bias": 0.0, "source_symbol": "SPY"},
+            "scan_settings": {"moonshot_size": 1, "moonshot_threshold": 0.68},
+            "model_modes": {"payoff_ranker": "active"},
+            "model_artifacts": {"payoff_model": {"present": True, "sha256": "abc"}},
+            "moonshot_lane": {
+                "policy": {"name": "nimrod_inspired_moonshot_satellite"},
+                "picks": [moonshot_candidate("AAA1", eligible=True, score=0.74)],
+                "shadow": [moonshot_candidate("AAA2", eligible=False, score=0.61)],
+            },
+        }
+
+        entry = build_moonshot_prospective_ledger_entry(payload)
+
+        self.assertEqual(entry["summary"]["candidate_rows"], 2)
+        self.assertEqual(entry["summary"]["moonshot_pick"], 1)
+        self.assertEqual(entry["summary"]["moonshot_shadow"], 1)
+        lanes = {row["contract_symbol"]: row["lane"] for row in entry["picks"]}
+        self.assertEqual(lanes, {"AAA1": "moonshot_pick", "AAA2": "moonshot_shadow"})
+        self.assertEqual(entry["picks"][0]["moonshot"]["tail_upside_score"], 0.74)
+        self.assertIsNone(entry["picks"][0]["outcomes"]["fixed_exit_marks"]["next_day_close"])
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger_path = append_moonshot_prospective_ledger(
+                f"{tmpdir}/moonshot_prospective_ledger.json",
+                payload,
+            )
+            rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(rendered["artifact"], "moonshot_prospective_ledger")
+        self.assertEqual(rendered["aggregate"]["runs"], 1)
+        self.assertEqual(rendered["aggregate"]["candidate_rows"], 2)
 
 
 if __name__ == "__main__":

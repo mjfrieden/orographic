@@ -271,18 +271,86 @@ async function loadHistory() {
   return Array.isArray(payload.snapshots) ? payload.snapshots : [];
 }
 
+async function loadOrderLedger() {
+  const response = await fetch("/api/admin/order-ledger?limit=50", {
+    cache: "no-store",
+  });
+  const payload = await response.json();
+  if (!payload.ok) {
+    throw new Error(payload.error || "Unable to load order provenance.");
+  }
+  return Array.isArray(payload.events) ? payload.events : [];
+}
+
+function renderOrderLedger(events) {
+  const tbody = document.getElementById("admin-order-ledger-tbody");
+  if (!tbody) return;
+  if (!events.length) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="8" class="admin-history-loading">No order provenance events found.</td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = events
+    .map((event) => {
+      const exitPolicy = event.exit_policy_action
+        ? `<div class="order-status-note">${escapeHtml(event.exit_policy_action.replaceAll("_", " "))}</div>`
+        : "";
+      const runTime = event.run_generated_at_utc
+        ? `<span class="muted">Run ${escapeHtml(formatDateTime(event.run_generated_at_utc))}</span>`
+        : "";
+      return `
+        <tr>
+          <td>
+            <div class="admin-time-stack">
+              <strong>${escapeHtml(formatDateTime(event.created_at_utc))}</strong>
+              ${runTime}
+            </div>
+          </td>
+          <td>${escapeHtml(event.event_type || "--")}</td>
+          <td>${escapeHtml(event.lane || "unknown")}</td>
+          <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${escapeHtml(event.option_symbol || "--")}${exitPolicy}</td>
+          <td>${escapeHtml(event.side || "--")}</td>
+          <td class="is-num">${escapeHtml(integer(event.quantity))}</td>
+          <td class="is-num">${escapeHtml(money(event.limit_price))}</td>
+          <td>${escapeHtml(event.broker_status || event.broker_order_id || "--")}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 async function initAdminHistory() {
   try {
-    const snapshots = await loadHistory();
+    const [snapshots, orderEvents] = await Promise.all([
+      loadHistory(),
+      loadOrderLedger().catch((error) => ({ error })),
+    ]);
     const items = snapshots.map(summarizeSnapshot);
     renderOverview(items);
     renderTrend(items);
     renderHistoryTable(items);
+    if (Array.isArray(orderEvents)) {
+      renderOrderLedger(orderEvents);
+    } else {
+      const tbody = document.getElementById("admin-order-ledger-tbody");
+      if (tbody) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="8" class="admin-history-loading">${escapeHtml(String(orderEvents.error?.message || orderEvents.error || "Unable to load order provenance."))}</td>
+          </tr>
+        `;
+      }
+    }
   } catch (error) {
     const message = String(error?.message || error || "Unknown error");
     const overview = document.getElementById("admin-overview-grid");
     const trend = document.getElementById("admin-trend-panel");
     const tbody = document.getElementById("admin-history-tbody");
+    const orderTbody = document.getElementById("admin-order-ledger-tbody");
     if (overview) {
       overview.innerHTML = `
         <article class="summary-item admin-card">
@@ -298,6 +366,13 @@ async function initAdminHistory() {
       tbody.innerHTML = `
         <tr>
           <td colspan="7" class="admin-history-loading">${escapeHtml(message)}</td>
+        </tr>
+      `;
+    }
+    if (orderTbody) {
+      orderTbody.innerHTML = `
+        <tr>
+          <td colspan="8" class="admin-history-loading">${escapeHtml(message)}</td>
         </tr>
       `;
     }

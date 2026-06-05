@@ -94,6 +94,9 @@ class ProspectiveLedgerTests(unittest.TestCase):
             {"window": "one_hour", "rule": "take_profit_40_pct_fixed_mark_proxy"},
         )
         self.assertTrue(pick["outcomes"]["quote_verification"]["outcome_quotes_captured"])
+        self.assertEqual(updated["outcome_summary"]["partial"], 1)
+        self.assertEqual(stats["picks_partial"], 1)
+        self.assertEqual(stats["picks_pending"], 0)
 
     def test_mark_prospective_ledger_counts_missing_due_quotes(self) -> None:
         ledger = {

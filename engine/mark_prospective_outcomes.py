@@ -33,19 +33,30 @@ def parse_args() -> argparse.Namespace:
         default=500,
         help="Maximum unique contract symbols to quote in one run.",
     )
+    parser.add_argument(
+        "--ignore-missing",
+        action="store_true",
+        help="Exit successfully when the ledger file does not exist yet.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
+    if args.ignore_missing and not Path(args.ledger).exists():
+        log.info("Prospective ledger %s does not exist yet; skipping.", args.ledger)
+        return 0
     path, stats = mark_prospective_ledger_file(args.ledger, max_symbols=max(int(args.max_symbols), 1))
     log.info(
-        "Updated %s: entries=%d picks=%d marks_written=%d quotes_missing=%d.",
+        "Updated %s: entries=%d picks=%d marks_written=%d quotes_missing=%d complete=%d partial=%d pending=%d.",
         path,
         stats["entries_seen"],
         stats["picks_seen"],
         stats["marks_written"],
         stats["quotes_missing"],
+        stats["picks_completed"],
+        stats["picks_partial"],
+        stats["picks_pending"],
     )
     return 0
 

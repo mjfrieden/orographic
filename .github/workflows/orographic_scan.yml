@@ -16,8 +16,10 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
       OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
+      OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
       OROGRAPHIC_SITE_URL: https://orographic.pages.dev
       TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
       OROGRAPHIC_TRADIER_ACCESS_TOKEN: ${{ secrets.OROGRAPHIC_TRADIER_ACCESS_TOKEN }}
@@ -44,15 +46,59 @@ jobs:
           python -m pytest -q engine/tests
           python scripts/validate_model_artifacts.py
 
+      - name: Mark pending prospective outcomes before scan
+        if: ${{ env.TRADIER_ACCESS_TOKEN != '' || env.OROGRAPHIC_TRADIER_ACCESS_TOKEN != '' }}
+        run: |
+          python engine/mark_prospective_outcomes.py \
+            --ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --ignore-missing
+          python engine/mark_prospective_outcomes.py \
+            --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+            --ignore-missing
+
       - name: Run Orographic scan
         run: |
           python engine/run_scan.py --output web/data/latest_run.json
+
+      - name: Archive live option chains
+        run: |
+          python scripts/archive_live_option_chains.py \
+            --snapshot web/data/latest_run.json \
+            --snapshot-symbols-only \
+            --output-dir engine/data/live_options_archive
 
       - name: Mark due prospective pick outcomes
         if: ${{ env.TRADIER_ACCESS_TOKEN != '' || env.OROGRAPHIC_TRADIER_ACCESS_TOKEN != '' }}
         run: |
           python engine/mark_prospective_outcomes.py \
-            --ledger web/data/diagnostics/prospective_pick_ledger.json
+            --ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --ignore-missing
+          python engine/mark_prospective_outcomes.py \
+            --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+            --ignore-missing
+
+      - name: Mark archived quote path outcomes
+        run: |
+          python scripts/mark_path_outcomes_from_archive.py \
+            --archive-dir engine/data/live_options_archive \
+            --ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --ledger web/data/diagnostics/moonshot_prospective_ledger.json
+
+      - name: Build research datasets
+        run: |
+          python scripts/build_research_datasets.py \
+            --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+            --output-dir output/research_datasets
+
+      - name: Audit research data capture
+        run: |
+          python scripts/audit_research_data_capture.py \
+            --live-archive-manifest engine/data/live_options_archive/coverage_manifest.json \
+            --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+            --research-dataset-dir output/research_datasets \
+            --output output/research_datasets/research_data_capture_audit.json
 
       - name: Sync dashboard validation artifacts
         run: |
@@ -99,6 +145,15 @@ jobs:
           prospective_ledger = Path("web/data/diagnostics/prospective_pick_ledger.json")
           if not prospective_ledger.exists():
               raise SystemExit("prospective pick ledger was not written")
+          moonshot_ledger = Path("web/data/diagnostics/moonshot_prospective_ledger.json")
+          if not moonshot_ledger.exists():
+              raise SystemExit("moonshot prospective ledger was not written")
+          live_archive_manifest = Path("engine/data/live_options_archive/coverage_manifest.json")
+          if not live_archive_manifest.exists():
+              raise SystemExit("live option-chain archive manifest was not written")
+          research_dataset = Path("output/research_datasets/all_recommendation_outcomes.parquet")
+          if not research_dataset.exists():
+              raise SystemExit("research dataset artifact was not written")
           attribution = payload.get("attribution", {})
           if attribution.get("artifact") != "live_shadow_attribution":
               raise SystemExit("snapshot attribution artifact missing")
@@ -124,6 +179,32 @@ jobs:
               raise SystemExit("backtest dashboard artifact is empty")
           print("Snapshot regression gates passed.")
           PY
+
+      - name: Upload live research data artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: orographic-live-research-data
+          path: |
+            engine/data/live_options_archive/
+            output/research_datasets/
+          retention-days: 90
+
+      - name: Set up Node for R2 research export
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Upload research data to R2
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/upload_research_artifacts_to_r2.py \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            engine/data/live_options_archive \
+            output/research_datasets
 
       - name: Commit refreshed snapshot
         id: snapshot

@@ -9,6 +9,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from engine.orographic.pipeline import (
+    append_moonshot_prospective_ledger,
     append_research_run_ledger,
     append_board_recommendation_history,
     append_prospective_pick_ledger,
@@ -90,6 +91,22 @@ def parse_args() -> argparse.Namespace:
         "--no-prospective-ledger",
         action="store_true",
         help="Disable writing the prospective pick ledger.",
+    )
+    parser.add_argument(
+        "--moonshot-ledger-output",
+        default="",
+        help="Optional path for the dedicated moonshot prospective ledger. Defaults beside the snapshot diagnostics.",
+    )
+    parser.add_argument(
+        "--moonshot-ledger-max-entries",
+        type=int,
+        default=500,
+        help="Maximum number of scan entries to retain in the moonshot prospective ledger.",
+    )
+    parser.add_argument(
+        "--no-moonshot-ledger",
+        action="store_true",
+        help="Disable writing the dedicated moonshot prospective ledger.",
     )
     parser.add_argument(
         "--shadow-ledger-output",
@@ -248,6 +265,18 @@ def main() -> int:
             max_entries=max(int(args.prospective_ledger_max_entries), 1),
         )
         log.info("Updated prospective pick ledger at %s.", written)
+    if not args.no_moonshot_ledger:
+        moonshot_ledger_path = (
+            Path(args.moonshot_ledger_output)
+            if args.moonshot_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "moonshot_prospective_ledger.json"
+        )
+        written = append_moonshot_prospective_ledger(
+            moonshot_ledger_path,
+            payload,
+            max_entries=max(int(args.moonshot_ledger_max_entries), 1),
+        )
+        log.info("Updated moonshot prospective ledger at %s.", written)
     if not args.no_board_history:
         board_history_path = (
             Path(args.board_history_output)

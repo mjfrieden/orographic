@@ -1,4 +1,8 @@
 import {
+  buildOrderProvenanceEvent,
+  safeRecordOrderProvenance,
+} from "../../_lib/order_ledger.js";
+import {
   buildEligibility,
   buildOrderEnvelope,
   buildSubmissionPreview,
@@ -35,6 +39,90 @@ import {
  * contract came from the live or shadow board. Manual exits stay available even
  * if the snapshot has gone stale.
  */
+
+function buildRequestEnvelope({
+  candidate,
+  optionSymbol,
+  underlyingSymbol,
+  side,
+  quantity,
+  orderType,
+  duration,
+  price,
+  config,
+}) {
+  const maxContracts = Math.max(1, Number(config?.maxContracts || 1));
+  const parsedQuantity = Number.parseInt(String(quantity ?? 1), 10);
+  return {
+    class: "option",
+    symbol: String(candidate?.symbol || underlyingSymbol || "")
+      .trim()
+      .toUpperCase(),
+    option_symbol: String(candidate?.contract_symbol || optionSymbol || "")
+      .trim()
+      .toUpperCase(),
+    side,
+    quantity: Math.min(Math.max(Number.isFinite(parsedQuantity) ? parsedQuantity : 1, 1), maxContracts),
+    type: orderType,
+    duration,
+    price: Number(price || 0).toFixed(2),
+    tag: `orographic-${String(config?.mode || "disabled")}-${String(candidate?.symbol || underlyingSymbol || "manual").toLowerCase()}`,
+  };
+}
+
+async function recordBlockedAttempt({
+  context,
+  eventType,
+  config,
+  session,
+  snapshot,
+  snapshotInfo,
+  lane,
+  candidate,
+  optionSymbol,
+  underlyingSymbol,
+  side,
+  quantity,
+  orderType,
+  duration,
+  price,
+  requestedExitPolicyAction,
+  blockReason,
+  httpStatus,
+  error,
+}) {
+  const envelope = buildRequestEnvelope({
+    candidate,
+    optionSymbol,
+    underlyingSymbol,
+    side,
+    quantity,
+    orderType,
+    duration,
+    price,
+    config,
+  });
+  return safeRecordOrderProvenance(
+    context.env,
+    buildOrderProvenanceEvent({
+      eventType,
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      quote: null,
+      envelope,
+      result: null,
+      exitPolicyAction: requestedExitPolicyAction,
+      blockReason,
+      httpStatus,
+      error,
+    }),
+  );
+}
+
 export async function onRequestPost(context) {
   const auth = await requireSession(context);
   if (auth.response) {
@@ -60,6 +148,9 @@ export async function onRequestPost(context) {
     price,
     confirm_live: confirmLive,
   } = body || {};
+  const requestedExitPolicyAction = String(
+    body?.exit_policy_action || "",
+  ).trim();
 
   if (!optionSymbol) {
     return jsonResponse({ ok: false, error: "option_symbol is required." }, 400);
@@ -110,6 +201,27 @@ export async function onRequestPost(context) {
   });
   const spreadBlock = buildSpreadExecutionBlock(candidate, side);
   if (spreadBlock) {
+    const provenance = await recordBlockedAttempt({
+      context,
+      eventType: "blocked_spread",
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      optionSymbol,
+      underlyingSymbol,
+      side,
+      quantity,
+      orderType,
+      duration,
+      price,
+      requestedExitPolicyAction,
+      blockReason: "spread_execution_block",
+      httpStatus: spreadBlock.status,
+      error: spreadBlock.error,
+    });
     return jsonResponse(
       {
         ok: false,
@@ -117,6 +229,7 @@ export async function onRequestPost(context) {
         spread: spreadBlock.spread,
         eligibility,
         submission,
+        provenance,
       },
       spreadBlock.status,
     );
@@ -143,6 +256,22 @@ export async function onRequestPost(context) {
 
     try {
       const result = await previewOrPlaceOrder(context.env, envelope, { preview: true });
+      const provenance = await safeRecordOrderProvenance(
+        context.env,
+        buildOrderProvenanceEvent({
+          eventType: "preview",
+          config,
+          session,
+          snapshot,
+          snapshotInfo,
+          lane,
+          candidate,
+          quote: liveQuote,
+          envelope,
+          result,
+          exitPolicyAction: requestedExitPolicyAction,
+        }),
+      );
       return jsonResponse({
         ok: true,
         preview: true,
@@ -150,6 +279,7 @@ export async function onRequestPost(context) {
         envelope,
         eligibility,
         submission,
+        provenance,
         rate_limits: result.rateLimits,
       });
     } catch (error) {
@@ -163,32 +293,97 @@ export async function onRequestPost(context) {
   // ----- LIVE/SANDBOX PLACEMENT path (admin-only) -----
   const validation = validateSubmission({ config, session, lane, snapshotInfo, side });
   if (!validation.ok) {
+    const provenance = await recordBlockedAttempt({
+      context,
+      eventType: "blocked_validation",
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      optionSymbol,
+      underlyingSymbol,
+      side,
+      quantity,
+      orderType,
+      duration,
+      price,
+      requestedExitPolicyAction,
+      blockReason: validation.error,
+      httpStatus: validation.status,
+      error: validation.error,
+    });
     return jsonResponse(
-      { ok: false, error: validation.error, eligibility, submission },
+      { ok: false, error: validation.error, eligibility, submission, provenance },
       validation.status,
     );
   }
 
   // Live mode requires explicit confirm_live flag from the client
   if (config.mode === "live" && !confirmLive) {
+    const provenance = await recordBlockedAttempt({
+      context,
+      eventType: "blocked_live_confirmation",
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      optionSymbol,
+      underlyingSymbol,
+      side,
+      quantity,
+      orderType,
+      duration,
+      price,
+      requestedExitPolicyAction,
+      blockReason: "missing_live_confirmation",
+      httpStatus: 409,
+      error: "Live order blocked: confirm_live must be true for live-mode placement.",
+    });
     return jsonResponse(
       {
         ok: false,
         error: "Live order blocked: confirm_live must be true for live-mode placement.",
         eligibility,
         submission,
+        provenance,
       },
       409,
     );
   }
 
   if (config.mode === "live" && !config.liveTradingEnabled) {
+    const provenance = await recordBlockedAttempt({
+      context,
+      eventType: "blocked_live_disabled",
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      optionSymbol,
+      underlyingSymbol,
+      side,
+      quantity,
+      orderType,
+      duration,
+      price,
+      requestedExitPolicyAction,
+      blockReason: "live_trading_disabled",
+      httpStatus: 412,
+      error: "Live trading is not enabled. Set TRADIER_LIVE_TRADING_ENABLED=true to arm live orders.",
+    });
     return jsonResponse(
       {
         ok: false,
         error: "Live trading is not enabled. Set TRADIER_LIVE_TRADING_ENABLED=true to arm live orders.",
         eligibility,
         submission,
+        provenance,
       },
       412,
     );
@@ -213,6 +408,22 @@ export async function onRequestPost(context) {
 
   try {
     const result = await previewOrPlaceOrder(context.env, envelope, { preview: false });
+    const provenance = await safeRecordOrderProvenance(
+      context.env,
+      buildOrderProvenanceEvent({
+        eventType: "submit",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        quote: liveQuote,
+        envelope,
+        result,
+        exitPolicyAction: requestedExitPolicyAction,
+      }),
+    );
     return jsonResponse({
       ok: true,
       preview: false,
@@ -221,6 +432,7 @@ export async function onRequestPost(context) {
       envelope,
       eligibility,
       submission,
+      provenance,
       rate_limits: result.rateLimits,
     });
   } catch (error) {
