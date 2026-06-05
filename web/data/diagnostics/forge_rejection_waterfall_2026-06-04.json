@@ -1,7 +1,7 @@
 {
   "artifact": "forge_rejection_waterfall",
   "product": "Orographic",
-  "generated_at_utc": "2026-06-04T21:51:23+00:00",
+  "generated_at_utc": "2026-06-05T03:50:12+00:00",
   "trading_day": "2026-06-04",
   "timezone": "America/Chicago",
   "scan_settings": {
@@ -31,35 +31,43 @@
   "model_artifacts": {
     "scout_model": {
       "present": true,
-      "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13"
+      "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+      "required": true
     },
     "scout_scaler": {
       "present": true,
-      "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab"
+      "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+      "required": true
     },
     "scout_side_model": {
       "present": true,
-      "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+      "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+      "required": true
     },
     "payoff_model": {
       "present": true,
-      "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a"
+      "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+      "required": true
     },
     "path_model": {
       "present": false,
-      "sha256": null
+      "sha256": null,
+      "required": false
     },
     "scout_model_card": {
       "present": true,
-      "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be"
+      "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+      "required": true
     },
     "payoff_model_card": {
       "present": true,
-      "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3"
+      "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+      "required": true
     },
     "path_model_card": {
       "present": false,
-      "sha256": null
+      "sha256": null,
+      "required": false
     }
   },
   "summary": {
@@ -5276,26 +5284,26 @@
       "signals_considered": 9,
       "signals_with_expiry": 9,
       "signals_with_chain": 9,
-      "rows_after_basic": 381,
-      "rows_positive_bid_ask": 308,
-      "rows_within_long_leg_cap": 141,
-      "rows_within_spread_cap": 60,
+      "rows_after_basic": 518,
+      "rows_positive_bid_ask": 442,
+      "rows_within_long_leg_cap": 142,
+      "rows_within_spread_cap": 57,
       "rows_passing_liquidity": 47,
-      "rows_passing_moneyness": 18,
-      "rows_passing_delta": 17,
-      "rows_passing_net_debit": 17,
-      "final_candidates": 17,
+      "rows_passing_moneyness": 19,
+      "rows_passing_delta": 18,
+      "rows_passing_net_debit": 18,
+      "final_candidates": 18,
       "candidates_after_friction_gate": 4,
       "candidates_after_deduplication": 9
     },
     "learned_ranker": {
       "mode_counts": {
-        "active": 12
+        "active": 9
       },
       "active_default": true,
       "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
-      "scored_candidates": 12,
-      "avg_learned_rank_score": 0.5589
+      "scored_candidates": 9,
+      "avg_learned_rank_score": 0.5653
     },
     "settings": {
       "minimum_days_to_expiry": 7,
@@ -5311,19 +5319,20 @@
       "enforce_pre_council_friction_gate": false,
       "max_structures_per_symbol_side": 2,
       "min_moneyness_gap": 0.01,
+      "max_structures_per_symbol": 1,
       "turnover_switch_penalty": 0.03,
       "prior_live_board_symbols": []
     },
     "deduplication": {
       "max_structures_per_symbol_side": 2,
       "min_moneyness_gap": 0.01,
-      "removed_candidates": 8,
-      "kept_candidates": 9,
       "max_structures_per_symbol": 1,
       "strong_ticker_moneyness_gap": 0.035,
       "strong_ticker_delta_gap": 0.2,
       "strong_ticker_min_score": 0.68,
-      "strong_ticker_min_edge_after_friction_pct": 0.15
+      "strong_ticker_min_edge_after_friction_pct": 0.15,
+      "removed_candidates": 9,
+      "kept_candidates": 9
     },
     "rejection_counts": [],
     "per_symbol": [
@@ -5444,20 +5453,20 @@
         "net_debit_cap": 4.5,
         "long_leg_cap": 4.5,
         "spread_cap": 0.28,
-        "rows_after_basic": 65,
-        "rows_positive_bid_ask": 57,
-        "rows_within_long_leg_cap": 27,
-        "rows_within_spread_cap": 6,
+        "rows_after_basic": 202,
+        "rows_positive_bid_ask": 191,
+        "rows_within_long_leg_cap": 28,
+        "rows_within_spread_cap": 3,
         "rows_passing_liquidity": 3,
-        "rows_passing_moneyness": 2,
-        "rows_passing_delta": 1,
-        "rows_passing_net_debit": 1,
-        "final_candidates": 1,
+        "rows_passing_moneyness": 3,
+        "rows_passing_delta": 2,
+        "rows_passing_net_debit": 2,
+        "final_candidates": 2,
         "sentinel_event_type": "none",
         "sentinel_time_horizon": "unknown",
         "sentinel_decay_half_life": "unknown",
         "sentinel_direction_3d": "neutral",
-        "expiry": "2026-06-11"
+        "expiry": "2026-06-12"
       },
       {
         "symbol": "AMZN",
@@ -5567,15 +5576,15 @@
             "option_type": "call",
             "expiry": "2026-06-12",
             "strike": 110.0,
-            "forge_score": 0.6439,
-            "learned_rank_score": 0.6439,
+            "forge_score": 0.6461,
+            "learned_rank_score": 0.6461,
             "expected_edge_after_friction_pct": 0.0405,
             "friction_buffer_pct": 0.3512,
             "extrinsic_ratio": 0.8981,
             "contract_cost": 216.0,
             "spread_pct": 0.1493,
-            "delta": 0.5341,
-            "iv_rank": 0.4501,
+            "delta": 0.5333,
+            "iv_rank": 0.504,
             "council_risk_flags": []
           }
         ],
@@ -5587,15 +5596,15 @@
             "option_type": "call",
             "expiry": "2026-06-12",
             "strike": 102.0,
-            "forge_score": 0.6884,
-            "learned_rank_score": 0.6884,
+            "forge_score": 0.6889,
+            "learned_rank_score": 0.6889,
             "expected_edge_after_friction_pct": 0.2489,
             "friction_buffer_pct": 0.3837,
             "extrinsic_ratio": 1.0,
             "contract_cost": 67.0,
             "spread_pct": 0.127,
-            "delta": 0.2637,
-            "iv_rank": 0.4634,
+            "delta": 0.2611,
+            "iv_rank": 0.5128,
             "council_risk_flags": [
               "high_extrinsic"
             ]
@@ -5606,15 +5615,15 @@
             "option_type": "call",
             "expiry": "2026-06-12",
             "strike": 260.0,
-            "forge_score": 0.599,
-            "learned_rank_score": 0.599,
+            "forge_score": 0.6017,
+            "learned_rank_score": 0.6017,
             "expected_edge_after_friction_pct": -0.0343,
             "friction_buffer_pct": 0.3256,
             "extrinsic_ratio": 1.0,
             "contract_cost": 236.0,
             "spread_pct": 0.0301,
-            "delta": 0.3077,
-            "iv_rank": 0.4287,
+            "delta": 0.3054,
+            "iv_rank": 0.483,
             "council_risk_flags": [
               "high_extrinsic"
             ]
@@ -5625,15 +5634,15 @@
             "option_type": "call",
             "expiry": "2026-06-12",
             "strike": 143.0,
-            "forge_score": 0.5319,
-            "learned_rank_score": 0.5319,
+            "forge_score": 0.5352,
+            "learned_rank_score": 0.5352,
             "expected_edge_after_friction_pct": -0.1254,
             "friction_buffer_pct": 0.4097,
             "extrinsic_ratio": 1.0,
             "contract_cost": 121.0,
             "spread_pct": 0.1704,
-            "delta": 0.345,
-            "iv_rank": 0.8504,
+            "delta": 0.3427,
+            "iv_rank": 0.9558,
             "council_risk_flags": [
               "high_extrinsic",
               "wide_spread"
@@ -5645,15 +5654,15 @@
             "option_type": "call",
             "expiry": "2026-06-12",
             "strike": 28.5,
-            "forge_score": 0.5309,
-            "learned_rank_score": 0.5309,
+            "forge_score": 0.5348,
+            "learned_rank_score": 0.5348,
             "expected_edge_after_friction_pct": -0.1595,
             "friction_buffer_pct": 0.3418,
             "extrinsic_ratio": 1.0,
             "contract_cost": 54.0,
             "spread_pct": 0.0571,
-            "delta": 0.4387,
-            "iv_rank": 0.3525,
+            "delta": 0.4374,
+            "iv_rank": 0.3902,
             "council_risk_flags": [
               "high_extrinsic"
             ]
@@ -5664,15 +5673,15 @@
             "option_type": "call",
             "expiry": "2026-06-12",
             "strike": 137.0,
-            "forge_score": 0.477,
-            "learned_rank_score": 0.477,
+            "forge_score": 0.4748,
+            "learned_rank_score": 0.4748,
             "expected_edge_after_friction_pct": -0.2752,
             "friction_buffer_pct": 0.3616,
             "extrinsic_ratio": 1.0,
             "contract_cost": 174.0,
             "spread_pct": 0.0901,
-            "delta": 0.3952,
-            "iv_rank": 0.4432,
+            "delta": 0.3934,
+            "iv_rank": 0.4995,
             "council_risk_flags": [
               "high_extrinsic"
             ]
@@ -5687,13 +5696,13 @@
             "strike": 84.0,
             "forge_score": 0.7588,
             "learned_rank_score": 0.7588,
-            "expected_edge_after_friction_pct": 0.455,
+            "expected_edge_after_friction_pct": 0.4525,
             "friction_buffer_pct": 0.3249,
             "extrinsic_ratio": 1.0,
             "contract_cost": 70.0,
             "spread_pct": 0.029,
-            "delta": 0.2776,
-            "iv_rank": 0.3464,
+            "delta": 0.2755,
+            "iv_rank": 0.3875,
             "council_risk_flags": [
               "high_extrinsic",
               "symbol_probation"
@@ -5719,9 +5728,9 @@
         "contract_cost": 70.0,
         "sector": "communication_services",
         "risk_adjusted_score": 0.6981,
-        "path_holding_quality_score": 0.4913,
-        "path_early_profit_take_prob": 0.3079,
-        "path_decay_risk": 0.5406,
+        "path_holding_quality_score": 0.4936,
+        "path_early_profit_take_prob": 0.3155,
+        "path_decay_risk": 0.5387,
         "path_model_mode": "shadow",
         "is_spread": false
       },
@@ -5730,15 +5739,15 @@
         "option_type": "call",
         "expiry": "2026-06-12",
         "strike": 102.0,
-        "forge_score": 0.6884,
-        "learned_rank_score": 0.6884,
+        "forge_score": 0.6889,
+        "learned_rank_score": 0.6889,
         "ranker_mode": "active",
         "contract_cost": 67.0,
         "sector": "communication_services",
-        "risk_adjusted_score": 0.6333,
-        "path_holding_quality_score": 0.3732,
-        "path_early_profit_take_prob": 0.2708,
-        "path_decay_risk": 0.5441,
+        "risk_adjusted_score": 0.6338,
+        "path_holding_quality_score": 0.3773,
+        "path_early_profit_take_prob": 0.2788,
+        "path_decay_risk": 0.5405,
         "path_model_mode": "shadow",
         "is_spread": false
       },
@@ -5747,15 +5756,15 @@
         "option_type": "call",
         "expiry": "2026-06-12",
         "strike": 110.0,
-        "forge_score": 0.6439,
-        "learned_rank_score": 0.6439,
+        "forge_score": 0.6461,
+        "learned_rank_score": 0.6461,
         "ranker_mode": "active",
         "contract_cost": 216.0,
         "sector": "industrials",
-        "risk_adjusted_score": 0.5976,
-        "path_holding_quality_score": 0.2356,
-        "path_early_profit_take_prob": 0.2333,
-        "path_decay_risk": 0.5577,
+        "risk_adjusted_score": 0.5997,
+        "path_holding_quality_score": 0.2395,
+        "path_early_profit_take_prob": 0.2413,
+        "path_decay_risk": 0.5549,
         "path_model_mode": "shadow",
         "is_spread": false
       }
@@ -5857,11 +5866,11 @@
         "role": "option payoff-aware ranking",
         "status": "production_monitor",
         "recommendation": "Monitor calibration and drift; this is the recovered edge-bearing model.",
-        "observations": 12,
+        "observations": 9,
         "mode_counts": {
-          "active": 12
+          "active": 9
         },
-        "avg_learned_rank_score": 0.5589,
+        "avg_learned_rank_score": 0.5653,
         "promotion_step": "active"
       },
       {
@@ -5870,13 +5879,13 @@
         "role": "hold-window quality, take-profit odds, and decay risk",
         "status": "collecting_evidence",
         "recommendation": "Keep shadow until path metrics improve disagreement handling without increasing decay-driven losers.",
-        "observations": 17,
+        "observations": 18,
         "mode_counts": {
-          "shadow": 17
+          "shadow": 18
         },
-        "avg_holding_quality_score": 0.2732,
-        "avg_early_profit_take_prob": 0.2381,
-        "avg_decay_risk": 0.5637,
+        "avg_holding_quality_score": 0.2735,
+        "avg_early_profit_take_prob": 0.245,
+        "avg_decay_risk": 0.5615,
         "promotion_step": "shadow"
       },
       {
@@ -5885,7 +5894,7 @@
         "role": "correlation, sector exposure, sizing, no-trade discipline",
         "status": "observe_only",
         "recommendation": "Keep warnings visible; promote hard demotions only after shadow P&L improves.",
-        "observations": 12,
+        "observations": 9,
         "live_risk_flags": 0,
         "shadow_risk_flags": 3,
         "avg_pairwise_correlation": null,
