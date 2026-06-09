@@ -54,8 +54,6 @@ def main() -> int:
         symbols = _symbols_from_snapshot(args.snapshot)
     else:
         symbols = load_universe(args.universe_file)
-    if not symbols:
-        raise SystemExit("No symbols available for option-chain archiving.")
     quote_date = date.fromisoformat(args.quote_date) if args.quote_date.strip() else None
     result = archive_live_option_chains(
         symbols,
@@ -65,6 +63,8 @@ def main() -> int:
         max_expiries_per_symbol=max(int(args.max_expiries_per_symbol), 1),
         today=quote_date,
     )
+    if not symbols:
+        print("No symbols available for option-chain archiving; wrote empty archive manifest.")
     print(json.dumps(result.manifest["summary"], indent=2))
     print(f"Saved live option-chain archive manifest to {result.manifest_path}")
     return 0
