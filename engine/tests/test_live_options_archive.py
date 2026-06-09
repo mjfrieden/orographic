@@ -13,6 +13,25 @@ from engine.orographic.live_options_archive import archive_live_option_chains
 
 
 class LiveOptionsArchiveTests(unittest.TestCase):
+    def test_archive_live_option_chains_writes_empty_manifest_for_empty_symbols(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = archive_live_option_chains(
+                [],
+                output_dir=tmpdir,
+                today=date(2026, 6, 9),
+                run_started_at_utc="2026-06-09T16:40:00+00:00",
+            )
+
+            manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
+            latest = Path(tmpdir) / "coverage_manifest.json"
+            latest_exists = latest.exists()
+
+        self.assertTrue(latest_exists)
+        self.assertEqual(manifest["summary"]["symbols_requested"], 0)
+        self.assertEqual(manifest["summary"]["symbols_archived"], 0)
+        self.assertEqual(manifest["summary"]["rows_archived"], 0)
+        self.assertEqual(manifest["symbols"], {})
+
     def test_archive_live_option_chains_writes_partition_and_manifest(self) -> None:
         calls = pd.DataFrame(
             [

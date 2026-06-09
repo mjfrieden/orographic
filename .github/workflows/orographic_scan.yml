@@ -93,11 +93,23 @@ jobs:
 
       - name: Audit research data capture
         run: |
+          MIN_ARCHIVE_ROWS="$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          payload = json.loads(Path("web/data/latest_run.json").read_text(encoding="utf-8"))
+          regime = payload.get("regime") if isinstance(payload.get("regime"), dict) else {}
+          scout_count = len(payload.get("scout_signals", [])) if isinstance(payload.get("scout_signals"), list) else 0
+          forge_count = len(payload.get("forge_candidates", [])) if isinstance(payload.get("forge_candidates"), list) else 0
+          print(0 if regime.get("mode") == "extreme_vol" and scout_count == 0 and forge_count == 0 else 1)
+          PY
+          )"
           python scripts/audit_research_data_capture.py \
             --live-archive-manifest engine/data/live_options_archive/coverage_manifest.json \
             --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
             --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
             --research-dataset-dir output/research_datasets \
+            --min-archive-rows "${MIN_ARCHIVE_ROWS}" \
             --output output/research_datasets/research_data_capture_audit.json
 
       - name: Sync dashboard validation artifacts
@@ -116,7 +128,10 @@ jobs:
           if payload.get("error"):
               raise SystemExit(f"snapshot contains pipeline error: {payload.get('error')}")
           summary = payload.get("summary", {})
-          if summary.get("scout_signal_count", 0) <= 0:
+          regime = payload.get("regime") if isinstance(payload.get("regime"), dict) else {}
+          scout_signal_count = int(summary.get("scout_signal_count", 0) or 0)
+          extreme_vol_abstain = regime.get("mode") == "extreme_vol" and scout_signal_count == 0
+          if scout_signal_count <= 0 and not extreme_vol_abstain:
               raise SystemExit("snapshot has no Scout signals")
           council = payload.get("council", {})
           council_summary = council.get("summary", {})
