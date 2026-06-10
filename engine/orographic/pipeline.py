@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from .council import select_board
 from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
+from .market_shock import classify_current_market_shock
 from .moonshot import select_moonshot_lane
 from .scout import scan_symbols_with_diagnostics
 
@@ -60,6 +61,7 @@ class PipelineConfig:
     moonshot_threshold: float = 0.68
     moonshot_max_cost_basis: float = 225.0
     enforce_pre_council_friction_gate: bool = False
+    market_shock_control_mode: str = "active"
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
 
 log = logging.getLogger(__name__)
@@ -1581,6 +1583,14 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         model_artifacts = _model_artifact_status()
         model_modes = _model_mode_status(model_artifacts)
         regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
+        market_shock = classify_current_market_shock(regime)
+        market_shock_control_mode = str(
+            getattr(config, "market_shock_control_mode", os.getenv("OROGRAPHIC_MARKET_SHOCK_CONTROL_MODE", "active"))
+            or "active"
+        ).strip().lower()
+        if market_shock_control_mode not in {"active", "shadow", "off"}:
+            market_shock_control_mode = "active"
+        council_market_shock = market_shock if market_shock_control_mode == "active" else None
         log.info("Scout signal generation complete. Evaluating candidates...")
 
         forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
@@ -1617,6 +1627,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             minimum_put_live_score=minimum_put_live_score,
             max_live_extrinsic_ratio=max_live_extrinsic_ratio,
             prior_live_board_symbols=prior_live_board_symbols,
+            market_shock=council_market_shock,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
         moonshot_lane = select_moonshot_lane(
@@ -1655,9 +1666,11 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_threshold": moonshot_threshold,
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
+                "market_shock_control_mode": market_shock_control_mode,
             },
             "model_modes": model_modes,
             "regime": regime.to_dict(),
+            "market_shock": market_shock.to_dict(),
             "scout_signals": [row.to_dict() for row in scout_signals],
             "forge_candidates": [row.to_dict() for row in forge_candidates],
             "council": council.to_dict(),
@@ -1666,6 +1679,11 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout": scout_diagnostics,
                 "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
+                "market_shock": {
+                    "mode": market_shock_control_mode,
+                    "applied": market_shock_control_mode == "active",
+                    "policy": market_shock.to_dict(),
+                },
             },
             "model_artifacts": model_artifacts,
             "summary": {

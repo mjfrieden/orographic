@@ -10,6 +10,7 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, rank_contracts_with_diagnostics, select_signals_for_forge
+from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.pipeline import (
     _load_prior_live_board_symbols,
     append_board_recommendation_history,
@@ -73,6 +74,20 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
 
 
 class PipelineTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.market_shock = MarketShockRegime(
+            label="normal_crosscurrents",
+            severity=0.0,
+            stance="allow",
+            global_abstain=False,
+        )
+        self.market_shock_patcher = mock.patch(
+            "engine.orographic.pipeline.classify_current_market_shock",
+            return_value=self.market_shock,
+        )
+        self.market_shock_mock = self.market_shock_patcher.start()
+        self.addCleanup(self.market_shock_patcher.stop)
+
     def test_load_prior_live_board_symbols_reads_latest_entry(self) -> None:
         payload = {
             "entries": [
@@ -149,6 +164,10 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_live_score"], 0.76)
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_put_live_score"], 0.84)
         self.assertEqual(select_board_mock.call_args.kwargs["max_live_extrinsic_ratio"], 0.90)
+        self.assertEqual(payload["scan_settings"]["market_shock_control_mode"], "active")
+        self.assertEqual(payload["market_shock"]["label"], "normal_crosscurrents")
+        self.assertEqual(payload["diagnostics"]["market_shock"]["mode"], "active")
+        self.assertEqual(select_board_mock.call_args.kwargs["market_shock"], self.market_shock)
 
     def test_pre_forge_gate_skips_illiquid_signals_and_backfills_next_names(self) -> None:
         signals = [_signal("AAA"), _signal("BBB"), _signal("CCC")]

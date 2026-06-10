@@ -28,6 +28,7 @@ import pandas as pd
 
 from engine.backtest.risk_controls import sector_for_symbol
 
+from .market_shock import MarketShockRegime, NEUTRAL_MARKET_SHOCK
 from .schemas import ContractCandidate, CouncilResult, MarketRegime
 
 log = logging.getLogger(__name__)
@@ -41,6 +42,7 @@ ABSTAIN_REASON_LABELS = {
     "mixed_core_filters": "Candidates were blocked by a mix of score and extrinsic gates.",
     "side_balance": "Eligible candidates were rejected by side-balance controls.",
     "selection_threshold": "Eligible candidates survived core filters but did not reach the live board.",
+    "market_shock_abstain": "Market-shock overlay blocked live options selection.",
 }
 
 LIVE_PROBATION_SYMBOLS = frozenset({"NFLX", "TLT"})
@@ -222,6 +224,34 @@ def _audit_candidate(row: ContractCandidate) -> dict[str, Any]:
     }
 
 
+def _normalize_market_shock(value: MarketShockRegime | dict[str, Any] | None) -> MarketShockRegime:
+    if isinstance(value, MarketShockRegime):
+        return value
+    if not isinstance(value, dict):
+        return NEUTRAL_MARKET_SHOCK
+    try:
+        return MarketShockRegime(
+            label=str(value.get("label") or NEUTRAL_MARKET_SHOCK.label),
+            severity=float(value.get("severity") or 0.0),
+            stance=str(value.get("stance") or "allow"),
+            global_abstain=bool(value.get("global_abstain", False)),
+            live_score_buffer=float(value.get("live_score_buffer") or 0.0),
+            put_score_buffer=float(value.get("put_score_buffer") or 0.0),
+            max_extrinsic_ratio=(
+                float(value["max_extrinsic_ratio"])
+                if value.get("max_extrinsic_ratio") is not None
+                else None
+            ),
+            preferred_sides=list(value.get("preferred_sides") or []),
+            blocked_sides=list(value.get("blocked_sides") or []),
+            drivers=list(value.get("drivers") or []),
+            strategy_notes=list(value.get("strategy_notes") or []),
+            source=str(value.get("source") or "cross_asset_event_overlay"),
+        )
+    except (TypeError, ValueError):
+        return NEUTRAL_MARKET_SHOCK
+
+
 def _effective_candidate_score(candidate: ContractCandidate) -> float:
     learned = getattr(candidate, "learned_rank_score", None)
     if learned is not None:
@@ -383,8 +413,27 @@ def select_board(
     fetch_live_corr: bool = True,
     prior_live_board_symbols: list[str] | None = None,
     turnover_switch_penalty: float = 0.03,
+    market_shock: MarketShockRegime | dict[str, Any] | None = None,
 ) -> CouncilResult:
     notes: list[str] = []
+    shock = _normalize_market_shock(market_shock)
+    effective_minimum_live_score = min(max(minimum_live_score + shock.live_score_buffer, 0.0), 1.0)
+    effective_minimum_put_live_score = (
+        min(max(minimum_put_live_score + shock.put_score_buffer, 0.0), 1.0)
+        if minimum_put_live_score is not None
+        else None
+    )
+    effective_max_live_extrinsic_ratio = (
+        min(max_live_extrinsic_ratio, shock.max_extrinsic_ratio)
+        if shock.max_extrinsic_ratio is not None
+        else max_live_extrinsic_ratio
+    )
+    if shock.label != NEUTRAL_MARKET_SHOCK.label:
+        notes.append(
+            "Market-shock overlay active: "
+            f"{shock.label} severity={shock.severity:.2f} stance={shock.stance}."
+        )
+        notes.extend(shock.strategy_notes[:2])
     _annotate_risk(candidates, max_sector_share=max_same_sector_share)
 
     # ── Pre-filter eligible candidates ──
@@ -404,12 +453,18 @@ def select_board(
                 candidate.notes.append(LIVE_PROBATION_REASON)
 
         required_score = (
-            minimum_put_live_score
-            if candidate.option_type == "put" and minimum_put_live_score is not None
-            else minimum_live_score
+            effective_minimum_put_live_score
+            if candidate.option_type == "put" and effective_minimum_put_live_score is not None
+            else effective_minimum_live_score
         )
         score_ok = candidate.forge_score >= required_score
-        extrinsic_ok = candidate.extrinsic_ratio <= max_live_extrinsic_ratio
+        extrinsic_ok = candidate.extrinsic_ratio <= effective_max_live_extrinsic_ratio
+        if shock.label != NEUTRAL_MARKET_SHOCK.label:
+            flags = set(candidate.council_risk_flags)
+            flags.add(f"market_shock:{shock.label}")
+            if candidate.option_type in shock.blocked_sides:
+                flags.add("market_shock_side_block")
+            candidate.council_risk_flags = sorted(flags)
         if score_ok and extrinsic_ok and not symbol_on_probation:
             eligible.append(candidate)
         elif symbol_on_probation:
@@ -566,7 +621,24 @@ def select_board(
     if not live_board:
         notes.append("Council abstained because no contract cleared the live board threshold.")
 
-    if not candidates:
+    market_shock_abstained = bool(shock.global_abstain and candidates)
+    if market_shock_abstained and live_board:
+        shadow_board = sorted(
+            list({row.contract_symbol: row for row in [*live_board, *shadow_board]}.values()),
+            key=lambda row: (
+                float(getattr(row, "learned_rank_score", None) or row.forge_score),
+                row.forge_score,
+            ),
+            reverse=True,
+        )[:shadow_size]
+        live_board = []
+        notes.append("Market-shock overlay forced a global live-board abstain.")
+    elif market_shock_abstained:
+        notes.append("Market-shock overlay confirmed the live-board abstain.")
+
+    if market_shock_abstained:
+        primary_reason = "market_shock_abstain"
+    elif not candidates:
         primary_reason = "no_forge_candidates"
     elif not eligible:
         if len(probation_blocked) == len(candidates):
@@ -596,6 +668,8 @@ def select_board(
         notes.append("Council is operating under a risk-off market regime.")
     elif regime.mode == "risk_on":
         notes.append("Council is operating under a risk-on market regime.")
+    elif regime.mode == "extreme_vol":
+        notes.append("Council is operating under an extreme-volatility market regime.")
     else:
         notes.append("Council is operating under a neutral market regime.")
 
@@ -604,7 +678,7 @@ def select_board(
         "live_count":          len(live_board),
         "shadow_count":        len(shadow_board),
         "regime_mode":         regime.mode,
-        "minimum_live_score":  minimum_live_score,
+        "minimum_live_score":  effective_minimum_live_score,
         "portfolio_variance":  round(portfolio_var, 6) if not np.isnan(portfolio_var) else None,
         "portfolio_sharpe_est": portfolio_sharpe_est if not np.isnan(portfolio_sharpe_est) else None,
         "live_side_counts": dict(Counter(row.option_type for row in live_board)),
@@ -614,12 +688,16 @@ def select_board(
         "no_trade_discipline": {
             "minimum_live_score": minimum_live_score,
             "minimum_put_live_score": minimum_put_live_score,
+            "effective_minimum_live_score": effective_minimum_live_score,
+            "effective_minimum_put_live_score": effective_minimum_put_live_score,
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
+            "effective_max_live_extrinsic_ratio": effective_max_live_extrinsic_ratio,
             "max_same_side_share": max_same_side_share,
             "max_same_sector_share": max_same_sector_share,
             "live_probation_symbols": sorted(LIVE_PROBATION_SYMBOLS),
             "turnover_switch_penalty": turnover_switch_penalty,
         },
+        "market_shock": shock.to_dict(),
         "turnover": turnover_diag,
         "abstain_audit": {
             "primary_reason": primary_reason,
