@@ -1,7 +1,7 @@
 {
   "artifact": "moonshot_prospective_ledger",
   "schema_version": 2,
-  "updated_at_utc": "2026-06-09T23:52:30+00:00",
+  "updated_at_utc": "2026-06-10T17:31:55+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -17,7 +17,7 @@
     "purpose": "Judge every dedicated moonshot pick and near-miss shadow candidate."
   },
   "aggregate": {
-    "runs": 15,
+    "runs": 16,
     "candidate_rows": 43,
     "moonshot_pick": 11,
     "moonshot_shadow": 32,
@@ -11059,10 +11059,61 @@
         "eligible": 0
       },
       "picks": []
+    },
+    {
+      "run_generated_at_utc": "2026-06-10T17:31:52+00:00",
+      "regime": {
+        "mode": "extreme_vol",
+        "bias": -0.6014,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "moonshot_policy": {
+        "name": "nimrod_inspired_moonshot_satellite",
+        "slot_count": 1,
+        "threshold": 0.68,
+        "max_cost_basis": 225.0,
+        "capital_mode": "satellite_shadow_then_canary",
+        "notes": [
+          "Dedicated tail-upside lane; does not replace Council live-board picks.",
+          "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+        ]
+      },
+      "summary": {
+        "candidate_rows": 0,
+        "moonshot_pick": 0,
+        "moonshot_shadow": 0,
+        "eligible": 0
+      },
+      "picks": []
     }
   ],
   "last_mark_summary": {
-    "entries_seen": 15,
+    "entries_seen": 16,
     "picks_seen": 43,
     "marks_written": 0,
     "quotes_missing": 24,
@@ -11071,7 +11122,7 @@
     "picks_pending": 0
   },
   "archived_quote_path_summary": {
-    "entries_seen": 15,
+    "entries_seen": 16,
     "picks_seen": 43,
     "labels_observed": 0,
     "labels_missing": 43,
