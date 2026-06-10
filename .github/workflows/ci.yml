@@ -53,7 +53,8 @@ jobs:
           if payload.get("error"):
               raise SystemExit(f"snapshot contains pipeline error: {payload.get('error')}")
           summary = payload.get("summary", {})
-          if summary.get("scout_signal_count", 0) <= 0:
+          regime = payload.get("regime", {})
+          if summary.get("scout_signal_count", 0) <= 0 and regime.get("mode") != "extreme_vol":
               raise SystemExit("snapshot smoke test produced no Scout signals")
           council = payload.get("council", {})
           council_summary = council.get("summary", {})

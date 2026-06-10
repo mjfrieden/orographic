@@ -273,8 +273,11 @@ def classify_current_market_shock(
         GLOBAL_EVENT_SYMBOL,
         event_frame,
         as_of=lookup,
-        max_age_days=7,
     )
+    if event_snapshot and event_snapshot.as_of:
+        lookup_date = lookup.date() if isinstance(lookup, datetime) else lookup
+        if (lookup_date - event_snapshot.as_of).days > 7:
+            event_snapshot = None
     features = _input_from_event_snapshot(
         cross_asset=cross_asset_snapshot(),
         event_snapshot=event_snapshot,
