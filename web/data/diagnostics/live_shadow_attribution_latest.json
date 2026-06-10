@@ -1,7 +1,7 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-06-10T17:31:52+00:00",
+  "generated_at_utc": "2026-06-10T22:08:44+00:00",
   "trading_day": "2026-06-10",
   "timezone": "America/Chicago",
   "scan_settings": {
@@ -17,7 +17,8 @@
     "moonshot_size": 1,
     "moonshot_threshold": 0.68,
     "moonshot_max_cost_basis": 225.0,
-    "enforce_pre_council_friction_gate": false
+    "enforce_pre_council_friction_gate": false,
+    "market_shock_control_mode": "active"
   },
   "model_modes": {
     "directional_scout": "artifact",
@@ -99,25 +100,25 @@
     "shadow_avg_edge_after_friction_pct": null,
     "live_avg_path_holding_quality_score": null,
     "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 38,
-    "side_aware_no_trade_disagreements": 38,
-    "shadow_side_veto_rejections": 38,
+    "side_aware_directional_disagreements": 24,
+    "side_aware_no_trade_disagreements": 45,
+    "shadow_side_veto_rejections": 45,
     "abstain_primary_reason": "no_forge_candidates"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 37,
-        "put": 63
+        "call": 56,
+        "put": 44
       },
       "final_direction_counts": {
         "call": 0,
         "put": 0
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 38,
-      "side_aware_no_trade_disagreements": 38,
-      "shadow_side_veto_rejections": 38
+      "side_aware_directional_disagreements": 24,
+      "side_aware_no_trade_disagreements": 45,
+      "shadow_side_veto_rejections": 45
     },
     "forge": {
       "waterfall": {
@@ -192,8 +193,11 @@
         }
       },
       "notes": [
+        "Market-shock overlay active: extreme_vol_deleveraging severity=1.00 stance=abstain.",
+        "Stand down from short-dated single-name options until volatility shock cools.",
+        "Collect shadow outcomes for retraining; do not promote fresh live picks.",
         "Council abstained because no contract cleared the live board threshold.",
-        "Council is operating under a neutral market regime."
+        "Council is operating under an extreme-volatility market regime."
       ]
     }
   },

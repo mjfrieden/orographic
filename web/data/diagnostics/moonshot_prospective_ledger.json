@@ -1,7 +1,7 @@
 {
   "artifact": "moonshot_prospective_ledger",
   "schema_version": 2,
-  "updated_at_utc": "2026-06-10T17:31:55+00:00",
+  "updated_at_utc": "2026-06-10T22:08:46+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -17,7 +17,7 @@
     "purpose": "Judge every dedicated moonshot pick and near-miss shadow candidate."
   },
   "aggregate": {
-    "runs": 16,
+    "runs": 17,
     "candidate_rows": 43,
     "moonshot_pick": 11,
     "moonshot_shadow": 32,
@@ -10505,15 +10505,27 @@
                 "close": 0.28,
                 "pnl_pct_from_emission": 0.098
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-06-10T22:08:06+00:00",
+                "mark": 0.52,
+                "mark_source": "mid",
+                "bid": 0.49,
+                "ask": 0.55,
+                "last": 0.52,
+                "close": 0.52,
+                "pnl_pct_from_emission": 1.0392
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.098,
+              "max_favorable_excursion_pct": 1.0392,
               "max_adverse_excursion_pct": 0.098,
-              "first_hit": null
+              "first_hit": {
+                "window": "next_day_close",
+                "rule": "take_profit_40_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -10729,14 +10741,23 @@
                 "close": 1.32,
                 "pnl_pct_from_emission": -0.0381
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-06-10T22:08:06+00:00",
+                "mark": 0.78,
+                "mark_source": "mid",
+                "bid": 0.74,
+                "ask": 0.82,
+                "last": 0.8,
+                "close": 0.8,
+                "pnl_pct_from_emission": -0.4602
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.0381,
-              "max_adverse_excursion_pct": -0.0381,
+              "max_adverse_excursion_pct": -0.4602,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -10954,14 +10975,23 @@
                 "close": 0.31,
                 "pnl_pct_from_emission": 0.1594
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-06-10T22:08:06+00:00",
+                "mark": 0.215,
+                "mark_source": "mid",
+                "bid": 0.2,
+                "ask": 0.23,
+                "last": 0.22,
+                "close": 0.22,
+                "pnl_pct_from_emission": -0.3768
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": 0.1594,
-              "max_adverse_excursion_pct": 0.1594,
+              "max_adverse_excursion_pct": -0.3768,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -11110,10 +11140,62 @@
         "eligible": 0
       },
       "picks": []
+    },
+    {
+      "run_generated_at_utc": "2026-06-10T22:08:44+00:00",
+      "regime": {
+        "mode": "extreme_vol",
+        "bias": -0.6686,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "market_shock_control_mode": "active"
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "moonshot_policy": {
+        "name": "nimrod_inspired_moonshot_satellite",
+        "slot_count": 1,
+        "threshold": 0.68,
+        "max_cost_basis": 225.0,
+        "capital_mode": "satellite_shadow_then_canary",
+        "notes": [
+          "Dedicated tail-upside lane; does not replace Council live-board picks.",
+          "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+        ]
+      },
+      "summary": {
+        "candidate_rows": 0,
+        "moonshot_pick": 0,
+        "moonshot_shadow": 0,
+        "eligible": 0
+      },
+      "picks": []
     }
   ],
   "last_mark_summary": {
-    "entries_seen": 16,
+    "entries_seen": 17,
     "picks_seen": 43,
     "marks_written": 0,
     "quotes_missing": 24,
@@ -11122,7 +11204,7 @@
     "picks_pending": 0
   },
   "archived_quote_path_summary": {
-    "entries_seen": 16,
+    "entries_seen": 17,
     "picks_seen": 43,
     "labels_observed": 0,
     "labels_missing": 43,

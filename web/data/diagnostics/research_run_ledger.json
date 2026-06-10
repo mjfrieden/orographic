@@ -1,11 +1,11 @@
 {
   "artifact": "research_run_ledger",
   "schema_version": 1,
-  "updated_at_utc": "2026-06-10T17:31:52+00:00",
+  "updated_at_utc": "2026-06-10T22:08:44+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 58,
-    "abstain_runs": 52,
+    "runs": 59,
+    "abstain_runs": 53,
     "live_picks_emitted": 6,
     "shadow_picks_emitted": 147,
     "friction_vetoes": 232,
@@ -18,7 +18,7 @@
       },
       {
         "reason": "no_forge_candidates",
-        "count": 8
+        "count": 9
       },
       {
         "reason": "score_and_extrinsic_limit",
@@ -29052,6 +29052,133 @@
         "moonshot_threshold": 0.68,
         "moonshot_max_cost_basis": 225.0,
         "enforce_pre_council_friction_gate": false
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "model_artifacts": {
+        "scout_model": {
+          "present": true,
+          "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+          "required": true
+        },
+        "scout_scaler": {
+          "present": true,
+          "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+          "required": true
+        },
+        "scout_side_model": {
+          "present": true,
+          "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+          "required": true
+        },
+        "payoff_model": {
+          "present": true,
+          "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+          "required": true
+        },
+        "path_model": {
+          "present": false,
+          "sha256": null,
+          "required": false
+        },
+        "scout_model_card": {
+          "present": true,
+          "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+          "required": true
+        },
+        "payoff_model_card": {
+          "present": true,
+          "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+          "required": true
+        },
+        "path_model_card": {
+          "present": false,
+          "sha256": null,
+          "required": false
+        }
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 0,
+        "pre_forge_signal_count": 0,
+        "forge_candidate_count": 0,
+        "live_count": 0,
+        "shadow_count": 0,
+        "abstain_audit": {
+          "primary_reason": "no_forge_candidates",
+          "primary_reason_label": "No Forge candidates reached Council.",
+          "requested_live_size": 3,
+          "candidate_count": 0,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 0,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "symbol_probation": []
+          }
+        },
+        "friction_veto_count": 0,
+        "council_holdout_count": 0,
+        "pre_forge_rejection_count": 0,
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": [],
+      "vetoed_candidates": [],
+      "council_holdouts": [],
+      "pre_forge_rejections": []
+    },
+    {
+      "run_generated_at_utc": "2026-06-10T22:08:44+00:00",
+      "regime": {
+        "mode": "extreme_vol",
+        "bias": -0.6686,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "market_shock_control_mode": "active"
       },
       "model_modes": {
         "directional_scout": "artifact",
