@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+from urllib.parse import parse_qs, urlparse
 import unittest
+from unittest import mock
 
-from engine.orographic.prospective import due_fixed_exit_windows, mark_prospective_ledger
+from engine.orographic.prospective import due_fixed_exit_windows, fetch_tradier_quotes, mark_prospective_ledger
 
 
 class ProspectiveLedgerTests(unittest.TestCase):
@@ -115,6 +118,50 @@ class ProspectiveLedgerTests(unittest.TestCase):
         )
 
         self.assertEqual(stats["quotes_missing"], 1)
+
+    def test_fetch_tradier_quotes_batches_requests(self) -> None:
+        requested_batches: list[list[str]] = []
+
+        class _Response:
+            def __init__(self, payload: dict[str, object]) -> None:
+                self._payload = payload
+
+            def read(self) -> bytes:
+                return json.dumps(self._payload).encode("utf-8")
+
+            def __enter__(self) -> "_Response":
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> bool:
+                return False
+
+        def fake_urlopen(request, timeout: int = 20):
+            symbols = parse_qs(urlparse(request.full_url).query)["symbols"][0].split(",")
+            requested_batches.append(symbols)
+            payload = {
+                "quotes": {
+                    "quote": [
+                        {"symbol": symbol, "bid": 1.0, "ask": 1.2, "last": 1.1, "close": 1.05}
+                        for symbol in symbols
+                    ]
+                }
+            }
+            return _Response(payload)
+
+        env = {"TRADIER_ACCESS_TOKEN": "token", "TRADIER_BASE_URL": "https://api.tradier.com/v1"}
+        symbols = [
+            "AAA260515C00100000",
+            "BBB260515C00100000",
+            "CCC260515C00100000",
+            "DDD260515C00100000",
+            "EEE260515C00100000",
+        ]
+
+        with mock.patch("engine.orographic.prospective.urlopen", side_effect=fake_urlopen):
+            quotes = fetch_tradier_quotes(symbols, env=env, batch_size=2)
+
+        self.assertEqual(requested_batches, [symbols[:2], symbols[2:4], symbols[4:]])
+        self.assertEqual(sorted(quotes.keys()), sorted(symbols))
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ from .positions import DEFAULT_LIVE_BASE_URL, DEFAULT_SANDBOX_BASE_URL, _as_numb
 
 MARKET_TZ = ZoneInfo("America/Chicago")
 MARK_CLOSE_BUFFER = time(15, 5)
+DEFAULT_TRADIER_QUOTE_BATCH_SIZE = 75
 
 
 def _parse_dt(raw: object) -> datetime | None:
@@ -41,6 +42,15 @@ def _next_weekday(local_day: datetime) -> datetime:
 
 def _friday_of_week(local_day: datetime) -> datetime:
     return local_day + timedelta(days=(4 - local_day.weekday()) % 7)
+
+
+def _quote_batch_size(source: dict[str, str]) -> int:
+    raw = source.get("TRADIER_QUOTE_BATCH_SIZE") or source.get("OROGRAPHIC_TRADIER_QUOTE_BATCH_SIZE")
+    try:
+        parsed = int(str(raw).strip())
+    except (TypeError, ValueError):
+        parsed = DEFAULT_TRADIER_QUOTE_BATCH_SIZE
+    return max(parsed, 1)
 
 
 def due_fixed_exit_windows(run_generated_at_utc: str, now_utc: datetime | None = None) -> dict[str, bool]:
@@ -218,7 +228,12 @@ def mark_prospective_ledger(
     return updated, stats
 
 
-def fetch_tradier_quotes(symbols: list[str], *, env: dict[str, str] | None = None) -> dict[str, dict[str, Any]]:
+def fetch_tradier_quotes(
+    symbols: list[str],
+    *,
+    env: dict[str, str] | None = None,
+    batch_size: int | None = None,
+) -> dict[str, dict[str, Any]]:
     source = env or os.environ
     token = str(source.get("TRADIER_ACCESS_TOKEN") or source.get("OROGRAPHIC_TRADIER_ACCESS_TOKEN") or "").strip()
     if not token:
@@ -226,14 +241,19 @@ def fetch_tradier_quotes(symbols: list[str], *, env: dict[str, str] | None = Non
     requested_base_url = str(source.get("TRADIER_BASE_URL") or source.get("OROGRAPHIC_TRADIER_BASE_URL") or "").strip()
     use_sandbox = _env_truthy(source.get("TRADIER_SANDBOX_MODE")) or "sandbox.tradier.com" in requested_base_url
     base_url = (requested_base_url or (DEFAULT_SANDBOX_BASE_URL if use_sandbox else DEFAULT_LIVE_BASE_URL)).rstrip("/")
-    cleaned = [symbol.strip().upper() for symbol in symbols if str(symbol).strip()]
+    cleaned = list(dict.fromkeys(symbol.strip().upper() for symbol in symbols if str(symbol).strip()))
     if not cleaned:
         return {}
-    url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(cleaned), 'greeks': 'false'})}"
-    request = Request(url, headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
-    with urlopen(request, timeout=20) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    return normalize_quotes(payload)
+    effective_batch_size = max(batch_size or _quote_batch_size(source), 1)
+    quotes: dict[str, dict[str, Any]] = {}
+    for start in range(0, len(cleaned), effective_batch_size):
+        batch = cleaned[start : start + effective_batch_size]
+        url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(batch), 'greeks': 'false'})}"
+        request = Request(url, headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
+        with urlopen(request, timeout=20) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        quotes.update(normalize_quotes(payload))
+    return quotes
 
 
 def mark_prospective_ledger_file(path: str | Path, *, max_symbols: int = 500) -> tuple[Path, dict[str, int]]:
