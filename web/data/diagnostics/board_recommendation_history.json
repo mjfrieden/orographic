@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-06-23T17:27:44+00:00",
+  "updated_at_utc": "2026-06-23T19:16:39+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 116,
+    "runs": 117,
     "live_picks_emitted": 29,
-    "shadow_picks_emitted": 241,
-    "abstain_runs": 93,
+    "shadow_picks_emitted": 244,
+    "abstain_runs": 94,
     "abstain_primary_reasons": [
       {
         "reason": "mixed_core_filters",
@@ -27,7 +27,7 @@
       },
       {
         "reason": "below_live_score",
-        "count": 5
+        "count": 6
       },
       {
         "reason": "score_and_extrinsic_limit",
@@ -22040,6 +22040,308 @@
             "Payoff model ranker active",
             "Turnover penalty applied (0.02) because post-friction edge is thin",
             "Path model shadow: hold quality 0.23, take-profit 0.22, decay 0.57"
+          ]
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-06-23T19:16:39+00:00",
+      "regime": {
+        "mode": "risk_off",
+        "bias": -0.3776,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "market_shock_control_mode": "active"
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 54,
+        "pre_forge_signal_count": 12,
+        "forge_candidate_count": 11,
+        "live_count": 0,
+        "shadow_count": 3,
+        "abstain_audit": {
+          "primary_reason": "below_live_score",
+          "primary_reason_label": "All candidates fell below the live-score gate.",
+          "requested_live_size": 3,
+          "candidate_count": 11,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 2,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 9,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [
+              "VZ",
+              "WMT"
+            ],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              "NVDA",
+              "PYPL",
+              "BAC"
+            ],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [
+              {
+                "symbol": "VZ",
+                "contract_symbol": "VZ260702P00047000",
+                "option_type": "put",
+                "expiry": "2026-07-02",
+                "strike": 47.0,
+                "forge_score": 0.7256,
+                "learned_rank_score": 0.7256,
+                "expected_edge_after_friction_pct": 0.0093,
+                "friction_buffer_pct": 0.2213,
+                "extrinsic_ratio": 0.694,
+                "contract_cost": 85.0,
+                "spread_pct": 0.0859,
+                "delta": -0.5438,
+                "iv_rank": 0.3179,
+                "council_risk_flags": [
+                  "market_shock:orderly_risk_off"
+                ]
+              },
+              {
+                "symbol": "WMT",
+                "contract_symbol": "WMT260702P00120000",
+                "option_type": "put",
+                "expiry": "2026-07-02",
+                "strike": 120.0,
+                "forge_score": 0.5008,
+                "learned_rank_score": 0.5008,
+                "expected_edge_after_friction_pct": -0.1568,
+                "friction_buffer_pct": 0.1877,
+                "extrinsic_ratio": 0.6432,
+                "contract_cost": 213.0,
+                "spread_pct": 0.068,
+                "delta": -0.5566,
+                "iv_rank": 0.4746,
+                "council_risk_flags": [
+                  "market_shock:orderly_risk_off"
+                ]
+              }
+            ],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [
+              {
+                "symbol": "NVDA",
+                "contract_symbol": "NVDA260701P00195000",
+                "option_type": "put",
+                "expiry": "2026-07-01",
+                "strike": 195.0,
+                "forge_score": 0.8385,
+                "learned_rank_score": 0.8385,
+                "expected_edge_after_friction_pct": 0.3651,
+                "friction_buffer_pct": 0.3245,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 215.0,
+                "spread_pct": 0.0283,
+                "delta": -0.2739,
+                "iv_rank": 0.5597,
+                "council_risk_flags": [
+                  "high_extrinsic",
+                  "market_shock:orderly_risk_off"
+                ]
+              },
+              {
+                "symbol": "PYPL",
+                "contract_symbol": "PYPL260702P00041000",
+                "option_type": "put",
+                "expiry": "2026-07-02",
+                "strike": 41.0,
+                "forge_score": 0.703,
+                "learned_rank_score": 0.703,
+                "expected_edge_after_friction_pct": 0.224,
+                "friction_buffer_pct": 0.34,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 57.0,
+                "spread_pct": 0.0541,
+                "delta": -0.3471,
+                "iv_rank": 0.2489,
+                "council_risk_flags": [
+                  "high_extrinsic",
+                  "market_shock:orderly_risk_off"
+                ]
+              },
+              {
+                "symbol": "BAC",
+                "contract_symbol": "BAC260702P00057000",
+                "option_type": "put",
+                "expiry": "2026-07-02",
+                "strike": 57.0,
+                "forge_score": 0.6216,
+                "learned_rank_score": 0.6216,
+                "expected_edge_after_friction_pct": 0.351,
+                "friction_buffer_pct": 0.3439,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 51.0,
+                "spread_pct": 0.0606,
+                "delta": -0.3275,
+                "iv_rank": 0.4883,
+                "council_risk_flags": [
+                  "high_extrinsic",
+                  "market_shock:orderly_risk_off"
+                ]
+              },
+              {
+                "symbol": "SCHW",
+                "contract_symbol": "SCHW260702P00091000",
+                "option_type": "put",
+                "expiry": "2026-07-02",
+                "strike": 91.0,
+                "forge_score": 0.5861,
+                "learned_rank_score": 0.5861,
+                "expected_edge_after_friction_pct": -0.4322,
+                "friction_buffer_pct": 0.3707,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 80.0,
+                "spread_pct": 0.1053,
+                "delta": -0.2889,
+                "iv_rank": 0.5279,
+                "council_risk_flags": [
+                  "high_extrinsic",
+                  "market_shock:orderly_risk_off"
+                ]
+              },
+              {
+                "symbol": "CMG",
+                "contract_symbol": "CMG260702P00030500",
+                "option_type": "put",
+                "expiry": "2026-07-02",
+                "strike": 30.5,
+                "forge_score": 0.5746,
+                "learned_rank_score": 0.5746,
+                "expected_edge_after_friction_pct": -0.386,
+                "friction_buffer_pct": 0.4016,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 55.0,
+                "spread_pct": 0.1569,
+                "delta": -0.3586,
+                "iv_rank": 0.3808,
+                "council_risk_flags": [
+                  "high_extrinsic",
+                  "market_shock:orderly_risk_off"
+                ]
+              }
+            ],
+            "symbol_probation": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 3
+        }
+      },
+      "live_board": [],
+      "shadow_board": [
+        {
+          "symbol": "NVDA",
+          "contract_symbol": "NVDA260701P00195000",
+          "option_type": "put",
+          "expiry": "2026-07-01",
+          "strike": 195.0,
+          "forge_score": 0.8385,
+          "payoff_edge_score": 0.9153,
+          "expected_edge_after_friction_pct": 0.3651,
+          "path_holding_quality_score": 0.4426,
+          "path_early_profit_take_prob": 0.2917,
+          "path_decay_risk": 0.5185,
+          "path_model_mode": "shadow",
+          "contract_cost": 215.0,
+          "council_risk_flags": [
+            "high_extrinsic",
+            "market_shock:orderly_risk_off"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.44, take-profit 0.29, decay 0.52"
+          ]
+        },
+        {
+          "symbol": "VZ",
+          "contract_symbol": "VZ260702P00047000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 47.0,
+          "forge_score": 0.7256,
+          "payoff_edge_score": 0.8594,
+          "expected_edge_after_friction_pct": 0.0093,
+          "path_holding_quality_score": 0.2333,
+          "path_early_profit_take_prob": 0.2197,
+          "path_decay_risk": 0.4889,
+          "path_model_mode": "shadow",
+          "contract_cost": 85.0,
+          "council_risk_flags": [
+            "market_shock:orderly_risk_off"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "time-value burden is acceptable",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.22, decay 0.49"
+          ]
+        },
+        {
+          "symbol": "PYPL",
+          "contract_symbol": "PYPL260702P00041000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 41.0,
+          "forge_score": 0.703,
+          "payoff_edge_score": 0.55,
+          "expected_edge_after_friction_pct": 0.224,
+          "path_holding_quality_score": 0.3389,
+          "path_early_profit_take_prob": 0.2583,
+          "path_decay_risk": 0.5565,
+          "path_model_mode": "shadow",
+          "contract_cost": 57.0,
+          "council_risk_flags": [
+            "high_extrinsic",
+            "market_shock:orderly_risk_off"
+          ],
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.34, take-profit 0.26, decay 0.56"
           ]
         }
       ]
