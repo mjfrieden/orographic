@@ -1,7 +1,7 @@
 {
   "artifact": "prospective_pick_ledger",
   "schema_version": 2,
-  "updated_at_utc": "2026-06-24T18:20:36+00:00",
+  "updated_at_utc": "2026-06-24T18:59:42+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -17,16 +17,16 @@
     "purpose": "Judge every emitted contract recommendation, whether traded or not."
   },
   "aggregate": {
-    "runs": 71,
-    "pick_rows": 661,
+    "runs": 72,
+    "pick_rows": 673,
     "live": 6,
-    "shadow": 171,
+    "shadow": 174,
     "council_holdout": 156,
-    "friction_veto": 328
+    "friction_veto": 337
   },
   "outcome_summary": {
-    "picks": 661,
-    "pending": 8,
+    "picks": 673,
+    "pending": 20,
     "partial": 63,
     "complete": 590,
     "with_any_mark": 653,
@@ -119548,31 +119548,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.02,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": -0.9853,
-              "max_adverse_excursion_pct": -0.9853,
-              "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.9853
-              },
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 0.015,
-                  "mark_source": "mid",
-                  "bid": 0.01,
-                  "ask": 0.02,
-                  "last": 0.02,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=NFLX/chain.parquet",
-                  "pnl_pct_from_emission": -0.9853
-                }
-              ]
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": []
             }
           }
         },
@@ -119788,26 +119772,26 @@
               "status": "observed",
               "entry_mark": 1.17,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.7222,
-              "max_adverse_excursion_pct": -0.7222,
+              "max_favorable_excursion_pct": -0.7521,
+              "max_adverse_excursion_pct": -0.7521,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.7222
+                "pnl_pct_from_emission": -0.7521
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.325,
+                  "mark": 0.29,
                   "mark_source": "mid",
-                  "bid": 0.3,
-                  "ask": 0.35,
-                  "last": 0.34,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": -0.7222
+                  "bid": 0.27,
+                  "ask": 0.31,
+                  "last": 0.29,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": -0.7521
                 }
               ]
             }
@@ -120447,15 +120431,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.255,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 1.4118,
+              "max_adverse_excursion_pct": 1.4118,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 1.4118
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.615,
+                  "mark_source": "mid",
+                  "bid": 0.57,
+                  "ask": 0.66,
+                  "last": 0.67,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=T/chain.parquet",
+                  "pnl_pct_from_emission": 1.4118
+                }
+              ]
             }
           }
         },
@@ -120878,15 +120878,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.93,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9785,
+              "max_adverse_excursion_pct": -0.9785,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9785
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.02,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.03,
+                  "last": 0.02,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=VZ/chain.parquet",
+                  "pnl_pct_from_emission": -0.9785
+                }
+              ]
             }
           }
         },
@@ -121313,26 +121329,26 @@
               "status": "observed",
               "entry_mark": 1.23,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.5813,
-              "max_adverse_excursion_pct": -0.5813,
+              "max_favorable_excursion_pct": -0.6626,
+              "max_adverse_excursion_pct": -0.6626,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.5813
+                "pnl_pct_from_emission": -0.6626
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.515,
+                  "mark": 0.415,
                   "mark_source": "mid",
-                  "bid": 0.42,
-                  "ask": 0.61,
-                  "last": 0.52,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=PEP/chain.parquet",
-                  "pnl_pct_from_emission": -0.5813
+                  "bid": 0.35,
+                  "ask": 0.48,
+                  "last": 0.5,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PEP/chain.parquet",
+                  "pnl_pct_from_emission": -0.6626
                 }
               ]
             }
@@ -121548,15 +121564,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.03,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.8981,
+              "max_adverse_excursion_pct": -0.8981,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.8981
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.105,
+                  "mark_source": "mid",
+                  "bid": 0.06,
+                  "ask": 0.15,
+                  "last": 0.08,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=DIS/chain.parquet",
+                  "pnl_pct_from_emission": -0.8981
+                }
+              ]
             }
           }
         },
@@ -121771,15 +121803,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.33,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.0789,
+              "max_adverse_excursion_pct": -0.0789,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.225,
+                  "mark_source": "mid",
+                  "bid": 1.14,
+                  "ask": 1.31,
+                  "last": 1.15,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=KO/chain.parquet",
+                  "pnl_pct_from_emission": -0.0789
+                }
+              ]
             }
           }
         }
@@ -122037,31 +122081,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 0.925,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": -0.9838,
-              "max_adverse_excursion_pct": -0.9838,
-              "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.9838
-              },
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 0.015,
-                  "mark_source": "mid",
-                  "bid": 0.01,
-                  "ask": 0.02,
-                  "last": 0.02,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=NFLX/chain.parquet",
-                  "pnl_pct_from_emission": -0.9838
-                }
-              ]
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": []
             }
           }
         },
@@ -122910,15 +122938,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.335,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9888,
+              "max_adverse_excursion_pct": -0.9888,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9888
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.015,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.02,
+                  "last": 0.02,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NKE/chain.parquet",
+                  "pnl_pct_from_emission": -0.9888
+                }
+              ]
             }
           }
         },
@@ -123131,22 +123175,22 @@
               "status": "observed",
               "entry_mark": 1.83,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.1749,
-              "max_adverse_excursion_pct": -0.1749,
+              "max_favorable_excursion_pct": -0.2678,
+              "max_adverse_excursion_pct": -0.2678,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.51,
+                  "mark": 1.34,
                   "mark_source": "mid",
-                  "bid": 1.46,
-                  "ask": 1.56,
-                  "last": 1.55,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": -0.1749
+                  "bid": 1.29,
+                  "ask": 1.39,
+                  "last": 1.42,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": -0.2678
                 }
               ]
             }
@@ -123362,15 +123406,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.275,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.7686,
+              "max_adverse_excursion_pct": -0.7686,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.7686
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.295,
+                  "mark_source": "mid",
+                  "bid": 0.26,
+                  "ask": 0.33,
+                  "last": 0.26,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=XLP/chain.parquet",
+                  "pnl_pct_from_emission": -0.7686
+                }
+              ]
             }
           }
         },
@@ -123583,15 +123643,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.88,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.2045,
+              "max_adverse_excursion_pct": -0.2045,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.7,
+                  "mark_source": "mid",
+                  "bid": 0.6,
+                  "ask": 0.8,
+                  "last": 0.68,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=DIS/chain.parquet",
+                  "pnl_pct_from_emission": -0.2045
+                }
+              ]
             }
           }
         },
@@ -123804,15 +123876,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.585,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9716,
+              "max_adverse_excursion_pct": -0.9716,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9716
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.045,
+                  "mark_source": "mid",
+                  "bid": 0.04,
+                  "ask": 0.05,
+                  "last": 0.05,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=VZ/chain.parquet",
+                  "pnl_pct_from_emission": -0.9716
+                }
+              ]
             }
           }
         },
@@ -124494,31 +124582,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.16,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": -0.9871,
-              "max_adverse_excursion_pct": -0.9871,
-              "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.9871
-              },
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 0.015,
-                  "mark_source": "mid",
-                  "bid": 0.01,
-                  "ask": 0.02,
-                  "last": 0.02,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=NFLX/chain.parquet",
-                  "pnl_pct_from_emission": -0.9871
-                }
-              ]
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": []
             }
           }
         },
@@ -124739,7 +124811,7 @@
               "max_favorable_excursion_pct": -0.9234,
               "max_adverse_excursion_pct": -0.9234,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "stop_50_pct",
                 "pnl_pct_from_emission": -0.9234
               },
@@ -124747,14 +124819,14 @@
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
                   "mark": 0.085,
                   "mark_source": "mid",
                   "bid": 0.08,
                   "ask": 0.09,
-                  "last": 0.07,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
+                  "last": 0.09,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
                   "pnl_pct_from_emission": -0.9234
                 }
               ]
@@ -124971,15 +125043,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.81,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.1358,
+              "max_adverse_excursion_pct": -0.1358,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.7,
+                  "mark_source": "mid",
+                  "bid": 0.6,
+                  "ask": 0.8,
+                  "last": 0.68,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=DIS/chain.parquet",
+                  "pnl_pct_from_emission": -0.1358
+                }
+              ]
             }
           }
         },
@@ -125194,15 +125278,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.95,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9895,
+              "max_adverse_excursion_pct": -0.9895,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9895
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.01,
+                  "mark_source": "last",
+                  "bid": 0.0,
+                  "ask": 0.06,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NKE/chain.parquet",
+                  "pnl_pct_from_emission": -0.9895
+                }
+              ]
             }
           }
         },
@@ -125999,15 +126099,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.48,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9792,
+              "max_adverse_excursion_pct": -0.9792,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9792
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.01,
+                  "mark_source": "last",
+                  "bid": 0.0,
+                  "ask": 0.01,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=VZ/chain.parquet",
+                  "pnl_pct_from_emission": -0.9792
+                }
+              ]
             }
           }
         },
@@ -126223,15 +126339,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.235,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9574,
+              "max_adverse_excursion_pct": -0.9574,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9574
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.01,
+                  "mark_source": "last",
+                  "bid": 0.0,
+                  "ask": 0.01,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=T/chain.parquet",
+                  "pnl_pct_from_emission": -0.9574
+                }
+              ]
             }
           }
         },
@@ -126443,15 +126575,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.06,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.25,
+              "max_adverse_excursion_pct": 0.25,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.25
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.325,
+                  "mark_source": "mid",
+                  "bid": 1.28,
+                  "ask": 1.37,
+                  "last": 1.28,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PYPL/chain.parquet",
+                  "pnl_pct_from_emission": 0.25
+                }
+              ]
             }
           }
         },
@@ -127177,22 +127325,22 @@
               "status": "observed",
               "entry_mark": 0.535,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0374,
-              "max_adverse_excursion_pct": 0.0374,
+              "max_favorable_excursion_pct": -0.0748,
+              "max_adverse_excursion_pct": -0.0748,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.555,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.55,
-                  "ask": 0.56,
-                  "last": 0.54,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.0374
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.51,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": -0.0748
                 }
               ]
             }
@@ -127388,15 +127536,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.845,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.7692,
+              "max_adverse_excursion_pct": 0.7692,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.7692
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.495,
+                  "mark_source": "mid",
+                  "bid": 1.45,
+                  "ask": 1.54,
+                  "last": 1.55,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=VZ/chain.parquet",
+                  "pnl_pct_from_emission": 0.7692
+                }
+              ]
             }
           }
         },
@@ -127591,15 +127755,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.47,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.2979,
+              "max_adverse_excursion_pct": -0.2979,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.33,
+                  "mark_source": "mid",
+                  "bid": 0.31,
+                  "ask": 0.35,
+                  "last": 0.38,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=CMG/chain.parquet",
+                  "pnl_pct_from_emission": -0.2979
+                }
+              ]
             }
           }
         },
@@ -127797,22 +127973,22 @@
               "status": "observed",
               "entry_mark": 0.735,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.0816,
-              "max_adverse_excursion_pct": -0.0816,
+              "max_favorable_excursion_pct": -0.1633,
+              "max_adverse_excursion_pct": -0.1633,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.675,
+                  "mark": 0.615,
                   "mark_source": "mid",
-                  "bid": 0.63,
-                  "ask": 0.72,
-                  "last": 0.64,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WFC/chain.parquet",
-                  "pnl_pct_from_emission": -0.0816
+                  "bid": 0.58,
+                  "ask": 0.65,
+                  "last": 0.65,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WFC/chain.parquet",
+                  "pnl_pct_from_emission": -0.1633
                 }
               ]
             }
@@ -128009,15 +128185,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.885,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 2.7262,
+              "max_adverse_excursion_pct": 2.7262,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 2.7262
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 10.75,
+                  "mark_source": "mid",
+                  "bid": 10.25,
+                  "ask": 11.25,
+                  "last": 9.65,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=GLD/chain.parquet",
+                  "pnl_pct_from_emission": 2.7262
+                }
+              ]
             }
           }
         },
@@ -128215,22 +128407,22 @@
               "status": "observed",
               "entry_mark": 1.18,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0678,
-              "max_adverse_excursion_pct": 0.0678,
+              "max_favorable_excursion_pct": -0.0169,
+              "max_adverse_excursion_pct": -0.0169,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.26,
+                  "mark": 1.16,
                   "mark_source": "mid",
-                  "bid": 1.2,
-                  "ask": 1.32,
-                  "last": 1.27,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": 0.0678
+                  "bid": 1.11,
+                  "ask": 1.21,
+                  "last": 1.16,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": -0.0169
                 }
               ]
             }
@@ -128633,26 +128825,26 @@
               "status": "observed",
               "entry_mark": 1.31,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.5115,
-              "max_adverse_excursion_pct": -0.5115,
+              "max_favorable_excursion_pct": -0.5992,
+              "max_adverse_excursion_pct": -0.5992,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.5115
+                "pnl_pct_from_emission": -0.5992
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.64,
+                  "mark": 0.525,
                   "mark_source": "mid",
-                  "bid": 0.56,
-                  "ask": 0.72,
+                  "bid": 0.48,
+                  "ask": 0.57,
                   "last": 0.59,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=SBUX/chain.parquet",
-                  "pnl_pct_from_emission": -0.5115
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SBUX/chain.parquet",
+                  "pnl_pct_from_emission": -0.5992
                 }
               ]
             }
@@ -128848,15 +129040,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.57,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.3694,
+              "max_adverse_excursion_pct": -0.3694,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.99,
+                  "mark_source": "mid",
+                  "bid": 0.96,
+                  "ask": 1.02,
+                  "last": 1.13,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PYPL/chain.parquet",
+                  "pnl_pct_from_emission": -0.3694
+                }
+              ]
             }
           }
         },
@@ -129055,22 +129259,22 @@
               "status": "observed",
               "entry_mark": 1.69,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.2663,
-              "max_adverse_excursion_pct": -0.2663,
+              "max_favorable_excursion_pct": -0.3609,
+              "max_adverse_excursion_pct": -0.3609,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.24,
+                  "mark": 1.08,
                   "mark_source": "mid",
-                  "bid": 1.13,
-                  "ask": 1.35,
-                  "last": 0.98,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=PEP/chain.parquet",
-                  "pnl_pct_from_emission": -0.2663
+                  "bid": 0.95,
+                  "ask": 1.21,
+                  "last": 1.16,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PEP/chain.parquet",
+                  "pnl_pct_from_emission": -0.3609
                 }
               ]
             }
@@ -129309,15 +129513,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.12,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.1533,
+              "max_adverse_excursion_pct": 0.1533,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 2.445,
+                  "mark_source": "mid",
+                  "bid": 2.41,
+                  "ask": 2.48,
+                  "last": 2.42,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NVDA/chain.parquet",
+                  "pnl_pct_from_emission": 0.1533
+                }
+              ]
             }
           }
         },
@@ -129511,15 +129727,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.815,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.8344,
+              "max_adverse_excursion_pct": 0.8344,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.8344
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.495,
+                  "mark_source": "mid",
+                  "bid": 1.45,
+                  "ask": 1.54,
+                  "last": 1.55,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=VZ/chain.parquet",
+                  "pnl_pct_from_emission": 0.8344
+                }
+              ]
             }
           }
         },
@@ -129713,15 +129945,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.555,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.5495,
+              "max_adverse_excursion_pct": -0.5495,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.5495
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.25,
+                  "mark_source": "mid",
+                  "bid": 0.23,
+                  "ask": 0.27,
+                  "last": 0.28,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PYPL/chain.parquet",
+                  "pnl_pct_from_emission": -0.5495
+                }
+              ]
             }
           }
         },
@@ -129918,22 +130166,22 @@
               "status": "observed",
               "entry_mark": 0.495,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.1212,
-              "max_adverse_excursion_pct": 0.1212,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.555,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.55,
-                  "ask": 0.56,
-                  "last": 0.54,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.1212
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.51,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
                 }
               ]
             }
@@ -130133,26 +130381,26 @@
               "status": "observed",
               "entry_mark": 0.76,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.5658,
-              "max_adverse_excursion_pct": 0.5658,
+              "max_favorable_excursion_pct": 0.5329,
+              "max_adverse_excursion_pct": 0.5329,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.5658
+                "pnl_pct_from_emission": 0.5329
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.19,
+                  "mark": 1.165,
                   "mark_source": "mid",
-                  "bid": 1.13,
-                  "ask": 1.25,
+                  "bid": 1.09,
+                  "ask": 1.24,
                   "last": 1.33,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=SCHW/chain.parquet",
-                  "pnl_pct_from_emission": 0.5658
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SCHW/chain.parquet",
+                  "pnl_pct_from_emission": 0.5329
                 }
               ]
             }
@@ -130349,15 +130597,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.51,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.3529,
+              "max_adverse_excursion_pct": -0.3529,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.33,
+                  "mark_source": "mid",
+                  "bid": 0.31,
+                  "ask": 0.35,
+                  "last": 0.38,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=CMG/chain.parquet",
+                  "pnl_pct_from_emission": -0.3529
+                }
+              ]
             }
           }
         },
@@ -130554,22 +130814,22 @@
               "status": "observed",
               "entry_mark": 2.06,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0583,
-              "max_adverse_excursion_pct": 0.0583,
+              "max_favorable_excursion_pct": -0.0316,
+              "max_adverse_excursion_pct": -0.0316,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 2.18,
+                  "mark": 1.995,
                   "mark_source": "mid",
-                  "bid": 2.13,
-                  "ask": 2.23,
-                  "last": 2.2,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": 0.0583
+                  "bid": 1.92,
+                  "ask": 2.07,
+                  "last": 2.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": -0.0316
                 }
               ]
             }
@@ -130769,22 +131029,22 @@
               "status": "observed",
               "entry_mark": 1.005,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.005,
-              "max_adverse_excursion_pct": -0.005,
+              "max_favorable_excursion_pct": -0.0995,
+              "max_adverse_excursion_pct": -0.0995,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.0,
+                  "mark": 0.905,
                   "mark_source": "mid",
-                  "bid": 0.95,
-                  "ask": 1.05,
-                  "last": 1.01,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WFC/chain.parquet",
-                  "pnl_pct_from_emission": -0.005
+                  "bid": 0.86,
+                  "ask": 0.95,
+                  "last": 0.94,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WFC/chain.parquet",
+                  "pnl_pct_from_emission": -0.0995
                 }
               ]
             }
@@ -130981,15 +131241,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.185,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 2.2278,
+              "max_adverse_excursion_pct": 2.2278,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 2.2278
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 3.825,
+                  "mark_source": "mid",
+                  "bid": 3.7,
+                  "ask": 3.95,
+                  "last": 4.04,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SLV/chain.parquet",
+                  "pnl_pct_from_emission": 2.2278
+                }
+              ]
             }
           }
         },
@@ -131188,22 +131464,22 @@
               "status": "observed",
               "entry_mark": 1.355,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.0849,
-              "max_adverse_excursion_pct": -0.0849,
+              "max_favorable_excursion_pct": -0.203,
+              "max_adverse_excursion_pct": -0.203,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.24,
+                  "mark": 1.08,
                   "mark_source": "mid",
-                  "bid": 1.13,
-                  "ask": 1.35,
-                  "last": 0.98,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=PEP/chain.parquet",
-                  "pnl_pct_from_emission": -0.0849
+                  "bid": 0.95,
+                  "ask": 1.21,
+                  "last": 1.16,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PEP/chain.parquet",
+                  "pnl_pct_from_emission": -0.203
                 }
               ]
             }
@@ -131403,26 +131679,26 @@
               "status": "observed",
               "entry_mark": 1.43,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.5524,
-              "max_adverse_excursion_pct": -0.5524,
+              "max_favorable_excursion_pct": -0.6329,
+              "max_adverse_excursion_pct": -0.6329,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.5524
+                "pnl_pct_from_emission": -0.6329
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.64,
+                  "mark": 0.525,
                   "mark_source": "mid",
-                  "bid": 0.56,
-                  "ask": 0.72,
+                  "bid": 0.48,
+                  "ask": 0.57,
                   "last": 0.59,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=SBUX/chain.parquet",
-                  "pnl_pct_from_emission": -0.5524
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SBUX/chain.parquet",
+                  "pnl_pct_from_emission": -0.6329
                 }
               ]
             }
@@ -131653,15 +131929,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.525,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.3714,
+              "max_adverse_excursion_pct": -0.3714,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.33,
+                  "mark_source": "mid",
+                  "bid": 0.31,
+                  "ask": 0.35,
+                  "last": 0.38,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=CMG/chain.parquet",
+                  "pnl_pct_from_emission": -0.3714
+                }
+              ]
             }
           }
         },
@@ -131846,15 +132134,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.375,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0295,
+              "max_adverse_excursion_pct": 0.0295,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 2.445,
+                  "mark_source": "mid",
+                  "bid": 2.41,
+                  "ask": 2.48,
+                  "last": 2.42,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NVDA/chain.parquet",
+                  "pnl_pct_from_emission": 0.0295
+                }
+              ]
             }
           }
         },
@@ -132042,22 +132342,22 @@
               "status": "observed",
               "entry_mark": 0.485,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.1443,
-              "max_adverse_excursion_pct": 0.1443,
+              "max_favorable_excursion_pct": 0.0206,
+              "max_adverse_excursion_pct": 0.0206,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.555,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.55,
-                  "ask": 0.56,
-                  "last": 0.54,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.1443
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.51,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": 0.0206
                 }
               ]
             }
@@ -132248,15 +132548,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.53,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.5283,
+              "max_adverse_excursion_pct": -0.5283,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.5283
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.25,
+                  "mark_source": "mid",
+                  "bid": 0.23,
+                  "ask": 0.27,
+                  "last": 0.28,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PYPL/chain.parquet",
+                  "pnl_pct_from_emission": -0.5283
+                }
+              ]
             }
           }
         },
@@ -132445,22 +132761,22 @@
               "status": "observed",
               "entry_mark": 0.94,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0638,
-              "max_adverse_excursion_pct": 0.0638,
+              "max_favorable_excursion_pct": -0.0372,
+              "max_adverse_excursion_pct": -0.0372,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.0,
+                  "mark": 0.905,
                   "mark_source": "mid",
-                  "bid": 0.95,
-                  "ask": 1.05,
-                  "last": 1.01,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WFC/chain.parquet",
-                  "pnl_pct_from_emission": 0.0638
+                  "bid": 0.86,
+                  "ask": 0.95,
+                  "last": 0.94,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WFC/chain.parquet",
+                  "pnl_pct_from_emission": -0.0372
                 }
               ]
             }
@@ -132651,22 +132967,22 @@
               "status": "observed",
               "entry_mark": 1.685,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0059,
-              "max_adverse_excursion_pct": 0.0059,
+              "max_favorable_excursion_pct": -0.095,
+              "max_adverse_excursion_pct": -0.095,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.695,
+                  "mark": 1.525,
                   "mark_source": "mid",
-                  "bid": 1.62,
-                  "ask": 1.77,
-                  "last": 1.67,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": 0.0059
+                  "bid": 1.46,
+                  "ask": 1.59,
+                  "last": 1.55,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": -0.095
                 }
               ]
             }
@@ -132855,15 +133171,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.595,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 1.9467,
+              "max_adverse_excursion_pct": 1.9467,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 1.9467
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 4.7,
+                  "mark_source": "mid",
+                  "bid": 4.55,
+                  "ask": 4.85,
+                  "last": 5.5,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SLV/chain.parquet",
+                  "pnl_pct_from_emission": 1.9467
+                }
+              ]
             }
           }
         },
@@ -133049,31 +133381,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.43,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.2797,
-              "max_adverse_excursion_pct": 0.2797,
-              "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.2797
-              },
-              "take_profit_25_pct_before_stop_50_pct": true,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 1.83,
-                  "mark_source": "mid",
-                  "bid": 1.72,
-                  "ask": 1.94,
-                  "last": 1.9,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=C/chain.parquet",
-                  "pnl_pct_from_emission": 0.2797
-                }
-              ]
+              "marks": []
             }
           }
         },
@@ -133260,15 +133576,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.88,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.1011,
+              "max_adverse_excursion_pct": 0.1011,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 2.07,
+                  "mark_source": "mid",
+                  "bid": 2.03,
+                  "ask": 2.11,
+                  "last": 2.02,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NKE/chain.parquet",
+                  "pnl_pct_from_emission": 0.1011
+                }
+              ]
             }
           }
         },
@@ -133654,26 +133982,26 @@
               "status": "observed",
               "entry_mark": 1.33,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.5188,
-              "max_adverse_excursion_pct": -0.5188,
+              "max_favorable_excursion_pct": -0.6053,
+              "max_adverse_excursion_pct": -0.6053,
               "first_hit": {
-                "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.5188
+                "pnl_pct_from_emission": -0.6053
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.64,
+                  "mark": 0.525,
                   "mark_source": "mid",
-                  "bid": 0.56,
-                  "ask": 0.72,
+                  "bid": 0.48,
+                  "ask": 0.57,
                   "last": 0.59,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=SBUX/chain.parquet",
-                  "pnl_pct_from_emission": -0.5188
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SBUX/chain.parquet",
+                  "pnl_pct_from_emission": -0.6053
                 }
               ]
             }
@@ -133906,22 +134234,22 @@
               "status": "observed",
               "entry_mark": 0.52,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0673,
-              "max_adverse_excursion_pct": 0.0673,
+              "max_favorable_excursion_pct": -0.0481,
+              "max_adverse_excursion_pct": -0.0481,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.555,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.55,
-                  "ask": 0.56,
-                  "last": 0.54,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.0673
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.51,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": -0.0481
                 }
               ]
             }
@@ -134111,15 +134439,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.615,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.5139,
+              "max_adverse_excursion_pct": 0.5139,
+              "first_hit": {
+                "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.5139
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 2.445,
+                  "mark_source": "mid",
+                  "bid": 2.41,
+                  "ask": 2.48,
+                  "last": 2.42,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NVDA/chain.parquet",
+                  "pnl_pct_from_emission": 0.5139
+                }
+              ]
             }
           }
         },
@@ -134305,22 +134649,22 @@
               "status": "observed",
               "entry_mark": 1.84,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.1848,
-              "max_adverse_excursion_pct": 0.1848,
+              "max_favorable_excursion_pct": 0.0842,
+              "max_adverse_excursion_pct": 0.0842,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 2.18,
+                  "mark": 1.995,
                   "mark_source": "mid",
-                  "bid": 2.13,
-                  "ask": 2.23,
-                  "last": 2.2,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": 0.1848
+                  "bid": 1.92,
+                  "ask": 2.07,
+                  "last": 2.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": 0.0842
                 }
               ]
             }
@@ -134507,27 +134851,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 0.19,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": -0.1053,
-              "max_adverse_excursion_pct": -0.1053,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 0.17,
-                  "mark_source": "mid",
-                  "bid": 0.15,
-                  "ask": 0.19,
-                  "last": 0.16,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=PFE/chain.parquet",
-                  "pnl_pct_from_emission": -0.1053
-                }
-              ]
+              "marks": []
             }
           }
         },
@@ -134711,15 +135043,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.925,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0703,
+              "max_adverse_excursion_pct": 0.0703,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.99,
+                  "mark_source": "mid",
+                  "bid": 0.96,
+                  "ask": 1.02,
+                  "last": 1.13,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PYPL/chain.parquet",
+                  "pnl_pct_from_emission": 0.0703
+                }
+              ]
             }
           }
         },
@@ -134904,15 +135248,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.55,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0364,
+              "max_adverse_excursion_pct": 0.0364,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.57,
+                  "mark_source": "mid",
+                  "bid": 0.54,
+                  "ask": 0.6,
+                  "last": 0.65,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=VZ/chain.parquet",
+                  "pnl_pct_from_emission": 0.0364
+                }
+              ]
             }
           }
         },
@@ -135101,22 +135457,22 @@
               "status": "observed",
               "entry_mark": 1.185,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0042,
-              "max_adverse_excursion_pct": 0.0042,
+              "max_favorable_excursion_pct": -0.0169,
+              "max_adverse_excursion_pct": -0.0169,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.19,
+                  "mark": 1.165,
                   "mark_source": "mid",
-                  "bid": 1.13,
-                  "ask": 1.25,
+                  "bid": 1.09,
+                  "ask": 1.24,
                   "last": 1.33,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=SCHW/chain.parquet",
-                  "pnl_pct_from_emission": 0.0042
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SCHW/chain.parquet",
+                  "pnl_pct_from_emission": -0.0169
                 }
               ]
             }
@@ -135697,22 +136053,22 @@
               "status": "observed",
               "entry_mark": 1.275,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.098,
-              "max_adverse_excursion_pct": 0.098,
+              "max_favorable_excursion_pct": 0.0431,
+              "max_adverse_excursion_pct": 0.0431,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.4,
+                  "mark": 1.33,
                   "mark_source": "mid",
-                  "bid": 1.3,
-                  "ask": 1.5,
+                  "bid": 1.23,
+                  "ask": 1.43,
                   "last": 1.25,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=XOM/chain.parquet",
-                  "pnl_pct_from_emission": 0.098
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=XOM/chain.parquet",
+                  "pnl_pct_from_emission": 0.0431
                 }
               ]
             }
@@ -135900,15 +136256,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.9,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.1842,
+              "max_adverse_excursion_pct": 0.1842,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 2.25,
+                  "mark_source": "mid",
+                  "bid": 2.15,
+                  "ask": 2.35,
+                  "last": 2.44,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=NOW/chain.parquet",
+                  "pnl_pct_from_emission": 0.1842
+                }
+              ]
             }
           }
         }
@@ -136130,22 +136498,22 @@
               "status": "observed",
               "entry_mark": 0.555,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "max_favorable_excursion_pct": -0.1081,
+              "max_adverse_excursion_pct": -0.1081,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.555,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.55,
-                  "ask": 0.56,
-                  "last": 0.54,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.51,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": -0.1081
                 }
               ]
             }
@@ -136325,22 +136693,22 @@
               "status": "observed",
               "entry_mark": 2.18,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "max_favorable_excursion_pct": -0.0849,
+              "max_adverse_excursion_pct": -0.0849,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 2.18,
+                  "mark": 1.995,
                   "mark_source": "mid",
-                  "bid": 2.13,
-                  "ask": 2.23,
-                  "last": 2.2,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WMT/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
+                  "bid": 1.92,
+                  "ask": 2.07,
+                  "last": 2.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": -0.0849
                 }
               ]
             }
@@ -136519,27 +136887,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.59,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 1.59,
-                  "mark_source": "mid",
-                  "bid": 1.57,
-                  "ask": 1.61,
-                  "last": 1.59,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=NFLX/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
-                }
-              ]
+              "marks": []
             }
           }
         },
@@ -136717,27 +137073,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 0.385,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 0.385,
-                  "mark_source": "mid",
-                  "bid": 0.38,
-                  "ask": 0.39,
-                  "last": 0.43,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=XLE/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
-                }
-              ]
+              "marks": []
             }
           }
         },
@@ -136917,22 +137261,22 @@
               "status": "observed",
               "entry_mark": 0.675,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "max_favorable_excursion_pct": -0.0889,
+              "max_adverse_excursion_pct": -0.0889,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 0.675,
+                  "mark": 0.615,
                   "mark_source": "mid",
-                  "bid": 0.63,
-                  "ask": 0.72,
-                  "last": 0.64,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=WFC/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
+                  "bid": 0.58,
+                  "ask": 0.65,
+                  "last": 0.65,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WFC/chain.parquet",
+                  "pnl_pct_from_emission": -0.0889
                 }
               ]
             }
@@ -137110,27 +137454,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.215,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
-                  "quote_date": "2026-06-24",
-                  "mark": 1.215,
-                  "mark_source": "mid",
-                  "bid": 1.14,
-                  "ask": 1.29,
-                  "last": 1.27,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=C/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
-                }
-              ]
+              "marks": []
             }
           }
         },
@@ -137310,22 +137642,22 @@
               "status": "observed",
               "entry_mark": 1.19,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": 0.0,
+              "max_favorable_excursion_pct": -0.021,
+              "max_adverse_excursion_pct": -0.021,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.19,
+                  "mark": 1.165,
                   "mark_source": "mid",
-                  "bid": 1.13,
-                  "ask": 1.25,
+                  "bid": 1.09,
+                  "ask": 1.24,
                   "last": 1.33,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=SCHW/chain.parquet",
-                  "pnl_pct_from_emission": 0.0
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SCHW/chain.parquet",
+                  "pnl_pct_from_emission": -0.021
                 }
               ]
             }
@@ -137508,6 +137840,245 @@
               "status": "observed",
               "entry_mark": 1.07,
               "observation_count": 1,
+              "max_favorable_excursion_pct": -0.014,
+              "max_adverse_excursion_pct": -0.014,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.055,
+                  "mark_source": "mid",
+                  "bid": 0.96,
+                  "ask": 1.15,
+                  "last": 1.0,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=XOM/chain.parquet",
+                  "pnl_pct_from_emission": -0.014
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+      "regime": {
+        "mode": "risk_off",
+        "bias": -0.379,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 3,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.76,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "market_shock_control_mode": "active"
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "summary": {
+        "pick_rows": 12,
+        "live": 0,
+        "shadow": 3,
+        "council_holdout": 0,
+        "friction_veto": 9
+      },
+      "picks": [
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|BAC260702P00057000|shadow",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "shadow",
+          "lane_reason": "selected_shadow_board:high_extrinsic,market_shock:orderly_risk_off",
+          "symbol": "BAC",
+          "contract_symbol": "BAC260702P00057000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 57.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "BAC",
+            "spot": 57.755,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 0.49,
+            "ask": 0.5,
+            "mid": 0.495,
+            "last": 0.51,
+            "spread": 0.01,
+            "spread_pct": 0.0202,
+            "open_interest": 1504,
+            "volume": 1456,
+            "contract_cost": 50.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.8414,
+            "learned_rank_score": 0.8414,
+            "payoff_model_score": 0.8414,
+            "final_candidate_score": 0.8414,
+            "prob_positive_option_pnl": 0.766,
+            "expected_option_return_pct_model": 1.0244,
+            "expected_edge_after_friction_pct": 0.7048,
+            "friction_buffer_pct": 0.3196,
+            "path_holding_quality_score": 0.6186,
+            "path_early_profit_take_prob": 0.3529,
+            "path_decay_risk": 0.4902
+          },
+          "risk_features": {
+            "delta": -0.3343,
+            "implied_volatility": 0.2295,
+            "iv_rank": 0.5157,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0131,
+            "premium_pct_of_spot": 0.0087,
+            "breakeven_move_pct": 0.0217,
+            "projected_move_pct": 0.0541,
+            "realized_vol_20d": 0.2083,
+            "atr_pct_14d": 0.0207,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": true
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Path model shadow: hold quality 0.62, take-profit 0.35, decay 0.49"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 0.495,
+              "observation_count": 1,
               "max_favorable_excursion_pct": 0.0,
               "max_adverse_excursion_pct": 0.0,
               "first_hit": null,
@@ -137515,14 +138086,2182 @@
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-06-24T18:20:20+00:00",
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
                   "quote_date": "2026-06-24",
-                  "mark": 1.07,
+                  "mark": 0.495,
                   "mark_source": "mid",
-                  "bid": 0.99,
-                  "ask": 1.15,
+                  "bid": 0.49,
+                  "ask": 0.5,
+                  "last": 0.51,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|CMG260702P00031000|shadow",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "shadow",
+          "lane_reason": "selected_shadow_board:high_extrinsic,market_shock:orderly_risk_off",
+          "symbol": "CMG",
+          "contract_symbol": "CMG260702P00031000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 31.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "CMG",
+            "spot": 31.645,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 0.47,
+            "ask": 0.53,
+            "mid": 0.5,
+            "last": 0.58,
+            "spread": 0.06,
+            "spread_pct": 0.12,
+            "open_interest": 405,
+            "volume": 69,
+            "contract_cost": 53.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.6209,
+            "learned_rank_score": 0.6209,
+            "payoff_model_score": 0.6434,
+            "final_candidate_score": 0.6209,
+            "prob_positive_option_pnl": 0.6845,
+            "expected_option_return_pct_model": 0.0048,
+            "expected_edge_after_friction_pct": -0.3747,
+            "friction_buffer_pct": 0.3795,
+            "path_holding_quality_score": 0.2271,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5634
+          },
+          "risk_features": {
+            "delta": -0.3521,
+            "implied_volatility": 0.4141,
+            "iv_rank": 0.3949,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0204,
+            "premium_pct_of_spot": 0.0167,
+            "breakeven_move_pct": 0.0371,
+            "projected_move_pct": 0.0653,
+            "realized_vol_20d": 0.4357,
+            "atr_pct_14d": 0.0384,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.23, decay 0.56"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 0.5,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.5,
+                  "mark_source": "mid",
+                  "bid": 0.47,
+                  "ask": 0.53,
+                  "last": 0.58,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=CMG/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|WMT260702P00117000|shadow",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "shadow",
+          "lane_reason": "selected_shadow_board:high_extrinsic,market_shock:orderly_risk_off",
+          "symbol": "WMT",
+          "contract_symbol": "WMT260702P00117000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 117.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "WMT",
+            "spot": 119.7006,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 0.8,
+            "ask": 0.87,
+            "mid": 0.835,
+            "last": 0.84,
+            "spread": 0.07,
+            "spread_pct": 0.0838,
+            "open_interest": 287,
+            "volume": 229,
+            "contract_cost": 87.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.613,
+            "learned_rank_score": 0.613,
+            "payoff_model_score": 0.6355,
+            "final_candidate_score": 0.613,
+            "prob_positive_option_pnl": 0.6196,
+            "expected_option_return_pct_model": 0.0017,
+            "expected_edge_after_friction_pct": -0.3561,
+            "friction_buffer_pct": 0.3578,
+            "path_holding_quality_score": 0.2259,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5659
+          },
+          "risk_features": {
+            "delta": -0.2628,
+            "implied_volatility": 0.2593,
+            "iv_rank": 0.6322,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0226,
+            "premium_pct_of_spot": 0.0073,
+            "breakeven_move_pct": 0.0298,
+            "projected_move_pct": 0.0499,
+            "realized_vol_20d": 0.22,
+            "atr_pct_14d": 0.0218,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.23, decay 0.57"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 0.835,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.835,
+                  "mark_source": "mid",
+                  "bid": 0.8,
+                  "ask": 0.87,
+                  "last": 0.84,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WMT/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|SCHW260702P00091000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260702P00091000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 91.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "SCHW",
+            "spot": 91.435,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.09,
+            "ask": 1.24,
+            "mid": 1.165,
+            "last": 1.33,
+            "spread": 0.15,
+            "spread_pct": 0.1288,
+            "open_interest": 239,
+            "volume": 46,
+            "contract_cost": 124.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.5769,
+            "learned_rank_score": 0.5769,
+            "payoff_model_score": 0.5994,
+            "final_candidate_score": 0.5769,
+            "prob_positive_option_pnl": 0.6969,
+            "expected_option_return_pct_model": -0.2794,
+            "expected_edge_after_friction_pct": -0.6642,
+            "friction_buffer_pct": 0.3848,
+            "path_holding_quality_score": 0.2216,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.559
+          },
+          "risk_features": {
+            "delta": -0.434,
+            "implied_volatility": 0.2559,
+            "iv_rank": 0.5032,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0048,
+            "premium_pct_of_spot": 0.0136,
+            "breakeven_move_pct": 0.0183,
+            "projected_move_pct": 0.0511,
+            "realized_vol_20d": 0.2946,
+            "atr_pct_14d": 0.0225,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.165,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.165,
+                  "mark_source": "mid",
+                  "bid": 1.09,
+                  "ask": 1.24,
+                  "last": 1.33,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=SCHW/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|T260702P00022500|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "T",
+          "contract_symbol": "T260702P00022500",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 22.5,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "T",
+            "spot": 22.465,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 0.35,
+            "ask": 0.38,
+            "mid": 0.365,
+            "last": 0.4,
+            "spread": 0.03,
+            "spread_pct": 0.0822,
+            "open_interest": 270,
+            "volume": 46,
+            "contract_cost": 38.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.5643,
+            "learned_rank_score": 0.5643,
+            "payoff_model_score": 0.5868,
+            "final_candidate_score": 0.5643,
+            "prob_positive_option_pnl": 0.6307,
+            "expected_option_return_pct_model": -0.09,
+            "expected_edge_after_friction_pct": -0.4054,
+            "friction_buffer_pct": 0.3154,
+            "path_holding_quality_score": 0.2205,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5379
+          },
+          "risk_features": {
+            "delta": -0.5002,
+            "implied_volatility": 0.2578,
+            "iv_rank": 0.6474,
+            "extrinsic_ratio": 0.9079,
+            "moneyness": -0.0016,
+            "premium_pct_of_spot": 0.0169,
+            "breakeven_move_pct": 0.0154,
+            "projected_move_pct": 0.0471,
+            "realized_vol_20d": 0.3019,
+            "atr_pct_14d": 0.0289,
+            "council_risk_flags": [
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.54"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 0.365,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 0.365,
+                  "mark_source": "mid",
+                  "bid": 0.35,
+                  "ask": 0.38,
+                  "last": 0.4,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=T/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|PG260702P00150000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "PG",
+          "contract_symbol": "PG260702P00150000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 150.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "PG",
+            "spot": 152.755,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.03,
+            "ask": 1.18,
+            "mid": 1.105,
+            "last": 1.13,
+            "spread": 0.15,
+            "spread_pct": 0.1357,
+            "open_interest": 242,
+            "volume": 242,
+            "contract_cost": 118.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.4249,
+            "learned_rank_score": 0.4249,
+            "payoff_model_score": 0.4474,
+            "final_candidate_score": 0.4249,
+            "prob_positive_option_pnl": 0.3772,
+            "expected_option_return_pct_model": -0.4262,
+            "expected_edge_after_friction_pct": -0.8151,
+            "friction_buffer_pct": 0.3889,
+            "path_holding_quality_score": 0.2221,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5508
+          },
+          "risk_features": {
+            "delta": -0.292,
+            "implied_volatility": 0.2424,
+            "iv_rank": 0.8007,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.018,
+            "premium_pct_of_spot": 0.0077,
+            "breakeven_move_pct": 0.0258,
+            "projected_move_pct": 0.0397,
+            "realized_vol_20d": 0.2704,
+            "atr_pct_14d": 0.0201,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 80% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.55"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.105,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.105,
+                  "mark_source": "mid",
+                  "bid": 1.03,
+                  "ask": 1.18,
+                  "last": 1.13,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=PG/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|CSCO260702P00116000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "CSCO",
+          "contract_symbol": "CSCO260702P00116000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 116.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "CSCO",
+            "spot": 119.16,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.08,
+            "ask": 1.25,
+            "mid": 1.165,
+            "last": 1.06,
+            "spread": 0.17,
+            "spread_pct": 0.1459,
+            "open_interest": 250,
+            "volume": 165,
+            "contract_cost": 125.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.4066,
+            "learned_rank_score": 0.4066,
+            "payoff_model_score": 0.4291,
+            "final_candidate_score": 0.4066,
+            "prob_positive_option_pnl": 0.4247,
+            "expected_option_return_pct_model": -0.587,
+            "expected_edge_after_friction_pct": -0.982,
+            "friction_buffer_pct": 0.395,
+            "path_holding_quality_score": 0.2346,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5547
+          },
+          "risk_features": {
+            "delta": -0.2838,
+            "implied_volatility": 0.3423,
+            "iv_rank": 0.4349,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0265,
+            "premium_pct_of_spot": 0.0105,
+            "breakeven_move_pct": 0.037,
+            "projected_move_pct": 0.0633,
+            "realized_vol_20d": 0.4005,
+            "atr_pct_14d": 0.0352,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.23, decay 0.55"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.165,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.165,
+                  "mark_source": "mid",
+                  "bid": 1.08,
+                  "ask": 1.25,
                   "last": 1.06,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=182020/underlying_symbol=XOM/chain.parquet",
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=CSCO/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|WFC260702P00084000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "WFC",
+          "contract_symbol": "WFC260702P00084000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 84.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "WFC",
+            "spot": 84.354,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.29,
+            "ask": 1.42,
+            "mid": 1.355,
+            "last": 1.5,
+            "spread": 0.13,
+            "spread_pct": 0.0959,
+            "open_interest": 1159,
+            "volume": 806,
+            "contract_cost": 142.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3995,
+            "learned_rank_score": 0.3995,
+            "payoff_model_score": 0.422,
+            "final_candidate_score": 0.3995,
+            "prob_positive_option_pnl": 0.1496,
+            "expected_option_return_pct_model": -0.4264,
+            "expected_edge_after_friction_pct": -0.7914,
+            "friction_buffer_pct": 0.365,
+            "path_holding_quality_score": 0.2174,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5846
+          },
+          "risk_features": {
+            "delta": -0.4465,
+            "implied_volatility": 0.3023,
+            "iv_rank": 0.6495,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0042,
+            "premium_pct_of_spot": 0.0168,
+            "breakeven_move_pct": 0.021,
+            "projected_move_pct": 0.0592,
+            "realized_vol_20d": 0.2497,
+            "atr_pct_14d": 0.0238,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.58"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.355,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.355,
+                  "mark_source": "mid",
+                  "bid": 1.29,
+                  "ask": 1.42,
+                  "last": 1.5,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=WFC/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|XOM260702P00135000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260702P00135000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 135.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "XOM",
+            "spot": 136.23,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.59,
+            "ask": 1.85,
+            "mid": 1.72,
+            "last": 1.73,
+            "spread": 0.26,
+            "spread_pct": 0.1512,
+            "open_interest": 987,
+            "volume": 131,
+            "contract_cost": 185.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3871,
+            "learned_rank_score": 0.3871,
+            "payoff_model_score": 0.4096,
+            "final_candidate_score": 0.3871,
+            "prob_positive_option_pnl": 0.0463,
+            "expected_option_return_pct_model": -0.2382,
+            "expected_edge_after_friction_pct": -0.6364,
+            "friction_buffer_pct": 0.3982,
+            "path_holding_quality_score": 0.2225,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5632
+          },
+          "risk_features": {
+            "delta": -0.3991,
+            "implied_volatility": 0.2844,
+            "iv_rank": 0.6747,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.009,
+            "premium_pct_of_spot": 0.0136,
+            "breakeven_move_pct": 0.0226,
+            "projected_move_pct": 0.0539,
+            "realized_vol_20d": 0.274,
+            "atr_pct_14d": 0.0278,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.72,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.72,
+                  "mark_source": "mid",
+                  "bid": 1.59,
+                  "ask": 1.85,
+                  "last": 1.73,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=XOM/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|JNJ260702P00235000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "JNJ",
+          "contract_symbol": "JNJ260702P00235000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 235.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "JNJ",
+            "spot": 240.515,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.5,
+            "ask": 1.77,
+            "mid": 1.635,
+            "last": 1.73,
+            "spread": 0.27,
+            "spread_pct": 0.1651,
+            "open_interest": 156,
+            "volume": 81,
+            "contract_cost": 177.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3693,
+            "learned_rank_score": 0.3693,
+            "payoff_model_score": 0.3918,
+            "final_candidate_score": 0.3693,
+            "prob_positive_option_pnl": 0.141,
+            "expected_option_return_pct_model": -0.3058,
+            "expected_edge_after_friction_pct": -0.7124,
+            "friction_buffer_pct": 0.4066,
+            "path_holding_quality_score": 0.221,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5582
+          },
+          "risk_features": {
+            "delta": -0.2627,
+            "implied_volatility": 0.2634,
+            "iv_rank": 0.9411,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0229,
+            "premium_pct_of_spot": 0.0074,
+            "breakeven_move_pct": 0.0303,
+            "projected_move_pct": 0.0403,
+            "realized_vol_20d": 0.2439,
+            "atr_pct_14d": 0.0225,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off",
+              "wide_spread"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "IVR penalty applied: IV rank 94% above gate",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.635,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.635,
+                  "mark_source": "mid",
+                  "bid": 1.5,
+                  "ask": 1.77,
+                  "last": 1.73,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=JNJ/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|ARKK260702P00075000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "ARKK",
+          "contract_symbol": "ARKK260702P00075000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 75.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "ARKK",
+            "spot": 76.69,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.01,
+            "ask": 1.17,
+            "mid": 1.09,
+            "last": 1.32,
+            "spread": 0.16,
+            "spread_pct": 0.1468,
+            "open_interest": 332,
+            "volume": 26,
+            "contract_cost": 117.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3633,
+            "learned_rank_score": 0.3633,
+            "payoff_model_score": 0.3858,
+            "final_candidate_score": 0.3633,
+            "prob_positive_option_pnl": 0.2811,
+            "expected_option_return_pct_model": -0.4886,
+            "expected_edge_after_friction_pct": -0.8842,
+            "friction_buffer_pct": 0.3956,
+            "path_holding_quality_score": 0.2247,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5614
+          },
+          "risk_features": {
+            "delta": -0.3361,
+            "implied_volatility": 0.396,
+            "iv_rank": 0.6538,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.022,
+            "premium_pct_of_spot": 0.0153,
+            "breakeven_move_pct": 0.0373,
+            "projected_move_pct": 0.059,
+            "realized_vol_20d": 0.4413,
+            "atr_pct_14d": 0.0399,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.22, take-profit 0.23, decay 0.56"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 1.09,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 1.09,
+                  "mark_source": "mid",
+                  "bid": 1.01,
+                  "ask": 1.17,
+                  "last": 1.32,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=ARKK/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "recommendation_id": "2026-06-24T18:59:03+00:00|BA260702P00215000|friction_veto",
+          "run_generated_at_utc": "2026-06-24T18:59:03+00:00",
+          "lane": "friction_veto",
+          "lane_reason": "failed_friction_gate",
+          "symbol": "BA",
+          "contract_symbol": "BA260702P00215000",
+          "option_type": "put",
+          "expiry": "2026-07-02",
+          "strike": 215.0,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "BA",
+            "spot": 220.9389,
+            "quote_captured_at_utc": "2026-06-24T18:59:03+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-06-24T18:59:03+00:00",
+            "bid": 1.92,
+            "ask": 2.17,
+            "mid": 2.045,
+            "last": 2.15,
+            "spread": 0.25,
+            "spread_pct": 0.1222,
+            "open_interest": 1045,
+            "volume": 87,
+            "contract_cost": 217.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "real_chain"
+          },
+          "scores": {
+            "forge_score": 0.3101,
+            "learned_rank_score": 0.3101,
+            "payoff_model_score": 0.3326,
+            "final_candidate_score": 0.3101,
+            "prob_positive_option_pnl": 0.0915,
+            "expected_option_return_pct_model": -0.5478,
+            "expected_edge_after_friction_pct": -0.9286,
+            "friction_buffer_pct": 0.3808,
+            "path_holding_quality_score": 0.2276,
+            "path_early_profit_take_prob": 0.226,
+            "path_decay_risk": 0.5537
+          },
+          "risk_features": {
+            "delta": -0.279,
+            "implied_volatility": 0.338,
+            "iv_rank": 0.5748,
+            "extrinsic_ratio": 1.0,
+            "moneyness": 0.0269,
+            "premium_pct_of_spot": 0.0098,
+            "breakeven_move_pct": 0.0367,
+            "projected_move_pct": 0.0518,
+            "realized_vol_20d": 0.4099,
+            "atr_pct_14d": 0.0316,
+            "council_risk_flags": [
+              "high_extrinsic",
+              "market_shock:orderly_risk_off"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_off",
+              "bias": -0.379,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 3,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.76,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "active",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+                "required": true
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+                "required": true
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "active",
+            "ranker_artifact_sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+            "path_model_mode": "shadow",
+            "path_model_artifact_sha256": null
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "delta sits in the preferred weekly range",
+            "Payoff model ranker active",
+            "Turnover penalty applied (0.02) because post-friction edge is thin",
+            "Path model shadow: hold quality 0.23, take-profit 0.23, decay 0.55"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 2.045,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-06-24T18:59:04+00:00",
+                  "quote_date": "2026-06-24",
+                  "mark": 2.045,
+                  "mark_source": "mid",
+                  "bid": 1.92,
+                  "ask": 2.17,
+                  "last": 2.15,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-06-24/run_time_utc=185904/underlying_symbol=BA/chain.parquet",
                   "pnl_pct_from_emission": 0.0
                 }
               ]
@@ -137533,19 +140272,19 @@
     }
   ],
   "last_mark_summary": {
-    "entries_seen": 71,
-    "picks_seen": 661,
+    "entries_seen": 72,
+    "picks_seen": 673,
     "marks_written": 0,
     "quotes_missing": 586,
     "picks_completed": 590,
     "picks_partial": 63,
-    "picks_pending": 8
+    "picks_pending": 20
   },
   "archived_quote_path_summary": {
-    "entries_seen": 71,
-    "picks_seen": 661,
-    "labels_observed": 36,
-    "labels_missing": 625,
+    "entries_seen": 72,
+    "picks_seen": 673,
+    "labels_observed": 71,
+    "labels_missing": 602,
     "labels_missing_entry_mark": 0
   }
 }
