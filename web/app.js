@@ -1646,6 +1646,24 @@ function renderPromotionModelCard(model) {
   if (model.avg_pairwise_correlation !== undefined && model.avg_pairwise_correlation !== null) {
     metricRows.push(summaryItemHtml("Correlation", Number(model.avg_pairwise_correlation).toFixed(2)));
   }
+  if (model.shadow_window_runs !== undefined) {
+    metricRows.push(summaryItemHtml("Shadow Runs", integer(model.shadow_window_runs)));
+  }
+  if (model.tracked_live_recommendations !== undefined) {
+    metricRows.push(summaryItemHtml("Tracked Live", integer(model.tracked_live_recommendations)));
+  }
+  if (model.live_realized_pnl !== undefined && model.live_realized_pnl !== null) {
+    metricRows.push(summaryItemHtml("Realized P&L", money(model.live_realized_pnl)));
+  }
+  if (model.live_friday_close_avg_pnl_pct !== undefined && model.live_friday_close_avg_pnl_pct !== null) {
+    metricRows.push(summaryItemHtml("Live Friday Avg", pctOrDash(model.live_friday_close_avg_pnl_pct)));
+  }
+  if (model.holdout_friday_close_avg_pnl_pct !== undefined && model.holdout_friday_close_avg_pnl_pct !== null) {
+    metricRows.push(summaryItemHtml("Holdout Friday Avg", pctOrDash(model.holdout_friday_close_avg_pnl_pct)));
+  }
+  if (model.friction_veto_friday_close_avg_pnl_pct !== undefined && model.friction_veto_friday_close_avg_pnl_pct !== null) {
+    metricRows.push(summaryItemHtml("Veto Friday Avg", pctOrDash(model.friction_veto_friday_close_avg_pnl_pct)));
+  }
   if (model.side_mix) {
     metricRows.push(summaryItemHtml("Side Mix", compactCounts(model.side_mix)));
   }
@@ -1702,7 +1720,7 @@ function renderPromotionReadiness(payload) {
           .map((gate) =>
             summaryItemHtml(
               `${gate.name || "Gate"} · ${String(gate.status || "pending").replaceAll("_", " ")}`,
-              gate.target || "—",
+              [gate.target || "—", gate.progress || ""].filter(Boolean).join(" "),
             ),
           )
           .join("")
@@ -1711,12 +1729,19 @@ function renderPromotionReadiness(payload) {
 
   if (policyEl) {
     const policy = readiness.policy || {};
+    const profitability = readiness.profitability_summary || {};
     policyEl.innerHTML = [
       summaryItemHtml("Path", Array.isArray(readiness.promotion_path) ? readiness.promotion_path.join(" -> ") : "—"),
       summaryItemHtml("Shadow Days", `${integer(policy.minimum_shadow_trading_days)} min · ${integer(policy.preferred_shadow_trading_days)} preferred`),
       summaryItemHtml("Disagreements", `${integer(policy.minimum_disagreement_trades)} minimum`),
       summaryItemHtml("P&L Lift", pctOrDash(policy.minimum_pnl_lift_pct)),
       summaryItemHtml("Windows", Array.isArray(policy.required_windows) ? policy.required_windows.join(" · ").replaceAll("_", " ") : "—"),
+      summaryItemHtml("Tracked Recs", integer(profitability.tracked_recommendations)),
+      summaryItemHtml("Quote Coverage", pctOrDash(profitability.quote_coverage_pct)),
+      summaryItemHtml("Live Realized P&L", profitability.live_realized_pnl !== undefined && profitability.live_realized_pnl !== null ? money(profitability.live_realized_pnl) : "—"),
+      summaryItemHtml("Live Friday Avg", pctOrDash(profitability.live_friday_close_avg_pnl_pct)),
+      summaryItemHtml("Shadow Friday Avg", pctOrDash(profitability.shadow_friday_close_avg_pnl_pct)),
+      summaryItemHtml("Holdout Friday Avg", pctOrDash(profitability.holdout_friday_close_avg_pnl_pct)),
       summaryItemHtml("Rule", policy.promotion_rule || "—"),
     ].join("");
   }

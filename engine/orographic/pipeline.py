@@ -44,6 +44,8 @@ DEFAULT_UNIVERSE = _read_universe_file(DEFAULT_UNIVERSE_FILE) or [
     "MSFT",
 ]
 MODEL_DIR = Path(__file__).resolve().parent / "models"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_DIAGNOSTICS_DIR = REPO_ROOT / "web" / "data" / "diagnostics"
 
 
 @dataclass
@@ -522,6 +524,218 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
     }
 
 
+def _load_json_dict(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        loaded = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    return loaded if isinstance(loaded, dict) else {}
+
+
+def _diagnostic_source_path(payload: dict[str, Any], key: str, default_filename: str) -> Path | None:
+    sources = payload.get("diagnostic_sources") if isinstance(payload.get("diagnostic_sources"), dict) else {}
+    raw = sources.get(key)
+    if isinstance(raw, (str, os.PathLike)):
+        return Path(raw)
+    if isinstance(raw, Path):
+        return raw
+    return None
+
+
+def _new_pick_metric_accumulator() -> dict[str, float | int]:
+    return {
+        "recommendations": 0,
+        "pending": 0,
+        "partial": 0,
+        "complete": 0,
+        "fixed_marks": 0,
+        "missing_quote_marks": 0,
+        "friday_close_marks": 0,
+        "friday_close_pnl_pct_sum": 0.0,
+        "realized_trades": 0,
+        "realized_pnl_sum": 0.0,
+        "realized_pnl_pct_sum": 0.0,
+    }
+
+
+def _finalize_pick_metric_accumulator(accumulator: dict[str, float | int]) -> dict[str, Any]:
+    friday_close_marks = _coerce_int(accumulator.get("friday_close_marks"))
+    realized_trades = _coerce_int(accumulator.get("realized_trades"))
+    fixed_marks = _coerce_int(accumulator.get("fixed_marks"))
+    return {
+        "recommendations": _coerce_int(accumulator.get("recommendations")),
+        "pending": _coerce_int(accumulator.get("pending")),
+        "partial": _coerce_int(accumulator.get("partial")),
+        "complete": _coerce_int(accumulator.get("complete")),
+        "fixed_marks": fixed_marks,
+        "missing_quote_marks": _coerce_int(accumulator.get("missing_quote_marks")),
+        "quote_coverage_pct": (
+            round(
+                1.0
+                - (_coerce_int(accumulator.get("missing_quote_marks")) / max(fixed_marks, 1)),
+                4,
+            )
+            if fixed_marks > 0
+            else None
+        ),
+        "friday_close_marks": friday_close_marks,
+        "friday_close_avg_pnl_pct": (
+            round(float(accumulator.get("friday_close_pnl_pct_sum") or 0.0) / friday_close_marks, 4)
+            if friday_close_marks > 0
+            else None
+        ),
+        "realized_trades": realized_trades,
+        "realized_pnl": round(float(accumulator.get("realized_pnl_sum") or 0.0), 4),
+        "realized_avg_pnl_pct": (
+            round(float(accumulator.get("realized_pnl_pct_sum") or 0.0) / realized_trades, 4)
+            if realized_trades > 0
+            else None
+        ),
+    }
+
+
+def _summarize_pick_ledger(ledger: dict[str, Any]) -> dict[str, Any]:
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    lane_totals: dict[str, dict[str, float | int]] = {}
+    regime_totals: dict[str, dict[str, float | int]] = {}
+    overall = _new_pick_metric_accumulator()
+
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        regime = entry.get("regime") if isinstance(entry.get("regime"), dict) else {}
+        regime_mode = str(regime.get("mode") or "unknown")
+        picks = entry.get("picks") if isinstance(entry.get("picks"), list) else []
+        for pick in picks:
+            if not isinstance(pick, dict):
+                continue
+            lane = str(pick.get("lane") or "unknown")
+            lane_acc = lane_totals.setdefault(lane, _new_pick_metric_accumulator())
+            regime_acc = regime_totals.setdefault(regime_mode, _new_pick_metric_accumulator())
+            outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+            status = str(outcomes.get("status") or "pending")
+            fixed_exit_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
+            friday_close = fixed_exit_marks.get("friday_close") if isinstance(fixed_exit_marks.get("friday_close"), dict) else None
+            quote_verification = outcomes.get("quote_verification") if isinstance(outcomes.get("quote_verification"), dict) else {}
+            realized = outcomes.get("realized_if_traded") if isinstance(outcomes.get("realized_if_traded"), dict) else {}
+            accumulators = (overall, lane_acc, regime_acc)
+
+            for accumulator in accumulators:
+                accumulator["recommendations"] = _coerce_int(accumulator.get("recommendations")) + 1
+                if status in {"pending", "partial", "complete"}:
+                    accumulator[status] = _coerce_int(accumulator.get(status)) + 1
+                if friday_close is not None:
+                    accumulator["fixed_marks"] = _coerce_int(accumulator.get("fixed_marks")) + 1
+                    accumulator["friday_close_marks"] = _coerce_int(accumulator.get("friday_close_marks")) + 1
+                    pnl_pct_from_emission = friday_close.get("pnl_pct_from_emission")
+                    if isinstance(pnl_pct_from_emission, Number):
+                        accumulator["friday_close_pnl_pct_sum"] = float(
+                            accumulator.get("friday_close_pnl_pct_sum") or 0.0
+                        ) + float(pnl_pct_from_emission)
+                    if not bool(quote_verification.get("outcome_quotes_captured")):
+                        accumulator["missing_quote_marks"] = _coerce_int(accumulator.get("missing_quote_marks")) + 1
+                pnl = realized.get("pnl")
+                if isinstance(pnl, Number):
+                    accumulator["realized_trades"] = _coerce_int(accumulator.get("realized_trades")) + 1
+                    accumulator["realized_pnl_sum"] = float(accumulator.get("realized_pnl_sum") or 0.0) + float(pnl)
+                    pnl_pct = realized.get("pnl_pct")
+                    if isinstance(pnl_pct, Number):
+                        accumulator["realized_pnl_pct_sum"] = float(
+                            accumulator.get("realized_pnl_pct_sum") or 0.0
+                        ) + float(pnl_pct)
+
+    return {
+        "runs": _coerce_int(ledger.get("aggregate", {}).get("runs")),
+        "aggregate": ledger.get("aggregate", {}) if isinstance(ledger.get("aggregate"), dict) else {},
+        "outcome_summary": ledger.get("outcome_summary", {}) if isinstance(ledger.get("outcome_summary"), dict) else {},
+        "overall": _finalize_pick_metric_accumulator(overall),
+        "lanes": {lane: _finalize_pick_metric_accumulator(stats) for lane, stats in lane_totals.items()},
+        "regimes": {regime: _finalize_pick_metric_accumulator(stats) for regime, stats in regime_totals.items()},
+    }
+
+
+def _canonical_performance_baseline() -> dict[str, Any]:
+    backtest = _load_json_dict(REPO_ROOT / "web" / "data" / "backtest_results.json")
+    walk_forward = _load_json_dict(REPO_ROOT / "web" / "data" / "walk_forward_results.json")
+    return {
+        "backtest": {
+            "generated_at": backtest.get("generated_at"),
+            "sharpe_ratio": backtest.get("sharpe_ratio"),
+            "max_drawdown": backtest.get("max_drawdown"),
+            "net_return_pct": backtest.get("net_return_pct"),
+            "total_trades": backtest.get("total_trades"),
+        },
+        "walk_forward": {
+            "generated_at": walk_forward.get("generated_at"),
+            "sharpe_ratio": walk_forward.get("sharpe_ratio"),
+            "max_drawdown": walk_forward.get("max_drawdown"),
+            "net_return_pct": walk_forward.get("net_return_pct"),
+            "total_trades": walk_forward.get("total_trades"),
+        },
+    }
+
+
+def _build_profitability_evidence(payload: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(payload.get("diagnostic_sources"), dict):
+        return {}
+
+    prospective = _summarize_pick_ledger(
+        _load_json_dict(_diagnostic_source_path(payload, "prospective_ledger", "prospective_pick_ledger.json") or Path())
+    )
+    moonshot = _summarize_pick_ledger(
+        _load_json_dict(_diagnostic_source_path(payload, "moonshot_ledger", "moonshot_prospective_ledger.json") or Path())
+    )
+    research = _load_json_dict(_diagnostic_source_path(payload, "research_ledger", "research_run_ledger.json") or Path())
+    board_history = _load_json_dict(_diagnostic_source_path(payload, "board_history", "board_recommendation_history.json") or Path())
+    side_shadow = _load_json_dict(_diagnostic_source_path(payload, "shadow_ledger", "side_aware_scout_shadow_ledger.json") or Path())
+
+    prospective_lanes = prospective.get("lanes", {}) if isinstance(prospective.get("lanes"), dict) else {}
+    live_lane = prospective_lanes.get("live", {})
+    shadow_lane = prospective_lanes.get("shadow", {})
+    holdout_lane = prospective_lanes.get("council_holdout", {})
+    veto_lane = prospective_lanes.get("friction_veto", {})
+    prospective_outcomes = prospective.get("outcome_summary", {}) if isinstance(prospective.get("outcome_summary"), dict) else {}
+
+    return {
+        "shadow_window_runs": _coerce_int(side_shadow.get("aggregate", {}).get("runs")),
+        "disagreement_observations": _coerce_int(side_shadow.get("aggregate", {}).get("disagreements")),
+        "directional_disagreements": _coerce_int(side_shadow.get("aggregate", {}).get("directional_disagreements")),
+        "tracked_recommendation_runs": _coerce_int(prospective.get("runs")),
+        "tracked_recommendations": _coerce_int(prospective.get("overall", {}).get("recommendations")),
+        "tracked_live_recommendations": _coerce_int(live_lane.get("recommendations")),
+        "tracked_shadow_recommendations": _coerce_int(shadow_lane.get("recommendations")),
+        "tracked_holdouts": _coerce_int(holdout_lane.get("recommendations")),
+        "tracked_friction_vetoes": _coerce_int(veto_lane.get("recommendations")),
+        "outcomes_complete": _coerce_int(prospective_outcomes.get("complete")),
+        "outcomes_partial": _coerce_int(prospective_outcomes.get("partial")),
+        "outcomes_pending": _coerce_int(prospective_outcomes.get("pending")),
+        "quote_coverage_pct": prospective.get("overall", {}).get("quote_coverage_pct"),
+        "live_realized_trades": _coerce_int(live_lane.get("realized_trades")),
+        "live_realized_pnl": live_lane.get("realized_pnl"),
+        "live_realized_avg_pnl_pct": live_lane.get("realized_avg_pnl_pct"),
+        "live_friday_close_avg_pnl_pct": live_lane.get("friday_close_avg_pnl_pct"),
+        "shadow_realized_trades": _coerce_int(shadow_lane.get("realized_trades")),
+        "shadow_realized_pnl": shadow_lane.get("realized_pnl"),
+        "shadow_realized_avg_pnl_pct": shadow_lane.get("realized_avg_pnl_pct"),
+        "shadow_friday_close_avg_pnl_pct": shadow_lane.get("friday_close_avg_pnl_pct"),
+        "holdout_friday_close_avg_pnl_pct": holdout_lane.get("friday_close_avg_pnl_pct"),
+        "friction_veto_friday_close_avg_pnl_pct": veto_lane.get("friday_close_avg_pnl_pct"),
+        "research_runs": _coerce_int(research.get("aggregate", {}).get("runs")),
+        "research_abstain_runs": _coerce_int(research.get("aggregate", {}).get("abstain_runs")),
+        "board_runs": _coerce_int(board_history.get("aggregate", {}).get("runs")),
+        "board_abstain_runs": _coerce_int(board_history.get("aggregate", {}).get("abstain_runs")),
+        "moonshot_tracked_candidates": _coerce_int(moonshot.get("overall", {}).get("recommendations")),
+        "moonshot_friday_close_avg_pnl_pct": (
+            moonshot.get("lanes", {}).get("moonshot_pick", {}).get("friday_close_avg_pnl_pct")
+            if isinstance(moonshot.get("lanes"), dict)
+            else None
+        ),
+        "canonical_baseline": _canonical_performance_baseline(),
+    }
+
+
 def _validate_snapshot_contract(payload: dict[str, Any]) -> None:
     summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
     council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
@@ -628,6 +842,7 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     path_model = forge.get("path_model") if isinstance(forge.get("path_model"), dict) else {}
     ranker_modes = learned_ranker.get("mode_counts") if isinstance(learned_ranker.get("mode_counts"), dict) else {}
     path_modes = path_model.get("mode_counts") if isinstance(path_model.get("mode_counts"), dict) else {}
+    model_modes = payload.get("model_modes") if isinstance(payload.get("model_modes"), dict) else {}
     live_rows = council.get("live_board") if isinstance(council.get("live_board"), list) else []
     shadow_rows = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
     live_risk_flags = sum(
@@ -640,37 +855,102 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         for row in shadow_rows
         if isinstance(row, dict)
     )
+    profitability_evidence = _build_profitability_evidence(payload)
+    shadow_window_runs = _coerce_int(profitability_evidence.get("shadow_window_runs"))
+    disagreement_observations = _coerce_int(profitability_evidence.get("disagreement_observations"))
+    tracked_recommendations = _coerce_int(profitability_evidence.get("tracked_recommendations"))
+    quote_coverage_pct = profitability_evidence.get("quote_coverage_pct")
+    live_realized_pnl = profitability_evidence.get("live_realized_pnl")
+    shadow_realized_pnl = profitability_evidence.get("shadow_realized_pnl")
+    tracked_live_recommendations = _coerce_int(profitability_evidence.get("tracked_live_recommendations"))
+    tracked_shadow_recommendations = _coerce_int(profitability_evidence.get("tracked_shadow_recommendations"))
+    live_friday_close_avg_pnl_pct = profitability_evidence.get("live_friday_close_avg_pnl_pct")
+    shadow_friday_close_avg_pnl_pct = profitability_evidence.get("shadow_friday_close_avg_pnl_pct")
+    holdout_friday_close_avg_pnl_pct = profitability_evidence.get("holdout_friday_close_avg_pnl_pct")
+    friction_veto_friday_close_avg_pnl_pct = profitability_evidence.get("friction_veto_friday_close_avg_pnl_pct")
+    payoff_ranker_mode = str(model_modes.get("payoff_ranker") or "").strip().lower()
+    if payoff_ranker_mode not in {"active", "shadow", "unavailable"}:
+        payoff_ranker_mode = "active" if "active" in ranker_modes else "shadow"
 
     gates = [
         {
             "name": "Disagreement P&L",
-            "status": "pending",
+            "status": (
+                "collecting_evidence"
+                if disagreement_observations > 0 or tracked_recommendations > 0
+                else "pending"
+            ),
             "target": "Shadow beats active when they disagree, after costs.",
+            "progress": (
+                f"{disagreement_observations} disagreement observations logged; "
+                f"{tracked_shadow_recommendations} tracked shadow recommendations and "
+                f"{tracked_live_recommendations} tracked live recommendations."
+                if disagreement_observations > 0 or tracked_recommendations > 0
+                else "No disagreement outcome evidence logged yet."
+            ),
         },
         {
             "name": "Live Shadow Window",
-            "status": "pending",
+            "status": "pass" if shadow_window_runs >= 30 else ("collecting_evidence" if shadow_window_runs > 0 else "pending"),
             "target": "At least 30 trading days, preferably 60.",
+            "progress": (
+                f"{shadow_window_runs} shadow runs captured."
+                if shadow_window_runs > 0
+                else "No shadow run history captured yet."
+            ),
         },
         {
             "name": "Backtest Windows",
             "status": "pending",
             "target": "Shadow beats active over 3, 6, and 12 month windows.",
+            "progress": "Current pipeline still needs a fresh shadow-vs-active comparison across the canonical windows.",
         },
         {
             "name": "Calibration",
-            "status": "pending",
+            "status": "collecting_evidence" if tracked_recommendations > 0 else "pending",
             "target": "Brier score improves or stays close while P&L improves.",
+            "progress": (
+                f"{tracked_recommendations} tracked recommendations; quote coverage "
+                f"{quote_coverage_pct:.1%}."
+                if tracked_recommendations > 0 and isinstance(quote_coverage_pct, Number)
+                else (
+                    f"{tracked_recommendations} tracked recommendations awaiting enough marked outcomes."
+                    if tracked_recommendations > 0
+                    else "No tracked recommendation history yet."
+                )
+            ),
         },
         {
             "name": "Risk Shape",
-            "status": "pending",
+            "status": "collecting_evidence",
             "target": "Sharpe is no worse and drawdown does not materially increase.",
+            "progress": (
+                "Baseline backtest Sharpe "
+                f"{profitability_evidence.get('canonical_baseline', {}).get('backtest', {}).get('sharpe_ratio')} / "
+                "walk-forward Sharpe "
+                f"{profitability_evidence.get('canonical_baseline', {}).get('walk_forward', {}).get('sharpe_ratio')}."
+                if profitability_evidence
+                else "No baseline risk artifact loaded."
+            ),
         },
         {
             "name": "Coverage",
-            "status": "pending",
+            "status": (
+                "pass"
+                if isinstance(quote_coverage_pct, Number) and quote_coverage_pct >= 0.99 and tracked_recommendations > 0
+                else ("collecting_evidence" if tracked_recommendations > 0 else "pending")
+            ),
             "target": "Option-chain coverage remains stable and representative.",
+            "progress": (
+                f"{tracked_recommendations} tracked recommendations with "
+                f"{quote_coverage_pct:.1%} quote coverage."
+                if tracked_recommendations > 0 and isinstance(quote_coverage_pct, Number)
+                else (
+                    f"{tracked_recommendations} tracked recommendations awaiting enough marked quote windows."
+                    if tracked_recommendations > 0
+                    else "No tracked recommendation coverage yet."
+                )
+            ),
         },
     ]
 
@@ -685,6 +965,7 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "disagreements": side_disagreements,
             "side_mix": side_mix,
             "model_modes": side_model_modes,
+            "shadow_window_runs": shadow_window_runs,
             "promotion_step": "shadow",
         },
         {
@@ -701,13 +982,16 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         },
         {
             "name": "Payoff Ranker",
-            "mode": "active" if "active" in ranker_modes else "shadow",
+            "mode": payoff_ranker_mode or ("active" if "active" in ranker_modes else "shadow"),
             "role": "option payoff-aware ranking",
             "status": "production_monitor",
             "recommendation": "Monitor calibration and drift; this is the recovered edge-bearing model.",
             "observations": int(learned_ranker.get("scored_candidates") or 0),
             "mode_counts": ranker_modes,
             "avg_learned_rank_score": learned_ranker.get("avg_learned_rank_score"),
+            "tracked_live_recommendations": tracked_live_recommendations,
+            "live_realized_pnl": live_realized_pnl,
+            "live_friday_close_avg_pnl_pct": live_friday_close_avg_pnl_pct,
             "promotion_step": "active",
         },
         {
@@ -728,12 +1012,14 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "mode": "observe",
             "role": "correlation, sector exposure, sizing, no-trade discipline",
             "status": "observe_only",
-            "recommendation": "Keep warnings visible; promote hard demotions only after shadow P&L improves.",
+            "recommendation": "Keep warnings visible; compare live picks against holdouts and friction vetoes before promoting harder controls.",
             "observations": int(council_summary.get("candidate_count") or 0),
             "live_risk_flags": live_risk_flags,
             "shadow_risk_flags": shadow_risk_flags,
             "avg_pairwise_correlation": council_summary.get("avg_pairwise_correlation"),
             "live_sector_counts": council_summary.get("live_sector_counts", {}),
+            "holdout_friday_close_avg_pnl_pct": holdout_friday_close_avg_pnl_pct,
+            "friction_veto_friday_close_avg_pnl_pct": friction_veto_friday_close_avg_pnl_pct,
             "promotion_step": "observe",
         },
     ]
@@ -752,6 +1038,16 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         },
         "gates": gates,
         "models": models,
+        "profitability_evidence": profitability_evidence,
+        "profitability_summary": {
+            "live_realized_pnl": live_realized_pnl,
+            "shadow_realized_pnl": shadow_realized_pnl,
+            "live_friday_close_avg_pnl_pct": live_friday_close_avg_pnl_pct,
+            "shadow_friday_close_avg_pnl_pct": shadow_friday_close_avg_pnl_pct,
+            "holdout_friday_close_avg_pnl_pct": holdout_friday_close_avg_pnl_pct,
+            "tracked_recommendations": tracked_recommendations,
+            "quote_coverage_pct": quote_coverage_pct,
+        },
     }
 
 
@@ -1328,6 +1624,7 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
         for note in council_notes
         if council.get("abstain") and "abstain" in str(note).lower()
     ]
+    promotion_readiness = payload.get("promotion_readiness") or build_promotion_readiness(payload)
 
     return {
         "artifact": "forge_rejection_waterfall",
@@ -1408,7 +1705,12 @@ def build_forge_rejection_waterfall_artifact(payload: dict[str, Any]) -> dict[st
                 council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
             ),
         },
-        "promotion_readiness": payload.get("promotion_readiness") or build_promotion_readiness(payload),
+        "promotion_readiness": promotion_readiness,
+        "profitability_evidence": (
+            promotion_readiness.get("profitability_evidence", {})
+            if isinstance(promotion_readiness, dict)
+            else {}
+        ),
     }
 
 
@@ -1432,6 +1734,7 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
     deduplication = forge.get("deduplication") if isinstance(forge.get("deduplication"), dict) else {}
     pre_forge_rejections = pre_forge.get("rejections") if isinstance(pre_forge.get("rejections"), list) else []
     friction_rejections = friction_gate.get("rejections") if isinstance(friction_gate.get("rejections"), list) else []
+    promotion_readiness = payload.get("promotion_readiness") if isinstance(payload.get("promotion_readiness"), dict) else {}
 
     live_contracts = {str(row.get("contract_symbol") or "") for row in live_board if isinstance(row, dict)}
     shadow_contracts = {str(row.get("contract_symbol") or "") for row in shadow_board if isinstance(row, dict)}
@@ -1532,6 +1835,7 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
         "council_holdouts": _compact_attribution_contract_view(council_holdouts[:5]),
         "friction_vetoes": friction_rejections[:5],
         "pre_forge_rejections": pre_forge_rejections[:5],
+        "profitability_evidence": promotion_readiness.get("profitability_evidence", {}),
     }
 
 

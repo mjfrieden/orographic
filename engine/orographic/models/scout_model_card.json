@@ -1,105 +1,95 @@
 {
   "artifact": "scout_model",
   "artifacts": {
-    "model_path": "/Users/mjfrieden/Desktop/2026/Orographic/engine/orographic/models/scout_model.pkl",
-    "model_sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
-    "scaler_path": "/Users/mjfrieden/Desktop/2026/Orographic/engine/orographic/models/scout_scaler.pkl",
-    "scaler_sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
-    "side_model_path": "/Users/mjfrieden/Desktop/2026/Orographic/engine/orographic/models/scout_side_model.pkl",
-    "side_model_sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa"
+    "model_path": "/Users/mjfrieden/.codex/worktrees/968c/Orographic/engine/orographic/models/scout_model.pkl",
+    "model_sha256": "a355728430d601a4fc6f4bd229b80dd401c32821a751f62a39bf835fb41dd90e",
+    "scaler_path": "/Users/mjfrieden/.codex/worktrees/968c/Orographic/engine/orographic/models/scout_scaler.pkl",
+    "scaler_sha256": "4d21e1fafbea398359f372e649a12063b9873923889302d7787a4afd642ed0ca",
+    "side_model_path": "/Users/mjfrieden/.codex/worktrees/968c/Orographic/engine/orographic/models/scout_side_model.pkl",
+    "side_model_sha256": "8bb27a544ed7383ea75da486c584b2f3958ffb778564186bb65ebf4533f8a091"
   },
-  "artifact_notes": [
-    "Active directional Scout model/scaler were restored to the pre-existing production artifacts after the 2026-04-22 retrain produced an all-call live scan in temp validation.",
-    "The side-aware Scout artifact was newly trained on strict-real option payoff labels and is shadow-only unless OROGRAPHIC_SIDE_MODEL_MODE=active is explicitly set."
-  ],
   "calibration": {
-    "calibrated_brier": 0.2454,
-    "calibrated_log_loss": 0.6839,
+    "calibrated_brier": 0.1533,
+    "calibrated_log_loss": 0.4779,
+    "decision_threshold": 0.6667,
     "method": "isotonic",
-    "oof_rows": 55525,
+    "oof_rows": 210,
     "probability_buckets": [
       {
-        "avg_fwd_5d_return": 0.0045,
-        "bucket": "(0.497, 0.547]",
-        "mean_pred_prob": 0.5435,
-        "realized_positive_rate": 0.5435,
-        "rows": 28234
+        "avg_directional_option_edge_spread": 0.3839,
+        "bucket": "(-0.001, 0.558]",
+        "mean_pred_prob": 0.5455,
+        "realized_positive_rate": 0.5455,
+        "rows": 44
       },
       {
-        "avg_fwd_5d_return": 0.003,
-        "bucket": "(0.547, 0.551]",
-        "mean_pred_prob": 0.548,
-        "realized_positive_rate": 0.548,
-        "rows": 5458
+        "avg_directional_option_edge_spread": 0.6702,
+        "bucket": "(0.558, 0.803]",
+        "mean_pred_prob": 0.7973,
+        "realized_positive_rate": 0.7973,
+        "rows": 74
       },
       {
-        "avg_fwd_5d_return": 0.0046,
-        "bucket": "(0.551, 0.575]",
-        "mean_pred_prob": 0.5746,
-        "realized_positive_rate": 0.5746,
-        "rows": 17213
-      },
-      {
-        "avg_fwd_5d_return": 0.0145,
-        "bucket": "(0.575, 1.0]",
-        "mean_pred_prob": 0.6342,
-        "realized_positive_rate": 0.6342,
-        "rows": 4620
+        "avg_directional_option_edge_spread": 0.6361,
+        "bucket": "(0.803, 0.88]",
+        "mean_pred_prob": 0.8804,
+        "realized_positive_rate": 0.8804,
+        "rows": 92
       }
     ],
-    "raw_brier": 0.2759,
-    "raw_log_loss": 0.7668
+    "raw_brier": 0.2879,
+    "raw_log_loss": 1.7575
   },
   "cross_validation": {
     "folds": [
       {
-        "auc": 0.5073,
-        "brier": 0.2995,
+        "auc": 0.6835,
+        "brier": 0.3252,
         "fold": 1,
-        "ic": 0.0632,
-        "log_loss": 0.8302,
-        "train_rows": 11108,
-        "validation_rows": 11105
+        "ic": 0.209,
+        "log_loss": 1.3395,
+        "train_rows": 47,
+        "validation_rows": 42
       },
       {
-        "auc": 0.5634,
-        "brier": 0.261,
+        "auc": 0.6465,
+        "brier": 0.3325,
         "fold": 2,
-        "ic": 0.128,
-        "log_loss": 0.7266,
-        "train_rows": 22213,
-        "validation_rows": 11105
+        "ic": -0.0685,
+        "log_loss": 3.5001,
+        "train_rows": 89,
+        "validation_rows": 42
       },
       {
-        "auc": 0.5615,
-        "brier": 0.2578,
+        "auc": 0.2773,
+        "brier": 0.5161,
         "fold": 3,
-        "ic": 0.0547,
-        "log_loss": 0.7152,
-        "train_rows": 33318,
-        "validation_rows": 11105
+        "ic": -0.1659,
+        "log_loss": 2.7816,
+        "train_rows": 131,
+        "validation_rows": 42
       },
       {
-        "auc": 0.5121,
-        "brier": 0.2906,
+        "auc": 0.7946,
+        "brier": 0.2361,
         "fold": 4,
-        "ic": 0.0276,
-        "log_loss": 0.8216,
-        "train_rows": 44423,
-        "validation_rows": 11105
+        "ic": 0.0006,
+        "log_loss": 0.8669,
+        "train_rows": 173,
+        "validation_rows": 42
       },
       {
-        "auc": 0.487,
-        "brier": 0.2708,
+        "auc": 0.0244,
+        "brier": 0.0294,
         "fold": 5,
-        "ic": -0.0481,
-        "log_loss": 0.7402,
-        "train_rows": 55528,
-        "validation_rows": 11105
+        "ic": -0.1494,
+        "log_loss": 0.2994,
+        "train_rows": 215,
+        "validation_rows": 42
       }
     ],
-    "mean_auc": 0.5263,
-    "mean_ic": 0.045
+    "mean_auc": 0.4852,
+    "mean_ic": -0.0348
   },
   "feature_cols": [
     "mom_5d",
@@ -119,413 +109,1223 @@
     "spy_mom_5d",
     "spy_mom_20d",
     "spy_rv20",
-    "rel_strength_20d"
+    "rel_strength_20d",
+    "fnspid_news_volume_1d",
+    "fnspid_news_volume_3d",
+    "fnspid_sentiment_mean",
+    "fnspid_sentiment_std",
+    "fnspid_novelty_score",
+    "fnspid_catalyst_density",
+    "edt_event_intensity",
+    "edt_acquisition_score",
+    "edt_clinical_trial_score",
+    "edt_dividend_score",
+    "edt_guidance_score",
+    "edt_new_contract_score",
+    "edt_repurchase_score",
+    "edt_split_score",
+    "edt_financing_score",
+    "edt_violation_score",
+    "edt_risk_warning_score",
+    "edt_rating_action_score",
+    "mirai_macro_shock_score",
+    "mirai_geopolitical_risk_score",
+    "mirai_commodity_risk_score",
+    "mirai_risk_on_score",
+    "mirai_risk_off_score",
+    "stocktwits_message_count",
+    "stocktwits_bullish_ratio",
+    "stocktwits_bearish_ratio",
+    "stocktwits_emotion_intensity",
+    "sec_8k_flag",
+    "sec_10q_flag",
+    "sec_10k_flag",
+    "sec_offering_flag",
+    "sec_proxy_flag",
+    "sec_signal_count_1d",
+    "sec_signal_count_5d",
+    "sec_material_event_score",
+    "sec_material_event_score_5d",
+    "sec_signal_ratio"
   ],
   "feature_importances": [
     {
       "feature": "spy_rv20",
-      "importance": 1988
-    },
-    {
-      "feature": "spy_mom_5d",
-      "importance": 1700
+      "importance": 635
     },
     {
       "feature": "spy_mom_20d",
-      "importance": 1645
-    },
-    {
-      "feature": "vol_regime",
-      "importance": 802
-    },
-    {
-      "feature": "rv60",
-      "importance": 775
-    },
-    {
-      "feature": "mom_60d",
-      "importance": 724
-    },
-    {
-      "feature": "atr_pct_14d",
-      "importance": 654
-    },
-    {
-      "feature": "rv20",
-      "importance": 614
-    },
-    {
-      "feature": "rsi_14",
-      "importance": 522
-    },
-    {
-      "feature": "mom_10d",
-      "importance": 521
-    },
-    {
-      "feature": "vol_adj_mom_20d",
-      "importance": 493
-    },
-    {
-      "feature": "rsi_7",
-      "importance": 470
+      "importance": 367
     },
     {
       "feature": "volume_ratio",
-      "importance": 447
+      "importance": 308
     },
     {
-      "feature": "rel_strength_20d",
-      "importance": 394
+      "feature": "vol_regime",
+      "importance": 280
     },
     {
-      "feature": "price_vs_ma20",
-      "importance": 393
-    },
-    {
-      "feature": "mom_20d",
-      "importance": 388
+      "feature": "mom_60d",
+      "importance": 277
     },
     {
       "feature": "vol_adj_mom_5d",
-      "importance": 370
+      "importance": 272
+    },
+    {
+      "feature": "mom_10d",
+      "importance": 264
+    },
+    {
+      "feature": "rsi_7",
+      "importance": 256
+    },
+    {
+      "feature": "spy_mom_5d",
+      "importance": 255
+    },
+    {
+      "feature": "rv60",
+      "importance": 212
     },
     {
       "feature": "mom_5d",
-      "importance": 363
+      "importance": 179
+    },
+    {
+      "feature": "rv20",
+      "importance": 175
+    },
+    {
+      "feature": "rsi_14",
+      "importance": 168
+    },
+    {
+      "feature": "atr_pct_14d",
+      "importance": 159
+    },
+    {
+      "feature": "mom_20d",
+      "importance": 157
+    },
+    {
+      "feature": "rel_strength_20d",
+      "importance": 113
+    },
+    {
+      "feature": "vol_adj_mom_20d",
+      "importance": 110
+    },
+    {
+      "feature": "price_vs_ma20",
+      "importance": 73
+    },
+    {
+      "feature": "sec_signal_count_5d",
+      "importance": 37
+    },
+    {
+      "feature": "mirai_macro_shock_score",
+      "importance": 36
+    },
+    {
+      "feature": "mirai_geopolitical_risk_score",
+      "importance": 6
+    },
+    {
+      "feature": "sec_material_event_score_5d",
+      "importance": 5
+    },
+    {
+      "feature": "mirai_commodity_risk_score",
+      "importance": 1
+    },
+    {
+      "feature": "fnspid_news_volume_1d",
+      "importance": 0
+    },
+    {
+      "feature": "fnspid_news_volume_3d",
+      "importance": 0
+    },
+    {
+      "feature": "fnspid_sentiment_mean",
+      "importance": 0
+    },
+    {
+      "feature": "fnspid_sentiment_std",
+      "importance": 0
+    },
+    {
+      "feature": "fnspid_novelty_score",
+      "importance": 0
+    },
+    {
+      "feature": "fnspid_catalyst_density",
+      "importance": 0
+    },
+    {
+      "feature": "edt_event_intensity",
+      "importance": 0
+    },
+    {
+      "feature": "edt_acquisition_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_clinical_trial_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_dividend_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_guidance_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_new_contract_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_repurchase_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_split_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_financing_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_violation_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_risk_warning_score",
+      "importance": 0
+    },
+    {
+      "feature": "edt_rating_action_score",
+      "importance": 0
+    },
+    {
+      "feature": "mirai_risk_on_score",
+      "importance": 0
+    },
+    {
+      "feature": "mirai_risk_off_score",
+      "importance": 0
+    },
+    {
+      "feature": "stocktwits_message_count",
+      "importance": 0
+    },
+    {
+      "feature": "stocktwits_bullish_ratio",
+      "importance": 0
+    },
+    {
+      "feature": "stocktwits_bearish_ratio",
+      "importance": 0
+    },
+    {
+      "feature": "stocktwits_emotion_intensity",
+      "importance": 0
+    },
+    {
+      "feature": "sec_8k_flag",
+      "importance": 0
+    },
+    {
+      "feature": "sec_10q_flag",
+      "importance": 0
+    },
+    {
+      "feature": "sec_10k_flag",
+      "importance": 0
+    },
+    {
+      "feature": "sec_offering_flag",
+      "importance": 0
+    },
+    {
+      "feature": "sec_proxy_flag",
+      "importance": 0
+    },
+    {
+      "feature": "sec_signal_count_1d",
+      "importance": 0
+    },
+    {
+      "feature": "sec_material_event_score",
+      "importance": 0
+    },
+    {
+      "feature": "sec_signal_ratio",
+      "importance": 0
     }
   ],
   "limitations": [
-    "Directional Scout target is underlying stock return, not option payoff.",
-    "The option-payoff side model has limited put-edge coverage and weak walk-forward balanced accuracy, so it is not active by default.",
+    "Primary Scout target is strict-real option-direction edge, but no-trade abstention still relies on the side-aware Scout artifact and downstream Council gates.",
     "Payoff-aware contract ranking is handled by the second-stage payoff model when available."
   ],
   "model_card_schema_version": 2,
   "observability": {
     "coverage": {
-      "date_end": "2025-12-23",
-      "date_start": "2023-04-19",
-      "rows": 66633,
+      "date_end": "2026-06-01",
+      "date_start": "2025-10-20",
+      "rows": 257,
       "rows_by_symbol": {
-        "AAPL": 664,
-        "ABBV": 664,
-        "ACN": 667,
-        "ADBE": 666,
-        "AMAT": 667,
-        "AMD": 673,
-        "AMGN": 673,
-        "AMZN": 670,
-        "ANET": 664,
-        "ARKK": 672,
-        "AVGO": 667,
-        "AXP": 668,
-        "BA": 671,
-        "BAC": 671,
-        "BLK": 657,
-        "BRK-B": 665,
-        "C": 659,
-        "CAT": 662,
-        "CMG": 671,
-        "COF": 662,
-        "COP": 669,
-        "COST": 661,
-        "CRM": 674,
-        "CRWD": 666,
-        "CSCO": 665,
-        "CVX": 663,
-        "DE": 669,
-        "DHR": 674,
-        "DIA": 665,
-        "DIS": 669,
-        "GE": 662,
-        "GILD": 664,
-        "GLD": 668,
-        "GOOGL": 664,
-        "GS": 663,
-        "HD": 669,
-        "HON": 674,
-        "HYG": 672,
-        "IBM": 655,
-        "INTC": 671,
-        "ISRG": 667,
-        "IWM": 672,
-        "JNJ": 657,
-        "JPM": 656,
-        "KLAC": 661,
-        "KO": 663,
-        "LLY": 670,
-        "LMT": 668,
-        "LOW": 669,
-        "LRCX": 662,
-        "MA": 670,
-        "MCD": 670,
-        "META": 652,
-        "MRK": 666,
-        "MS": 661,
-        "MSFT": 665,
-        "MU": 658,
-        "NFLX": 662,
-        "NKE": 663,
-        "NOW": 660,
-        "NVDA": 670,
-        "ORCL": 665,
-        "PANW": 670,
-        "PEP": 674,
-        "PFE": 672,
-        "PG": 665,
-        "PLTR": 668,
-        "PYPL": 670,
-        "QCOM": 667,
-        "QQQ": 664,
-        "RTX": 669,
-        "SBUX": 673,
-        "SCHW": 665,
-        "SHOP": 664,
-        "SLV": 672,
-        "SMH": 665,
-        "SPY": 659,
-        "T": 668,
-        "TLT": 672,
-        "TMO": 669,
-        "TMUS": 659,
-        "TSLA": 661,
-        "TXN": 670,
-        "UBER": 671,
-        "UNH": 670,
-        "UPS": 673,
-        "USO": 672,
-        "V": 664,
-        "VZ": 669,
-        "WFC": 664,
-        "WMT": 663,
-        "XLE": 667,
-        "XLF": 667,
-        "XLI": 670,
-        "XLK": 657,
-        "XLP": 671,
-        "XLU": 669,
-        "XLV": 663,
-        "XLY": 663,
-        "XOM": 667
+        "AAPL": 3,
+        "AMZN": 2,
+        "AXP": 1,
+        "BA": 3,
+        "BAC": 14,
+        "C": 4,
+        "CMG": 8,
+        "COF": 2,
+        "COP": 5,
+        "CRM": 1,
+        "CSCO": 6,
+        "CVX": 7,
+        "DIA": 8,
+        "DIS": 4,
+        "GE": 1,
+        "GLD": 1,
+        "HD": 3,
+        "HON": 2,
+        "IBM": 1,
+        "INTC": 2,
+        "JNJ": 2,
+        "JPM": 8,
+        "KO": 7,
+        "LMT": 2,
+        "LOW": 2,
+        "MCD": 4,
+        "MRK": 4,
+        "MS": 3,
+        "MSFT": 1,
+        "NFLX": 3,
+        "NKE": 7,
+        "NOW": 1,
+        "NVDA": 1,
+        "PANW": 1,
+        "PEP": 7,
+        "PFE": 8,
+        "PG": 7,
+        "PYPL": 6,
+        "QCOM": 2,
+        "QQQ": 4,
+        "RTX": 4,
+        "SBUX": 5,
+        "SCHW": 7,
+        "SLV": 1,
+        "SPY": 7,
+        "T": 8,
+        "TLT": 4,
+        "TMUS": 3,
+        "UBER": 7,
+        "UPS": 6,
+        "V": 2,
+        "VZ": 9,
+        "WFC": 13,
+        "WMT": 9,
+        "XLE": 2,
+        "XLF": 5,
+        "XOM": 7
       },
-      "symbols": 100
+      "symbols": 57
+    },
+    "event_feature_store": {
+      "activation": {
+        "by_feature": {
+          "edt_acquisition_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_clinical_trial_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_dividend_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_event_intensity": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_financing_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_guidance_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_new_contract_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_rating_action_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_repurchase_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_risk_warning_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_split_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "edt_violation_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "fnspid_catalyst_density": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "fnspid_news_volume_1d": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "fnspid_news_volume_3d": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "fnspid_novelty_score": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "fnspid_sentiment_mean": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "fnspid_sentiment_std": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "mirai_commodity_risk_score": {
+            "nonzero_rows": 55,
+            "row_coverage_pct": 0.214
+          },
+          "mirai_geopolitical_risk_score": {
+            "nonzero_rows": 55,
+            "row_coverage_pct": 0.214
+          },
+          "mirai_macro_shock_score": {
+            "nonzero_rows": 55,
+            "row_coverage_pct": 0.214
+          },
+          "mirai_risk_off_score": {
+            "nonzero_rows": 55,
+            "row_coverage_pct": 0.214
+          },
+          "mirai_risk_on_score": {
+            "nonzero_rows": 55,
+            "row_coverage_pct": 0.214
+          },
+          "sec_10k_flag": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "sec_10q_flag": {
+            "nonzero_rows": 2,
+            "row_coverage_pct": 0.0078
+          },
+          "sec_8k_flag": {
+            "nonzero_rows": 8,
+            "row_coverage_pct": 0.0311
+          },
+          "sec_material_event_score": {
+            "nonzero_rows": 16,
+            "row_coverage_pct": 0.0623
+          },
+          "sec_material_event_score_5d": {
+            "nonzero_rows": 49,
+            "row_coverage_pct": 0.1907
+          },
+          "sec_offering_flag": {
+            "nonzero_rows": 5,
+            "row_coverage_pct": 0.0195
+          },
+          "sec_proxy_flag": {
+            "nonzero_rows": 2,
+            "row_coverage_pct": 0.0078
+          },
+          "sec_signal_count_1d": {
+            "nonzero_rows": 16,
+            "row_coverage_pct": 0.0623
+          },
+          "sec_signal_count_5d": {
+            "nonzero_rows": 49,
+            "row_coverage_pct": 0.1907
+          },
+          "sec_signal_ratio": {
+            "nonzero_rows": 16,
+            "row_coverage_pct": 0.0623
+          },
+          "stocktwits_bearish_ratio": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "stocktwits_bullish_ratio": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "stocktwits_emotion_intensity": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          },
+          "stocktwits_message_count": {
+            "nonzero_rows": 0,
+            "row_coverage_pct": 0.0
+          }
+        },
+        "feature_cols": [
+          "fnspid_news_volume_1d",
+          "fnspid_news_volume_3d",
+          "fnspid_sentiment_mean",
+          "fnspid_sentiment_std",
+          "fnspid_novelty_score",
+          "fnspid_catalyst_density",
+          "edt_event_intensity",
+          "edt_acquisition_score",
+          "edt_clinical_trial_score",
+          "edt_dividend_score",
+          "edt_guidance_score",
+          "edt_new_contract_score",
+          "edt_repurchase_score",
+          "edt_split_score",
+          "edt_financing_score",
+          "edt_violation_score",
+          "edt_risk_warning_score",
+          "edt_rating_action_score",
+          "mirai_macro_shock_score",
+          "mirai_geopolitical_risk_score",
+          "mirai_commodity_risk_score",
+          "mirai_risk_on_score",
+          "mirai_risk_off_score",
+          "stocktwits_message_count",
+          "stocktwits_bullish_ratio",
+          "stocktwits_bearish_ratio",
+          "stocktwits_emotion_intensity",
+          "sec_8k_flag",
+          "sec_10q_flag",
+          "sec_10k_flag",
+          "sec_offering_flag",
+          "sec_proxy_flag",
+          "sec_signal_count_1d",
+          "sec_signal_count_5d",
+          "sec_material_event_score",
+          "sec_material_event_score_5d",
+          "sec_signal_ratio"
+        ],
+        "row_coverage_pct": 0.323,
+        "rows_with_any_event_feature": 83
+      },
+      "configured": true,
+      "feature_cols": [
+        "fnspid_news_volume_1d",
+        "fnspid_news_volume_3d",
+        "fnspid_sentiment_mean",
+        "fnspid_sentiment_std",
+        "fnspid_novelty_score",
+        "fnspid_catalyst_density",
+        "edt_event_intensity",
+        "edt_acquisition_score",
+        "edt_clinical_trial_score",
+        "edt_dividend_score",
+        "edt_guidance_score",
+        "edt_new_contract_score",
+        "edt_repurchase_score",
+        "edt_split_score",
+        "edt_financing_score",
+        "edt_violation_score",
+        "edt_risk_warning_score",
+        "edt_rating_action_score",
+        "mirai_macro_shock_score",
+        "mirai_geopolitical_risk_score",
+        "mirai_commodity_risk_score",
+        "mirai_risk_on_score",
+        "mirai_risk_off_score",
+        "stocktwits_message_count",
+        "stocktwits_bullish_ratio",
+        "stocktwits_bearish_ratio",
+        "stocktwits_emotion_intensity",
+        "sec_8k_flag",
+        "sec_10q_flag",
+        "sec_10k_flag",
+        "sec_offering_flag",
+        "sec_proxy_flag",
+        "sec_signal_count_1d",
+        "sec_signal_count_5d",
+        "sec_material_event_score",
+        "sec_material_event_score_5d",
+        "sec_signal_ratio"
+      ],
+      "rows": 6519,
+      "symbols": 88
     },
     "feature_drift_baseline": {
       "atr_pct_14d": {
-        "mean": 0.023202,
-        "p05": 0.010486,
-        "p50": 0.020733,
-        "p95": 0.044539,
-        "std": 0.011192
+        "mean": 0.02303,
+        "p05": 0.012199,
+        "p50": 0.021968,
+        "p95": 0.037224,
+        "std": 0.007932
+      },
+      "edt_acquisition_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_clinical_trial_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_dividend_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_event_intensity": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_financing_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_guidance_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_new_contract_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_rating_action_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_repurchase_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_risk_warning_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_split_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "edt_violation_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "fnspid_catalyst_density": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "fnspid_news_volume_1d": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "fnspid_news_volume_3d": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "fnspid_novelty_score": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "fnspid_sentiment_mean": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "fnspid_sentiment_std": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "mirai_commodity_risk_score": {
+        "mean": 0.206226,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.396826
+      },
+      "mirai_geopolitical_risk_score": {
+        "mean": 0.206226,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.396826
+      },
+      "mirai_macro_shock_score": {
+        "mean": 0.214008,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.410132
+      },
+      "mirai_risk_off_score": {
+        "mean": 0.206226,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.396826
+      },
+      "mirai_risk_on_score": {
+        "mean": 0.206226,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.396826
       },
       "mom_10d": {
-        "mean": 0.008277,
-        "p05": -0.082574,
-        "p50": 0.00646,
-        "p95": 0.103994,
-        "std": 0.059904
+        "mean": -0.008217,
+        "p05": -0.096956,
+        "p50": -0.010211,
+        "p95": 0.082101,
+        "std": 0.060304
       },
       "mom_20d": {
-        "mean": 0.017548,
-        "p05": -0.106314,
-        "p50": 0.013098,
-        "p95": 0.155569,
-        "std": 0.084275
+        "mean": -0.007616,
+        "p05": -0.129431,
+        "p50": -0.012568,
+        "p95": 0.127313,
+        "std": 0.082564
       },
       "mom_5d": {
-        "mean": 0.003924,
-        "p05": -0.059902,
-        "p50": 0.003238,
-        "p95": 0.069866,
-        "std": 0.042863
+        "mean": -0.000167,
+        "p05": -0.056773,
+        "p50": 0.002434,
+        "p95": 0.054568,
+        "std": 0.040965
       },
       "mom_60d": {
-        "mean": 0.054591,
-        "p05": -0.153718,
-        "p50": 0.038423,
-        "p95": 0.31644,
-        "std": 0.152915
+        "mean": -0.001865,
+        "p05": -0.198113,
+        "p50": 0.006953,
+        "p95": 0.171515,
+        "std": 0.131822
       },
       "price_vs_ma20": {
-        "mean": 0.321124,
-        "p05": -2.558247,
-        "p50": 0.340244,
-        "p95": 3.135453,
-        "std": 1.72557
+        "mean": -0.129785,
+        "p05": -3.075605,
+        "p50": -0.231914,
+        "p95": 2.683896,
+        "std": 1.786339
       },
       "rel_strength_20d": {
-        "mean": 0.001488,
-        "p05": -0.108119,
-        "p50": -0.002694,
-        "p95": 0.125557,
-        "std": 0.076275
+        "mean": -0.022899,
+        "p05": -0.157235,
+        "p50": -0.015767,
+        "p95": 0.109742,
+        "std": 0.087918
       },
       "rsi_14": {
-        "mean": 53.1962,
-        "p05": 24.57764,
-        "p50": 53.432793,
-        "p95": 80.945824,
-        "std": 17.16087
+        "mean": 49.081638,
+        "p05": 23.019138,
+        "p50": 49.186041,
+        "p95": 76.925671,
+        "std": 17.293275
       },
       "rsi_7": {
-        "mean": 53.016682,
-        "p05": 13.476739,
-        "p50": 53.658534,
-        "p95": 90.572112,
-        "std": 23.549764
+        "mean": 46.35928,
+        "p05": 8.524857,
+        "p50": 47.665862,
+        "p95": 84.202571,
+        "std": 23.334236
       },
       "rv20": {
-        "mean": 0.26847,
-        "p05": 0.108103,
-        "p50": 0.229048,
-        "p95": 0.557555,
-        "std": 0.152789
+        "mean": 0.260926,
+        "p05": 0.130572,
+        "p50": 0.233574,
+        "p95": 0.478006,
+        "std": 0.119969
       },
       "rv60": {
-        "mean": 0.277404,
-        "p05": 0.118286,
-        "p50": 0.247196,
-        "p95": 0.546361,
-        "std": 0.13375
+        "mean": 0.254161,
+        "p05": 0.126978,
+        "p50": 0.235864,
+        "p95": 0.399321,
+        "std": 0.090894
+      },
+      "sec_10k_flag": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "sec_10q_flag": {
+        "mean": 0.007782,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.087872
+      },
+      "sec_8k_flag": {
+        "mean": 0.031128,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.173665
+      },
+      "sec_material_event_score": {
+        "mean": 0.069261,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.279397
+      },
+      "sec_material_event_score_5d": {
+        "mean": 0.359339,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 2.12,
+        "std": 0.883281
+      },
+      "sec_offering_flag": {
+        "mean": 0.019455,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.138119
+      },
+      "sec_proxy_flag": {
+        "mean": 0.007782,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.087872
+      },
+      "sec_signal_count_1d": {
+        "mean": 0.066148,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 1.0,
+        "std": 0.263732
+      },
+      "sec_signal_count_5d": {
+        "mean": 0.342412,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 2.0,
+        "std": 0.850424
+      },
+      "sec_signal_ratio": {
+        "mean": 0.055447,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.6,
+        "std": 0.22293
       },
       "spy_mom_20d": {
-        "mean": 0.01606,
-        "p05": -0.049423,
-        "p50": 0.022331,
-        "p95": 0.060367,
-        "std": 0.035274
+        "mean": 0.015283,
+        "p05": -0.024094,
+        "p50": 0.006526,
+        "p95": 0.060472,
+        "std": 0.025971
       },
       "spy_mom_5d": {
-        "mean": 0.003779,
-        "p05": -0.028702,
-        "p50": 0.004819,
-        "p95": 0.033656,
-        "std": 0.019856
+        "mean": 0.005744,
+        "p05": -0.015995,
+        "p50": 0.004597,
+        "p95": 0.032229,
+        "std": 0.013835
       },
       "spy_rv20": {
-        "mean": 0.135054,
-        "p05": 0.073491,
-        "p50": 0.119582,
-        "p95": 0.215646,
-        "std": 0.076004
+        "mean": 0.119289,
+        "p05": 0.087473,
+        "p50": 0.107119,
+        "p95": 0.150317,
+        "std": 0.024469
+      },
+      "stocktwits_bearish_ratio": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "stocktwits_bullish_ratio": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "stocktwits_emotion_intensity": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
+      },
+      "stocktwits_message_count": {
+        "mean": 0.0,
+        "p05": 0.0,
+        "p50": 0.0,
+        "p95": 0.0,
+        "std": 0.0
       },
       "vol_adj_mom_20d": {
-        "mean": 0.074773,
-        "p05": -0.376644,
-        "p50": 0.062656,
-        "p95": 0.566191,
-        "std": 0.291375
+        "mean": -0.010574,
+        "p05": -0.454148,
+        "p50": -0.046065,
+        "p95": 0.518528,
+        "std": 0.306342
       },
       "vol_adj_mom_5d": {
-        "mean": 0.014426,
-        "p05": -0.222847,
-        "p50": 0.01534,
-        "p95": 0.24935,
-        "std": 0.142032
+        "mean": 0.003569,
+        "p05": -0.241095,
+        "p50": 0.011435,
+        "p95": 0.223194,
+        "std": 0.136389
       },
       "vol_regime": {
-        "mean": 0.97398,
-        "p05": 0.575583,
-        "p50": 0.964948,
-        "p95": 1.402733,
-        "std": 0.24502
+        "mean": 1.02404,
+        "p05": 0.68444,
+        "p50": 1.003416,
+        "p95": 1.396178,
+        "std": 0.233456
       },
       "volume_ratio": {
-        "mean": 1.011466,
-        "p05": 0.562988,
-        "p50": 0.920005,
-        "p95": 1.752361,
-        "std": 0.440102
+        "mean": 0.974146,
+        "p05": 0.555596,
+        "p50": 0.916005,
+        "p95": 1.501465,
+        "std": 0.311784
+      }
+    },
+    "primary_target": {
+      "balance_report": {
+        "class_counts": {
+          "call_edge": 203,
+          "put_edge": 54
+        },
+        "class_regime_counts": {
+          "call_edge": {
+            "neutral": 86,
+            "risk_off": 32,
+            "risk_on": 85
+          },
+          "put_edge": {
+            "neutral": 48,
+            "risk_on": 6
+          }
+        },
+        "class_shares": {
+          "call_edge": 0.7899,
+          "put_edge": 0.2101
+        },
+        "minority_share": 0.2101,
+        "regime_counts": {
+          "neutral": 134,
+          "risk_off": 32,
+          "risk_on": 91
+        },
+        "rows": 257
+      },
+      "decision_threshold": 0.6667,
+      "description": "probability that strict-real call-side option edge beats put-side option edge",
+      "mode": "strict_real_option_direction",
+      "positive_class_name": "call_edge",
+      "rows": 257,
+      "source_metadata": {
+        "balance_report": {
+          "class_counts": {
+            "call_edge": 203,
+            "put_edge": 54
+          },
+          "class_regime_counts": {
+            "call_edge": {
+              "neutral": 86,
+              "risk_off": 32,
+              "risk_on": 85
+            },
+            "put_edge": {
+              "neutral": 48,
+              "risk_on": 6
+            }
+          },
+          "class_shares": {
+            "call_edge": 0.7899,
+            "put_edge": 0.2101
+          },
+          "minority_share": 0.2101,
+          "regime_counts": {
+            "neutral": 134,
+            "risk_off": 32,
+            "risk_on": 91
+          },
+          "rows": 257
+        },
+        "class_counts": {
+          "call_edge": 203,
+          "put_edge": 54
+        },
+        "directional_symbol_dates": 257,
+        "input_files": [
+          "output/option_outcomes_live_recommendations.json",
+          "output/backtest_results_2026-06-20_blended_target_dte_7_14_strict_real_execution_stress_6mo_end_2026-04-13.json",
+          "output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_6mo.json",
+          "output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_3mo.json"
+        ],
+        "labeled_symbol_dates": 713,
+        "merged_symbol_dates": 644,
+        "skipped_after_cutoff": 0,
+        "trade_rows": 2483
       }
     },
     "segments": {
+      "by_actual_side": {
+        "call_edge": {
+          "avg_directional_option_edge_spread": 1.0227,
+          "avg_pred_prob": 0.8037,
+          "brier": 0.0505,
+          "positive_rate": 1.0,
+          "rows": 164
+        },
+        "put_edge": {
+          "avg_directional_option_edge_spread": -0.9286,
+          "avg_pred_prob": 0.6999,
+          "brier": 0.5199,
+          "positive_rate": 0.0,
+          "rows": 46
+        }
+      },
+      "by_actual_side_regime": {
+        "call_edge_neutral": {
+          "avg_directional_option_edge_spread": 1.1411,
+          "avg_pred_prob": 0.7482,
+          "brier": 0.08,
+          "positive_rate": 1.0,
+          "rows": 72
+        },
+        "call_edge_risk_on": {
+          "avg_directional_option_edge_spread": 0.9399,
+          "avg_pred_prob": 0.844,
+          "brier": 0.0287,
+          "positive_rate": 1.0,
+          "rows": 84
+        },
+        "put_edge_neutral": {
+          "avg_directional_option_edge_spread": -0.9521,
+          "avg_pred_prob": 0.6917,
+          "brier": 0.5083,
+          "positive_rate": 0.0,
+          "rows": 44
+        }
+      },
       "by_regime": {
         "neutral": {
-          "avg_fwd_5d_return": 0.0044,
-          "avg_pred_prob": 0.5554,
-          "brier": 0.2462,
-          "positive_rate": 0.5521,
-          "rows": 17082
-        },
-        "risk_off": {
-          "avg_fwd_5d_return": 0.0091,
-          "avg_pred_prob": 0.5903,
-          "brier": 0.2382,
-          "positive_rate": 0.5997,
-          "rows": 8849
+          "avg_directional_option_edge_spread": 0.3471,
+          "avg_pred_prob": 0.7267,
+          "brier": 0.2424,
+          "positive_rate": 0.6207,
+          "rows": 116
         },
         "risk_on": {
-          "avg_fwd_5d_return": 0.0045,
-          "avg_pred_prob": 0.5557,
-          "brier": 0.2471,
-          "positive_rate": 0.5548,
-          "rows": 29594
+          "avg_directional_option_edge_spread": 0.9085,
+          "avg_pred_prob": 0.8448,
+          "brier": 0.046,
+          "positive_rate": 0.9767,
+          "rows": 86
         }
       },
       "by_side": {
         "call": {
-          "avg_fwd_5d_return": 0.0053,
-          "avg_pred_prob": 0.5616,
-          "brier": 0.2454,
-          "positive_rate": 0.5616,
-          "rows": 55079
+          "avg_directional_option_edge_spread": 0.6561,
+          "avg_pred_prob": 0.8466,
+          "brier": 0.1284,
+          "positive_rate": 0.8466,
+          "rows": 163
         },
         "put": {
-          "avg_fwd_5d_return": -0.0011,
-          "avg_pred_prob": 0.4978,
-          "brier": 0.25,
-          "positive_rate": 0.4978,
-          "rows": 446
+          "avg_directional_option_edge_spread": 0.3843,
+          "avg_pred_prob": 0.5532,
+          "brier": 0.2398,
+          "positive_rate": 0.5532,
+          "rows": 47
         }
       },
       "by_side_regime": {
         "call_neutral": {
-          "avg_fwd_5d_return": 0.0045,
-          "avg_pred_prob": 0.5558,
-          "brier": 0.2462,
-          "positive_rate": 0.5538,
-          "rows": 16960
-        },
-        "call_risk_off": {
-          "avg_fwd_5d_return": 0.0091,
-          "avg_pred_prob": 0.5909,
-          "brier": 0.2381,
-          "positive_rate": 0.5995,
-          "rows": 8793
+          "avg_directional_option_edge_spread": 0.3318,
+          "avg_pred_prob": 0.833,
+          "brier": 0.2422,
+          "positive_rate": 0.6806,
+          "rows": 72
         },
         "call_risk_on": {
-          "avg_fwd_5d_return": 0.0046,
-          "avg_pred_prob": 0.5563,
-          "brier": 0.2471,
-          "positive_rate": 0.5548,
-          "rows": 29326
+          "avg_directional_option_edge_spread": 0.9211,
+          "avg_pred_prob": 0.8552,
+          "brier": 0.0406,
+          "positive_rate": 0.9759,
+          "rows": 83
         },
         "put_neutral": {
-          "avg_fwd_5d_return": -0.0104,
-          "avg_pred_prob": 0.4978,
-          "brier": 0.2492,
-          "positive_rate": 0.3115,
-          "rows": 122
-        },
-        "put_risk_off": {
-          "avg_fwd_5d_return": 0.0122,
-          "avg_pred_prob": 0.4978,
-          "brier": 0.2506,
-          "positive_rate": 0.6429,
-          "rows": 56
-        },
-        "put_risk_on": {
-          "avg_fwd_5d_return": 0.0003,
-          "avg_pred_prob": 0.4978,
-          "brier": 0.2502,
-          "positive_rate": 0.5522,
-          "rows": 268
+          "avg_directional_option_edge_spread": 0.3723,
+          "avg_pred_prob": 0.5529,
+          "brier": 0.2429,
+          "positive_rate": 0.5227,
+          "rows": 44
         }
-      }
+      },
+      "target_value_field": "directional_option_edge_spread"
     }
   },
-  "positive_label_rate": 0.5501,
-  "rows": 66633,
+  "positive_label_rate": 0.7899,
+  "primary_target": {
+    "balance_report": {
+      "class_counts": {
+        "call_edge": 203,
+        "put_edge": 54
+      },
+      "class_regime_counts": {
+        "call_edge": {
+          "neutral": 86,
+          "risk_off": 32,
+          "risk_on": 85
+        },
+        "put_edge": {
+          "neutral": 48,
+          "risk_on": 6
+        }
+      },
+      "class_shares": {
+        "call_edge": 0.7899,
+        "put_edge": 0.2101
+      },
+      "minority_share": 0.2101,
+      "regime_counts": {
+        "neutral": 134,
+        "risk_off": 32,
+        "risk_on": 91
+      },
+      "rows": 257
+    },
+    "decision_threshold": 0.6667,
+    "description": "probability that strict-real call-side option edge beats put-side option edge",
+    "mode": "strict_real_option_direction",
+    "outcome_value_field": "directional_option_edge_spread",
+    "positive_class_name": "call_edge",
+    "rows": 257,
+    "source_metadata": {
+      "balance_report": {
+        "class_counts": {
+          "call_edge": 203,
+          "put_edge": 54
+        },
+        "class_regime_counts": {
+          "call_edge": {
+            "neutral": 86,
+            "risk_off": 32,
+            "risk_on": 85
+          },
+          "put_edge": {
+            "neutral": 48,
+            "risk_on": 6
+          }
+        },
+        "class_shares": {
+          "call_edge": 0.7899,
+          "put_edge": 0.2101
+        },
+        "minority_share": 0.2101,
+        "regime_counts": {
+          "neutral": 134,
+          "risk_off": 32,
+          "risk_on": 91
+        },
+        "rows": 257
+      },
+      "class_counts": {
+        "call_edge": 203,
+        "put_edge": 54
+      },
+      "directional_symbol_dates": 257,
+      "input_files": [
+        "output/option_outcomes_live_recommendations.json",
+        "output/backtest_results_2026-06-20_blended_target_dte_7_14_strict_real_execution_stress_6mo_end_2026-04-13.json",
+        "output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_6mo.json",
+        "output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_3mo.json"
+      ],
+      "labeled_symbol_dates": 713,
+      "merged_symbol_dates": 644,
+      "skipped_after_cutoff": 0,
+      "trade_rows": 2483
+    }
+  },
+  "rows": 257,
   "side_aware_output": {
     "classes": [
       "call_edge",
@@ -536,9 +1336,9 @@
     "mode": "trained_option_payoff_three_class",
     "training_metrics": {
       "class_counts": {
-        "call_edge": 205,
-        "no_trade": 209,
-        "put_edge": 19
+        "call_edge": 203,
+        "no_trade": 387,
+        "put_edge": 54
       },
       "classes": {
         "0": "put_edge",
@@ -548,41 +1348,56 @@
       "cross_validation": {
         "fold_reports": [
           {
-            "balanced_accuracy": 0.3688,
+            "balanced_accuracy": 0.4381,
             "fold": 1,
             "train_rows": 109,
-            "validation_rows": 108
+            "validation_rows": 107
           },
           {
-            "balanced_accuracy": 0.5317,
+            "balanced_accuracy": 0.4806,
             "fold": 2,
-            "train_rows": 217,
-            "validation_rows": 108
+            "train_rows": 216,
+            "validation_rows": 107
           },
           {
-            "balanced_accuracy": 0.3284,
+            "balanced_accuracy": 0.3529,
             "fold": 3,
-            "train_rows": 325,
-            "validation_rows": 108
+            "train_rows": 323,
+            "validation_rows": 107
+          },
+          {
+            "balanced_accuracy": 0.3158,
+            "fold": 4,
+            "train_rows": 430,
+            "validation_rows": 107
+          },
+          {
+            "balanced_accuracy": 0.424,
+            "fold": 5,
+            "train_rows": 537,
+            "validation_rows": 107
           }
         ],
-        "folds": 3,
-        "mean_balanced_accuracy": 0.4097
+        "folds": 5,
+        "mean_balanced_accuracy": 0.4023
       },
       "label_threshold_abs_fwd_5d_return": null,
-      "rows": 433,
+      "rows": 644,
       "source_metadata": {
         "class_counts": {
-          "call_edge": 208,
-          "no_trade": 210,
-          "put_edge": 19
+          "call_edge": 225,
+          "no_trade": 430,
+          "put_edge": 58
         },
         "input_files": [
-          "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"
+          "output/option_outcomes_live_recommendations.json",
+          "output/backtest_results_2026-06-20_blended_target_dte_7_14_strict_real_execution_stress_6mo_end_2026-04-13.json",
+          "output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_6mo.json",
+          "output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_3mo.json"
         ],
-        "labeled_symbol_dates": 437,
-        "skipped_after_cutoff": 184,
-        "trade_rows": 671
+        "labeled_symbol_dates": 713,
+        "skipped_after_cutoff": 0,
+        "trade_rows": 2483
       },
       "target": "strict_real_option_payoff",
       "training_balanced_accuracy": 1.0
@@ -792,9 +1607,9 @@
     "XLY",
     "XOM"
   ],
-  "target": "probability that forward 5-day underlying return is positive",
-  "trained_at": "2026-04-22",
-  "training_cutoff": "2026-01-01",
+  "target": "probability that strict-real call-side option edge beats put-side option edge",
+  "trained_at": "2026-06-22",
+  "training_cutoff": "2026-06-08",
   "version": 3,
-  "years_requested": 3
+  "years_requested": 2
 }

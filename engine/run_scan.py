@@ -13,6 +13,8 @@ from engine.orographic.pipeline import (
     append_research_run_ledger,
     append_board_recommendation_history,
     append_prospective_pick_ledger,
+    build_live_shadow_attribution_artifact,
+    build_promotion_readiness,
     PipelineConfig,
     append_side_aware_shadow_ledger,
     load_universe,
@@ -228,6 +230,78 @@ def main() -> int:
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
         )
     )
+    diagnostic_sources: dict[str, str] = {}
+    if not args.no_research_ledger:
+        research_ledger_path = (
+            Path(args.research_ledger_output)
+            if args.research_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "research_run_ledger.json"
+        )
+        written = append_research_run_ledger(
+            research_ledger_path,
+            payload,
+            max_entries=max(int(args.research_ledger_max_entries), 1),
+        )
+        diagnostic_sources["research_ledger"] = str(written)
+        log.info("Updated research run ledger at %s.", written)
+    if not args.no_prospective_ledger:
+        prospective_ledger_path = (
+            Path(args.prospective_ledger_output)
+            if args.prospective_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "prospective_pick_ledger.json"
+        )
+        written = append_prospective_pick_ledger(
+            prospective_ledger_path,
+            payload,
+            max_entries=max(int(args.prospective_ledger_max_entries), 1),
+        )
+        diagnostic_sources["prospective_ledger"] = str(written)
+        log.info("Updated prospective pick ledger at %s.", written)
+    if not args.no_moonshot_ledger:
+        moonshot_ledger_path = (
+            Path(args.moonshot_ledger_output)
+            if args.moonshot_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "moonshot_prospective_ledger.json"
+        )
+        written = append_moonshot_prospective_ledger(
+            moonshot_ledger_path,
+            payload,
+            max_entries=max(int(args.moonshot_ledger_max_entries), 1),
+        )
+        diagnostic_sources["moonshot_ledger"] = str(written)
+        log.info("Updated moonshot prospective ledger at %s.", written)
+    if not args.no_board_history:
+        board_history_path = (
+            Path(args.board_history_output)
+            if args.board_history_output.strip()
+            else Path(args.output).parent / "diagnostics" / "board_recommendation_history.json"
+        )
+        written = append_board_recommendation_history(
+            board_history_path,
+            payload,
+            max_entries=max(int(args.board_history_max_entries), 1),
+        )
+        diagnostic_sources["board_history"] = str(written)
+        log.info("Updated board recommendation history at %s.", written)
+    if not args.no_shadow_ledger:
+        ledger_path = (
+            Path(args.shadow_ledger_output)
+            if args.shadow_ledger_output.strip()
+            else Path(args.output).parent / "diagnostics" / "side_aware_scout_shadow_ledger.json"
+        )
+        written = append_side_aware_shadow_ledger(
+            ledger_path,
+            payload,
+            max_entries=max(int(args.shadow_ledger_max_entries), 1),
+        )
+        diagnostic_sources["shadow_ledger"] = str(written)
+        log.info("Updated side-aware Scout shadow ledger at %s.", written)
+
+    if diagnostic_sources:
+        payload["diagnostic_sources"] = diagnostic_sources
+        payload["promotion_readiness"] = build_promotion_readiness(payload)
+        payload["attribution"] = build_live_shadow_attribution_artifact(payload)
+
     write_snapshot(args.output, payload)
     diagnostic_paths = write_forge_rejection_waterfall_artifacts(args.output, payload)
     log.info(
@@ -241,66 +315,6 @@ def main() -> int:
         attribution_paths[0],
         attribution_paths[1],
     )
-    if not args.no_research_ledger:
-        research_ledger_path = (
-            Path(args.research_ledger_output)
-            if args.research_ledger_output.strip()
-            else Path(args.output).parent / "diagnostics" / "research_run_ledger.json"
-        )
-        written = append_research_run_ledger(
-            research_ledger_path,
-            payload,
-            max_entries=max(int(args.research_ledger_max_entries), 1),
-        )
-        log.info("Updated research run ledger at %s.", written)
-    if not args.no_prospective_ledger:
-        prospective_ledger_path = (
-            Path(args.prospective_ledger_output)
-            if args.prospective_ledger_output.strip()
-            else Path(args.output).parent / "diagnostics" / "prospective_pick_ledger.json"
-        )
-        written = append_prospective_pick_ledger(
-            prospective_ledger_path,
-            payload,
-            max_entries=max(int(args.prospective_ledger_max_entries), 1),
-        )
-        log.info("Updated prospective pick ledger at %s.", written)
-    if not args.no_moonshot_ledger:
-        moonshot_ledger_path = (
-            Path(args.moonshot_ledger_output)
-            if args.moonshot_ledger_output.strip()
-            else Path(args.output).parent / "diagnostics" / "moonshot_prospective_ledger.json"
-        )
-        written = append_moonshot_prospective_ledger(
-            moonshot_ledger_path,
-            payload,
-            max_entries=max(int(args.moonshot_ledger_max_entries), 1),
-        )
-        log.info("Updated moonshot prospective ledger at %s.", written)
-    if not args.no_board_history:
-        board_history_path = (
-            Path(args.board_history_output)
-            if args.board_history_output.strip()
-            else Path(args.output).parent / "diagnostics" / "board_recommendation_history.json"
-        )
-        written = append_board_recommendation_history(
-            board_history_path,
-            payload,
-            max_entries=max(int(args.board_history_max_entries), 1),
-        )
-        log.info("Updated board recommendation history at %s.", written)
-    if not args.no_shadow_ledger:
-        ledger_path = (
-            Path(args.shadow_ledger_output)
-            if args.shadow_ledger_output.strip()
-            else Path(args.output).parent / "diagnostics" / "side_aware_scout_shadow_ledger.json"
-        )
-        written = append_side_aware_shadow_ledger(
-            ledger_path,
-            payload,
-            max_entries=max(int(args.shadow_ledger_max_entries), 1),
-        )
-        log.info("Updated side-aware Scout shadow ledger at %s.", written)
 
     if args.positions_log_output.strip():
         try:

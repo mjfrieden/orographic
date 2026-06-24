@@ -52,19 +52,20 @@ def _trade_row(**overrides: object) -> dict[str, object]:
 
 
 class TrainPayoffModelLoaderTests(unittest.TestCase):
-    def test_default_input_paths_prefers_canonical_candidates(self) -> None:
+    def test_default_input_paths_returns_existing_canonical_candidates_in_priority_order(self) -> None:
+        live = Path("output/option_outcomes_live_recommendations.json")
         canonical = Path("output/option_outcomes_latest.json")
         legacy = Path("output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json")
 
         original_exists = Path.exists
 
         def fake_exists(path: Path) -> bool:
-            return path == canonical or path == legacy
+            return path in {live, canonical, legacy}
 
         with mock.patch.object(Path, "exists", fake_exists):
             resolved = default_input_paths()
 
-        self.assertEqual(resolved, [canonical])
+        self.assertEqual(resolved, [live, canonical, legacy])
 
     def test_load_examples_accepts_canonical_option_outcome_dataset(self) -> None:
         payload = {
@@ -154,6 +155,31 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
         self.assertEqual(metadata["legacy_result_files"], [str(legacy_path)])
         self.assertEqual(metadata["input_rows_by_file"][str(canonical_path)], 1)
         self.assertEqual(metadata["input_rows_by_file"][str(legacy_path)], 1)
+
+    def test_load_examples_uses_archived_quote_path_marks_for_mfe_and_mae(self) -> None:
+        canonical = {
+            "artifact": "option_outcome_dataset",
+            "rows": [
+                _trade_row(
+                    archived_quote_path={
+                        "status": "observed",
+                        "marks": [
+                            {"pnl_pct_from_emission": -0.15},
+                            {"pnl_pct_from_emission": 0.35},
+                        ],
+                    }
+                )
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            canonical_path = Path(tmpdir) / "canonical.json"
+            canonical_path.write_text(json.dumps(canonical), encoding="utf-8")
+            examples, metadata = load_examples([canonical_path], options_data_dir=None)
+
+        self.assertEqual(len(examples), 1)
+        self.assertAlmostEqual(examples[0].max_favorable_excursion_before_expiry, 0.35, places=6)
+        self.assertAlmostEqual(examples[0].adverse_excursion_risk, -0.15, places=6)
+        self.assertEqual(metadata["exact_quote_marks_used"], 2)
 
     def test_train_report_includes_dataset_observability_and_promotion_gates(self) -> None:
         examples = []

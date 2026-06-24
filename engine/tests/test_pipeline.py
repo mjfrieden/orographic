@@ -192,6 +192,89 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(diagnostics["signals_selected"], 2)
         self.assertIn("AAA", [row["symbol"] for row in diagnostics["rejections"]])
 
+    def test_pre_forge_uses_best_tradable_expiry_within_window(self) -> None:
+        signal = _signal("AAA")
+        liquid_chain = _chain(bid=1.0, ask=1.08, open_interest=400, volume=120)
+        illiquid_chain = _chain(bid=0.05, ask=0.50, open_interest=10, volume=5)
+
+        def fake_option_chain(symbol: str, expiry: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+            frame = illiquid_chain if expiry == "2026-04-17" else liquid_chain
+            return frame.copy(), pd.DataFrame()
+
+        with (
+            mock.patch("engine.orographic.forge.option_expiries", return_value=["2026-04-17", "2026-04-24"]),
+            mock.patch("engine.orographic.forge.option_chain", side_effect=fake_option_chain),
+        ):
+            selected, diagnostics = select_signals_for_forge(
+                [signal],
+                target_count=1,
+                minimum_days_to_expiry=7,
+                maximum_days_to_expiry=14,
+                today=date(2026, 4, 10),
+            )
+
+        self.assertEqual([row.symbol for row in selected], ["AAA"])
+        self.assertEqual(diagnostics["selected_expiries"], [{"symbol": "AAA", "expiry": "2026-04-24"}])
+
+    def test_rank_contracts_uses_best_expiry_with_candidates_in_window(self) -> None:
+        signal = _signal("AAA")
+        illiquid_chain = pd.DataFrame(
+            [
+                {
+                    "contractSymbol": "AAA260417C00100000",
+                    "bid": 0.05,
+                    "ask": 0.50,
+                    "lastPrice": 0.25,
+                    "strike": 100.0,
+                    "openInterest": 10,
+                    "volume": 5,
+                    "impliedVolatility": 0.25,
+                }
+            ]
+        )
+        liquid_chain = pd.DataFrame(
+            [
+                {
+                    "contractSymbol": "AAA260424C00100000",
+                    "bid": 1.0,
+                    "ask": 1.08,
+                    "lastPrice": 1.04,
+                    "strike": 100.0,
+                    "openInterest": 400,
+                    "volume": 120,
+                    "impliedVolatility": 0.25,
+                }
+            ]
+        )
+
+        def fake_option_chain(symbol: str, expiry: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+            frame = illiquid_chain if expiry == "2026-04-17" else liquid_chain
+            return frame.copy(), pd.DataFrame()
+
+        with (
+            mock.patch("engine.orographic.forge.option_expiries", return_value=["2026-04-17", "2026-04-24"]),
+            mock.patch("engine.orographic.forge.option_chain", side_effect=fake_option_chain),
+            mock.patch("engine.orographic.forge.fetch_risk_free_rate", return_value=0.04),
+            mock.patch("engine.orographic.forge.compute_iv_rank", return_value=0.35),
+            mock.patch(
+                "engine.orographic.payoff_model.score_candidates",
+                side_effect=lambda candidates, regime, as_of=None, prior_live_board_symbols=None, turnover_switch_penalty=0.03: None,
+            ),
+            mock.patch("engine.orographic.forge.date") as date_mock,
+        ):
+            date_mock.today.return_value = date(2026, 4, 10)
+            date_mock.fromisoformat.side_effect = date.fromisoformat
+            candidates, diagnostics = rank_contracts_with_diagnostics(
+                [signal],
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                minimum_days_to_expiry=7,
+                maximum_days_to_expiry=14,
+            )
+
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0].expiry, "2026-04-24")
+        self.assertEqual(diagnostics["per_symbol"][0]["expiry"], "2026-04-24")
+
     def test_forge_logs_sentinel_horizon_mismatch_in_shadow_diagnostics(self) -> None:
         signal = _signal("AAA")
         signal.sentinel_event = {
@@ -397,6 +480,101 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(models["Path Quality Model"]["mode"], "shadow")
         self.assertEqual(models["Council Risk Intelligence"]["live_risk_flags"], 1)
         self.assertEqual(len(readiness["gates"]), 6)
+
+    def test_build_promotion_readiness_uses_tracked_profitability_evidence(self) -> None:
+        prospective = {
+            "artifact": "prospective_pick_ledger",
+            "aggregate": {"runs": 1},
+            "outcome_summary": {"complete": 2, "partial": 0, "pending": 1},
+            "entries": [
+                {
+                    "regime": {"mode": "risk_on"},
+                    "picks": [
+                        {
+                            "lane": "live",
+                            "outcomes": {
+                                "status": "complete",
+                                "quote_verification": {"outcome_quotes_captured": True},
+                                "fixed_exit_marks": {"friday_close": {"pnl_pct_from_emission": 0.10}},
+                                "realized_if_traded": {"pnl": 25.0, "pnl_pct": 0.10},
+                            },
+                        },
+                        {
+                            "lane": "shadow",
+                            "outcomes": {
+                                "status": "complete",
+                                "quote_verification": {"outcome_quotes_captured": True},
+                                "fixed_exit_marks": {"friday_close": {"pnl_pct_from_emission": 0.15}},
+                                "realized_if_traded": {"pnl": 30.0, "pnl_pct": 0.15},
+                            },
+                        },
+                        {
+                            "lane": "council_holdout",
+                            "outcomes": {
+                                "status": "pending",
+                                "quote_verification": {"outcome_quotes_captured": True},
+                                "fixed_exit_marks": {"friday_close": {"pnl_pct_from_emission": 0.25}},
+                                "realized_if_traded": {},
+                            },
+                        },
+                    ],
+                }
+            ],
+        }
+        moonshot = {
+            "artifact": "moonshot_prospective_ledger",
+            "aggregate": {"runs": 1},
+            "outcome_summary": {"complete": 0, "partial": 0, "pending": 0},
+            "entries": [],
+        }
+        shadow = {
+            "artifact": "side_aware_scout_shadow_ledger",
+            "aggregate": {"runs": 35, "disagreements": 42, "directional_disagreements": 18, "no_trade_disagreements": 24},
+            "entries": [],
+        }
+        research = {"artifact": "research_run_ledger", "aggregate": {"runs": 12, "abstain_runs": 5}}
+        board = {"artifact": "board_recommendation_history", "aggregate": {"runs": 12, "abstain_runs": 5}}
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            prospective_path = Path(tmpdir) / "prospective.json"
+            moonshot_path = Path(tmpdir) / "moonshot.json"
+            shadow_path = Path(tmpdir) / "shadow.json"
+            research_path = Path(tmpdir) / "research.json"
+            board_path = Path(tmpdir) / "board.json"
+            prospective_path.write_text(json.dumps(prospective), encoding="utf-8")
+            moonshot_path.write_text(json.dumps(moonshot), encoding="utf-8")
+            shadow_path.write_text(json.dumps(shadow), encoding="utf-8")
+            research_path.write_text(json.dumps(research), encoding="utf-8")
+            board_path.write_text(json.dumps(board), encoding="utf-8")
+
+            payload = {
+                "model_modes": {"payoff_ranker": "active"},
+                "diagnostic_sources": {
+                    "prospective_ledger": str(prospective_path),
+                    "moonshot_ledger": str(moonshot_path),
+                    "shadow_ledger": str(shadow_path),
+                    "research_ledger": str(research_path),
+                    "board_history": str(board_path),
+                },
+                "diagnostics": {
+                    "scout": {"side_aware_scores": [], "sentinel_scores": []},
+                    "forge": {"learned_ranker": {"mode_counts": {}}, "path_model": {"mode_counts": {}}},
+                },
+                "council": {"live_board": [], "shadow_board": [], "summary": {"candidate_count": 0}},
+            }
+
+            readiness = build_promotion_readiness(payload)
+
+        models = {row["name"]: row for row in readiness["models"]}
+        gates = {row["name"]: row for row in readiness["gates"]}
+
+        self.assertEqual(models["Payoff Ranker"]["mode"], "active")
+        self.assertEqual(models["Payoff Ranker"]["live_realized_pnl"], 25.0)
+        self.assertEqual(models["Council Risk Intelligence"]["holdout_friday_close_avg_pnl_pct"], 0.25)
+        self.assertEqual(readiness["profitability_summary"]["tracked_recommendations"], 3)
+        self.assertEqual(readiness["profitability_summary"]["quote_coverage_pct"], 1.0)
+        self.assertEqual(gates["Live Shadow Window"]["status"], "pass")
+        self.assertIn("35 shadow runs", gates["Live Shadow Window"]["progress"])
 
     def test_write_forge_rejection_waterfall_artifacts_creates_latest_and_dated_files(self) -> None:
         payload = {

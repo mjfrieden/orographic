@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
+import tempfile
 import unittest
+from pathlib import Path
 
 import pandas as pd
 
@@ -10,6 +13,7 @@ from engine.train_scout_model import (
     _directional_option_training_frame,
     _event_feature_activation_report,
     _infer_regime_labels,
+    _load_option_outcome_labels,
     _merge_option_outcome_labels,
     _selected_event_feature_columns,
     build_feature_matrix,
@@ -38,7 +42,38 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertEqual(merged.iloc[0]["symbol"], "AAA")
         self.assertEqual(merged.iloc[0]["side_label"], "call_edge")
 
-    def test_directional_option_training_frame_uses_all_labeled_rows_and_builds_binary_label(self) -> None:
+    def test_load_option_outcome_labels_accepts_canonical_dataset_artifact(self) -> None:
+        payload = {
+            "artifact": "option_outcome_dataset",
+            "rows": [
+                {
+                    "symbol": "AAA",
+                    "option_type": "call",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": 0.2,
+                    "pnl": 20.0,
+                },
+                {
+                    "symbol": "AAA",
+                    "option_type": "put",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": -0.1,
+                    "pnl": -10.0,
+                },
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "option_outcomes.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            labeled, metadata = _load_option_outcome_labels([path])
+
+        self.assertEqual(metadata["trade_rows"], 2)
+        self.assertEqual(metadata["labeled_symbol_dates"], 1)
+        self.assertEqual(labeled.iloc[0]["side_label"], "call_edge")
+
+    def test_directional_option_training_frame_filters_no_trade_rows_and_builds_binary_label(self) -> None:
         merged = pd.DataFrame(
             [
                 {
@@ -67,11 +102,10 @@ class TrainScoutModelTests(unittest.TestCase):
 
         directional = _directional_option_training_frame(merged)
 
-        self.assertEqual(len(directional), 3)
-        self.assertEqual(directional["primary_label"].tolist(), [1, 0, 0])
+        self.assertEqual(len(directional), 2)
+        self.assertEqual(directional["primary_label"].tolist(), [1, 0])
         self.assertAlmostEqual(float(directional.iloc[0]["primary_outcome_value"]), 0.32, places=6)
         self.assertAlmostEqual(float(directional.iloc[1]["primary_outcome_value"]), -0.23, places=6)
-        self.assertAlmostEqual(float(directional.iloc[2]["primary_outcome_value"]), -0.01, places=6)
 
     def test_infer_regime_labels_uses_spy_context(self) -> None:
         frame = pd.DataFrame(

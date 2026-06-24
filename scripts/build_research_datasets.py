@@ -13,6 +13,13 @@ if __package__ in {None, ""}:
 
 import pandas as pd
 
+from engine.backtest.results import (
+    build_option_outcome_dataset_summary,
+    canonicalize_option_outcome_dataset,
+)
+from engine.orographic.path_outcomes import build_archived_quote_path_label
+from engine.orographic.prospective import _entry_mark
+
 
 def _load_json(path: Path) -> dict[str, Any]:
     if not path.exists():
@@ -214,6 +221,192 @@ def _flatten_pick(
     return row
 
 
+def _pick_with_archive_label(
+    pick: dict[str, Any],
+    *,
+    archive_dir: Path | None = None,
+) -> dict[str, Any]:
+    if archive_dir is None:
+        return pick
+    outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    archived = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
+    if archived.get("status") == "observed":
+        return pick
+    updated = json.loads(json.dumps(pick))
+    updated_outcomes = updated.setdefault("outcomes", {})
+    updated_outcomes["archived_quote_path"] = build_archived_quote_path_label(updated, archive_dir=archive_dir)
+    return updated
+
+
+def _exit_date_from_mark(mark: dict[str, Any], fallback: str) -> str:
+    for key in ("captured_at_utc", "quote_date"):
+        raw = str(mark.get(key) or "").strip()
+        if raw:
+            return raw[:10]
+    return fallback
+
+
+def _option_outcome_row_from_pick(
+    entry: dict[str, Any],
+    pick: dict[str, Any],
+    *,
+    exit_window: str,
+    archive_dir: Path | None = None,
+) -> dict[str, Any] | None:
+    enriched_pick = _pick_with_archive_label(pick, archive_dir=archive_dir)
+    outcomes = enriched_pick.get("outcomes") if isinstance(enriched_pick.get("outcomes"), dict) else {}
+    fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
+    exit_mark = fixed_marks.get(exit_window) if isinstance(fixed_marks.get(exit_window), dict) else None
+    if not isinstance(exit_mark, dict):
+        return None
+
+    entry_mark = _entry_mark(enriched_pick)
+    mark = _coerce_float(exit_mark.get("mark"))
+    if entry_mark is None or entry_mark <= 0 or mark is None or mark <= 0:
+        return None
+
+    entry_date = str(enriched_pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc") or "")[:10]
+    if not entry_date:
+        return None
+
+    underlying = enriched_pick.get("underlying") if isinstance(enriched_pick.get("underlying"), dict) else {}
+    emission_quote = enriched_pick.get("emission_quote") if isinstance(enriched_pick.get("emission_quote"), dict) else {}
+    scores = enriched_pick.get("scores") if isinstance(enriched_pick.get("scores"), dict) else {}
+    risk = enriched_pick.get("risk_features") if isinstance(enriched_pick.get("risk_features"), dict) else {}
+    context = enriched_pick.get("context") if isinstance(enriched_pick.get("context"), dict) else {}
+    archived_path = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
+    path_rules = outcomes.get("path_rules") if isinstance(outcomes.get("path_rules"), dict) else {}
+
+    cost_basis = round(float(entry_mark) * 100.0, 2)
+    exit_value = round(float(mark) * 100.0, 2)
+    pnl = round(exit_value - cost_basis, 2)
+    pnl_pct = round(float(mark) / float(entry_mark) - 1.0, 4)
+    regime = entry.get("regime") if isinstance(entry.get("regime"), dict) else {}
+    model_modes = context.get("model_modes") if isinstance(context.get("model_modes"), dict) else {}
+
+    return {
+        "symbol": str(enriched_pick.get("symbol") or "").upper(),
+        "contract_symbol": enriched_pick.get("contract_symbol"),
+        "option_type": str(enriched_pick.get("option_type") or "").lower(),
+        "strike": enriched_pick.get("strike"),
+        "expiry": enriched_pick.get("expiry"),
+        "entry_date": entry_date,
+        "exit_date": _exit_date_from_mark(exit_mark, entry_date),
+        "entry_spot": _coerce_float(underlying.get("spot")),
+        "exit_spot": None,
+        "entry_price": round(float(entry_mark), 4),
+        "exit_price": round(float(mark), 4),
+        "contracts": 1,
+        "entry_data_source": emission_quote.get("entry_data_source", "real_chain"),
+        "exit_data_source": "prospective_fixed_exit_mark",
+        "entry_quote_type": emission_quote.get("entry_quote_type", "mid"),
+        "exit_quote_type": exit_mark.get("mark_source"),
+        "options_data_coverage_pct": 1.0 if bool((outcomes.get("quote_verification") or {}).get("outcome_quotes_captured")) else 0.0,
+        "cost_basis": cost_basis,
+        "exit_value": exit_value,
+        "raw_cost_basis": cost_basis,
+        "raw_exit_value": exit_value,
+        "pnl": pnl,
+        "pnl_pct": pnl_pct,
+        "raw_pnl": pnl,
+        "raw_pnl_pct": pnl_pct,
+        "entry_friction_cost_usd": 0.0,
+        "exit_friction_cost_usd": 0.0,
+        "total_friction_cost_usd": 0.0,
+        "friction_drag_pct": 0.0,
+        "entry_slippage_pct": 0.0,
+        "exit_slippage_pct": 0.0,
+        "entry_spread_pct": emission_quote.get("spread_pct"),
+        "exit_spread_pct": None,
+        "entry_open_interest": emission_quote.get("open_interest"),
+        "entry_volume": emission_quote.get("volume"),
+        "exit_open_interest": None,
+        "exit_volume": None,
+        "positive_pnl_before_friction": pnl_pct > 0.0,
+        "positive_pnl_after_friction": pnl_pct > 0.0,
+        "breakeven_before_friction": pnl_pct > 0.0,
+        "breakeven_after_friction": pnl_pct > 0.0,
+        "friction_flipped_winner_to_loser": False,
+        "hold_period_return_before_friction_pct": pnl_pct,
+        "hold_period_return_after_friction_pct": pnl_pct,
+        "expired_worthless": mark <= 0.01,
+        "forge_score": scores.get("forge_score"),
+        "scout_score": scores.get("scout_score"),
+        "implied_volatility": risk.get("implied_volatility"),
+        "delta": risk.get("delta"),
+        "moneyness": risk.get("moneyness"),
+        "projected_move_pct": risk.get("projected_move_pct"),
+        "breakeven_move_pct": risk.get("breakeven_move_pct"),
+        "expected_return_pct": scores.get("expected_option_return_pct_model"),
+        "extrinsic_ratio": risk.get("extrinsic_ratio"),
+        "iv_rank": risk.get("iv_rank"),
+        "allocation_weight": 1.0,
+        "realized_vol_20d": risk.get("realized_vol_20d"),
+        "atr_pct_14d": risk.get("atr_pct_14d"),
+        "premium_pct_of_spot": risk.get("premium_pct_of_spot"),
+        "vrp_gap": (
+            round(float(risk.get("implied_volatility")) - float(risk.get("realized_vol_20d")), 4)
+            if _coerce_float(risk.get("implied_volatility")) is not None and _coerce_float(risk.get("realized_vol_20d")) is not None
+            else None
+        ),
+        "regime_mode": regime.get("mode"),
+        "regime_bias": regime.get("bias"),
+        "regime_source_symbol": regime.get("source_symbol"),
+        "pre_payoff_forge_score": scores.get("forge_score"),
+        "directional_edge": None,
+        "liquidity_score": None,
+        "regime_alignment_score": None,
+        "prob_positive_option_pnl": scores.get("prob_positive_option_pnl"),
+        "expected_option_return_pct_model": scores.get("expected_option_return_pct_model"),
+        "expected_option_return_pct_rank": scores.get("expected_option_return_pct_model"),
+        "prob_exceeds_breakeven": None,
+        "max_favorable_excursion_before_expiry": archived_path.get("max_favorable_excursion_pct"),
+        "adverse_excursion_risk": archived_path.get("max_adverse_excursion_pct"),
+        "payoff_model_score": scores.get("payoff_model_score"),
+        "final_candidate_score": scores.get("final_candidate_score"),
+        "path_early_profit_take_prob": scores.get("path_early_profit_take_prob"),
+        "path_expected_mfe_pct": archived_path.get("max_favorable_excursion_pct") or path_rules.get("max_favorable_excursion_pct"),
+        "path_decay_risk": scores.get("path_decay_risk"),
+        "path_holding_quality_score": scores.get("path_holding_quality_score"),
+        "path_model_mode": model_modes.get("path_model"),
+        "path_model_artifact_sha256": context.get("path_model_artifact_sha256"),
+        "source_artifact": outcomes.get("source_artifact", "prospective_pick_ledger"),
+        "recommendation_id": enriched_pick.get("recommendation_id"),
+        "lane": enriched_pick.get("lane"),
+        "run_generated_at_utc": enriched_pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc"),
+        "fixed_exit_window": exit_window,
+        "archived_quote_path": archived_path,
+    }
+
+
+def canonical_option_outcome_rows(
+    path: Path,
+    *,
+    source_artifact: str,
+    exit_window: str,
+    archive_dir: Path | None = None,
+) -> list[dict[str, Any]]:
+    ledger = _load_json(path)
+    rows: list[dict[str, Any]] = []
+    for entry in ledger.get("entries", []):
+        if not isinstance(entry, dict):
+            continue
+        for pick in entry.get("picks", []):
+            if not isinstance(pick, dict):
+                continue
+            row = _option_outcome_row_from_pick(
+                entry,
+                pick,
+                exit_window=exit_window,
+                archive_dir=archive_dir,
+            )
+            if row is None:
+                continue
+            row["source_artifact"] = source_artifact
+            rows.append(row)
+    return rows
+
+
 def ledger_rows(path: Path, *, source_artifact: str) -> list[dict[str, Any]]:
     return ledger_rows_with_spots(path, source_artifact=source_artifact)
 
@@ -261,6 +454,19 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--moonshot-ledger", type=Path, default=Path("web/data/diagnostics/moonshot_prospective_ledger.json"))
     parser.add_argument("--output-dir", type=Path, default=Path("output/research_datasets"))
     parser.add_argument("--diagnostics-dir", type=Path, default=Path("web/data/diagnostics"))
+    parser.add_argument("--archive-dir", type=Path, default=Path("engine/data/live_options_archive"))
+    parser.add_argument(
+        "--canonical-option-outcomes-output",
+        type=Path,
+        default=Path("output/option_outcomes_live_recommendations.json"),
+        help="Optional canonical option_outcome_dataset artifact built from completed prospective outcomes.",
+    )
+    parser.add_argument(
+        "--canonical-exit-window",
+        choices=["one_hour", "end_of_day", "next_day_close", "friday_close"],
+        default="friday_close",
+        help="Which fixed exit window to convert into canonical option outcome labels.",
+    )
     parser.add_argument("--format", choices=["parquet", "csv", "json"], default="parquet")
     return parser.parse_args()
 
@@ -288,11 +494,40 @@ def main() -> int:
     write_dataset(recommendation_rows, recommendation_path)
     write_dataset(moonshot_rows, moonshot_path)
     write_dataset([*recommendation_rows, *moonshot_rows], combined_path)
+    canonical_rows = canonicalize_option_outcome_dataset(
+        [
+            *canonical_option_outcome_rows(
+                args.prospective_ledger,
+                source_artifact="prospective_pick_ledger",
+                exit_window=args.canonical_exit_window,
+                archive_dir=args.archive_dir,
+            ),
+            *canonical_option_outcome_rows(
+                args.moonshot_ledger,
+                source_artifact="moonshot_prospective_ledger",
+                exit_window=args.canonical_exit_window,
+                archive_dir=args.archive_dir,
+            ),
+        ]
+    )
+    if args.canonical_option_outcomes_output:
+        args.canonical_option_outcomes_output.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "artifact": "option_outcome_dataset",
+            "generated_at": pd.Timestamp.now("UTC").date().isoformat(),
+            "backtest_start": min((row["entry_date"] for row in canonical_rows), default=None),
+            "backtest_end": max((row["exit_date"] for row in canonical_rows), default=None),
+            "summary": build_option_outcome_dataset_summary(canonical_rows),
+            "rows": canonical_rows,
+        }
+        args.canonical_option_outcomes_output.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(
         json.dumps(
             {
                 "option_recommendation_rows": len(recommendation_rows),
                 "moonshot_rows": len(moonshot_rows),
+                "canonical_option_outcome_rows": len(canonical_rows),
+                "canonical_option_outcomes_output": str(args.canonical_option_outcomes_output) if args.canonical_option_outcomes_output else None,
                 "output_dir": str(args.output_dir),
             },
             indent=2,

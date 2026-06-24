@@ -40,8 +40,8 @@ SIDE_MODEL_MODE_ENV = "OROGRAPHIC_SIDE_MODEL_MODE"
 REGIME_SAME_SIDE_BONUS = 0.08
 REGIME_COUNTERTREND_PENALTY = 0.18
 REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
-SHADOW_SIDE_VETO_MIN_PROB = 0.50
-SHADOW_SIDE_VETO_MIN_MARGIN = 0.10
+SHADOW_SIDE_VETO_MIN_PROB = 0.70
+SHADOW_SIDE_VETO_MIN_MARGIN = 0.20
 
 
 # ── Model loader (singleton, loaded once per process) ────────────────────────
@@ -72,6 +72,7 @@ def _load_model() -> tuple | None:
             meta["feature_cols"],
             meta.get("calibrator"),
             meta.get("calibration_method", "none"),
+            meta.get("decision_threshold", 0.5),
             meta.get("primary_target", "underlying_forward_return"),
             meta.get("target_description", "probability that forward 5-day underlying return is positive"),
             meta.get("positive_class_name", "bullish"),
@@ -383,17 +384,25 @@ def _extract_features(
     return feats
 
 
-def _ml_scout_score(feats: dict[str, float]) -> float | None:
+def _probability_to_signed_score(probability: float, threshold: float) -> float:
+    if probability >= threshold:
+        scale = max(1.0 - threshold, 1e-6)
+    else:
+        scale = max(threshold, 1e-6)
+    return _clip((probability - threshold) / scale)
+
+
+def _ml_scout_signal(feats: dict[str, float]) -> tuple[float, float] | None:
     """
-    Run LightGBM inference. Returns a score in [-1, +1] where
-    +1 = maximum bullish conviction and -1 = maximum bearish.
-    Returns None if the model is unavailable.
+    Run LightGBM inference. Returns (signed_score, raw_probability) where the
+    signed score is centered on the learned decision threshold rather than a
+    hardcoded 0.50 midpoint. Returns None if the model is unavailable.
     """
     loaded = _load_model()
     if loaded is None:
         return None
 
-    model, scaler, feature_cols, calibrator, calibration_method, _, _, _ = loaded
+    model, scaler, feature_cols, calibrator, calibration_method, decision_threshold, _, _, _ = loaded
     row = np.array([[feats.get(col, 0.0) for col in feature_cols]])
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -404,8 +413,7 @@ def _ml_scout_score(feats: dict[str, float]) -> float | None:
         elif calibrator is not None and calibration_method == "platt":
             prob_bull = float(calibrator.predict_proba([[prob_bull]])[0][1])
 
-    # Map [0, 1] \u2192 [-1, +1] so existing downstream code is unchanged
-    return _clip((prob_bull - 0.5) * 2.0)
+    return _probability_to_signed_score(prob_bull, float(decision_threshold or 0.5)), prob_bull
 
 
 def _heuristic_scout_score(
@@ -518,18 +526,19 @@ def build_signal(
         spy_close,
         event_snapshot=event_feature_snapshot.to_feature_dict() if event_feature_snapshot is not None else None,
     )
-    ml_score = _ml_scout_score(feats)
-    using_ml = ml_score is not None
+    ml_signal = _ml_scout_signal(feats)
+    using_ml = ml_signal is not None
     primary_target = "underlying_forward_return"
     target_description = "probability that forward 5-day underlying return is positive"
     positive_class_name = "bullish"
+    raw_probability = None
     if using_ml:
         loaded = _load_model()
         if loaded is not None:
-            _, _, _, _, _, primary_target, target_description, positive_class_name = loaded
+            _, _, _, _, _, _, primary_target, target_description, positive_class_name = loaded
 
     if using_ml:
-        raw_score = ml_score
+        raw_score, raw_probability = ml_signal
         technical_score = raw_score      # expose as technical for schema compat
         empirical_score = z_score * 0.3  # still blend in cross-sectional rank
         base_scout_score = raw_score
@@ -652,7 +661,8 @@ def build_signal(
     notes: list[str] = []
     if using_ml:
         probability_label = "p_call_edge" if primary_target == "strict_real_option_direction" else "prob_bull"
-        notes.append(f"ML model active ({probability_label}={raw_score/2+0.5:.2%})")
+        probability_display = float(raw_probability if raw_probability is not None else (raw_score / 2 + 0.5))
+        notes.append(f"ML model active ({probability_label}={probability_display:.2%})")
     else:
         notes.append("heuristic fallback active (model not found)")
     if alignment_note:

@@ -46,6 +46,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(
 log = logging.getLogger(__name__)
 
 DEFAULT_INPUT_CANDIDATES = [
+    Path("output/option_outcomes_live_recommendations.json"),
     Path("output/option_outcomes_latest.json"),
     Path("output/option_outcomes_12mo.json"),
     Path("output/option_outcomes_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"),
@@ -90,7 +91,7 @@ def _artifact_rows(data: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
 def default_input_paths() -> list[Path]:
     existing = [path for path in DEFAULT_INPUT_CANDIDATES if path.exists()]
     if existing:
-        return [existing[0]]
+        return existing
     return [DEFAULT_INPUT_CANDIDATES[0]]
 
 
@@ -229,6 +230,18 @@ def _quote_return_path(
 ) -> tuple[float, float, int]:
     realized = _safe_float(trade.get("hold_period_return_after_friction_pct"), _safe_float(trade.get("pnl_pct")))
     entry_price = _safe_float(trade.get("entry_price"))
+    archived_path = trade.get("archived_quote_path") if isinstance(trade.get("archived_quote_path"), dict) else {}
+    archived_marks = archived_path.get("marks") if isinstance(archived_path.get("marks"), list) else []
+    archived_returns = [
+        _safe_float(mark.get("pnl_pct_from_emission"))
+        for mark in archived_marks
+        if isinstance(mark, dict) and mark.get("pnl_pct_from_emission") is not None
+    ]
+    archived_returns = [value for value in archived_returns if value is not None]
+    if archived_returns:
+        archived_returns.append(realized)
+        archived_returns.append(0.0)
+        return max(archived_returns), min(archived_returns), len(archived_marks)
     if options_provider is None or entry_price <= 0:
         return max(0.0, realized), min(0.0, realized), 0
 

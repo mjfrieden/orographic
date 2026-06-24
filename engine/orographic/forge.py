@@ -72,6 +72,109 @@ def _spread_cap(spot: float, base_cap: float) -> float:
     return max(base_cap, dynamic_cap)
 
 
+def _windowed_expiries(
+    symbol: str,
+    *,
+    minimum_days_to_expiry: int,
+    maximum_days_to_expiry: int,
+    today: date,
+) -> list[str]:
+    candidates: list[tuple[str, int]] = []
+    for raw in option_expiries(symbol):
+        try:
+            expiry_date = date.fromisoformat(raw)
+        except (TypeError, ValueError):
+            continue
+        days = (expiry_date - today).days
+        if minimum_days_to_expiry <= days <= maximum_days_to_expiry:
+            candidates.append((raw, days))
+    candidates.sort(key=lambda item: item[1])
+    return [raw for raw, _ in candidates]
+
+
+def _empty_chain_stage_counts() -> dict[str, int]:
+    return {
+        "rows_after_basic": 0,
+        "rows_positive_bid_ask": 0,
+        "rows_within_long_leg_cap": 0,
+        "rows_within_spread_cap": 0,
+        "rows_passing_liquidity": 0,
+        "rows_passing_moneyness": 0,
+    }
+
+
+def _prepare_chain_frame(
+    signal: ScoutSignal,
+    frame: pd.DataFrame,
+    *,
+    long_leg_cap: float,
+    effective_spread_cap: float,
+    min_open_interest: int,
+    min_volume: int,
+) -> tuple[pd.DataFrame, dict[str, int], str | None]:
+    counts = _empty_chain_stage_counts()
+    clean = frame.copy()
+    empty_series = pd.Series(index=clean.index, dtype=float)
+    clean["bid"] = pd.to_numeric(clean.get("bid"), errors="coerce")
+    clean["ask"] = pd.to_numeric(clean.get("ask"), errors="coerce")
+    clean["lastPrice"] = pd.to_numeric(clean.get("lastPrice"), errors="coerce")
+    clean["strike"] = pd.to_numeric(clean.get("strike"), errors="coerce")
+    clean["openInterest"] = pd.to_numeric(clean.get("openInterest", empty_series), errors="coerce").fillna(0)
+    clean["volume"] = pd.to_numeric(clean.get("volume", empty_series), errors="coerce").fillna(0)
+    clean["impliedVolatility"] = pd.to_numeric(clean.get("impliedVolatility", empty_series), errors="coerce").fillna(0.45)
+    clean = clean.dropna(subset=["bid", "ask", "strike"])
+    counts["rows_after_basic"] = len(clean)
+    if clean.empty:
+        return clean, counts, "no_basic_rows"
+
+    clean = clean[(clean["bid"] > 0) & (clean["ask"] > 0)].copy()
+    counts["rows_positive_bid_ask"] = len(clean)
+    if clean.empty:
+        return clean, counts, "no_positive_bid_ask"
+
+    clean = clean[clean["ask"] <= long_leg_cap].copy()
+    counts["rows_within_long_leg_cap"] = len(clean)
+    if clean.empty:
+        return clean, counts, "long_leg_cap"
+
+    mid = (clean["bid"] + clean["ask"]) / 2.0
+    clean = clean[mid > 0].copy()
+    clean["spread_pct"] = (clean["ask"] - clean["bid"]) / ((clean["bid"] + clean["ask"]) / 2.0)
+    clean = clean[clean["spread_pct"] <= effective_spread_cap].copy()
+    counts["rows_within_spread_cap"] = len(clean)
+    if clean.empty:
+        return clean, counts, "spread_cap"
+
+    clean = clean[
+        (clean["openInterest"] >= min_open_interest)
+        & (clean["volume"] >= min_volume)
+    ].copy()
+    counts["rows_passing_liquidity"] = len(clean)
+    if clean.empty:
+        return clean, counts, "liquidity"
+
+    clean["moneyness"] = clean["strike"].apply(
+        lambda strike: _candidate_moneyness(signal.direction, signal.spot, float(strike))
+    )
+    clean = clean[(clean["moneyness"] >= -0.05) & (clean["moneyness"] <= 0.03)].copy()
+    counts["rows_passing_moneyness"] = len(clean)
+    if clean.empty:
+        return clean, counts, "moneyness"
+
+    return clean, counts, None
+
+
+def _stage_progress_key(stage_counts: dict[str, int]) -> tuple[int, ...]:
+    return (
+        int(stage_counts.get("rows_passing_moneyness", 0)),
+        int(stage_counts.get("rows_passing_liquidity", 0)),
+        int(stage_counts.get("rows_within_spread_cap", 0)),
+        int(stage_counts.get("rows_within_long_leg_cap", 0)),
+        int(stage_counts.get("rows_positive_bid_ask", 0)),
+        int(stage_counts.get("rows_after_basic", 0)),
+    )
+
+
 def _candidate_sort_score(candidate: ContractCandidate) -> float:
     learned = candidate.learned_rank_score
     if learned is not None:
@@ -302,6 +405,7 @@ def select_signals_for_forge(
     evaluated = 0
     signals = list(signals)
     today = today or date.today()
+    selected_expiries: list[dict[str, str]] = []
 
     for signal in signals:
         if len(selected) >= target_count:
@@ -312,57 +416,80 @@ def select_signals_for_forge(
         long_leg_cap = net_debit_cap
         effective_spread_cap = _spread_cap(signal.spot, max_spread_pct)
         try:
-            expiry = next_expiry(
-                option_expiries(signal.symbol),
-                minimum_days=minimum_days_to_expiry,
-                maximum_days=maximum_days_to_expiry,
+            expiries = _windowed_expiries(
+                signal.symbol,
+                minimum_days_to_expiry=minimum_days_to_expiry,
+                maximum_days_to_expiry=maximum_days_to_expiry,
                 today=today,
             )
-            if not expiry:
+            if not expiries:
                 rejections.append({"symbol": signal.symbol, "reason": "no_expiry"})
                 continue
+            best_success: dict[str, object] | None = None
+            best_attempt: dict[str, object] | None = None
+            expiry_attempts: list[dict[str, object]] = []
+            for expiry in expiries:
+                calls, puts = option_chain(signal.symbol, expiry)
+                frame = calls if signal.direction == "call" else puts
+                if frame.empty:
+                    attempt = {
+                        "expiry": expiry,
+                        "reason": "empty_chain",
+                        **_empty_chain_stage_counts(),
+                    }
+                    expiry_attempts.append(attempt)
+                    if best_attempt is None:
+                        best_attempt = attempt
+                    continue
 
-            calls, puts = option_chain(signal.symbol, expiry)
-            frame = calls if signal.direction == "call" else puts
-            if frame.empty:
-                rejections.append({"symbol": signal.symbol, "reason": "empty_chain", "expiry": expiry})
-                continue
-
-            clean = frame.copy()
-            clean["bid"] = pd.to_numeric(clean.get("bid"), errors="coerce")
-            clean["ask"] = pd.to_numeric(clean.get("ask"), errors="coerce")
-            clean["strike"] = pd.to_numeric(clean.get("strike"), errors="coerce")
-            clean["openInterest"] = pd.to_numeric(clean.get("openInterest"), errors="coerce").fillna(0)
-            clean["volume"] = pd.to_numeric(clean.get("volume"), errors="coerce").fillna(0)
-            clean = clean.dropna(subset=["bid", "ask", "strike"])
-            clean = clean[(clean["bid"] > 0) & (clean["ask"] > 0)].copy()
-            clean = clean[clean["ask"] <= long_leg_cap].copy()
-            if clean.empty:
-                rejections.append({"symbol": signal.symbol, "reason": "premium_cap", "expiry": expiry})
-                continue
-
-            mid = (clean["bid"] + clean["ask"]) / 2.0
-            clean = clean[mid > 0].copy()
-            clean["spread_pct"] = (clean["ask"] - clean["bid"]) / ((clean["bid"] + clean["ask"]) / 2.0)
-            clean = clean[clean["spread_pct"] <= effective_spread_cap].copy()
-            clean = clean[
-                (clean["openInterest"] >= min_open_interest)
-                & (clean["volume"] >= min_volume)
-            ].copy()
-            clean["moneyness"] = clean["strike"].apply(
-                lambda strike: _candidate_moneyness(signal.direction, signal.spot, float(strike))
-            )
-            clean = clean[(clean["moneyness"] >= -0.05) & (clean["moneyness"] <= 0.03)].copy()
-
-            tradable_rows = len(clean)
-            if tradable_rows == 0:
+                clean, stage_counts, rejection_reason = _prepare_chain_frame(
+                    signal,
+                    frame,
+                    long_leg_cap=long_leg_cap,
+                    effective_spread_cap=effective_spread_cap,
+                    min_open_interest=min_open_interest,
+                    min_volume=min_volume,
+                )
+                attempt = {
+                    "expiry": expiry,
+                    "reason": rejection_reason or "selected",
+                    **stage_counts,
+                }
+                expiry_attempts.append(attempt)
+                if rejection_reason is None:
+                    candidate_attempt = {
+                        "expiry": expiry,
+                        "tradable_rows": len(clean),
+                        "stage_counts": stage_counts,
+                    }
+                    if best_success is None or (
+                        int(candidate_attempt["tradable_rows"]),
+                        _stage_progress_key(stage_counts),
+                        -int((date.fromisoformat(expiry) - today).days),
+                    ) > (
+                        int(best_success["tradable_rows"]),
+                        _stage_progress_key(best_success["stage_counts"]),
+                        -int((date.fromisoformat(str(best_success["expiry"])) - today).days),
+                    ):
+                        best_success = candidate_attempt
+                    continue
+                if best_attempt is None or _stage_progress_key(stage_counts) > _stage_progress_key(best_attempt):
+                    best_attempt = {
+                        "expiry": expiry,
+                        "reason": rejection_reason,
+                        **stage_counts,
+                    }
+            if best_success is None:
+                rejection_reason = str((best_attempt or {}).get("reason") or "liquidity")
+                mapped_reason = "premium_cap" if rejection_reason == "long_leg_cap" else "liquidity_gate"
                 rejections.append(
                     {
                         "symbol": signal.symbol,
-                        "reason": "liquidity_gate",
-                        "expiry": expiry,
+                        "reason": mapped_reason,
+                        "expiry": (best_attempt or {}).get("expiry"),
                         "long_leg_cap": round(long_leg_cap, 4),
                         "spread_cap": round(effective_spread_cap, 4),
+                        "expiry_attempts": expiry_attempts,
                     }
                 )
                 continue
@@ -371,12 +498,14 @@ def select_signals_for_forge(
             continue
 
         selected.append(signal)
+        selected_expiries.append({"symbol": signal.symbol, "expiry": str(best_success["expiry"])})
 
     diagnostics = {
         "signals_available": len(signals),
         "signals_evaluated": evaluated,
         "signals_selected": len(selected),
         "selected_symbols": [signal.symbol for signal in selected],
+        "selected_expiries": selected_expiries,
         "rejections": rejections,
         "settings": {
             "target_count": target_count,
@@ -461,129 +590,99 @@ def rank_contracts_with_diagnostics(
             symbol_diag["sentinel_time_horizon"] = sentinel_event.get("time_horizon")
             symbol_diag["sentinel_decay_half_life"] = sentinel_event.get("decay_half_life")
             symbol_diag["sentinel_direction_3d"] = sentinel_event.get("direction_3d")
-
-        expiry = next_expiry(
-            option_expiries(signal.symbol),
-            minimum_days=minimum_days_to_expiry,
-            maximum_days=maximum_days_to_expiry,
+        expiries = _windowed_expiries(
+            signal.symbol,
+            minimum_days_to_expiry=minimum_days_to_expiry,
+            maximum_days_to_expiry=maximum_days_to_expiry,
             today=today,
         )
-        if not expiry:
+        if not expiries:
             symbol_diag["rejection_reason"] = "no_expiry"
             per_symbol.append(symbol_diag)
             continue
-
-        symbol_diag["expiry"] = expiry
         stage_totals["signals_with_expiry"] += 1
-        calls, puts = option_chain(signal.symbol, expiry)
-        frame = calls if signal.direction == "call" else puts
-        if frame.empty:
-            symbol_diag["rejection_reason"] = "empty_chain"
-            per_symbol.append(symbol_diag)
-            continue
+        best_symbol_diag: dict[str, object] | None = None
+        best_candidates_for_symbol: list[ContractCandidate] = []
+        best_candidate_key: tuple[int, float, int] | None = None
+        saw_non_empty_chain = False
+        expiry_attempts: list[dict[str, object]] = []
 
-        stage_totals["signals_with_chain"] += 1
-        clean = frame.copy()
-        clean["bid"] = pd.to_numeric(clean.get("bid"), errors="coerce")
-        clean["ask"] = pd.to_numeric(clean.get("ask"), errors="coerce")
-        clean["lastPrice"] = pd.to_numeric(clean.get("lastPrice"), errors="coerce")
-        clean["strike"] = pd.to_numeric(clean.get("strike"), errors="coerce")
-        clean["openInterest"] = pd.to_numeric(clean.get("openInterest"), errors="coerce").fillna(0)
-        clean["volume"] = pd.to_numeric(clean.get("volume"), errors="coerce").fillna(0)
-        clean["impliedVolatility"] = pd.to_numeric(clean.get("impliedVolatility"), errors="coerce").fillna(0.45)
-        clean = clean.dropna(subset=["bid", "ask", "strike"])
-        symbol_diag["rows_after_basic"] = len(clean)
-        stage_totals["rows_after_basic"] += len(clean)
+        for expiry in expiries:
+            current_diag = dict(symbol_diag)
+            current_diag["expiry"] = expiry
+            calls, puts = option_chain(signal.symbol, expiry)
+            frame = calls if signal.direction == "call" else puts
+            if frame.empty:
+                current_diag["rejection_reason"] = "empty_chain"
+                expiry_attempts.append({"expiry": expiry, "rejection_reason": "empty_chain"})
+                if best_symbol_diag is None:
+                    best_symbol_diag = current_diag
+                continue
 
-        clean = clean[(clean["bid"] > 0) & (clean["ask"] > 0)].copy()
-        symbol_diag["rows_positive_bid_ask"] = len(clean)
-        stage_totals["rows_positive_bid_ask"] += len(clean)
-        if clean.empty:
-            symbol_diag["rejection_reason"] = "no_positive_bid_ask"
-            per_symbol.append(symbol_diag)
-            continue
+            saw_non_empty_chain = True
+            clean, stage_counts, rejection_reason = _prepare_chain_frame(
+                signal,
+                frame,
+                long_leg_cap=long_leg_cap,
+                effective_spread_cap=effective_spread_cap,
+                min_open_interest=min_open_interest,
+                min_volume=min_volume,
+            )
+            current_diag.update(stage_counts)
+            if rejection_reason is not None:
+                current_diag["rejection_reason"] = rejection_reason
+                expiry_attempts.append({"expiry": expiry, "rejection_reason": rejection_reason, **stage_counts})
+                if best_symbol_diag is None or _stage_progress_key(stage_counts) > _stage_progress_key(best_symbol_diag):
+                    best_symbol_diag = current_diag
+                continue
 
-        clean = clean[clean["ask"] <= long_leg_cap].copy()
-        symbol_diag["rows_within_long_leg_cap"] = len(clean)
-        stage_totals["rows_within_long_leg_cap"] += len(clean)
-        if clean.empty:
-            symbol_diag["rejection_reason"] = "long_leg_cap"
-            per_symbol.append(symbol_diag)
-            continue
+            projected_move_pct = _projected_move_pct(signal, regime)
+            projected_spot = signal.spot * (1 + projected_move_pct if signal.direction == "call" else 1 - projected_move_pct)
+            days_to_expiry = max((date.fromisoformat(expiry) - today).days, 1)
+            time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
+            holding_window_fit, holding_window_label = _sentinel_holding_window_fit(signal, days_to_expiry)
+            if holding_window_fit is not None:
+                current_diag["sentinel_holding_window_fit"] = holding_window_fit
+                current_diag["sentinel_holding_window_label"] = holding_window_label
+                if holding_window_label == "mismatch":
+                    current_diag["sentinel_shadow_note"] = (
+                        f"Sentinel horizon mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
+                    )
+            clean["delta"] = clean.apply(
+                lambda row: black_scholes_delta(
+                    spot=signal.spot,
+                    strike=float(row["strike"]),
+                    time_to_expiry_years=time_to_expiry_years,
+                    risk_free_rate=risk_free_rate,
+                    volatility=max(float(row["impliedVolatility"]), 0.10),
+                    option_type=signal.direction,
+                ),
+                axis=1,
+            )
+            clean = clean[clean["delta"].notna()].copy()
+            clean = clean[clean["delta"].abs().between(min_abs_delta, max_abs_delta)].copy()
+            current_diag["rows_passing_delta"] = len(clean)
+            if clean.empty:
+                current_diag["rejection_reason"] = "delta"
+                expiry_attempts.append({"expiry": expiry, "rejection_reason": "delta", **stage_counts, "rows_passing_delta": 0})
+                if best_symbol_diag is None or (
+                    int(current_diag.get("rows_passing_delta", 0)),
+                    _stage_progress_key(current_diag),
+                ) > (
+                    int(best_symbol_diag.get("rows_passing_delta", 0)),
+                    _stage_progress_key(best_symbol_diag),
+                ):
+                    best_symbol_diag = current_diag
+                continue
 
-        mid = (clean["bid"] + clean["ask"]) / 2.0
-        clean = clean[mid > 0].copy()
-        clean["spread_pct"] = (clean["ask"] - clean["bid"]) / ((clean["bid"] + clean["ask"]) / 2.0)
-        clean = clean[clean["spread_pct"] <= effective_spread_cap].copy()
-        symbol_diag["rows_within_spread_cap"] = len(clean)
-        stage_totals["rows_within_spread_cap"] += len(clean)
-        if clean.empty:
-            symbol_diag["rejection_reason"] = "spread_cap"
-            per_symbol.append(symbol_diag)
-            continue
-
-        clean = clean[
-            (clean["openInterest"] >= min_open_interest)
-            & (clean["volume"] >= min_volume)
-        ].copy()
-        symbol_diag["rows_passing_liquidity"] = len(clean)
-        stage_totals["rows_passing_liquidity"] += len(clean)
-        if clean.empty:
-            symbol_diag["rejection_reason"] = "liquidity"
-            per_symbol.append(symbol_diag)
-            continue
-
-        clean["moneyness"] = clean["strike"].apply(
-            lambda strike: _candidate_moneyness(signal.direction, signal.spot, float(strike))
-        )
-        clean = clean[(clean["moneyness"] >= -0.05) & (clean["moneyness"] <= 0.03)].copy()
-        symbol_diag["rows_passing_moneyness"] = len(clean)
-        stage_totals["rows_passing_moneyness"] += len(clean)
-        if clean.empty:
-            symbol_diag["rejection_reason"] = "moneyness"
-            per_symbol.append(symbol_diag)
-            continue
-
-        projected_move_pct = _projected_move_pct(signal, regime)
-        projected_spot = signal.spot * (1 + projected_move_pct if signal.direction == "call" else 1 - projected_move_pct)
-        days_to_expiry = max((date.fromisoformat(expiry) - today).days, 1)
-        time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
-        holding_window_fit, holding_window_label = _sentinel_holding_window_fit(signal, days_to_expiry)
-        if holding_window_fit is not None:
-            symbol_diag["sentinel_holding_window_fit"] = holding_window_fit
-            symbol_diag["sentinel_holding_window_label"] = holding_window_label
-            if holding_window_label == "mismatch":
-                symbol_diag["sentinel_shadow_note"] = (
-                    f"Sentinel horizon mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
-                )
-        clean["delta"] = clean.apply(
-            lambda row: black_scholes_delta(
-                spot=signal.spot,
-                strike=float(row["strike"]),
-                time_to_expiry_years=time_to_expiry_years,
-                risk_free_rate=risk_free_rate,
-                volatility=max(float(row["impliedVolatility"]), 0.10),
-                option_type=signal.direction,
-            ),
-            axis=1,
-        )
-        clean = clean[clean["delta"].notna()].copy()
-        clean = clean[clean["delta"].abs().between(min_abs_delta, max_abs_delta)].copy()
-        symbol_diag["rows_passing_delta"] = len(clean)
-        stage_totals["rows_passing_delta"] += len(clean)
-        if clean.empty:
-            symbol_diag["rejection_reason"] = "delta"
-            per_symbol.append(symbol_diag)
-            continue
-
-        rows_passing_net_debit = 0
-        symbol_candidates = 0
-        for _, row in clean.iterrows():
-            bid = float(row["bid"])
-            ask = float(row["ask"])
-            premium = float(ask)
-            strike = float(row["strike"])
-            option_type = signal.direction
+            local_candidates: list[ContractCandidate] = []
+            rows_passing_net_debit = 0
+            for _, row in clean.iterrows():
+                bid = float(row["bid"])
+                ask = float(row["ask"])
+                premium = float(ask)
+                strike = float(row["strike"])
+                option_type = signal.direction
             delta = float(row["delta"])
             spread_pct = float(row["spread_pct"])
             open_interest = int(float(row["openInterest"]))
@@ -656,7 +755,7 @@ def rank_contracts_with_diagnostics(
                     f"Sentinel shadow fit: {sentinel_event.get('time_horizon', 'unknown')} catalyst aligns with {days_to_expiry} DTE"
                 )
 
-            candidates.append(
+            local_candidates.append(
                 ContractCandidate(
                     symbol=signal.symbol,
                     contract_symbol=str(row.get("contractSymbol", "")),
@@ -704,15 +803,68 @@ def rank_contracts_with_diagnostics(
                     notes=notes,
                 )
             )
-            symbol_candidates += 1
 
-        symbol_diag["rows_passing_net_debit"] = rows_passing_net_debit
-        symbol_diag["final_candidates"] = symbol_candidates
-        stage_totals["rows_passing_net_debit"] += rows_passing_net_debit
-        stage_totals["final_candidates"] += symbol_candidates
-        if symbol_candidates == 0:
-            symbol_diag["rejection_reason"] = "net_debit"
-        per_symbol.append(symbol_diag)
+            current_diag["rows_passing_net_debit"] = rows_passing_net_debit
+            current_diag["final_candidates"] = len(local_candidates)
+            if not local_candidates:
+                current_diag["rejection_reason"] = "net_debit"
+                expiry_attempts.append(
+                    {
+                        "expiry": expiry,
+                        "rejection_reason": "net_debit",
+                        **stage_counts,
+                        "rows_passing_delta": int(current_diag["rows_passing_delta"]),
+                        "rows_passing_net_debit": rows_passing_net_debit,
+                        "final_candidates": 0,
+                    }
+                )
+                if best_symbol_diag is None or (
+                    int(current_diag.get("rows_passing_net_debit", 0)),
+                    int(current_diag.get("rows_passing_delta", 0)),
+                    _stage_progress_key(current_diag),
+                ) > (
+                    int(best_symbol_diag.get("rows_passing_net_debit", 0)),
+                    int(best_symbol_diag.get("rows_passing_delta", 0)),
+                    _stage_progress_key(best_symbol_diag),
+                ):
+                    best_symbol_diag = current_diag
+                continue
+
+            best_local_score = max(_candidate_sort_score(candidate) for candidate in local_candidates)
+            candidate_key = (len(local_candidates), round(best_local_score, 6), -days_to_expiry)
+            expiry_attempts.append(
+                {
+                    "expiry": expiry,
+                    "rejection_reason": "selected",
+                    **stage_counts,
+                    "rows_passing_delta": int(current_diag["rows_passing_delta"]),
+                    "rows_passing_net_debit": rows_passing_net_debit,
+                    "final_candidates": len(local_candidates),
+                }
+            )
+            if best_candidate_key is None or candidate_key > best_candidate_key:
+                best_candidate_key = candidate_key
+                best_candidates_for_symbol = local_candidates
+                best_symbol_diag = current_diag
+
+        if saw_non_empty_chain:
+            stage_totals["signals_with_chain"] += 1
+        if best_symbol_diag is None:
+            per_symbol.append(symbol_diag)
+            continue
+
+        best_symbol_diag["expiry_attempts"] = expiry_attempts
+        stage_totals["rows_after_basic"] += int(best_symbol_diag.get("rows_after_basic", 0))
+        stage_totals["rows_positive_bid_ask"] += int(best_symbol_diag.get("rows_positive_bid_ask", 0))
+        stage_totals["rows_within_long_leg_cap"] += int(best_symbol_diag.get("rows_within_long_leg_cap", 0))
+        stage_totals["rows_within_spread_cap"] += int(best_symbol_diag.get("rows_within_spread_cap", 0))
+        stage_totals["rows_passing_liquidity"] += int(best_symbol_diag.get("rows_passing_liquidity", 0))
+        stage_totals["rows_passing_moneyness"] += int(best_symbol_diag.get("rows_passing_moneyness", 0))
+        stage_totals["rows_passing_delta"] += int(best_symbol_diag.get("rows_passing_delta", 0))
+        stage_totals["rows_passing_net_debit"] += int(best_symbol_diag.get("rows_passing_net_debit", 0))
+        stage_totals["final_candidates"] += int(best_symbol_diag.get("final_candidates", 0))
+        candidates.extend(best_candidates_for_symbol)
+        per_symbol.append(best_symbol_diag)
 
     try:
         from engine.orographic.payoff_model import score_candidates

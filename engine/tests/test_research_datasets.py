@@ -5,7 +5,12 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.build_research_datasets import diagnostic_spot_lookups, ledger_rows, ledger_rows_with_spots
+from scripts.build_research_datasets import (
+    canonical_option_outcome_rows,
+    diagnostic_spot_lookups,
+    ledger_rows,
+    ledger_rows_with_spots,
+)
 
 
 class ResearchDatasetTests(unittest.TestCase):
@@ -128,6 +133,99 @@ class ResearchDatasetTests(unittest.TestCase):
 
         self.assertEqual(rows[0]["underlying_spot"], 43.75)
         self.assertEqual(rows[1]["underlying_spot"], 315.2)
+
+    def test_canonical_option_outcome_rows_build_trainer_ready_labels(self) -> None:
+        ledger = {
+            "artifact": "prospective_pick_ledger",
+            "entries": [
+                {
+                    "run_generated_at_utc": "2026-05-22T14:07:00+00:00",
+                    "regime": {"mode": "risk_on", "bias": 0.25, "source_symbol": "SPY"},
+                    "picks": [
+                        {
+                            "lane": "live",
+                            "symbol": "AAA",
+                            "contract_symbol": "AAA260605C00100000",
+                            "option_type": "call",
+                            "expiry": "2026-06-05",
+                            "strike": 100.0,
+                            "underlying": {"symbol": "AAA", "spot": 101.25},
+                            "emission_quote": {
+                                "bid": 1.0,
+                                "ask": 1.2,
+                                "mid": 1.1,
+                                "spread_pct": 0.08,
+                                "open_interest": 500,
+                                "volume": 120,
+                                "entry_quote_type": "ask",
+                                "entry_data_source": "real_chain",
+                            },
+                            "scores": {
+                                "forge_score": 0.8,
+                                "payoff_model_score": 0.82,
+                                "final_candidate_score": 0.81,
+                                "expected_option_return_pct_model": 0.18,
+                                "prob_positive_option_pnl": 0.71,
+                                "path_early_profit_take_prob": 0.35,
+                                "path_decay_risk": 0.2,
+                                "path_holding_quality_score": 0.66,
+                            },
+                            "risk_features": {
+                                "delta": 0.35,
+                                "iv_rank": 0.4,
+                                "implied_volatility": 0.32,
+                                "moneyness": 0.01,
+                                "projected_move_pct": 0.04,
+                                "breakeven_move_pct": 0.03,
+                                "extrinsic_ratio": 0.8,
+                                "premium_pct_of_spot": 0.011,
+                                "realized_vol_20d": 0.21,
+                                "atr_pct_14d": 0.024,
+                            },
+                            "context": {"model_modes": {"path_model": "shadow"}},
+                            "outcomes": {
+                                "status": "complete",
+                                "quote_verification": {"outcome_quotes_captured": True},
+                                "fixed_exit_marks": {
+                                    "friday_close": {
+                                        "mark": 1.4,
+                                        "mark_source": "mid",
+                                        "captured_at_utc": "2026-05-29T20:00:00+00:00",
+                                        "pnl_pct_from_emission": 0.2727,
+                                    }
+                                },
+                                "archived_quote_path": {
+                                    "status": "observed",
+                                    "marks": [
+                                        {"pnl_pct_from_emission": 0.05},
+                                        {"pnl_pct_from_emission": 0.27},
+                                    ],
+                                    "max_favorable_excursion_pct": 0.27,
+                                    "max_adverse_excursion_pct": -0.1,
+                                },
+                            },
+                        }
+                    ],
+                }
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "ledger.json"
+            path.write_text(json.dumps(ledger), encoding="utf-8")
+            rows = canonical_option_outcome_rows(
+                path,
+                source_artifact="prospective_pick_ledger",
+                exit_window="friday_close",
+            )
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["entry_date"], "2026-05-22")
+        self.assertEqual(rows[0]["exit_date"], "2026-05-29")
+        self.assertAlmostEqual(rows[0]["entry_price"], 1.1, places=4)
+        self.assertAlmostEqual(rows[0]["exit_price"], 1.4, places=4)
+        self.assertEqual(rows[0]["positive_pnl_after_friction"], True)
+        self.assertAlmostEqual(rows[0]["max_favorable_excursion_before_expiry"], 0.27, places=4)
+        self.assertEqual(rows[0]["path_model_mode"], "shadow")
 
 
 if __name__ == "__main__":

@@ -61,8 +61,10 @@ SCALER_PATH = MODEL_DIR / "scout_scaler.pkl"
 MODEL_CARD_PATH = MODEL_DIR / "scout_model_card.json"
 TRAINING_UNIVERSE_FILE = Path(__file__).with_name("sample_universe.txt")
 DEFAULT_OPTION_OUTCOME_INPUT_CANDIDATES = [
-    Path("output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"),
-    Path("output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_12mo.json"),
+    Path("output/option_outcomes_live_recommendations.json"),
+    Path("output/backtest_results_2026-06-20_blended_target_dte_7_14_strict_real_execution_stress_6mo_end_2026-04-13.json"),
+    Path("output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_6mo.json"),
+    Path("output/backtest_results_2026-04-16_blended_target_dte_7_14_strict_real_3mo.json"),
 ]
 PRIMARY_TARGET_UNDERLYING = "underlying_forward_return"
 PRIMARY_TARGET_OPTION_DIRECTION = "strict_real_option_direction"
@@ -323,6 +325,27 @@ def _probability_buckets(
     return rows
 
 
+def _optimal_decision_threshold(probs: np.ndarray, y: np.ndarray) -> float:
+    frame = pd.DataFrame({"prob": probs, "label": y}).dropna()
+    if frame.empty or frame["label"].nunique() < 2:
+        return 0.5
+    candidates = sorted({0.05, 0.10, 0.15, 0.20, 0.25, 0.33, 0.40, 0.50, 0.60, 0.67, 0.75, 0.80, 0.85, 0.90, 0.95, *frame["prob"].round(4).tolist()})
+    best_threshold = 0.5
+    best_score = float("-inf")
+    best_distance = float("inf")
+    for threshold in candidates:
+        preds = (frame["prob"] >= threshold).astype(int)
+        if preds.nunique() < 2:
+            continue
+        score = float(balanced_accuracy_score(frame["label"], preds))
+        distance = abs(float(threshold) - 0.5)
+        if score > best_score or (score == best_score and distance < best_distance):
+            best_score = score
+            best_threshold = float(threshold)
+            best_distance = distance
+    return round(best_threshold, 4)
+
+
 def _segment_report(
     probs: np.ndarray,
     y: np.ndarray,
@@ -331,6 +354,7 @@ def _segment_report(
     *,
     outcome_label: str = "realized_target_value",
     class_names: dict[int, str] | None = None,
+    decision_threshold: float = 0.5,
 ) -> dict[str, Any]:
     class_names = class_names or {0: "put", 1: "call"}
     actual_side = np.array([class_names.get(int(label), str(label)) for label in y], dtype=object)
@@ -339,7 +363,7 @@ def _segment_report(
             "prob": probs,
             "label": y,
             "realized_outcome": realized_outcomes,
-            "predicted_side": np.where(probs >= 0.5, "call", "put"),
+            "predicted_side": np.where(probs >= decision_threshold, "call", "put"),
             "actual_side": actual_side,
             "regime": np.where(
                 combined.get("spy_mom_20d", pd.Series(0.0, index=combined.index)).values >= 0.02,
@@ -571,7 +595,11 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
     skipped_after_cutoff = 0
     for path in input_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
-        for trade in payload.get("all_trades", []):
+        artifact = str(payload.get("artifact") or "").strip()
+        trade_rows = payload.get("rows") if artifact == "option_outcome_dataset" else payload.get("all_trades", [])
+        if not isinstance(trade_rows, list):
+            continue
+        for trade in trade_rows:
             try:
                 entry_date = date.fromisoformat(str(trade["entry_date"]))
                 exit_date = date.fromisoformat(str(trade.get("exit_date") or trade["entry_date"]))
@@ -657,13 +685,12 @@ def _merge_option_outcome_labels(combined: pd.DataFrame, option_labels: pd.DataF
 def _directional_option_training_frame(merged: pd.DataFrame) -> pd.DataFrame:
     if merged.empty:
         return merged.copy()
-    directional = merged.copy()
+    directional = merged.loc[merged["side_label"].isin({"call_edge", "put_edge"})].copy()
     if directional.empty:
         return directional.copy()
-    call_pnl = pd.to_numeric(directional["call_avg_pnl_pct"], errors="coerce").fillna(-1.0)
-    put_pnl = pd.to_numeric(directional["put_avg_pnl_pct"], errors="coerce").fillna(-1.0)
+    call_pnl = pd.to_numeric(directional["call_avg_pnl_pct"], errors="coerce").fillna(0.0)
+    put_pnl = pd.to_numeric(directional["put_avg_pnl_pct"], errors="coerce").fillna(0.0)
     directional["primary_label"] = (directional["side_label"] == "call_edge").astype(int)
-    directional["primary_label"] = (call_pnl >= put_pnl).astype(int)
     directional["primary_outcome_value"] = call_pnl - put_pnl
     directional["primary_label_date"] = pd.to_datetime(directional["date"], errors="coerce")
     return directional
@@ -954,8 +981,10 @@ def train(
             calibrator,
             calibration_method,
         )
+    decision_threshold = _optimal_decision_threshold(oof_calibrated[valid_oof], y[valid_oof])
     calibration_metrics = {
         "method": calibration_method,
+        "decision_threshold": decision_threshold,
         "oof_rows": int(valid_oof.sum()),
         "raw_brier": round(float(brier_score_loss(y[valid_oof], oof_raw_probs[valid_oof])), 4),
         "calibrated_brier": round(float(brier_score_loss(y[valid_oof], oof_calibrated[valid_oof])), 4),
@@ -977,12 +1006,14 @@ def train(
             primary_training_frame.iloc[np.where(valid_oof)[0]],
             outcome_label=primary_outcome_label,
             class_names=primary_class_names,
+            decision_threshold=decision_threshold,
         ),
         "feature_drift_baseline": _drift_baseline(primary_training_frame, available),
         "primary_target": {
             "mode": primary_target_effective,
             "description": target_description,
             "positive_class_name": positive_class_name,
+            "decision_threshold": decision_threshold,
             "rows": int(len(primary_training_frame)),
             "source_metadata": primary_source_metadata,
             "balance_report": primary_health,
@@ -1112,6 +1143,7 @@ def train(
             "feature_cols": available,
             "calibrator": calibrator,
             "calibration_method": calibration_method,
+            "decision_threshold": decision_threshold,
             "primary_target": primary_target_effective,
             "target_description": target_description,
             "positive_class_name": positive_class_name,
@@ -1143,6 +1175,7 @@ def train(
             "description": target_description,
             "positive_class_name": positive_class_name,
             "outcome_value_field": primary_outcome_label,
+            "decision_threshold": decision_threshold,
             "rows": int(len(primary_training_frame)),
             "source_metadata": primary_source_metadata,
             "balance_report": primary_health,
