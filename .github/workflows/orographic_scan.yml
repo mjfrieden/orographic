@@ -195,32 +195,6 @@ jobs:
           print("Snapshot regression gates passed.")
           PY
 
-      - name: Upload live research data artifact
-        if: ${{ always() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: orographic-live-research-data
-          path: |
-            engine/data/live_options_archive/
-            output/research_datasets/
-          retention-days: 90
-
-      - name: Set up Node for R2 research export
-        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
-
-      - name: Upload research data to R2
-        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
-        run: |
-          python scripts/upload_research_artifacts_to_r2.py \
-            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
-            engine/data/live_options_archive \
-            output/research_datasets
-
       - name: Commit refreshed snapshot
         id: snapshot
         run: |
@@ -261,7 +235,9 @@ jobs:
           node-version: "22"
 
       - name: Deploy refreshed snapshot to Cloudflare Pages
+        id: deploy_pages
         if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        continue-on-error: true
         run: |
           npx wrangler pages deploy web \
             --project-name orographic \
@@ -270,7 +246,9 @@ jobs:
             --commit-message "snapshot refresh (${GITHUB_REF_NAME})"
 
       - name: Capture hosted position snapshot
+        id: capture_positions
         if: ${{ env.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN != '' }}
+        continue-on-error: true
         run: |
           RUN_GENERATED_AT_UTC="$(python - <<'PY'
           import json
@@ -295,8 +273,57 @@ jobs:
             --header "Content-Type: application/json" \
             --data @/tmp/orographic-position-capture.json
 
+      - name: Set up Node for R2 research export
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Upload research data to R2
+        id: upload_r2
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/upload_research_artifacts_to_r2.py \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            engine/data/live_options_archive \
+            output/research_datasets
+
+      - name: Write scan health summary
+        if: ${{ always() }}
+        run: |
+          python scripts/build_scan_health_summary.py \
+            --r2-status "${{ steps.upload_r2.outcome || 'skipped' }}" \
+            --dashboard-push-status "${{ steps.push_snapshot.outcome || 'skipped' }}" \
+            --dashboard-deploy-status "${{ steps.deploy_pages.outcome || 'skipped' }}" \
+            --warn-only
+
+      - name: Upload live research data artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v6
+        with:
+          name: orographic-live-research-data
+          path: |
+            engine/data/live_options_archive/
+            output/research_datasets/
+          retention-days: 90
+
       - name: Fail when snapshot push did not reach GitHub
         if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && steps.push_snapshot.outcome == 'failure' }}
         run: |
           echo "Snapshot deploy completed, but GitHub push never succeeded." >&2
+          exit 1
+
+      - name: Fail when Cloudflare Pages deploy failed
+        if: ${{ steps.deploy_pages.outcome == 'failure' }}
+        run: |
+          echo "Snapshot was built, but Cloudflare Pages deploy failed." >&2
+          exit 1
+
+      - name: Fail when R2 research archival failed
+        if: ${{ steps.upload_r2.outcome == 'failure' }}
+        run: |
+          echo "Dashboard refresh completed, but R2 research archival failed." >&2
           exit 1
