@@ -416,6 +416,14 @@ def _ml_scout_signal(feats: dict[str, float]) -> tuple[float, float] | None:
     return _probability_to_signed_score(prob_bull, float(decision_threshold or 0.5)), prob_bull
 
 
+def _ml_scout_score(feats: dict[str, float]) -> float | None:
+    signal = _ml_scout_signal(feats)
+    if signal is None:
+        return None
+    signed_score, _ = signal
+    return signed_score
+
+
 def _heuristic_scout_score(
     momentum_5d: float,
     momentum_20d: float,
