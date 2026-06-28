@@ -1798,7 +1798,7 @@ function renderPromotionReadiness(payload) {
   const policyEl = document.getElementById("promotion-policy");
 
   if (decisionEl) {
-    decisionEl.textContent = readiness.decision_label || "Keep shadow";
+    decisionEl.textContent = readiness.decision_label || "Production-active";
     decisionEl.className = `promotion-decision ${promotionStatusClass(readiness.decision || "pending")}`;
   }
 
@@ -1828,7 +1828,7 @@ function renderPromotionReadiness(payload) {
     const profitability = readiness.profitability_summary || {};
     policyEl.innerHTML = [
       summaryItemHtml("Path", Array.isArray(readiness.promotion_path) ? readiness.promotion_path.join(" -> ") : "—"),
-      summaryItemHtml("Shadow Days", `${integer(policy.minimum_shadow_trading_days)} min · ${integer(policy.preferred_shadow_trading_days)} preferred`),
+      summaryItemHtml("Evidence Window", `${integer(policy.minimum_shadow_trading_days)} min · ${integer(policy.preferred_shadow_trading_days)} preferred`),
       summaryItemHtml("Disagreements", `${integer(policy.minimum_disagreement_trades)} minimum`),
       summaryItemHtml("P&L Lift", pctOrDash(policy.minimum_pnl_lift_pct)),
       summaryItemHtml("Windows", Array.isArray(policy.required_windows) ? policy.required_windows.join(" · ").replaceAll("_", " ") : "—"),

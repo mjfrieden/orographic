@@ -572,16 +572,16 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
     return {
         "directional_scout": directional_mode,
         "side_aware_scout": _normalize_mode(
-            os.getenv("OROGRAPHIC_SIDE_MODEL_MODE", "shadow"),
+            os.getenv("OROGRAPHIC_SIDE_MODEL_MODE", "active"),
             active_values={"active", "live"},
             shadow_values={"shadow", "observe", "off"},
-            default="shadow",
+            default="active",
         ),
         "sentinel": _normalize_mode(
-            os.getenv("OROGRAPHIC_SENTINEL_MODE", "shadow"),
+            os.getenv("OROGRAPHIC_SENTINEL_MODE", "active"),
             active_values={"active"},
             shadow_values={"shadow", "observe", "off"},
-            default="shadow",
+            default="active",
         ),
         "payoff_ranker": (
             _normalize_mode(
@@ -1037,28 +1037,36 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     models = [
         {
             "name": "Side-Aware Scout",
-            "mode": "shadow",
+            "mode": "active" if str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
             "role": "call / put / no-trade probabilities",
-            "status": "collecting_evidence",
-            "recommendation": "Keep shadow until disagreement P&L is positive out of sample.",
+            "status": "production_monitor" if str(model_modes.get("side_aware_scout") or "").lower() == "active" else "collecting_evidence",
+            "recommendation": (
+                "Production-active. Monitor disagreement P&L, abstain rates, and minority-side coverage."
+                if str(model_modes.get("side_aware_scout") or "").lower() == "active"
+                else "Keep shadow until disagreement P&L is positive out of sample."
+            ),
             "observations": len(side_rows),
             "disagreements": side_disagreements,
             "side_mix": side_mix,
             "model_modes": side_model_modes,
             "shadow_window_runs": shadow_window_runs,
-            "promotion_step": "shadow",
+            "promotion_step": "active" if str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
         },
         {
             "name": "Sentinel Event Extractor",
-            "mode": "shadow" if "active" not in sentinel_modes else "mixed",
+            "mode": "active" if str(model_modes.get("sentinel") or "").lower() == "active" else "shadow",
             "role": "event extraction and direction-aware risk tags",
-            "status": "collecting_evidence",
-            "recommendation": "Keep as event intelligence until event tags prove risk-adjusted lift.",
+            "status": "production_monitor" if str(model_modes.get("sentinel") or "").lower() == "active" else "collecting_evidence",
+            "recommendation": (
+                "Production-active. Monitor event-tag calibration and no-trade pressure drift."
+                if str(model_modes.get("sentinel") or "").lower() == "active"
+                else "Keep as event intelligence until event tags prove risk-adjusted lift."
+            ),
             "observations": len(sentinel_rows),
             "non_neutral_events": sentinel_non_neutral,
             "mode_counts": sentinel_modes,
             "event_type_counts": sentinel_events,
-            "promotion_step": "shadow",
+            "promotion_step": "active" if str(model_modes.get("sentinel") or "").lower() == "active" else "shadow",
         },
         {
             "name": "Payoff Ranker",
@@ -1076,7 +1084,7 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         },
         {
             "name": "Path Quality Model",
-            "mode": "shadow",
+            "mode": "active" if str(model_modes.get("path_model") or "").lower() == "active" else "shadow",
             "role": "hold-window quality, take-profit odds, and decay risk",
             "status": "collecting_evidence",
             "recommendation": "Keep shadow until path metrics improve disagreement handling without increasing decay-driven losers.",
@@ -1089,10 +1097,10 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         },
         {
             "name": "Council Risk Intelligence",
-            "mode": "observe",
+            "mode": "active",
             "role": "correlation, sector exposure, sizing, no-trade discipline",
-            "status": "observe_only",
-            "recommendation": "Keep warnings visible; compare live picks against holdouts and friction vetoes before promoting harder controls.",
+            "status": "production_monitor",
+            "recommendation": "Production-active. Monitor abstain reasons, holdouts, and no-trade / fill-quality gating rates.",
             "observations": int(council_summary.get("candidate_count") or 0),
             "live_risk_flags": live_risk_flags,
             "shadow_risk_flags": shadow_risk_flags,
@@ -1100,13 +1108,13 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "live_sector_counts": council_summary.get("live_sector_counts", {}),
             "holdout_friday_close_avg_pnl_pct": holdout_friday_close_avg_pnl_pct,
             "friction_veto_friday_close_avg_pnl_pct": friction_veto_friday_close_avg_pnl_pct,
-            "promotion_step": "observe",
+            "promotion_step": "active",
         },
     ]
 
     return {
-        "decision": "keep_shadow",
-        "decision_label": "Keep new ML/AI layers in shadow",
+        "decision": "production_active",
+        "decision_label": "New ML/AI layers are production-active",
         "promotion_path": ["shadow", "tie_breaker", "small_weight", "limited_active", "active"],
         "policy": {
             "minimum_shadow_trading_days": 30,

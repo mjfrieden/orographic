@@ -1,246 +1,224 @@
 {
   "activation_policy": {
     "default": "active",
-    "reason": "The payoff ranker was already part of the prior edge-bearing system; new side-aware and Sentinel models remain shadow-only until promoted.",
+    "reason": "The payoff ranker remains active and now operates alongside production-active Scout and Sentinel gating.",
     "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
   },
   "artifact": "payoff_model",
   "artifacts": {
     "model_card_path": "engine/orographic/models/payoff_model_card.json",
     "model_path": "engine/orographic/models/payoff_model.pkl",
-    "model_sha256": "4f27b9e55fad8ba9c29f902b503d58636c5de6628dab2465c200a73ef1bfdc0e",
-    "report_path": "output/payoff_model_training_report_2026-06-27.json"
+    "model_sha256": "634d618da76663e31a4958cf90c9bbecda9eac545435cd7dde2a2544f94ecaa4",
+    "report_path": "output/payoff_model_training_report_2026-06-28.json"
   },
-  "avg_adverse_excursion_risk": -0.2326,
-  "avg_expected_option_return_pct": 0.1518,
-  "avg_mfe_before_expiry": 0.3845,
-  "breakeven_rate": 0.3467,
+  "avg_adverse_excursion_risk": -0.2426,
+  "avg_expected_option_return_pct": 0.1328,
+  "avg_mfe_before_expiry": 0.3754,
+  "breakeven_rate": 0.4302,
   "calibration": {
     "brier": {
-      "baseline_prob_exceeds_breakeven": 0.2265,
-      "baseline_prob_positive_option_pnl": 0.2486,
-      "prob_exceeds_breakeven": 0.2637,
-      "prob_positive_option_pnl": 0.2638
+      "baseline_prob_exceeds_breakeven": 0.2451,
+      "baseline_prob_positive_option_pnl": 0.2451,
+      "prob_exceeds_breakeven": 0.2776,
+      "prob_positive_option_pnl": 0.2776
     },
     "method": "walk_forward_probability_buckets",
     "probability_buckets": {
       "prob_exceeds_breakeven": [
         {
-          "bucket": "(0.0589, 0.319]",
-          "mean_pred_prob": 0.2468,
-          "realized_rate": 0.2296,
-          "rows": 135
+          "bucket": "(0.0029899999999999996, 0.0468]",
+          "mean_pred_prob": 0.0225,
+          "realized_rate": 0.3019,
+          "rows": 53
         },
         {
-          "bucket": "(0.319, 0.398]",
-          "mean_pred_prob": 0.3582,
-          "realized_rate": 0.2593,
-          "rows": 135
+          "bucket": "(0.0468, 0.119]",
+          "mean_pred_prob": 0.0766,
+          "realized_rate": 0.4151,
+          "rows": 53
         },
         {
-          "bucket": "(0.398, 0.459]",
-          "mean_pred_prob": 0.4266,
-          "realized_rate": 0.3185,
-          "rows": 135
+          "bucket": "(0.119, 0.198]",
+          "mean_pred_prob": 0.1563,
+          "realized_rate": 0.2453,
+          "rows": 53
         },
         {
-          "bucket": "(0.459, 0.526]",
-          "mean_pred_prob": 0.4917,
-          "realized_rate": 0.3333,
-          "rows": 135
+          "bucket": "(0.198, 0.319]",
+          "mean_pred_prob": 0.2589,
+          "realized_rate": 0.3774,
+          "rows": 53
         },
         {
-          "bucket": "(0.526, 0.591]",
-          "mean_pred_prob": 0.5583,
-          "realized_rate": 0.3259,
-          "rows": 135
+          "bucket": "(0.319, 0.456]",
+          "mean_pred_prob": 0.3874,
+          "realized_rate": 0.4528,
+          "rows": 53
         },
         {
-          "bucket": "(0.591, 0.653]",
-          "mean_pred_prob": 0.6222,
-          "realized_rate": 0.3556,
-          "rows": 135
+          "bucket": "(0.456, 0.582]",
+          "mean_pred_prob": 0.5284,
+          "realized_rate": 0.3962,
+          "rows": 53
         },
         {
-          "bucket": "(0.653, 0.725]",
-          "mean_pred_prob": 0.6886,
-          "realized_rate": 0.4148,
-          "rows": 135
+          "bucket": "(0.582, 0.761]",
+          "mean_pred_prob": 0.6737,
+          "realized_rate": 0.4717,
+          "rows": 53
         },
         {
-          "bucket": "(0.725, 0.906]",
-          "mean_pred_prob": 0.7901,
-          "realized_rate": 0.4667,
-          "rows": 135
+          "bucket": "(0.761, 0.961]",
+          "mean_pred_prob": 0.8647,
+          "realized_rate": 0.5849,
+          "rows": 53
         }
       ],
       "prob_positive_option_pnl": [
         {
-          "bucket": "(0.0456, 0.284]",
-          "mean_pred_prob": 0.2176,
-          "realized_rate": 0.4074,
-          "rows": 135
+          "bucket": "(0.0029899999999999996, 0.0468]",
+          "mean_pred_prob": 0.0225,
+          "realized_rate": 0.3019,
+          "rows": 53
         },
         {
-          "bucket": "(0.284, 0.356]",
-          "mean_pred_prob": 0.3202,
-          "realized_rate": 0.4148,
-          "rows": 135
+          "bucket": "(0.0468, 0.119]",
+          "mean_pred_prob": 0.0766,
+          "realized_rate": 0.4151,
+          "rows": 53
         },
         {
-          "bucket": "(0.356, 0.409]",
-          "mean_pred_prob": 0.382,
-          "realized_rate": 0.4296,
-          "rows": 135
+          "bucket": "(0.119, 0.198]",
+          "mean_pred_prob": 0.1563,
+          "realized_rate": 0.2453,
+          "rows": 53
         },
         {
-          "bucket": "(0.409, 0.461]",
-          "mean_pred_prob": 0.4364,
-          "realized_rate": 0.4,
-          "rows": 135
+          "bucket": "(0.198, 0.319]",
+          "mean_pred_prob": 0.2589,
+          "realized_rate": 0.3774,
+          "rows": 53
         },
         {
-          "bucket": "(0.461, 0.517]",
-          "mean_pred_prob": 0.4875,
-          "realized_rate": 0.437,
-          "rows": 135
+          "bucket": "(0.319, 0.456]",
+          "mean_pred_prob": 0.3874,
+          "realized_rate": 0.4528,
+          "rows": 53
         },
         {
-          "bucket": "(0.517, 0.573]",
-          "mean_pred_prob": 0.5453,
-          "realized_rate": 0.4222,
-          "rows": 135
+          "bucket": "(0.456, 0.582]",
+          "mean_pred_prob": 0.5284,
+          "realized_rate": 0.3962,
+          "rows": 53
         },
         {
-          "bucket": "(0.573, 0.652]",
-          "mean_pred_prob": 0.6095,
-          "realized_rate": 0.5037,
-          "rows": 135
+          "bucket": "(0.582, 0.761]",
+          "mean_pred_prob": 0.6737,
+          "realized_rate": 0.4717,
+          "rows": 53
         },
         {
-          "bucket": "(0.652, 0.972]",
-          "mean_pred_prob": 0.7302,
-          "realized_rate": 0.5037,
-          "rows": 135
+          "bucket": "(0.761, 0.961]",
+          "mean_pred_prob": 0.8647,
+          "realized_rate": 0.5849,
+          "rows": 53
         }
       ]
     }
   },
   "coverage": {
-    "entry_date_end": "2026-06-12",
-    "entry_date_start": "2025-04-21",
-    "exact_quote_marks_used": 0,
+    "entry_date_end": "2026-06-26",
+    "entry_date_start": "2026-05-13",
+    "exact_quote_marks_used": 36,
     "months": {
-      "2025-04": 29,
-      "2025-05": 65,
-      "2025-06": 108,
-      "2025-07": 71,
-      "2025-08": 63,
-      "2025-09": 43,
-      "2025-10": 64,
-      "2025-11": 82,
-      "2025-12": 184,
-      "2026-01": 70,
-      "2026-02": 43,
-      "2026-03": 11,
-      "2026-04": 22,
       "2026-05": 292,
-      "2026-06": 154
+      "2026-06": 238
     },
-    "option_chain_coverage_ratio": 0.0,
+    "option_chain_coverage_ratio": 0.0679,
     "regime_counts": {
-      "neutral": 105,
-      "risk_off": 9,
-      "risk_on": 332,
-      "unclassified": 855
+      "neutral": 115,
+      "risk_off": 83,
+      "risk_on": 332
     },
     "side_counts": {
-      "call": 1134,
-      "put": 167
+      "call": 447,
+      "put": 83
     }
   },
   "cross_validation": {
-    "breakeven_auc_mean": 0.5591,
-    "breakeven_brier_mean": 0.2637,
-    "breakeven_log_loss_mean": 0.7283,
+    "breakeven_auc_mean": 0.5678,
+    "breakeven_brier_mean": 0.2776,
+    "breakeven_log_loss_mean": 0.8487,
     "by_segment": {
       "regime": {
         "prob_exceeds_breakeven": {
           "neutral": {
-            "auc": 0.5991,
-            "brier": 0.2537,
-            "positive_rate": 0.5143,
-            "rows": 105
+            "auc": 0.6552,
+            "brier": 0.2646,
+            "positive_rate": 0.4857,
+            "rows": 70
           },
           "risk_off": {
-            "reason": "insufficient_rows",
-            "rows": 9
+            "auc": 0.5292,
+            "brier": 0.3073,
+            "positive_rate": 0.4217,
+            "rows": 83
           },
           "risk_on": {
-            "auc": 0.5268,
-            "brier": 0.2984,
-            "positive_rate": 0.3976,
-            "rows": 332
-          },
-          "unclassified": {
-            "auc": 0.5505,
-            "brier": 0.2483,
-            "positive_rate": 0.2729,
-            "rows": 634
+            "auc": 0.5941,
+            "brier": 0.2719,
+            "positive_rate": 0.3801,
+            "rows": 271
           }
         },
         "prob_positive_option_pnl": {
           "neutral": {
-            "auc": 0.5062,
-            "brier": 0.2751,
-            "positive_rate": 0.5143,
-            "rows": 105
+            "auc": 0.6552,
+            "brier": 0.2646,
+            "positive_rate": 0.4857,
+            "rows": 70
           },
           "risk_off": {
-            "reason": "insufficient_rows",
-            "rows": 9
+            "auc": 0.5292,
+            "brier": 0.3073,
+            "positive_rate": 0.4217,
+            "rows": 83
           },
           "risk_on": {
-            "auc": 0.5342,
-            "brier": 0.2644,
-            "positive_rate": 0.3976,
-            "rows": 332
-          },
-          "unclassified": {
-            "auc": 0.5341,
-            "brier": 0.2629,
-            "positive_rate": 0.4464,
-            "rows": 634
+            "auc": 0.5941,
+            "brier": 0.2719,
+            "positive_rate": 0.3801,
+            "rows": 271
           }
         }
       },
       "side": {
         "prob_exceeds_breakeven": {
           "call": {
-            "auc": 0.5968,
-            "brier": 0.2624,
-            "positive_rate": 0.3621,
-            "rows": 917
+            "auc": 0.6173,
+            "brier": 0.2617,
+            "positive_rate": 0.4017,
+            "rows": 351
           },
           "put": {
-            "auc": 0.4499,
-            "brier": 0.2706,
-            "positive_rate": 0.2025,
-            "rows": 163
+            "auc": 0.53,
+            "brier": 0.3541,
+            "positive_rate": 0.4247,
+            "rows": 73
           }
         },
         "prob_positive_option_pnl": {
           "call": {
-            "auc": 0.5399,
-            "brier": 0.2628,
-            "positive_rate": 0.4646,
-            "rows": 917
+            "auc": 0.6173,
+            "brier": 0.2617,
+            "positive_rate": 0.4017,
+            "rows": 351
           },
           "put": {
-            "auc": 0.4481,
-            "brier": 0.2698,
-            "positive_rate": 0.3006,
-            "rows": 163
+            "auc": 0.53,
+            "brier": 0.3541,
+            "positive_rate": 0.4247,
+            "rows": 73
           }
         }
       }
@@ -248,118 +226,110 @@
     "by_side": {
       "prob_exceeds_breakeven": {
         "call": {
-          "auc": 0.5968,
-          "brier": 0.2624,
-          "positive_rate": 0.3621,
-          "rows": 917
+          "auc": 0.6173,
+          "brier": 0.2617,
+          "positive_rate": 0.4017,
+          "rows": 351
         },
         "put": {
-          "auc": 0.4499,
-          "brier": 0.2706,
-          "positive_rate": 0.2025,
-          "rows": 163
+          "auc": 0.53,
+          "brier": 0.3541,
+          "positive_rate": 0.4247,
+          "rows": 73
         }
       },
       "prob_positive_option_pnl": {
         "call": {
-          "auc": 0.5399,
-          "brier": 0.2628,
-          "positive_rate": 0.4646,
-          "rows": 917
+          "auc": 0.6173,
+          "brier": 0.2617,
+          "positive_rate": 0.4017,
+          "rows": 351
         },
         "put": {
-          "auc": 0.4481,
-          "brier": 0.2698,
-          "positive_rate": 0.3006,
-          "rows": 163
+          "auc": 0.53,
+          "brier": 0.3541,
+          "positive_rate": 0.4247,
+          "rows": 73
         }
       }
     },
-    "expected_return_mae_mean": 0.6902,
-    "family": "ensemble",
+    "expected_return_mae_mean": 0.7128,
+    "family": "tree",
     "family_bakeoff": {
       "ensemble": {
-        "breakeven_auc_mean": 0.5591,
-        "breakeven_brier_mean": 0.2637,
-        "breakeven_log_loss_mean": 0.7283,
+        "breakeven_auc_mean": 0.5546,
+        "breakeven_brier_mean": 0.2783,
+        "breakeven_log_loss_mean": 0.7928,
         "by_segment": {
           "regime": {
             "prob_exceeds_breakeven": {
               "neutral": {
-                "auc": 0.5991,
-                "brier": 0.2537,
-                "positive_rate": 0.5143,
-                "rows": 105
+                "auc": 0.6283,
+                "brier": 0.2532,
+                "positive_rate": 0.4857,
+                "rows": 70
               },
               "risk_off": {
-                "reason": "insufficient_rows",
-                "rows": 9
+                "auc": 0.5958,
+                "brier": 0.2694,
+                "positive_rate": 0.4217,
+                "rows": 83
               },
               "risk_on": {
-                "auc": 0.5268,
-                "brier": 0.2984,
-                "positive_rate": 0.3976,
-                "rows": 332
-              },
-              "unclassified": {
-                "auc": 0.5505,
-                "brier": 0.2483,
-                "positive_rate": 0.2729,
-                "rows": 634
+                "auc": 0.544,
+                "brier": 0.2876,
+                "positive_rate": 0.3801,
+                "rows": 271
               }
             },
             "prob_positive_option_pnl": {
               "neutral": {
-                "auc": 0.5062,
-                "brier": 0.2751,
-                "positive_rate": 0.5143,
-                "rows": 105
+                "auc": 0.6283,
+                "brier": 0.2532,
+                "positive_rate": 0.4857,
+                "rows": 70
               },
               "risk_off": {
-                "reason": "insufficient_rows",
-                "rows": 9
+                "auc": 0.5958,
+                "brier": 0.2694,
+                "positive_rate": 0.4217,
+                "rows": 83
               },
               "risk_on": {
-                "auc": 0.5342,
-                "brier": 0.2644,
-                "positive_rate": 0.3976,
-                "rows": 332
-              },
-              "unclassified": {
-                "auc": 0.5341,
-                "brier": 0.2629,
-                "positive_rate": 0.4464,
-                "rows": 634
+                "auc": 0.544,
+                "brier": 0.2876,
+                "positive_rate": 0.3801,
+                "rows": 271
               }
             }
           },
           "side": {
             "prob_exceeds_breakeven": {
               "call": {
-                "auc": 0.5968,
-                "brier": 0.2624,
-                "positive_rate": 0.3621,
-                "rows": 917
+                "auc": 0.5772,
+                "brier": 0.2745,
+                "positive_rate": 0.4017,
+                "rows": 351
               },
               "put": {
-                "auc": 0.4499,
-                "brier": 0.2706,
-                "positive_rate": 0.2025,
-                "rows": 163
+                "auc": 0.563,
+                "brier": 0.2965,
+                "positive_rate": 0.4247,
+                "rows": 73
               }
             },
             "prob_positive_option_pnl": {
               "call": {
-                "auc": 0.5399,
-                "brier": 0.2628,
-                "positive_rate": 0.4646,
-                "rows": 917
+                "auc": 0.5772,
+                "brier": 0.2745,
+                "positive_rate": 0.4017,
+                "rows": 351
               },
               "put": {
-                "auc": 0.4481,
-                "brier": 0.2698,
-                "positive_rate": 0.3006,
-                "rows": 163
+                "auc": 0.563,
+                "brier": 0.2965,
+                "positive_rate": 0.4247,
+                "rows": 73
               }
             }
           }
@@ -367,224 +337,216 @@
         "by_side": {
           "prob_exceeds_breakeven": {
             "call": {
-              "auc": 0.5968,
-              "brier": 0.2624,
-              "positive_rate": 0.3621,
-              "rows": 917
+              "auc": 0.5772,
+              "brier": 0.2745,
+              "positive_rate": 0.4017,
+              "rows": 351
             },
             "put": {
-              "auc": 0.4499,
-              "brier": 0.2706,
-              "positive_rate": 0.2025,
-              "rows": 163
+              "auc": 0.563,
+              "brier": 0.2965,
+              "positive_rate": 0.4247,
+              "rows": 73
             }
           },
           "prob_positive_option_pnl": {
             "call": {
-              "auc": 0.5399,
-              "brier": 0.2628,
-              "positive_rate": 0.4646,
-              "rows": 917
+              "auc": 0.5772,
+              "brier": 0.2745,
+              "positive_rate": 0.4017,
+              "rows": 351
             },
             "put": {
-              "auc": 0.4481,
-              "brier": 0.2698,
-              "positive_rate": 0.3006,
-              "rows": 163
+              "auc": 0.563,
+              "brier": 0.2965,
+              "positive_rate": 0.4247,
+              "rows": 73
             }
           }
         },
-        "expected_return_mae_mean": 0.6902,
+        "expected_return_mae_mean": 0.7232,
         "family": "ensemble",
-        "folds": 5,
-        "positive_pnl_auc_mean": 0.5459,
-        "positive_pnl_brier_mean": 0.2638,
-        "positive_pnl_log_loss_mean": 0.7337,
+        "folds": 4,
+        "positive_pnl_auc_mean": 0.5546,
+        "positive_pnl_brier_mean": 0.2783,
+        "positive_pnl_log_loss_mean": 0.7928,
         "probability_buckets": {
           "prob_exceeds_breakeven": [
             {
-              "bucket": "(0.0589, 0.319]",
-              "mean_pred_prob": 0.2468,
-              "realized_rate": 0.2296,
-              "rows": 135
+              "bucket": "(0.0165, 0.128]",
+              "mean_pred_prob": 0.068,
+              "realized_rate": 0.3208,
+              "rows": 53
             },
             {
-              "bucket": "(0.319, 0.398]",
-              "mean_pred_prob": 0.3582,
-              "realized_rate": 0.2593,
-              "rows": 135
+              "bucket": "(0.128, 0.239]",
+              "mean_pred_prob": 0.1804,
+              "realized_rate": 0.3585,
+              "rows": 53
             },
             {
-              "bucket": "(0.398, 0.459]",
-              "mean_pred_prob": 0.4266,
-              "realized_rate": 0.3185,
-              "rows": 135
+              "bucket": "(0.239, 0.354]",
+              "mean_pred_prob": 0.3046,
+              "realized_rate": 0.3585,
+              "rows": 53
             },
             {
-              "bucket": "(0.459, 0.526]",
-              "mean_pred_prob": 0.4917,
-              "realized_rate": 0.3333,
-              "rows": 135
+              "bucket": "(0.354, 0.449]",
+              "mean_pred_prob": 0.4001,
+              "realized_rate": 0.434,
+              "rows": 53
             },
             {
-              "bucket": "(0.526, 0.591]",
-              "mean_pred_prob": 0.5583,
-              "realized_rate": 0.3259,
-              "rows": 135
+              "bucket": "(0.449, 0.544]",
+              "mean_pred_prob": 0.5003,
+              "realized_rate": 0.434,
+              "rows": 53
             },
             {
-              "bucket": "(0.591, 0.653]",
-              "mean_pred_prob": 0.6222,
-              "realized_rate": 0.3556,
-              "rows": 135
+              "bucket": "(0.544, 0.657]",
+              "mean_pred_prob": 0.5998,
+              "realized_rate": 0.3208,
+              "rows": 53
             },
             {
-              "bucket": "(0.653, 0.725]",
-              "mean_pred_prob": 0.6886,
-              "realized_rate": 0.4148,
-              "rows": 135
+              "bucket": "(0.657, 0.783]",
+              "mean_pred_prob": 0.7127,
+              "realized_rate": 0.434,
+              "rows": 53
             },
             {
-              "bucket": "(0.725, 0.906]",
-              "mean_pred_prob": 0.7901,
-              "realized_rate": 0.4667,
-              "rows": 135
+              "bucket": "(0.783, 0.947]",
+              "mean_pred_prob": 0.8524,
+              "realized_rate": 0.5849,
+              "rows": 53
             }
           ],
           "prob_positive_option_pnl": [
             {
-              "bucket": "(0.0456, 0.284]",
-              "mean_pred_prob": 0.2176,
-              "realized_rate": 0.4074,
-              "rows": 135
+              "bucket": "(0.0165, 0.128]",
+              "mean_pred_prob": 0.068,
+              "realized_rate": 0.3208,
+              "rows": 53
             },
             {
-              "bucket": "(0.284, 0.356]",
-              "mean_pred_prob": 0.3202,
-              "realized_rate": 0.4148,
-              "rows": 135
+              "bucket": "(0.128, 0.239]",
+              "mean_pred_prob": 0.1804,
+              "realized_rate": 0.3585,
+              "rows": 53
             },
             {
-              "bucket": "(0.356, 0.409]",
-              "mean_pred_prob": 0.382,
-              "realized_rate": 0.4296,
-              "rows": 135
+              "bucket": "(0.239, 0.354]",
+              "mean_pred_prob": 0.3046,
+              "realized_rate": 0.3585,
+              "rows": 53
             },
             {
-              "bucket": "(0.409, 0.461]",
-              "mean_pred_prob": 0.4364,
-              "realized_rate": 0.4,
-              "rows": 135
+              "bucket": "(0.354, 0.449]",
+              "mean_pred_prob": 0.4001,
+              "realized_rate": 0.434,
+              "rows": 53
             },
             {
-              "bucket": "(0.461, 0.517]",
-              "mean_pred_prob": 0.4875,
-              "realized_rate": 0.437,
-              "rows": 135
+              "bucket": "(0.449, 0.544]",
+              "mean_pred_prob": 0.5003,
+              "realized_rate": 0.434,
+              "rows": 53
             },
             {
-              "bucket": "(0.517, 0.573]",
-              "mean_pred_prob": 0.5453,
-              "realized_rate": 0.4222,
-              "rows": 135
+              "bucket": "(0.544, 0.657]",
+              "mean_pred_prob": 0.5998,
+              "realized_rate": 0.3208,
+              "rows": 53
             },
             {
-              "bucket": "(0.573, 0.652]",
-              "mean_pred_prob": 0.6095,
-              "realized_rate": 0.5037,
-              "rows": 135
+              "bucket": "(0.657, 0.783]",
+              "mean_pred_prob": 0.7127,
+              "realized_rate": 0.434,
+              "rows": 53
             },
             {
-              "bucket": "(0.652, 0.972]",
-              "mean_pred_prob": 0.7302,
-              "realized_rate": 0.5037,
-              "rows": 135
+              "bucket": "(0.783, 0.947]",
+              "mean_pred_prob": 0.8524,
+              "realized_rate": 0.5849,
+              "rows": 53
             }
           ]
         }
       },
       "linear": {
-        "breakeven_auc_mean": 0.5681,
-        "breakeven_brier_mean": 0.2811,
-        "breakeven_log_loss_mean": 0.7765,
+        "breakeven_auc_mean": 0.5103,
+        "breakeven_brier_mean": 0.3343,
+        "breakeven_log_loss_mean": 0.9951,
         "by_segment": {
           "regime": {
             "prob_exceeds_breakeven": {
               "neutral": {
-                "auc": 0.569,
-                "brier": 0.2786,
-                "positive_rate": 0.5143,
-                "rows": 105
+                "auc": 0.5858,
+                "brier": 0.2889,
+                "positive_rate": 0.4857,
+                "rows": 70
               },
               "risk_off": {
-                "reason": "insufficient_rows",
-                "rows": 9
+                "auc": 0.6613,
+                "brier": 0.2658,
+                "positive_rate": 0.4217,
+                "rows": 83
               },
               "risk_on": {
-                "auc": 0.4734,
-                "brier": 0.3271,
-                "positive_rate": 0.3976,
-                "rows": 332
-              },
-              "unclassified": {
-                "auc": 0.5716,
-                "brier": 0.2598,
-                "positive_rate": 0.2729,
-                "rows": 634
+                "auc": 0.4778,
+                "brier": 0.367,
+                "positive_rate": 0.3801,
+                "rows": 271
               }
             },
             "prob_positive_option_pnl": {
               "neutral": {
-                "auc": 0.5211,
-                "brier": 0.2939,
-                "positive_rate": 0.5143,
-                "rows": 105
+                "auc": 0.5858,
+                "brier": 0.2889,
+                "positive_rate": 0.4857,
+                "rows": 70
               },
               "risk_off": {
-                "reason": "insufficient_rows",
-                "rows": 9
+                "auc": 0.6613,
+                "brier": 0.2658,
+                "positive_rate": 0.4217,
+                "rows": 83
               },
               "risk_on": {
-                "auc": 0.4772,
-                "brier": 0.3059,
-                "positive_rate": 0.3976,
-                "rows": 332
-              },
-              "unclassified": {
-                "auc": 0.5696,
-                "brier": 0.264,
-                "positive_rate": 0.4464,
-                "rows": 634
+                "auc": 0.4778,
+                "brier": 0.367,
+                "positive_rate": 0.3801,
+                "rows": 271
               }
             }
           },
           "side": {
             "prob_exceeds_breakeven": {
               "call": {
-                "auc": 0.5744,
-                "brier": 0.2776,
-                "positive_rate": 0.3621,
-                "rows": 917
+                "auc": 0.5123,
+                "brier": 0.3454,
+                "positive_rate": 0.4017,
+                "rows": 351
               },
               "put": {
-                "auc": 0.4692,
-                "brier": 0.3012,
-                "positive_rate": 0.2025,
-                "rows": 163
+                "auc": 0.5699,
+                "brier": 0.2812,
+                "positive_rate": 0.4247,
+                "rows": 73
               }
             },
             "prob_positive_option_pnl": {
               "call": {
-                "auc": 0.5491,
-                "brier": 0.2756,
-                "positive_rate": 0.4646,
-                "rows": 917
+                "auc": 0.5123,
+                "brier": 0.3454,
+                "positive_rate": 0.4017,
+                "rows": 351
               },
               "put": {
-                "auc": 0.4434,
-                "brier": 0.2954,
-                "positive_rate": 0.3006,
-                "rows": 163
+                "auc": 0.5699,
+                "brier": 0.2812,
+                "positive_rate": 0.4247,
+                "rows": 73
               }
             }
           }
@@ -592,224 +554,216 @@
         "by_side": {
           "prob_exceeds_breakeven": {
             "call": {
-              "auc": 0.5744,
-              "brier": 0.2776,
-              "positive_rate": 0.3621,
-              "rows": 917
+              "auc": 0.5123,
+              "brier": 0.3454,
+              "positive_rate": 0.4017,
+              "rows": 351
             },
             "put": {
-              "auc": 0.4692,
-              "brier": 0.3012,
-              "positive_rate": 0.2025,
-              "rows": 163
+              "auc": 0.5699,
+              "brier": 0.2812,
+              "positive_rate": 0.4247,
+              "rows": 73
             }
           },
           "prob_positive_option_pnl": {
             "call": {
-              "auc": 0.5491,
-              "brier": 0.2756,
-              "positive_rate": 0.4646,
-              "rows": 917
+              "auc": 0.5123,
+              "brier": 0.3454,
+              "positive_rate": 0.4017,
+              "rows": 351
             },
             "put": {
-              "auc": 0.4434,
-              "brier": 0.2954,
-              "positive_rate": 0.3006,
-              "rows": 163
+              "auc": 0.5699,
+              "brier": 0.2812,
+              "positive_rate": 0.4247,
+              "rows": 73
             }
           }
         },
-        "expected_return_mae_mean": 0.7976,
+        "expected_return_mae_mean": 0.7896,
         "family": "linear",
-        "folds": 5,
-        "positive_pnl_auc_mean": 0.5583,
-        "positive_pnl_brier_mean": 0.2786,
-        "positive_pnl_log_loss_mean": 0.7858,
+        "folds": 4,
+        "positive_pnl_auc_mean": 0.5103,
+        "positive_pnl_brier_mean": 0.3343,
+        "positive_pnl_log_loss_mean": 0.9951,
         "probability_buckets": {
           "prob_exceeds_breakeven": [
             {
-              "bucket": "(0.013999999999999999, 0.303]",
-              "mean_pred_prob": 0.2102,
-              "realized_rate": 0.3111,
-              "rows": 135
+              "bucket": "(-0.000999, 0.119]",
+              "mean_pred_prob": 0.0589,
+              "realized_rate": 0.4151,
+              "rows": 53
             },
             {
-              "bucket": "(0.303, 0.392]",
-              "mean_pred_prob": 0.3542,
-              "realized_rate": 0.237,
-              "rows": 135
+              "bucket": "(0.119, 0.272]",
+              "mean_pred_prob": 0.1842,
+              "realized_rate": 0.283,
+              "rows": 53
             },
             {
-              "bucket": "(0.392, 0.466]",
-              "mean_pred_prob": 0.4277,
-              "realized_rate": 0.3111,
-              "rows": 135
+              "bucket": "(0.272, 0.432]",
+              "mean_pred_prob": 0.3548,
+              "realized_rate": 0.3962,
+              "rows": 53
             },
             {
-              "bucket": "(0.466, 0.539]",
-              "mean_pred_prob": 0.503,
-              "realized_rate": 0.3481,
-              "rows": 135
+              "bucket": "(0.432, 0.559]",
+              "mean_pred_prob": 0.5063,
+              "realized_rate": 0.4717,
+              "rows": 53
             },
             {
-              "bucket": "(0.539, 0.612]",
-              "mean_pred_prob": 0.5746,
-              "realized_rate": 0.3259,
-              "rows": 135
+              "bucket": "(0.559, 0.688]",
+              "mean_pred_prob": 0.6201,
+              "realized_rate": 0.3774,
+              "rows": 53
             },
             {
-              "bucket": "(0.612, 0.679]",
-              "mean_pred_prob": 0.6446,
-              "realized_rate": 0.3481,
-              "rows": 135
+              "bucket": "(0.688, 0.812]",
+              "mean_pred_prob": 0.7541,
+              "realized_rate": 0.4906,
+              "rows": 53
             },
             {
-              "bucket": "(0.679, 0.766]",
-              "mean_pred_prob": 0.7222,
-              "realized_rate": 0.3778,
-              "rows": 135
+              "bucket": "(0.812, 0.892]",
+              "mean_pred_prob": 0.8527,
+              "realized_rate": 0.4717,
+              "rows": 53
             },
             {
-              "bucket": "(0.766, 0.962]",
-              "mean_pred_prob": 0.8296,
-              "realized_rate": 0.4444,
-              "rows": 135
+              "bucket": "(0.892, 0.989]",
+              "mean_pred_prob": 0.9368,
+              "realized_rate": 0.3396,
+              "rows": 53
             }
           ],
           "prob_positive_option_pnl": [
             {
-              "bucket": "(0.00277, 0.275]",
-              "mean_pred_prob": 0.1544,
-              "realized_rate": 0.4741,
-              "rows": 135
+              "bucket": "(-0.000999, 0.119]",
+              "mean_pred_prob": 0.0589,
+              "realized_rate": 0.4151,
+              "rows": 53
             },
             {
-              "bucket": "(0.275, 0.397]",
-              "mean_pred_prob": 0.3431,
-              "realized_rate": 0.3481,
-              "rows": 135
+              "bucket": "(0.119, 0.272]",
+              "mean_pred_prob": 0.1842,
+              "realized_rate": 0.283,
+              "rows": 53
             },
             {
-              "bucket": "(0.397, 0.468]",
-              "mean_pred_prob": 0.4324,
-              "realized_rate": 0.4148,
-              "rows": 135
+              "bucket": "(0.272, 0.432]",
+              "mean_pred_prob": 0.3548,
+              "realized_rate": 0.3962,
+              "rows": 53
             },
             {
-              "bucket": "(0.468, 0.523]",
-              "mean_pred_prob": 0.4979,
-              "realized_rate": 0.3926,
-              "rows": 135
+              "bucket": "(0.432, 0.559]",
+              "mean_pred_prob": 0.5063,
+              "realized_rate": 0.4717,
+              "rows": 53
             },
             {
-              "bucket": "(0.523, 0.578]",
-              "mean_pred_prob": 0.5496,
-              "realized_rate": 0.4222,
-              "rows": 135
+              "bucket": "(0.559, 0.688]",
+              "mean_pred_prob": 0.6201,
+              "realized_rate": 0.3774,
+              "rows": 53
             },
             {
-              "bucket": "(0.578, 0.64]",
-              "mean_pred_prob": 0.6099,
-              "realized_rate": 0.4667,
-              "rows": 135
+              "bucket": "(0.688, 0.812]",
+              "mean_pred_prob": 0.7541,
+              "realized_rate": 0.4906,
+              "rows": 53
             },
             {
-              "bucket": "(0.64, 0.725]",
-              "mean_pred_prob": 0.679,
-              "realized_rate": 0.4741,
-              "rows": 135
+              "bucket": "(0.812, 0.892]",
+              "mean_pred_prob": 0.8527,
+              "realized_rate": 0.4717,
+              "rows": 53
             },
             {
-              "bucket": "(0.725, 0.994]",
-              "mean_pred_prob": 0.8115,
-              "realized_rate": 0.5259,
-              "rows": 135
+              "bucket": "(0.892, 0.989]",
+              "mean_pred_prob": 0.9368,
+              "realized_rate": 0.3396,
+              "rows": 53
             }
           ]
         }
       },
       "tree": {
-        "breakeven_auc_mean": 0.5444,
-        "breakeven_brier_mean": 0.288,
-        "breakeven_log_loss_mean": 0.807,
+        "breakeven_auc_mean": 0.5678,
+        "breakeven_brier_mean": 0.2776,
+        "breakeven_log_loss_mean": 0.8487,
         "by_segment": {
           "regime": {
             "prob_exceeds_breakeven": {
               "neutral": {
-                "auc": 0.6249,
-                "brier": 0.2691,
-                "positive_rate": 0.5143,
-                "rows": 105
+                "auc": 0.6552,
+                "brier": 0.2646,
+                "positive_rate": 0.4857,
+                "rows": 70
               },
               "risk_off": {
-                "reason": "insufficient_rows",
-                "rows": 9
+                "auc": 0.5292,
+                "brier": 0.3073,
+                "positive_rate": 0.4217,
+                "rows": 83
               },
               "risk_on": {
-                "auc": 0.5714,
-                "brier": 0.3207,
-                "positive_rate": 0.3976,
-                "rows": 332
-              },
-              "unclassified": {
-                "auc": 0.5176,
-                "brier": 0.2742,
-                "positive_rate": 0.2729,
-                "rows": 634
+                "auc": 0.5941,
+                "brier": 0.2719,
+                "positive_rate": 0.3801,
+                "rows": 271
               }
             },
             "prob_positive_option_pnl": {
               "neutral": {
-                "auc": 0.5011,
-                "brier": 0.2907,
-                "positive_rate": 0.5143,
-                "rows": 105
+                "auc": 0.6552,
+                "brier": 0.2646,
+                "positive_rate": 0.4857,
+                "rows": 70
               },
               "risk_off": {
-                "reason": "insufficient_rows",
-                "rows": 9
+                "auc": 0.5292,
+                "brier": 0.3073,
+                "positive_rate": 0.4217,
+                "rows": 83
               },
               "risk_on": {
-                "auc": 0.5716,
-                "brier": 0.2654,
-                "positive_rate": 0.3976,
-                "rows": 332
-              },
-              "unclassified": {
-                "auc": 0.4967,
-                "brier": 0.3081,
-                "positive_rate": 0.4464,
-                "rows": 634
+                "auc": 0.5941,
+                "brier": 0.2719,
+                "positive_rate": 0.3801,
+                "rows": 271
               }
             }
           },
           "side": {
             "prob_exceeds_breakeven": {
               "call": {
-                "auc": 0.5787,
-                "brier": 0.2908,
-                "positive_rate": 0.3621,
-                "rows": 917
+                "auc": 0.6173,
+                "brier": 0.2617,
+                "positive_rate": 0.4017,
+                "rows": 351
               },
               "put": {
-                "auc": 0.4562,
-                "brier": 0.2724,
-                "positive_rate": 0.2025,
-                "rows": 163
+                "auc": 0.53,
+                "brier": 0.3541,
+                "positive_rate": 0.4247,
+                "rows": 73
               }
             },
             "prob_positive_option_pnl": {
               "call": {
-                "auc": 0.515,
-                "brier": 0.2945,
-                "positive_rate": 0.4646,
-                "rows": 917
+                "auc": 0.6173,
+                "brier": 0.2617,
+                "positive_rate": 0.4017,
+                "rows": 351
               },
               "put": {
-                "auc": 0.4735,
-                "brier": 0.2841,
-                "positive_rate": 0.3006,
-                "rows": 163
+                "auc": 0.53,
+                "brier": 0.3541,
+                "positive_rate": 0.4247,
+                "rows": 73
               }
             }
           }
@@ -817,250 +771,250 @@
         "by_side": {
           "prob_exceeds_breakeven": {
             "call": {
-              "auc": 0.5787,
-              "brier": 0.2908,
-              "positive_rate": 0.3621,
-              "rows": 917
+              "auc": 0.6173,
+              "brier": 0.2617,
+              "positive_rate": 0.4017,
+              "rows": 351
             },
             "put": {
-              "auc": 0.4562,
-              "brier": 0.2724,
-              "positive_rate": 0.2025,
-              "rows": 163
+              "auc": 0.53,
+              "brier": 0.3541,
+              "positive_rate": 0.4247,
+              "rows": 73
             }
           },
           "prob_positive_option_pnl": {
             "call": {
-              "auc": 0.515,
-              "brier": 0.2945,
-              "positive_rate": 0.4646,
-              "rows": 917
+              "auc": 0.6173,
+              "brier": 0.2617,
+              "positive_rate": 0.4017,
+              "rows": 351
             },
             "put": {
-              "auc": 0.4735,
-              "brier": 0.2841,
-              "positive_rate": 0.3006,
-              "rows": 163
+              "auc": 0.53,
+              "brier": 0.3541,
+              "positive_rate": 0.4247,
+              "rows": 73
             }
           }
         },
-        "expected_return_mae_mean": 0.6918,
+        "expected_return_mae_mean": 0.7128,
         "family": "tree",
-        "folds": 5,
-        "positive_pnl_auc_mean": 0.5315,
-        "positive_pnl_brier_mean": 0.2929,
-        "positive_pnl_log_loss_mean": 0.8381,
+        "folds": 4,
+        "positive_pnl_auc_mean": 0.5678,
+        "positive_pnl_brier_mean": 0.2776,
+        "positive_pnl_log_loss_mean": 0.8487,
         "probability_buckets": {
           "prob_exceeds_breakeven": [
             {
-              "bucket": "(0.0073999999999999995, 0.195]",
-              "mean_pred_prob": 0.1147,
-              "realized_rate": 0.2963,
-              "rows": 135
+              "bucket": "(0.0029899999999999996, 0.0468]",
+              "mean_pred_prob": 0.0225,
+              "realized_rate": 0.3019,
+              "rows": 53
             },
             {
-              "bucket": "(0.195, 0.304]",
-              "mean_pred_prob": 0.2448,
-              "realized_rate": 0.3111,
-              "rows": 135
+              "bucket": "(0.0468, 0.119]",
+              "mean_pred_prob": 0.0766,
+              "realized_rate": 0.4151,
+              "rows": 53
             },
             {
-              "bucket": "(0.304, 0.413]",
-              "mean_pred_prob": 0.3582,
-              "realized_rate": 0.2593,
-              "rows": 135
+              "bucket": "(0.119, 0.198]",
+              "mean_pred_prob": 0.1563,
+              "realized_rate": 0.2453,
+              "rows": 53
             },
             {
-              "bucket": "(0.413, 0.524]",
-              "mean_pred_prob": 0.4692,
-              "realized_rate": 0.3111,
-              "rows": 135
+              "bucket": "(0.198, 0.319]",
+              "mean_pred_prob": 0.2589,
+              "realized_rate": 0.3774,
+              "rows": 53
             },
             {
-              "bucket": "(0.524, 0.632]",
-              "mean_pred_prob": 0.5826,
-              "realized_rate": 0.3185,
-              "rows": 135
+              "bucket": "(0.319, 0.456]",
+              "mean_pred_prob": 0.3874,
+              "realized_rate": 0.4528,
+              "rows": 53
             },
             {
-              "bucket": "(0.632, 0.728]",
-              "mean_pred_prob": 0.681,
-              "realized_rate": 0.2667,
-              "rows": 135
+              "bucket": "(0.456, 0.582]",
+              "mean_pred_prob": 0.5284,
+              "realized_rate": 0.3962,
+              "rows": 53
             },
             {
-              "bucket": "(0.728, 0.822]",
-              "mean_pred_prob": 0.7732,
-              "realized_rate": 0.4444,
-              "rows": 135
+              "bucket": "(0.582, 0.761]",
+              "mean_pred_prob": 0.6737,
+              "realized_rate": 0.4717,
+              "rows": 53
             },
             {
-              "bucket": "(0.822, 0.973]",
-              "mean_pred_prob": 0.8754,
-              "realized_rate": 0.4963,
-              "rows": 135
+              "bucket": "(0.761, 0.961]",
+              "mean_pred_prob": 0.8647,
+              "realized_rate": 0.5849,
+              "rows": 53
             }
           ],
           "prob_positive_option_pnl": [
             {
-              "bucket": "(0.00772, 0.138]",
-              "mean_pred_prob": 0.0825,
-              "realized_rate": 0.437,
-              "rows": 135
+              "bucket": "(0.0029899999999999996, 0.0468]",
+              "mean_pred_prob": 0.0225,
+              "realized_rate": 0.3019,
+              "rows": 53
             },
             {
-              "bucket": "(0.138, 0.242]",
-              "mean_pred_prob": 0.1949,
-              "realized_rate": 0.3481,
-              "rows": 135
+              "bucket": "(0.0468, 0.119]",
+              "mean_pred_prob": 0.0766,
+              "realized_rate": 0.4151,
+              "rows": 53
             },
             {
-              "bucket": "(0.242, 0.331]",
-              "mean_pred_prob": 0.2873,
-              "realized_rate": 0.4667,
-              "rows": 135
+              "bucket": "(0.119, 0.198]",
+              "mean_pred_prob": 0.1563,
+              "realized_rate": 0.2453,
+              "rows": 53
             },
             {
-              "bucket": "(0.331, 0.42]",
-              "mean_pred_prob": 0.3741,
-              "realized_rate": 0.4118,
-              "rows": 136
+              "bucket": "(0.198, 0.319]",
+              "mean_pred_prob": 0.2589,
+              "realized_rate": 0.3774,
+              "rows": 53
             },
             {
-              "bucket": "(0.42, 0.498]",
-              "mean_pred_prob": 0.4596,
-              "realized_rate": 0.4627,
-              "rows": 134
+              "bucket": "(0.319, 0.456]",
+              "mean_pred_prob": 0.3874,
+              "realized_rate": 0.4528,
+              "rows": 53
             },
             {
-              "bucket": "(0.498, 0.579]",
-              "mean_pred_prob": 0.5341,
-              "realized_rate": 0.4519,
-              "rows": 135
+              "bucket": "(0.456, 0.582]",
+              "mean_pred_prob": 0.5284,
+              "realized_rate": 0.3962,
+              "rows": 53
             },
             {
-              "bucket": "(0.579, 0.69]",
-              "mean_pred_prob": 0.6388,
-              "realized_rate": 0.5259,
-              "rows": 135
+              "bucket": "(0.582, 0.761]",
+              "mean_pred_prob": 0.6737,
+              "realized_rate": 0.4717,
+              "rows": 53
             },
             {
-              "bucket": "(0.69, 0.988]",
-              "mean_pred_prob": 0.8088,
-              "realized_rate": 0.4148,
-              "rows": 135
+              "bucket": "(0.761, 0.961]",
+              "mean_pred_prob": 0.8647,
+              "realized_rate": 0.5849,
+              "rows": 53
             }
           ]
         }
       }
     },
-    "folds": 5,
-    "positive_pnl_auc_mean": 0.5459,
-    "positive_pnl_brier_mean": 0.2638,
-    "positive_pnl_log_loss_mean": 0.7337,
+    "folds": 4,
+    "positive_pnl_auc_mean": 0.5678,
+    "positive_pnl_brier_mean": 0.2776,
+    "positive_pnl_log_loss_mean": 0.8487,
     "probability_buckets": {
       "prob_exceeds_breakeven": [
         {
-          "bucket": "(0.0589, 0.319]",
-          "mean_pred_prob": 0.2468,
-          "realized_rate": 0.2296,
-          "rows": 135
+          "bucket": "(0.0029899999999999996, 0.0468]",
+          "mean_pred_prob": 0.0225,
+          "realized_rate": 0.3019,
+          "rows": 53
         },
         {
-          "bucket": "(0.319, 0.398]",
-          "mean_pred_prob": 0.3582,
-          "realized_rate": 0.2593,
-          "rows": 135
+          "bucket": "(0.0468, 0.119]",
+          "mean_pred_prob": 0.0766,
+          "realized_rate": 0.4151,
+          "rows": 53
         },
         {
-          "bucket": "(0.398, 0.459]",
-          "mean_pred_prob": 0.4266,
-          "realized_rate": 0.3185,
-          "rows": 135
+          "bucket": "(0.119, 0.198]",
+          "mean_pred_prob": 0.1563,
+          "realized_rate": 0.2453,
+          "rows": 53
         },
         {
-          "bucket": "(0.459, 0.526]",
-          "mean_pred_prob": 0.4917,
-          "realized_rate": 0.3333,
-          "rows": 135
+          "bucket": "(0.198, 0.319]",
+          "mean_pred_prob": 0.2589,
+          "realized_rate": 0.3774,
+          "rows": 53
         },
         {
-          "bucket": "(0.526, 0.591]",
-          "mean_pred_prob": 0.5583,
-          "realized_rate": 0.3259,
-          "rows": 135
+          "bucket": "(0.319, 0.456]",
+          "mean_pred_prob": 0.3874,
+          "realized_rate": 0.4528,
+          "rows": 53
         },
         {
-          "bucket": "(0.591, 0.653]",
-          "mean_pred_prob": 0.6222,
-          "realized_rate": 0.3556,
-          "rows": 135
+          "bucket": "(0.456, 0.582]",
+          "mean_pred_prob": 0.5284,
+          "realized_rate": 0.3962,
+          "rows": 53
         },
         {
-          "bucket": "(0.653, 0.725]",
-          "mean_pred_prob": 0.6886,
-          "realized_rate": 0.4148,
-          "rows": 135
+          "bucket": "(0.582, 0.761]",
+          "mean_pred_prob": 0.6737,
+          "realized_rate": 0.4717,
+          "rows": 53
         },
         {
-          "bucket": "(0.725, 0.906]",
-          "mean_pred_prob": 0.7901,
-          "realized_rate": 0.4667,
-          "rows": 135
+          "bucket": "(0.761, 0.961]",
+          "mean_pred_prob": 0.8647,
+          "realized_rate": 0.5849,
+          "rows": 53
         }
       ],
       "prob_positive_option_pnl": [
         {
-          "bucket": "(0.0456, 0.284]",
-          "mean_pred_prob": 0.2176,
-          "realized_rate": 0.4074,
-          "rows": 135
+          "bucket": "(0.0029899999999999996, 0.0468]",
+          "mean_pred_prob": 0.0225,
+          "realized_rate": 0.3019,
+          "rows": 53
         },
         {
-          "bucket": "(0.284, 0.356]",
-          "mean_pred_prob": 0.3202,
-          "realized_rate": 0.4148,
-          "rows": 135
+          "bucket": "(0.0468, 0.119]",
+          "mean_pred_prob": 0.0766,
+          "realized_rate": 0.4151,
+          "rows": 53
         },
         {
-          "bucket": "(0.356, 0.409]",
-          "mean_pred_prob": 0.382,
-          "realized_rate": 0.4296,
-          "rows": 135
+          "bucket": "(0.119, 0.198]",
+          "mean_pred_prob": 0.1563,
+          "realized_rate": 0.2453,
+          "rows": 53
         },
         {
-          "bucket": "(0.409, 0.461]",
-          "mean_pred_prob": 0.4364,
-          "realized_rate": 0.4,
-          "rows": 135
+          "bucket": "(0.198, 0.319]",
+          "mean_pred_prob": 0.2589,
+          "realized_rate": 0.3774,
+          "rows": 53
         },
         {
-          "bucket": "(0.461, 0.517]",
-          "mean_pred_prob": 0.4875,
-          "realized_rate": 0.437,
-          "rows": 135
+          "bucket": "(0.319, 0.456]",
+          "mean_pred_prob": 0.3874,
+          "realized_rate": 0.4528,
+          "rows": 53
         },
         {
-          "bucket": "(0.517, 0.573]",
-          "mean_pred_prob": 0.5453,
-          "realized_rate": 0.4222,
-          "rows": 135
+          "bucket": "(0.456, 0.582]",
+          "mean_pred_prob": 0.5284,
+          "realized_rate": 0.3962,
+          "rows": 53
         },
         {
-          "bucket": "(0.573, 0.652]",
-          "mean_pred_prob": 0.6095,
-          "realized_rate": 0.5037,
-          "rows": 135
+          "bucket": "(0.582, 0.761]",
+          "mean_pred_prob": 0.6737,
+          "realized_rate": 0.4717,
+          "rows": 53
         },
         {
-          "bucket": "(0.652, 0.972]",
-          "mean_pred_prob": 0.7302,
-          "realized_rate": 0.5037,
-          "rows": 135
+          "bucket": "(0.761, 0.961]",
+          "mean_pred_prob": 0.8647,
+          "realized_rate": 0.5849,
+          "rows": 53
         }
       ]
     },
-    "selected_family": "ensemble"
+    "selected_family": "tree"
   },
   "feature_cols": [
     "option_type_is_call",
@@ -1106,7 +1060,7 @@
     "sentinel_source_reliability_score",
     "sentinel_novelty_score"
   ],
-  "fill_quality_rate": 0.9985,
+  "fill_quality_rate": 0.9943,
   "integrated_heads": [
     "prob_positive_option_pnl",
     "prob_exceeds_breakeven",
@@ -1118,54 +1072,48 @@
     "path_decay_risk"
   ],
   "model_card_schema_version": 2,
-  "no_trade_rate": 0.5373,
+  "no_trade_rate": 0.5698,
   "observability": {
     "by_regime": {
       "neutral": {
-        "avg_expected_option_return_pct": 0.3031,
-        "breakeven_rate": 0.5143,
-        "positive_pnl_rate": 0.5143,
-        "rows": 105
+        "avg_expected_option_return_pct": 0.3208,
+        "breakeven_rate": 0.5304,
+        "positive_pnl_rate": 0.5304,
+        "rows": 115
       },
       "risk_off": {
-        "avg_expected_option_return_pct": 0.4871,
-        "breakeven_rate": 0.6667,
-        "positive_pnl_rate": 0.6667,
-        "rows": 9
+        "avg_expected_option_return_pct": 0.1633,
+        "breakeven_rate": 0.4217,
+        "positive_pnl_rate": 0.4217,
+        "rows": 83
       },
       "risk_on": {
         "avg_expected_option_return_pct": 0.0601,
         "breakeven_rate": 0.3976,
         "positive_pnl_rate": 0.3976,
         "rows": 332
-      },
-      "unclassified": {
-        "avg_expected_option_return_pct": 0.1653,
-        "breakeven_rate": 0.3029,
-        "positive_pnl_rate": 0.4795,
-        "rows": 855
       }
     },
     "by_regime_dataset": {
       "neutral": {
         "avg_friction_drag_pct": 0.0,
-        "avg_return_after_friction_pct": 0.3417,
-        "avg_return_before_friction_pct": 0.3417,
-        "breakeven_after_friction_rate": 0.5143,
+        "avg_return_after_friction_pct": 0.356,
+        "avg_return_before_friction_pct": 0.356,
+        "breakeven_after_friction_rate": 0.5304,
         "friction_flip_count": 0,
         "friction_flip_rate": 0.0,
-        "positive_pnl_after_friction_rate": 0.5143,
-        "rows": 105
+        "positive_pnl_after_friction_rate": 0.5304,
+        "rows": 115
       },
       "risk_off": {
         "avg_friction_drag_pct": 0.0,
-        "avg_return_after_friction_pct": 0.4871,
-        "avg_return_before_friction_pct": 0.4871,
-        "breakeven_after_friction_rate": 0.6667,
+        "avg_return_after_friction_pct": 0.1633,
+        "avg_return_before_friction_pct": 0.1633,
+        "breakeven_after_friction_rate": 0.4217,
         "friction_flip_count": 0,
         "friction_flip_rate": 0.0,
-        "positive_pnl_after_friction_rate": 0.6667,
-        "rows": 9
+        "positive_pnl_after_friction_rate": 0.4217,
+        "rows": 83
       },
       "risk_on": {
         "avg_friction_drag_pct": 0.0,
@@ -1176,109 +1124,85 @@
         "friction_flip_rate": 0.0,
         "positive_pnl_after_friction_rate": 0.3976,
         "rows": 332
-      },
-      "unclassified": {
-        "avg_friction_drag_pct": 0.0721,
-        "avg_return_after_friction_pct": 0.1659,
-        "avg_return_before_friction_pct": 0.238,
-        "breakeven_after_friction_rate": 0.3029,
-        "friction_flip_count": 32,
-        "friction_flip_rate": 0.0374,
-        "positive_pnl_after_friction_rate": 0.4795,
-        "rows": 855
       }
     },
     "by_side": {
       "call": {
-        "avg_expected_option_return_pct": 0.1955,
-        "breakeven_rate": 0.3677,
-        "positive_pnl_rate": 0.4868,
-        "rows": 1134
+        "avg_expected_option_return_pct": 0.1563,
+        "breakeven_rate": 0.4362,
+        "positive_pnl_rate": 0.4362,
+        "rows": 447
       },
       "put": {
-        "avg_expected_option_return_pct": -0.145,
-        "breakeven_rate": 0.2036,
-        "positive_pnl_rate": 0.2994,
-        "rows": 167
+        "avg_expected_option_return_pct": 0.0065,
+        "breakeven_rate": 0.3976,
+        "positive_pnl_rate": 0.3976,
+        "rows": 83
       }
     },
     "by_side_dataset": {
       "call": {
-        "avg_friction_drag_pct": 0.0478,
-        "avg_return_after_friction_pct": 0.2024,
-        "avg_return_before_friction_pct": 0.2502,
-        "breakeven_after_friction_rate": 0.3677,
-        "friction_flip_count": 27,
-        "friction_flip_rate": 0.0238,
-        "positive_pnl_after_friction_rate": 0.4868,
-        "rows": 1134
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": 0.1726,
+        "avg_return_before_friction_pct": 0.1726,
+        "breakeven_after_friction_rate": 0.4362,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.4362,
+        "rows": 447
       },
       "put": {
-        "avg_friction_drag_pct": 0.0447,
-        "avg_return_after_friction_pct": -0.145,
-        "avg_return_before_friction_pct": -0.1003,
-        "breakeven_after_friction_rate": 0.2036,
-        "friction_flip_count": 5,
-        "friction_flip_rate": 0.0299,
-        "positive_pnl_after_friction_rate": 0.2994,
-        "rows": 167
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": 0.0065,
+        "avg_return_before_friction_pct": 0.0065,
+        "breakeven_after_friction_rate": 0.3976,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.3976,
+        "rows": 83
       }
     },
     "coverage": {
-      "entry_date_end": "2026-06-12",
-      "entry_date_start": "2025-04-21",
-      "exact_quote_marks_used": 0,
+      "entry_date_end": "2026-06-26",
+      "entry_date_start": "2026-05-13",
+      "exact_quote_marks_used": 36,
       "months": {
-        "2025-04": 29,
-        "2025-05": 65,
-        "2025-06": 108,
-        "2025-07": 71,
-        "2025-08": 63,
-        "2025-09": 43,
-        "2025-10": 64,
-        "2025-11": 82,
-        "2025-12": 184,
-        "2026-01": 70,
-        "2026-02": 43,
-        "2026-03": 11,
-        "2026-04": 22,
         "2026-05": 292,
-        "2026-06": 154
+        "2026-06": 238
       },
-      "option_chain_coverage_ratio": 0.0,
+      "option_chain_coverage_ratio": 0.0679,
       "regime_counts": {
-        "neutral": 105,
-        "risk_off": 9,
-        "risk_on": 332,
-        "unclassified": 855
+        "neutral": 115,
+        "risk_off": 83,
+        "risk_on": 332
       },
       "side_counts": {
-        "call": 1134,
-        "put": 167
+        "call": 447,
+        "put": 83
       }
     },
     "dataset_summary": {
-      "avg_friction_drag_pct": 0.0474,
-      "avg_total_friction_cost_usd": 9.59,
-      "breakeven_after_friction_rate": 0.3467,
-      "breakeven_before_friction_rate": 0.3467,
-      "friction_flip_count": 32,
-      "positive_pnl_after_friction_rate": 0.4627,
-      "positive_pnl_before_friction_rate": 0.4873,
-      "rows": 1301
+      "avg_friction_drag_pct": 0.0,
+      "avg_total_friction_cost_usd": 0.0,
+      "breakeven_after_friction_rate": 0.4302,
+      "breakeven_before_friction_rate": 0.4302,
+      "friction_flip_count": 0,
+      "positive_pnl_after_friction_rate": 0.4302,
+      "positive_pnl_before_friction_rate": 0.4302,
+      "rows": 530
     }
   },
-  "positive_pnl_rate": 0.4627,
+  "positive_pnl_rate": 0.4302,
   "promotion_gates": {
     "gates": {
       "breakeven_auc": {
-        "actual": 0.5591,
+        "actual": 0.5678,
         "passed": true,
         "required_min": 0.53
       },
       "breakeven_brier_vs_baseline": {
-        "actual": 0.2637,
-        "baseline": 0.2265,
+        "actual": 0.2776,
+        "baseline": 0.2451,
         "passed": false
       },
       "canonical_dataset_source": {
@@ -1287,23 +1211,23 @@
         "required": "option_outcome_dataset"
       },
       "friction_flip_observability": {
-        "actual": 32,
-        "passed": true,
+        "actual": 0,
+        "passed": false,
         "required_min": 5
       },
       "minimum_training_examples": {
-        "actual": 1301,
+        "actual": 530,
         "passed": true,
         "required_min": 150
       },
       "positive_pnl_auc": {
-        "actual": 0.5459,
+        "actual": 0.5678,
         "passed": true,
         "required_min": 0.53
       },
       "positive_pnl_brier_vs_baseline": {
-        "actual": 0.2638,
-        "baseline": 0.2486,
+        "actual": 0.2776,
+        "baseline": 0.2451,
         "passed": false
       },
       "regime_segment_coverage": {
@@ -1313,23 +1237,23 @@
         "segment_rows": {
           "neutral": {
             "avg_friction_drag_pct": 0.0,
-            "avg_return_after_friction_pct": 0.3417,
-            "avg_return_before_friction_pct": 0.3417,
-            "breakeven_after_friction_rate": 0.5143,
+            "avg_return_after_friction_pct": 0.356,
+            "avg_return_before_friction_pct": 0.356,
+            "breakeven_after_friction_rate": 0.5304,
             "friction_flip_count": 0,
             "friction_flip_rate": 0.0,
-            "positive_pnl_after_friction_rate": 0.5143,
-            "rows": 105
+            "positive_pnl_after_friction_rate": 0.5304,
+            "rows": 115
           },
           "risk_off": {
             "avg_friction_drag_pct": 0.0,
-            "avg_return_after_friction_pct": 0.4871,
-            "avg_return_before_friction_pct": 0.4871,
-            "breakeven_after_friction_rate": 0.6667,
+            "avg_return_after_friction_pct": 0.1633,
+            "avg_return_before_friction_pct": 0.1633,
+            "breakeven_after_friction_rate": 0.4217,
             "friction_flip_count": 0,
             "friction_flip_rate": 0.0,
-            "positive_pnl_after_friction_rate": 0.6667,
-            "rows": 9
+            "positive_pnl_after_friction_rate": 0.4217,
+            "rows": 83
           },
           "risk_on": {
             "avg_friction_drag_pct": 0.0,
@@ -1340,23 +1264,13 @@
             "friction_flip_rate": 0.0,
             "positive_pnl_after_friction_rate": 0.3976,
             "rows": 332
-          },
-          "unclassified": {
-            "avg_friction_drag_pct": 0.0721,
-            "avg_return_after_friction_pct": 0.1659,
-            "avg_return_before_friction_pct": 0.238,
-            "breakeven_after_friction_rate": 0.3029,
-            "friction_flip_count": 32,
-            "friction_flip_rate": 0.0374,
-            "positive_pnl_after_friction_rate": 0.4795,
-            "rows": 855
           }
         }
       },
       "side_coverage": {
         "actual": {
-          "call": 1134,
-          "put": 167
+          "call": 447,
+          "put": 83
         },
         "passed": true,
         "required_min_per_side": 75
@@ -1366,10 +1280,10 @@
     "status": "hold",
     "summary": "One or more dataset-coverage or walk-forward gates remain below threshold; hold promotion and keep gathering evidence."
   },
-  "selected_family": "ensemble",
+  "selected_family": "tree",
   "side_counts": {
-    "call": 1134,
-    "put": 167
+    "call": 447,
+    "put": 83
   },
   "side_models_trained": [
     "call",
@@ -1380,36 +1294,30 @@
       "output/option_outcomes_live_recommendations.json"
     ],
     "dataset_summary": {
-      "avg_friction_drag_pct": 0.0474,
-      "avg_total_friction_cost_usd": 9.59,
-      "breakeven_after_friction_rate": 0.3467,
-      "breakeven_before_friction_rate": 0.3467,
-      "friction_flip_count": 32,
-      "positive_pnl_after_friction_rate": 0.4627,
-      "positive_pnl_before_friction_rate": 0.4873,
-      "rows": 1301
+      "avg_friction_drag_pct": 0.0,
+      "avg_total_friction_cost_usd": 0.0,
+      "breakeven_after_friction_rate": 0.4302,
+      "breakeven_before_friction_rate": 0.4302,
+      "friction_flip_count": 0,
+      "positive_pnl_after_friction_rate": 0.4302,
+      "positive_pnl_before_friction_rate": 0.4302,
+      "rows": 530
     },
-    "deduplicated_examples": 1301,
-    "exact_quote_marks_used": 0,
+    "deduplicated_examples": 530,
+    "exact_quote_marks_used": 36,
     "input_artifact_by_file": {
-      "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json": "backtest_results",
       "output/option_outcomes_live_recommendations.json": "option_outcome_dataset"
     },
     "input_artifacts": {
-      "backtest_results": 1,
       "option_outcome_dataset": 1
     },
     "input_files": [
-      "output/option_outcomes_live_recommendations.json",
-      "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"
+      "output/option_outcomes_live_recommendations.json"
     ],
     "input_rows_by_file": {
-      "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json": 855,
-      "output/option_outcomes_live_recommendations.json": 650
+      "output/option_outcomes_live_recommendations.json": 810
     },
-    "legacy_result_files": [
-      "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"
-    ],
+    "legacy_result_files": [],
     "options_data_dir": "engine/data/options/blended",
     "primary_training_source_artifact": "option_outcome_dataset",
     "primary_training_source_files": [
@@ -1418,23 +1326,23 @@
     "regime_dataset_summary": {
       "neutral": {
         "avg_friction_drag_pct": 0.0,
-        "avg_return_after_friction_pct": 0.3417,
-        "avg_return_before_friction_pct": 0.3417,
-        "breakeven_after_friction_rate": 0.5143,
+        "avg_return_after_friction_pct": 0.356,
+        "avg_return_before_friction_pct": 0.356,
+        "breakeven_after_friction_rate": 0.5304,
         "friction_flip_count": 0,
         "friction_flip_rate": 0.0,
-        "positive_pnl_after_friction_rate": 0.5143,
-        "rows": 105
+        "positive_pnl_after_friction_rate": 0.5304,
+        "rows": 115
       },
       "risk_off": {
         "avg_friction_drag_pct": 0.0,
-        "avg_return_after_friction_pct": 0.4871,
-        "avg_return_before_friction_pct": 0.4871,
-        "breakeven_after_friction_rate": 0.6667,
+        "avg_return_after_friction_pct": 0.1633,
+        "avg_return_before_friction_pct": 0.1633,
+        "breakeven_after_friction_rate": 0.4217,
         "friction_flip_count": 0,
         "friction_flip_rate": 0.0,
-        "positive_pnl_after_friction_rate": 0.6667,
-        "rows": 9
+        "positive_pnl_after_friction_rate": 0.4217,
+        "rows": 83
       },
       "risk_on": {
         "avg_friction_drag_pct": 0.0,
@@ -1445,38 +1353,28 @@
         "friction_flip_rate": 0.0,
         "positive_pnl_after_friction_rate": 0.3976,
         "rows": 332
-      },
-      "unclassified": {
-        "avg_friction_drag_pct": 0.0721,
-        "avg_return_after_friction_pct": 0.1659,
-        "avg_return_before_friction_pct": 0.238,
-        "breakeven_after_friction_rate": 0.3029,
-        "friction_flip_count": 32,
-        "friction_flip_rate": 0.0374,
-        "positive_pnl_after_friction_rate": 0.4795,
-        "rows": 855
       }
     },
     "side_dataset_summary": {
       "call": {
-        "avg_friction_drag_pct": 0.0478,
-        "avg_return_after_friction_pct": 0.2024,
-        "avg_return_before_friction_pct": 0.2502,
-        "breakeven_after_friction_rate": 0.3677,
-        "friction_flip_count": 27,
-        "friction_flip_rate": 0.0238,
-        "positive_pnl_after_friction_rate": 0.4868,
-        "rows": 1134
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": 0.1726,
+        "avg_return_before_friction_pct": 0.1726,
+        "breakeven_after_friction_rate": 0.4362,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.4362,
+        "rows": 447
       },
       "put": {
-        "avg_friction_drag_pct": 0.0447,
-        "avg_return_after_friction_pct": -0.145,
-        "avg_return_before_friction_pct": -0.1003,
-        "breakeven_after_friction_rate": 0.2036,
-        "friction_flip_count": 5,
-        "friction_flip_rate": 0.0299,
-        "positive_pnl_after_friction_rate": 0.2994,
-        "rows": 167
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": 0.0065,
+        "avg_return_before_friction_pct": 0.0065,
+        "breakeven_after_friction_rate": 0.3976,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.3976,
+        "rows": 83
       }
     }
   },
@@ -1492,34 +1390,31 @@
     "prob_no_trade": "1 when the realized contract should have been skipped because it failed friction or ended non-positive after friction",
     "prob_positive_option_pnl": "1 when realized option PnL pct is positive"
   },
-  "trained_at": "2026-06-27",
+  "trained_at": "2026-06-28",
   "training_data": {
     "canonical_dataset_files": [
       "output/option_outcomes_live_recommendations.json"
     ],
     "dataset_summary": {
-      "avg_friction_drag_pct": 0.0474,
-      "avg_total_friction_cost_usd": 9.59,
-      "breakeven_after_friction_rate": 0.3467,
-      "breakeven_before_friction_rate": 0.3467,
-      "friction_flip_count": 32,
-      "positive_pnl_after_friction_rate": 0.4627,
-      "positive_pnl_before_friction_rate": 0.4873,
-      "rows": 1301
+      "avg_friction_drag_pct": 0.0,
+      "avg_total_friction_cost_usd": 0.0,
+      "breakeven_after_friction_rate": 0.4302,
+      "breakeven_before_friction_rate": 0.4302,
+      "friction_flip_count": 0,
+      "positive_pnl_after_friction_rate": 0.4302,
+      "positive_pnl_before_friction_rate": 0.4302,
+      "rows": 530
     },
     "input_artifact_by_file": {
-      "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json": "backtest_results",
       "output/option_outcomes_live_recommendations.json": "option_outcome_dataset"
     },
-    "legacy_result_files": [
-      "output/backtest_results_2026-04-17_blended_target_dte_7_14_strict_real_execution_stress_12mo.json"
-    ],
+    "legacy_result_files": [],
     "primary_artifact": "option_outcome_dataset",
     "primary_source_files": [
       "output/option_outcomes_live_recommendations.json"
     ]
   },
-  "training_examples": 1301,
+  "training_examples": 530,
   "training_policy": {
     "evaluated_families": [
       "linear",
@@ -1528,7 +1423,7 @@
     ],
     "global_fit": "side-balanced sample weights",
     "min_side_examples": 75,
-    "selected_family": "ensemble",
+    "selected_family": "tree",
     "side_fit": "separate call and put bundles when side has enough examples"
   },
   "version": 5

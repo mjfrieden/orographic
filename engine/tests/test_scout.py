@@ -35,6 +35,7 @@ class ScoutTests(unittest.TestCase):
 
     def test_strong_counter_regime_put_can_survive_risk_on(self) -> None:
         with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(-0.6, 0.2)),
             mock.patch(
                 "engine.orographic.scout._ml_side_probabilities",
@@ -65,6 +66,7 @@ class ScoutTests(unittest.TestCase):
 
     def test_weak_counter_regime_put_is_rejected_in_risk_on(self) -> None:
         with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(-0.2, 0.4)),
             mock.patch(
                 "engine.orographic.scout._ml_side_probabilities",
@@ -125,7 +127,7 @@ class ScoutTests(unittest.TestCase):
 
     def test_option_payoff_side_model_shadow_conflict_is_logged_but_not_blocked(self) -> None:
         with (
-            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}, clear=True),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
             mock.patch(
                 "engine.orographic.scout._ml_side_probabilities",
@@ -186,7 +188,7 @@ class ScoutTests(unittest.TestCase):
 
     def test_option_payoff_side_model_shadow_no_trade_blocks_trade(self) -> None:
         with (
-            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}, clear=True),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
             mock.patch(
                 "engine.orographic.scout._ml_side_probabilities",
@@ -214,7 +216,7 @@ class ScoutTests(unittest.TestCase):
 
     def test_option_payoff_side_model_shadow_allows_small_disagreement(self) -> None:
         with (
-            mock.patch.dict("os.environ", {}, clear=True),
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}, clear=True),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
             mock.patch(
                 "engine.orographic.scout._ml_side_probabilities",
@@ -276,7 +278,15 @@ class ScoutTests(unittest.TestCase):
 
     def test_sentinel_v2_fields_are_captured_in_diagnostics_and_signal(self) -> None:
         with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.45, 0.725)),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.62, "put_edge": 0.18, "no_trade": 0.20},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
             mock.patch(
                 "engine.orographic.scout.fetch_ai_multiplier",
                 return_value=SentinelScore(
@@ -337,7 +347,15 @@ class ScoutTests(unittest.TestCase):
         frame = _frame()
         frame.index = pd.date_range("2026-01-22", periods=len(frame), freq="D")
         with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.45, 0.725)),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.62, "put_edge": 0.18, "no_trade": 0.20},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
             mock.patch("engine.orographic.scout.fetch_ai_multiplier", sentinel_mock),
         ):
             signal, diagnostics = build_signal(

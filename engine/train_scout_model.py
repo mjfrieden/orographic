@@ -355,6 +355,11 @@ def _optimal_decision_threshold(probs: np.ndarray, y: np.ndarray) -> float:
     return round(best_threshold, 4)
 
 
+def _safe_binary_log_loss(y_true: np.ndarray, probs: np.ndarray) -> float:
+    clipped = np.clip(probs, 1e-6, 1 - 1e-6)
+    return float(log_loss(y_true, clipped, labels=[0, 1]))
+
+
 def _segment_report(
     probs: np.ndarray,
     y: np.ndarray,
@@ -855,7 +860,18 @@ def train(
     if primary_target == PRIMARY_TARGET_OPTION_DIRECTION:
         merged_option_labels = _merge_option_outcome_labels(combined, option_labels)
         directional_frame = _directional_option_training_frame(merged_option_labels)
-        if len(directional_frame) >= 80 and directional_frame["primary_label"].nunique() >= 2:
+        directional_class_counts = directional_frame["primary_label"].value_counts().to_dict() if "primary_label" in directional_frame else {}
+        directional_minority_count = min(directional_class_counts.values()) if directional_class_counts else 0
+        directional_minority_share = (
+            directional_minority_count / max(len(directional_frame), 1)
+            if directional_class_counts
+            else 0.0
+        )
+        if (
+            len(directional_frame) >= 80
+            and directional_frame["primary_label"].nunique() >= 2
+            and directional_minority_share >= 0.19
+        ):
             primary_training_frame = directional_frame
             target_description = "probability that strict-real call-side option edge beats put-side option edge"
             positive_class_name = "call_edge"
@@ -871,9 +887,11 @@ def train(
             }
         else:
             log.warning(
-                "Primary option-direction target requested but insufficient strict-real labels were available (%d directional rows, %d classes). Falling back to underlying direction target.",
+                "Primary option-direction target requested but strict-real labels were too sparse or imbalanced (%d directional rows, %d classes, minority_count=%d, minority_share=%.3f). Falling back to underlying direction target.",
                 len(directional_frame),
                 int(directional_frame["primary_label"].nunique()) if "primary_label" in directional_frame else 0,
+                directional_minority_count,
+                directional_minority_share,
             )
             primary_target_effective = PRIMARY_TARGET_UNDERLYING
 
@@ -915,18 +933,36 @@ def train(
     )
 
     # Time-series aware cross-validation (no lookahead)
-    tscv = TimeSeriesSplit(n_splits=5)
+    split_count = min(5, max(2, len(X) // 40))
+    tscv = TimeSeriesSplit(n_splits=split_count)
     auc_scores: list[float] = []
     ic_scores: list[float] = []
 
     oof_raw_probs = np.full(len(X), np.nan, dtype=float)
     fold_reports: list[dict[str, float | int]] = []
 
-    log.info("Running 5-fold walk-forward cross-validation …")
+    log.info("Running %d-fold walk-forward cross-validation …", split_count)
     for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
         X_tr, X_val = X[train_idx], X[val_idx]
         y_tr, y_val = y[train_idx], y[val_idx]
         weight_tr = primary_sample_weights[train_idx]
+        if len(np.unique(y_tr)) < 2 or len(np.unique(y_val)) < 2:
+            fold_reports.append(
+                {
+                    "fold": fold + 1,
+                    "train_rows": int(len(train_idx)),
+                    "validation_rows": int(len(val_idx)),
+                    "skipped": True,
+                    "reason": "single_class_train_or_validation",
+                }
+            )
+            log.warning(
+                "  Fold %d skipped due to single-class train/validation window (train classes=%s, validation classes=%s)",
+                fold + 1,
+                sorted(np.unique(y_tr).tolist()),
+                sorted(np.unique(y_val).tolist()),
+            )
+            continue
 
         scaler = RobustScaler()
         X_tr_s  = scaler.fit_transform(X_tr)
@@ -947,7 +983,7 @@ def train(
         model.fit(X_tr_s, y_tr, sample_weight=weight_tr)
         probs = model.predict_proba(X_val_s)[:, 1]
         oof_raw_probs[val_idx] = probs
-        auc = roc_auc_score(y_val, probs)
+        auc = float(roc_auc_score(y_val, probs))
         # IC = Pearson correlation between predicted proba and realized fwd return
         target_values = realized_target_values[val_idx]
         if len(probs) > 1:
@@ -960,7 +996,7 @@ def train(
         auc_scores.append(auc)
         ic_scores.append(ic)
         fold_brier = brier_score_loss(y_val, probs)
-        fold_log_loss = log_loss(y_val, np.clip(probs, 1e-6, 1 - 1e-6))
+        fold_log_loss = _safe_binary_log_loss(y_val, probs)
         fold_reports.append(
             {
                 "fold": fold + 1,
@@ -980,28 +1016,36 @@ def train(
             fold_brier,
         )
 
-    log.info("Mean AUC: %.4f  |  Mean IC: %.4f", np.mean(auc_scores), np.mean(ic_scores))
+    mean_auc = float(np.mean(auc_scores)) if auc_scores else float("nan")
+    mean_ic = float(np.mean(ic_scores)) if ic_scores else float("nan")
+    log.info("Mean AUC: %.4f  |  Mean IC: %.4f", mean_auc, mean_ic)
 
     valid_oof = np.isfinite(oof_raw_probs)
-    calibrator = _fit_calibrator(oof_raw_probs[valid_oof], y[valid_oof], calibration_method)
+    oof_y = y[valid_oof]
+    has_oof_class_balance = valid_oof.any() and len(np.unique(oof_y)) >= 2
+    calibrator = _fit_calibrator(oof_raw_probs[valid_oof], oof_y, calibration_method) if has_oof_class_balance else None
     oof_calibrated = np.full(len(X), np.nan, dtype=float)
     oof_calibrated[valid_oof] = _apply_calibrator(
             oof_raw_probs[valid_oof],
             calibrator,
             calibration_method,
         )
-    decision_threshold = _optimal_decision_threshold(oof_calibrated[valid_oof], y[valid_oof])
+    decision_threshold = _optimal_decision_threshold(oof_calibrated[valid_oof], oof_y)
+    raw_brier = round(float(brier_score_loss(oof_y, oof_raw_probs[valid_oof])), 4) if valid_oof.any() else None
+    calibrated_brier = round(float(brier_score_loss(oof_y, oof_calibrated[valid_oof])), 4) if valid_oof.any() else None
+    raw_log = round(_safe_binary_log_loss(oof_y, oof_raw_probs[valid_oof]), 4) if valid_oof.any() else None
+    calibrated_log = round(_safe_binary_log_loss(oof_y, oof_calibrated[valid_oof]), 4) if valid_oof.any() else None
     calibration_metrics = {
         "method": calibration_method,
         "decision_threshold": decision_threshold,
         "oof_rows": int(valid_oof.sum()),
-        "raw_brier": round(float(brier_score_loss(y[valid_oof], oof_raw_probs[valid_oof])), 4),
-        "calibrated_brier": round(float(brier_score_loss(y[valid_oof], oof_calibrated[valid_oof])), 4),
-        "raw_log_loss": round(float(log_loss(y[valid_oof], np.clip(oof_raw_probs[valid_oof], 1e-6, 1 - 1e-6))), 4),
-        "calibrated_log_loss": round(float(log_loss(y[valid_oof], np.clip(oof_calibrated[valid_oof], 1e-6, 1 - 1e-6))), 4),
+        "raw_brier": raw_brier,
+        "calibrated_brier": calibrated_brier,
+        "raw_log_loss": raw_log,
+        "calibrated_log_loss": calibrated_log,
         "probability_buckets": _probability_buckets(
             oof_calibrated[valid_oof],
-            y[valid_oof],
+            oof_y,
             realized_target_values[valid_oof],
             outcome_label=primary_outcome_label,
         ),
@@ -1208,9 +1252,9 @@ def train(
             "training_metrics": side_training_metrics,
         },
         "activation_policy": {
-            "default": "shadow",
+            "default": "active",
             "active_env": "OROGRAPHIC_SIDE_MODEL_MODE=active",
-            "shadow_behavior": "Three-class Scout remains observational, with only high-confidence shadow no-trade vetoes logged.",
+            "shadow_behavior": "Set OROGRAPHIC_SIDE_MODEL_MODE=shadow to observe disagreements and no-trade vetoes without changing live routing.",
             "active_behavior": "Three-class Scout becomes the canonical call/put/no-trade policy and may abstain before Forge.",
         },
         "feature_cols": available,
@@ -1220,8 +1264,8 @@ def train(
         ],
         "cross_validation": {
             "folds": fold_reports,
-            "mean_auc": round(float(np.mean(auc_scores)), 4),
-            "mean_ic": round(float(np.mean(ic_scores)), 4),
+            "mean_auc": round(mean_auc, 4) if np.isfinite(mean_auc) else None,
+            "mean_ic": round(mean_ic, 4) if np.isfinite(mean_ic) else None,
         },
         "calibration": calibration_metrics,
         "observability": observability,
@@ -1235,7 +1279,7 @@ def train(
         },
         "limitations": [
             (
-                "Primary Scout target is strict-real option-direction edge; no-trade becomes a first-class Scout abstain only when OROGRAPHIC_SIDE_MODEL_MODE=active."
+                "Primary Scout target is strict-real option-direction edge; no-trade is a first-class Scout abstain in the production default."
                 if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
                 else "Directional Scout target is underlying stock return, not option payoff."
             ),

@@ -35,6 +35,89 @@ def _coerce_float(value: Any) -> float | None:
     return as_float if math.isfinite(as_float) else None
 
 
+def _clip(value: float, low: float, high: float) -> float:
+    return max(low, min(high, value))
+
+
+def _derived_scout_score(option_type: Any, forge_score: Any, scout_score: Any) -> float | None:
+    direct = _coerce_float(scout_score)
+    if direct is not None:
+        return round(_clip(direct, -1.0, 1.0), 4)
+    heuristic = _coerce_float(forge_score)
+    if heuristic is None:
+        return None
+    heuristic = _clip(heuristic, 0.0, 1.0)
+    if str(option_type or "").strip().lower() == "put":
+        return round(_clip(1.0 - 2.0 * heuristic, -1.0, 1.0), 4)
+    return round(_clip(2.0 * heuristic - 1.0, -1.0, 1.0), 4)
+
+
+def _derived_side_probabilities(score: float | None) -> dict[str, float]:
+    if score is None:
+        return {"call_edge": 0.25, "put_edge": 0.25, "no_trade": 0.50}
+    signed = _clip(float(score), -1.0, 1.0)
+    strength = min(abs(signed), 1.0)
+    no_trade = _clip(1.0 - strength * 1.8, 0.05, 0.90)
+    active_mass = 1.0 - no_trade
+    dominant = 0.50 + strength / 2.0
+    if signed >= 0:
+        call_edge = active_mass * dominant
+        put_edge = active_mass - call_edge
+    else:
+        put_edge = active_mass * dominant
+        call_edge = active_mass - put_edge
+    return {
+        "call_edge": round(call_edge, 4),
+        "put_edge": round(put_edge, 4),
+        "no_trade": round(no_trade, 4),
+    }
+
+
+def _fill_quality_proxy(spread_pct: Any, open_interest: Any, volume: Any, quote_coverage: Any = 1.0) -> float:
+    spread = _coerce_float(spread_pct)
+    oi = _coerce_float(open_interest) or 0.0
+    vol = _coerce_float(volume) or 0.0
+    coverage = _coerce_float(quote_coverage)
+    coverage = coverage if coverage is not None else 1.0
+    spread_component = 1.0 - min(max(spread or 0.18, 0.0) / 0.18, 1.0)
+    oi_component = min(math.log1p(max(oi, 0.0)) / math.log1p(1000.0), 1.0)
+    volume_component = min(math.log1p(max(vol, 0.0)) / math.log1p(250.0), 1.0)
+    return round(_clip(0.55 * spread_component + 0.25 * oi_component + 0.20 * volume_component, 0.0, 1.0) * coverage, 4)
+
+
+def _no_trade_proxy(
+    *,
+    option_type: Any,
+    forge_score: Any,
+    scout_score: Any,
+    extrinsic_ratio: Any,
+    spread_pct: Any,
+    open_interest: Any,
+    volume: Any,
+    scout_no_trade_prob: Any,
+    sentinel_no_trade_relevance: Any,
+    sentinel_confidence: Any,
+    quote_coverage: Any = 1.0,
+) -> float:
+    fill_quality = _fill_quality_proxy(spread_pct, open_interest, volume, quote_coverage)
+    derived_score = _derived_scout_score(option_type, forge_score, scout_score)
+    side_probs = _derived_side_probabilities(derived_score)
+    side_no_trade = _coerce_float(scout_no_trade_prob)
+    if side_no_trade is None:
+        side_no_trade = side_probs["no_trade"]
+    sentinel_pressure = (_coerce_float(sentinel_no_trade_relevance) or 0.0) * max((_coerce_float(sentinel_confidence) or 0.0), 0.35)
+    directional_edge = 0.5 if derived_score is None else ((derived_score + 1.0) / 2.0 if str(option_type or "").strip().lower() != "put" else (1.0 - derived_score) / 2.0)
+    no_trade = (
+        0.18
+        + 0.35 * (1.0 - fill_quality)
+        + 0.20 * min(max(_coerce_float(extrinsic_ratio) or 0.0, 0.0), 1.0)
+        + 0.18 * min(max(side_no_trade, 0.0), 1.0)
+        + 0.15 * min(max(sentinel_pressure, 0.0), 1.0)
+        - 0.20 * min(max(directional_edge, 0.0), 1.0)
+    )
+    return round(_clip(no_trade, 0.0, 1.0), 4)
+
+
 def _walk_symbol_spots(value: Any) -> dict[str, float]:
     spots: dict[str, float] = {}
 
@@ -73,6 +156,33 @@ def diagnostic_spot_lookups(diagnostics_dir: Path) -> tuple[dict[tuple[str, str]
             if date:
                 by_date[(date, symbol)] = spot
     return by_run, by_date
+
+
+def side_aware_shadow_lookups(diagnostics_dir: Path) -> dict[tuple[str, str], dict[str, Any]]:
+    target = diagnostics_dir / "side_aware_scout_shadow_ledger.json"
+    if not target.exists():
+        return {}
+    payload = _load_json(target)
+    rows: dict[tuple[str, str], dict[str, Any]] = {}
+    for entry in payload.get("entries", []):
+        if not isinstance(entry, dict):
+            continue
+        run_generated_at = str(entry.get("run_generated_at_utc") or "")
+        if not run_generated_at:
+            continue
+        for row in entry.get("disagreements", []):
+            if not isinstance(row, dict):
+                continue
+            symbol = str(row.get("symbol") or "").strip().upper()
+            if not symbol:
+                continue
+            rows[(run_generated_at, symbol)] = {
+                "scout_call_edge_prob": _coerce_float(row.get("call_edge")),
+                "scout_put_edge_prob": _coerce_float(row.get("put_edge")),
+                "scout_no_trade_prob": _coerce_float(row.get("no_trade")),
+                "scout_model_mode": row.get("model_mode"),
+            }
+    return rows
 
 
 def _infer_spot_from_premium_pct(emission_quote: dict[str, Any], risk: dict[str, Any]) -> float | None:
@@ -117,6 +227,78 @@ def _underlying_spot(
     return None
 
 
+def _apply_model_backfills(
+    row: dict[str, Any],
+    *,
+    side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    run_generated_at = str(row.get("run_generated_at_utc") or "").strip()
+    symbol = str(row.get("symbol") or "").strip().upper()
+    option_type = row.get("option_type")
+    forge_score = row.get("forge_score")
+    scout_score = _derived_scout_score(option_type, forge_score, row.get("scout_score"))
+    if row.get("scout_score") is None and scout_score is not None:
+        row["scout_score"] = scout_score
+
+    side_lookup = side_aware_by_run.get((run_generated_at, symbol)) if side_aware_by_run and run_generated_at and symbol else None
+    side_probs = {
+        "scout_call_edge_prob": _coerce_float(row.get("scout_call_edge_prob")),
+        "scout_put_edge_prob": _coerce_float(row.get("scout_put_edge_prob")),
+        "scout_no_trade_prob": _coerce_float(row.get("scout_no_trade_prob")),
+    }
+    if side_lookup:
+        for key, value in side_lookup.items():
+            if key == "scout_model_mode":
+                row.setdefault("scout_model_mode", value)
+            elif value is not None:
+                row[key] = round(float(value), 4)
+                side_probs[key] = float(value)
+
+    if any(value is None for value in side_probs.values()):
+        derived = _derived_side_probabilities(scout_score)
+        row["scout_call_edge_prob"] = round(float(side_probs["scout_call_edge_prob"]) if side_probs["scout_call_edge_prob"] is not None else derived["call_edge"], 4)
+        row["scout_put_edge_prob"] = round(float(side_probs["scout_put_edge_prob"]) if side_probs["scout_put_edge_prob"] is not None else derived["put_edge"], 4)
+        row["scout_no_trade_prob"] = round(float(side_probs["scout_no_trade_prob"]) if side_probs["scout_no_trade_prob"] is not None else derived["no_trade"], 4)
+
+    row["sentinel_event_type"] = row.get("sentinel_event_type") or "none"
+    row["sentinel_source_reliability"] = row.get("sentinel_source_reliability") or "unknown"
+    row["sentinel_novelty"] = row.get("sentinel_novelty") or "unknown"
+    row["sentinel_holding_window_label"] = row.get("sentinel_holding_window_label") or "unknown"
+    row["sentinel_time_horizon"] = row.get("sentinel_time_horizon") or "unknown"
+    row["sentinel_decay_half_life"] = row.get("sentinel_decay_half_life") or "unknown"
+    row["sentinel_holding_window_fit"] = round(_coerce_float(row.get("sentinel_holding_window_fit")) or 0.0, 4)
+    row["sentinel_confidence"] = round(_coerce_float(row.get("sentinel_confidence")) or 0.0, 4)
+    row["sentinel_call_relevance"] = round(_coerce_float(row.get("sentinel_call_relevance")) or 0.0, 4)
+    row["sentinel_put_relevance"] = round(_coerce_float(row.get("sentinel_put_relevance")) or 0.0, 4)
+    row["sentinel_no_trade_relevance"] = round(_coerce_float(row.get("sentinel_no_trade_relevance")) or 1.0, 4)
+    row["sentinel_spot_effect"] = round(_coerce_float(row.get("sentinel_spot_effect")) or 0.0, 4)
+    row["sentinel_iv_effect"] = round(_coerce_float(row.get("sentinel_iv_effect")) or 0.0, 4)
+
+    if row.get("prob_fill_quality_ok") is None:
+        row["prob_fill_quality_ok"] = _fill_quality_proxy(
+            row.get("emission_spread_pct") if row.get("emission_spread_pct") is not None else row.get("entry_spread_pct"),
+            row.get("emission_open_interest") if row.get("emission_open_interest") is not None else row.get("entry_open_interest"),
+            row.get("emission_volume") if row.get("emission_volume") is not None else row.get("entry_volume"),
+            row.get("options_data_coverage_pct"),
+        )
+
+    if row.get("prob_no_trade") is None:
+        row["prob_no_trade"] = _no_trade_proxy(
+            option_type=option_type,
+            forge_score=forge_score,
+            scout_score=row.get("scout_score"),
+            extrinsic_ratio=row.get("extrinsic_ratio"),
+            spread_pct=row.get("emission_spread_pct") if row.get("emission_spread_pct") is not None else row.get("entry_spread_pct"),
+            open_interest=row.get("emission_open_interest") if row.get("emission_open_interest") is not None else row.get("entry_open_interest"),
+            volume=row.get("emission_volume") if row.get("emission_volume") is not None else row.get("entry_volume"),
+            scout_no_trade_prob=row.get("scout_no_trade_prob"),
+            sentinel_no_trade_relevance=row.get("sentinel_no_trade_relevance"),
+            sentinel_confidence=row.get("sentinel_confidence"),
+            quote_coverage=row.get("options_data_coverage_pct"),
+        )
+    return row
+
+
 def _flatten_pick(
     entry: dict[str, Any],
     pick: dict[str, Any],
@@ -124,6 +306,7 @@ def _flatten_pick(
     source_artifact: str,
     spot_by_run: dict[tuple[str, str], float] | None = None,
     spot_by_date: dict[tuple[str, str], float] | None = None,
+    side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
     fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
@@ -231,7 +414,7 @@ def _flatten_pick(
             row[f"{window_name}_mark"] = mark.get("mark")
             row[f"{window_name}_pnl_pct_from_emission"] = mark.get("pnl_pct_from_emission")
             row[f"{window_name}_captured_at_utc"] = mark.get("captured_at_utc")
-    return row
+    return _apply_model_backfills(row, side_aware_by_run=side_aware_by_run)
 
 
 def _pick_with_archive_label(
@@ -265,6 +448,7 @@ def _option_outcome_row_from_pick(
     *,
     exit_window: str,
     archive_dir: Path | None = None,
+    side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     enriched_pick = _pick_with_archive_label(pick, archive_dir=archive_dir)
     outcomes = enriched_pick.get("outcomes") if isinstance(enriched_pick.get("outcomes"), dict) else {}
@@ -297,7 +481,7 @@ def _option_outcome_row_from_pick(
     regime = entry.get("regime") if isinstance(entry.get("regime"), dict) else {}
     model_modes = context.get("model_modes") if isinstance(context.get("model_modes"), dict) else {}
 
-    return {
+    row = {
         "symbol": str(enriched_pick.get("symbol") or "").upper(),
         "contract_symbol": enriched_pick.get("contract_symbol"),
         "option_type": str(enriched_pick.get("option_type") or "").lower(),
@@ -408,6 +592,7 @@ def _option_outcome_row_from_pick(
         "fixed_exit_window": exit_window,
         "archived_quote_path": archived_path,
     }
+    return _apply_model_backfills(row, side_aware_by_run=side_aware_by_run)
 
 
 def canonical_option_outcome_rows(
@@ -416,6 +601,7 @@ def canonical_option_outcome_rows(
     source_artifact: str,
     exit_window: str,
     archive_dir: Path | None = None,
+    side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     ledger = _load_json(path)
     rows: list[dict[str, Any]] = []
@@ -430,6 +616,7 @@ def canonical_option_outcome_rows(
                 pick,
                 exit_window=exit_window,
                 archive_dir=archive_dir,
+                side_aware_by_run=side_aware_by_run,
             )
             if row is None:
                 continue
@@ -448,6 +635,7 @@ def ledger_rows_with_spots(
     source_artifact: str,
     spot_by_run: dict[tuple[str, str], float] | None = None,
     spot_by_date: dict[tuple[str, str], float] | None = None,
+    side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     ledger = _load_json(path)
     rows: list[dict[str, Any]] = []
@@ -463,6 +651,7 @@ def ledger_rows_with_spots(
                         source_artifact=source_artifact,
                         spot_by_run=spot_by_run,
                         spot_by_date=spot_by_date,
+                        side_aware_by_run=side_aware_by_run,
                     )
                 )
     return rows
@@ -506,17 +695,20 @@ def main() -> int:
     args = parse_args()
     suffix = {"parquet": ".parquet", "csv": ".csv", "json": ".json"}[args.format]
     spot_by_run, spot_by_date = diagnostic_spot_lookups(args.diagnostics_dir)
+    side_aware_by_run = side_aware_shadow_lookups(args.diagnostics_dir)
     recommendation_rows = ledger_rows_with_spots(
         args.prospective_ledger,
         source_artifact="prospective_pick_ledger",
         spot_by_run=spot_by_run,
         spot_by_date=spot_by_date,
+        side_aware_by_run=side_aware_by_run,
     )
     moonshot_rows = ledger_rows_with_spots(
         args.moonshot_ledger,
         source_artifact="moonshot_prospective_ledger",
         spot_by_run=spot_by_run,
         spot_by_date=spot_by_date,
+        side_aware_by_run=side_aware_by_run,
     )
 
     recommendation_path = args.output_dir / f"option_recommendation_outcomes{suffix}"
@@ -532,12 +724,14 @@ def main() -> int:
                 source_artifact="prospective_pick_ledger",
                 exit_window=args.canonical_exit_window,
                 archive_dir=args.archive_dir,
+                side_aware_by_run=side_aware_by_run,
             ),
             *canonical_option_outcome_rows(
                 args.moonshot_ledger,
                 source_artifact="moonshot_prospective_ledger",
                 exit_window=args.canonical_exit_window,
                 archive_dir=args.archive_dir,
+                side_aware_by_run=side_aware_by_run,
             ),
         ]
     )

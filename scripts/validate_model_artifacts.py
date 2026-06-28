@@ -96,8 +96,8 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         if not side.get("decision_contract"):
             errors.append("scout_model_card: side-aware output is missing decision_contract")
         activation = scout.get("activation_policy", {})
-        if activation.get("default") != "shadow":
-            errors.append("scout_model_card: activation policy default is not shadow")
+        if activation.get("default") != "active":
+            errors.append("scout_model_card: activation policy default is not active")
         if not activation.get("active_env"):
             errors.append("scout_model_card: activation policy is missing active_env")
         primary_target = scout.get("primary_target", {})
@@ -134,8 +134,8 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         if sentinel_artifacts.get("model_sha256") != expected_hashes.get("sentinel_model"):
             errors.append("sentinel_model_card: model_sha256 does not match manifest")
         activation = sentinel.get("activation_policy", {})
-        if activation.get("default") != "shadow":
-            errors.append("sentinel_model_card: activation policy default is not shadow")
+        if activation.get("default") != "active":
+            errors.append("sentinel_model_card: activation policy default is not active")
         structured = sentinel.get("structured_output", {})
         if not structured.get("decision_contract"):
             errors.append("sentinel_model_card: missing structured decision_contract")

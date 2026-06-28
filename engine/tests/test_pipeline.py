@@ -405,7 +405,7 @@ class PipelineTests(unittest.TestCase):
             artifact["final_board"]["abstain_reasons"],
             ["Council abstained because no contract cleared the live board threshold."],
         )
-        self.assertEqual(artifact["promotion_readiness"]["decision"], "keep_shadow")
+        self.assertEqual(artifact["promotion_readiness"]["decision"], "production_active")
 
     def test_build_promotion_readiness_tracks_shadow_models(self) -> None:
         payload = {
@@ -472,7 +472,7 @@ class PipelineTests(unittest.TestCase):
         readiness = build_promotion_readiness(payload)
         models = {row["name"]: row for row in readiness["models"]}
 
-        self.assertEqual(readiness["decision"], "keep_shadow")
+        self.assertEqual(readiness["decision"], "production_active")
         self.assertEqual(models["Side-Aware Scout"]["disagreements"], 1)
         self.assertEqual(models["Side-Aware Scout"]["side_mix"]["put"], 2)
         self.assertEqual(models["Sentinel Event Extractor"]["non_neutral_events"], 1)

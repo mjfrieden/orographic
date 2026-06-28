@@ -83,6 +83,10 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertEqual(rows[0]["archive_path_first_hit_rule"], "take_profit_25_pct")
         self.assertEqual(rows[0]["archive_path_mfe_pct"], 0.2727)
         self.assertEqual(rows[0]["regime_mode"], "neutral")
+        self.assertIsNotNone(rows[0]["scout_score"])
+        self.assertIsNotNone(rows[0]["scout_call_edge_prob"])
+        self.assertIsNotNone(rows[0]["prob_fill_quality_ok"])
+        self.assertIsNotNone(rows[0]["prob_no_trade"])
 
     def test_ledger_rows_backfill_legacy_missing_underlying_spot(self) -> None:
         ledger = {
@@ -226,6 +230,10 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertEqual(rows[0]["positive_pnl_after_friction"], True)
         self.assertAlmostEqual(rows[0]["max_favorable_excursion_before_expiry"], 0.27, places=4)
         self.assertEqual(rows[0]["path_model_mode"], "shadow")
+        self.assertIsNotNone(rows[0]["scout_score"])
+        self.assertIsNotNone(rows[0]["scout_no_trade_prob"])
+        self.assertIsNotNone(rows[0]["prob_fill_quality_ok"])
+        self.assertIsNotNone(rows[0]["prob_no_trade"])
 
 
 if __name__ == "__main__":

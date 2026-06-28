@@ -1112,7 +1112,7 @@ def train(
         "activation_policy": {
             "default": "active",
             "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
-            "reason": "The payoff ranker was already part of the prior edge-bearing system; new side-aware and Sentinel models remain shadow-only until promoted.",
+            "reason": "The payoff ranker remains active and now operates alongside production-active Scout and Sentinel gating.",
         },
         "training_data": {
             "primary_artifact": source_metadata.get("primary_training_source_artifact"),

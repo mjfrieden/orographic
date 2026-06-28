@@ -5,6 +5,12 @@ import {
   loadLatestSnapshot,
   requireSession,
 } from "../../_lib/tradier.js";
+import {
+  buildPositionExitAdvice,
+  findPositionReference,
+  loadPositionExitModel,
+  loadPositionExitReference,
+} from "../../_lib/position_exit.js";
 
 const AI_MODEL = "@cf/meta/llama-3-8b-instruct";
 
@@ -49,6 +55,11 @@ export async function onRequestPost(context) {
   const regime = snapshot?.regime || null;
   const liveQuote = await safeFetchQuote(context.env, position.symbol);
   const quote = normalizeQuote(liveQuote);
+  const exitModel = await safeLoadPositionExitModel(context);
+  const exitReference = await safeLoadPositionExitReference(context);
+  const reference = exitReference
+    ? findPositionReference(exitReference, position.symbol)
+    : null;
 
   const view = buildAdviceView({
     position,
@@ -65,6 +76,30 @@ export async function onRequestPost(context) {
       advice: buildFallbackAdvice(view),
       ai_model: "mechanical-policy",
       scoring_role: "exit_advice_only",
+    });
+  }
+
+  const modelDecision =
+    exitModel &&
+    buildPositionExitAdvice({
+      model: exitModel,
+      view,
+      reference,
+      candidate: found?.candidate || null,
+      lane: found?.lane || reference?.lane || "untracked",
+    });
+  if (modelDecision) {
+    return jsonResponse({
+      ok: true,
+      advice: modelDecision.advice,
+      ai_model: "position_exit_model_v1",
+      scoring_role: "position_exit_multi_head_v1",
+      exit_style: modelDecision.exit_style,
+      model_scores: modelDecision.model_scores,
+      reference_source: reference ? "prospective_pick_ledger" : found?.candidate ? "latest_snapshot" : "none",
+      reference_lane: reference?.lane || found?.lane || "untracked",
+      reference_generated_at_utc: reference?.run_generated_at_utc || null,
+      model_trained_at_utc: exitModel?.trained_at_utc || null,
     });
   }
 
@@ -119,6 +154,22 @@ export async function onRequestPost(context) {
 async function safeLoadSnapshot(context) {
   try {
     return await loadLatestSnapshot(context);
+  } catch {
+    return null;
+  }
+}
+
+async function safeLoadPositionExitModel(context) {
+  try {
+    return await loadPositionExitModel(context);
+  } catch {
+    return null;
+  }
+}
+
+async function safeLoadPositionExitReference(context) {
+  try {
+    return await loadPositionExitReference(context);
   } catch {
     return null;
   }

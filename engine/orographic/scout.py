@@ -138,7 +138,7 @@ def _side_aware_probabilities(score: float) -> dict[str, float]:
 
 
 def _side_model_activation_mode() -> str:
-    mode = os.getenv(SIDE_MODEL_MODE_ENV, "shadow").strip().lower()
+    mode = os.getenv(SIDE_MODEL_MODE_ENV, "active").strip().lower()
     return "active" if mode in {"active", "live"} else "shadow"
 
 
