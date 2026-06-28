@@ -779,6 +779,9 @@ def rank_contracts_with_diagnostics(
                     extrinsic_ratio=round(extrinsic_ratio, 4),
                     scout_score=signal.scout_score,
                     forge_score=round(forge_score, 4),
+                    scout_call_edge_prob=round(float(getattr(signal, "call_edge_prob", 0.0) or 0.0), 4),
+                    scout_put_edge_prob=round(float(getattr(signal, "put_edge_prob", 0.0) or 0.0), 4),
+                    scout_no_trade_prob=round(float(getattr(signal, "no_trade_prob", 0.0) or 0.0), 4),
                     short_strike=None,
                     short_ask=None,
                     short_bid=None,
@@ -792,9 +795,12 @@ def rank_contracts_with_diagnostics(
                     vrp_gap=round(vrp_gap, 4),
                     sentinel_holding_window_fit=holding_window_fit,
                     sentinel_holding_window_label=holding_window_label,
+                    sentinel_event_type=sentinel_event.get("event_type"),
                     sentinel_decay_half_life=sentinel_event.get("decay_half_life"),
                     sentinel_time_horizon=sentinel_event.get("time_horizon"),
                     sentinel_confidence=round(sentinel_confidence, 4),
+                    sentinel_source_reliability=sentinel_event.get("source_reliability"),
+                    sentinel_novelty=sentinel_event.get("novelty"),
                     sentinel_call_relevance=round(sentinel_call_relevance, 4),
                     sentinel_put_relevance=round(sentinel_put_relevance, 4),
                     sentinel_no_trade_relevance=round(sentinel_no_trade_relevance, 4),
@@ -867,7 +873,7 @@ def rank_contracts_with_diagnostics(
         per_symbol.append(best_symbol_diag)
 
     try:
-        from engine.orographic.payoff_model import score_candidates
+        from engine.orographic.payoff_model import score_candidates, summarize_path_heads
 
         score_candidates(
             candidates,
@@ -876,28 +882,39 @@ def rank_contracts_with_diagnostics(
             prior_live_board_symbols=prior_live_board_symbols,
             turnover_switch_penalty=turnover_switch_penalty,
         )
+        if any(candidate.path_holding_quality_score is not None for candidate in candidates):
+            path_model_summary = summarize_path_heads(candidates)
+        else:
+            path_model_summary = {
+                "mode_counts": {},
+                "scored_candidates": 0,
+                "avg_holding_quality_score": None,
+                "avg_early_profit_take_prob": None,
+                "avg_decay_risk": None,
+            }
     except Exception as exc:
         log.warning("Payoff model scoring skipped: %s", exc)
+        path_model_summary = {
+            "mode_counts": {},
+            "scored_candidates": 0,
+            "avg_holding_quality_score": None,
+            "avg_early_profit_take_prob": None,
+            "avg_decay_risk": None,
+        }
 
-    path_model_summary: dict[str, object] = {
-        "mode_counts": {},
-        "scored_candidates": 0,
-        "avg_holding_quality_score": None,
-        "avg_early_profit_take_prob": None,
-        "avg_decay_risk": None,
-    }
-    try:
-        from engine.orographic.path_model import score_candidates as score_path_candidates
-        from engine.orographic.path_model import summarize_candidates as summarize_path_candidates
+    if not any(candidate.path_holding_quality_score is not None for candidate in candidates):
+        try:
+            from engine.orographic.path_model import score_candidates as score_path_candidates
+            from engine.orographic.path_model import summarize_candidates as summarize_path_candidates
 
-        score_path_candidates(
-            candidates,
-            regime,
-            as_of=today,
-        )
-        path_model_summary = summarize_path_candidates(candidates)
-    except Exception as exc:
-        log.warning("Path model scoring skipped: %s", exc)
+            score_path_candidates(
+                candidates,
+                regime,
+                as_of=today,
+            )
+            path_model_summary = summarize_path_candidates(candidates)
+        except Exception as exc:
+            log.warning("Path model scoring skipped: %s", exc)
 
     candidates.sort(key=_candidate_sort_score, reverse=True)
     friction_passed_candidates, friction_diag = _apply_pre_council_gate(

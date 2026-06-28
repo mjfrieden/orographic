@@ -69,6 +69,8 @@ class TradeExample:
     regime_bucket: str
     pnl_pct: float
     prob_positive_option_pnl: int
+    prob_no_trade: int
+    prob_fill_quality_ok: int
     expected_option_return_pct: float
     prob_exceeds_breakeven: int
     max_favorable_excursion_before_expiry: float
@@ -181,6 +183,9 @@ def _candidate_from_trade(trade: dict[str, Any]) -> ContractCandidate:
         extrinsic_ratio=_safe_float(trade.get("extrinsic_ratio"), 1.0),
         scout_score=_scout_score_from_trade(trade),
         forge_score=forge_score,
+        scout_call_edge_prob=trade.get("scout_call_edge_prob"),
+        scout_put_edge_prob=trade.get("scout_put_edge_prob"),
+        scout_no_trade_prob=trade.get("scout_no_trade_prob"),
         spread_cost=entry_price,
         allocation_weight=_safe_float(trade.get("allocation_weight"), 1.0),
         iv_rank=_safe_float(trade.get("iv_rank"), 0.5),
@@ -197,11 +202,14 @@ def _candidate_from_trade(trade: dict[str, Any]) -> ContractCandidate:
             max(_safe_float(trade.get("implied_volatility"), 0.35) - _safe_float(trade.get("realized_vol_20d")), 0.0),
         ),
         expected_edge_after_friction_pct=trade.get("expected_edge_after_friction_pct"),
+        sentinel_event_type=trade.get("sentinel_event_type"),
         sentinel_holding_window_fit=trade.get("sentinel_holding_window_fit"),
         sentinel_holding_window_label=trade.get("sentinel_holding_window_label"),
         sentinel_decay_half_life=trade.get("sentinel_decay_half_life"),
         sentinel_time_horizon=trade.get("sentinel_time_horizon"),
         sentinel_confidence=trade.get("sentinel_confidence"),
+        sentinel_source_reliability=trade.get("sentinel_source_reliability"),
+        sentinel_novelty=trade.get("sentinel_novelty"),
         sentinel_call_relevance=trade.get("sentinel_call_relevance"),
         sentinel_put_relevance=trade.get("sentinel_put_relevance"),
         sentinel_no_trade_relevance=trade.get("sentinel_no_trade_relevance"),
@@ -222,6 +230,31 @@ def _breakeven_label(trade: dict[str, Any]) -> int:
     if option_type == "put":
         return int(exit_spot <= strike - entry_price)
     return int(exit_spot >= strike + entry_price)
+
+
+def _no_trade_label(trade: dict[str, Any], pnl_pct: float) -> int:
+    friction_gate = trade.get("friction_gate_passed")
+    if friction_gate is False:
+        return 1
+    if trade.get("positive_pnl_after_friction") is not None:
+        return int(not bool(trade.get("positive_pnl_after_friction")))
+    return int(pnl_pct <= 0.0)
+
+
+def _fill_quality_label(trade: dict[str, Any]) -> int:
+    spread_pct = _safe_float(trade.get("entry_spread_pct"), 1.0)
+    open_interest = _safe_int(trade.get("entry_open_interest"), 0)
+    volume = _safe_int(trade.get("entry_volume"), 0)
+    quote_coverage = _safe_float(trade.get("options_data_coverage_pct"), 1.0)
+    return int(
+        spread_pct <= 0.18
+        and (open_interest >= 150 or volume >= 25)
+        and quote_coverage >= 0.95
+    )
+
+
+def _path_take_profit_label(mfe: float, threshold: float = 0.25) -> int:
+    return int(mfe >= threshold)
 
 
 def _quote_return_path(
@@ -424,6 +457,8 @@ def load_examples(
                         if canonical_trade.get("positive_pnl_after_friction") is not None
                         else int(pnl_pct > 0.0)
                     ),
+                    prob_no_trade=_no_trade_label(canonical_trade, pnl_pct),
+                    prob_fill_quality_ok=_fill_quality_label(canonical_trade),
                     expected_option_return_pct=_clip(pnl_pct, -1.0, return_cap),
                     prob_exceeds_breakeven=_breakeven_label(canonical_trade),
                     max_favorable_excursion_before_expiry=_clip(mfe, -1.0, return_cap),
@@ -793,10 +828,15 @@ def _fit_bundle(
     return {
         "family": family,
         "positive_classifier": _fit_classifier(X, labels["prob_positive_option_pnl"], sample_weight, family=family),
+        "no_trade_classifier": _fit_classifier(X, labels["prob_no_trade"], sample_weight, family=family),
+        "fill_quality_classifier": _fit_classifier(X, labels["prob_fill_quality_ok"], sample_weight, family=family),
         "breakeven_classifier": _fit_classifier(X, labels["prob_exceeds_breakeven"], sample_weight, family=family),
         "expected_return_regressor": _fit_regressor(X, labels["expected_option_return_pct"], sample_weight, family=family),
         "mfe_regressor": _fit_regressor(X, labels["max_favorable_excursion_before_expiry"], sample_weight, family=family),
         "adverse_regressor": _fit_regressor(X, labels["adverse_excursion_risk"], sample_weight, family=family),
+        "path_take_profit_classifier": _fit_classifier(X, labels["path_early_profit_take_prob"], sample_weight, family=family),
+        "path_mfe_regressor": _fit_regressor(X, labels["path_expected_mfe_pct"], sample_weight, family=family),
+        "path_decay_regressor": _fit_regressor(X, labels["path_decay_risk"], sample_weight, family=family),
     }
 
 
@@ -937,14 +977,33 @@ def train(
     if len(examples) < 50:
         raise RuntimeError(f"Need at least 50 strict-real trades to train payoff model; found {len(examples)}")
 
+    trained_at = date.today().isoformat()
+    integrated_heads = [
+        "prob_positive_option_pnl",
+        "prob_exceeds_breakeven",
+        "expected_option_return_pct",
+        "prob_no_trade",
+        "prob_fill_quality_ok",
+        "path_early_profit_take_prob",
+        "path_expected_mfe_pct",
+        "path_decay_risk",
+    ]
     neutral = MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY")
     X = feature_matrix([example.candidate for example in examples], neutral, feature_cols=FEATURE_COLS)
     labels = {
         "prob_positive_option_pnl": np.array([example.prob_positive_option_pnl for example in examples], dtype=int),
+        "prob_no_trade": np.array([example.prob_no_trade for example in examples], dtype=int),
+        "prob_fill_quality_ok": np.array([example.prob_fill_quality_ok for example in examples], dtype=int),
         "expected_option_return_pct": np.array([example.expected_option_return_pct for example in examples], dtype=float),
         "prob_exceeds_breakeven": np.array([example.prob_exceeds_breakeven for example in examples], dtype=int),
         "max_favorable_excursion_before_expiry": np.array([example.max_favorable_excursion_before_expiry for example in examples], dtype=float),
         "adverse_excursion_risk": np.array([example.adverse_excursion_risk for example in examples], dtype=float),
+        "path_early_profit_take_prob": np.array(
+            [_path_take_profit_label(example.max_favorable_excursion_before_expiry) for example in examples],
+            dtype=int,
+        ),
+        "path_expected_mfe_pct": np.array([example.max_favorable_excursion_before_expiry for example in examples], dtype=float),
+        "path_decay_risk": np.array([max(-float(example.adverse_excursion_risk), 0.0) for example in examples], dtype=float),
     }
     dates = [example.entry_date for example in examples]
     sides = np.array([example.candidate.option_type for example in examples], dtype=object)
@@ -960,13 +1019,14 @@ def train(
         "by_side": {},
         "metadata": {
             **source_metadata,
-            "trained_at": date.today().isoformat(),
+            "trained_at": trained_at,
             "min_side_examples": min_side_examples,
             "label_means": {name: round(float(values.mean()), 4) for name, values in labels.items()},
             "regime_counts": dict(sorted(Counter(regime_buckets.tolist()).items())),
             "selected_family": selected_family,
             "family_bakeoff": cv.get("family_bakeoff", {}),
             "activation_policy": "active_by_default_for_existing payoff ranker; set OROGRAPHIC_PAYOFF_MODEL_MODE=shadow for observation-only scoring",
+            "integrated_heads": integrated_heads,
         },
     }
 
@@ -1015,9 +1075,13 @@ def train(
         "artifact": "payoff_model",
         "version": artifact["version"],
         "model_card_schema_version": 2,
+        "trained_at": trained_at,
+        "integrated_heads": integrated_heads,
         "training_examples": len(examples),
         "side_counts": side_counts,
         "positive_pnl_rate": round(float(labels["prob_positive_option_pnl"].mean()), 4),
+        "no_trade_rate": round(float(labels["prob_no_trade"].mean()), 4),
+        "fill_quality_rate": round(float(labels["prob_fill_quality_ok"].mean()), 4),
         "breakeven_rate": round(float(labels["prob_exceeds_breakeven"].mean()), 4),
         "avg_expected_option_return_pct": round(float(labels["expected_option_return_pct"].mean()), 4),
         "avg_mfe_before_expiry": round(float(labels["max_favorable_excursion_before_expiry"].mean()), 4),
@@ -1077,6 +1141,11 @@ def train(
         "prob_positive_option_pnl": "1 when realized option PnL pct is positive",
         "prob_exceeds_breakeven": "1 when exit underlying price exceeds the long option breakeven",
         "expected_option_return_pct": "realized option PnL pct clipped to the configured cap",
+        "prob_no_trade": "1 when the realized contract should have been skipped because it failed friction or ended non-positive after friction",
+        "prob_fill_quality_ok": "1 when entry spread, depth, volume, and quote coverage indicate live-tradable fill quality",
+        "path_early_profit_take_prob": "1 when observed max favorable excursion reaches the early-take-profit threshold",
+        "path_expected_mfe_pct": "observed max favorable excursion before expiry",
+        "path_decay_risk": "non-negative decay or adverse-excursion pressure derived from the worst observed path return",
         "max_favorable_excursion_before_expiry": "best observed bid-mark return before expiry when real marks exist, otherwise realized return fallback",
         "adverse_excursion_risk": "worst observed bid-mark return before expiry when real marks exist, otherwise realized return fallback",
     }

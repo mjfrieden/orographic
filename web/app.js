@@ -997,6 +997,42 @@ function scoreBarWidth(score) {
   return `${Math.round(s * 100)}%`;
 }
 
+function policyScore(candidate) {
+  const value =
+    candidate?.policy_score ??
+    candidate?.risk_adjusted_score ??
+    candidate?.learned_rank_score ??
+    candidate?.final_candidate_score ??
+    candidate?.forge_score;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function sentinelNoTradePressure(candidate) {
+  if (candidate?.sentinel_no_trade_pressure != null) {
+    const n = Number(candidate.sentinel_no_trade_pressure);
+    return Number.isFinite(n) ? n : null;
+  }
+  const relevance = Number(candidate?.sentinel_no_trade_relevance);
+  const confidence = Number(candidate?.sentinel_confidence);
+  if (!Number.isFinite(relevance) && !Number.isFinite(confidence)) return null;
+  return Math.max(Number.isFinite(relevance) ? relevance : 0, 0) * Math.max(Number.isFinite(confidence) ? confidence : 0, 0.35);
+}
+
+function noTradePressure(candidate) {
+  if (candidate?.no_trade_pressure != null) {
+    const n = Number(candidate.no_trade_pressure);
+    return Number.isFinite(n) ? n : null;
+  }
+  const values = [
+    Number(candidate?.prob_no_trade),
+    Number(candidate?.scout_no_trade_prob),
+    Number(sentinelNoTradePressure(candidate)),
+  ].filter((value) => Number.isFinite(value));
+  if (!values.length) return null;
+  return Math.max(...values);
+}
+
 function brokerMaxContracts() {
   return Math.max(1, Number(BROKER_STATE.maxContracts) || 1);
 }
@@ -1075,6 +1111,9 @@ function buildTradeCard(candidate, regime, lane) {
     displayAsk,
     candidate.allocation_weight || 1.0,
   );
+  const displayedPolicyScore = policyScore(candidate);
+  const displayedNoTradePressure = noTradePressure(candidate);
+  const displayedSentinelPressure = sentinelNoTradePressure(candidate);
 
   const card = document.createElement("div");
   card.className = `trade-card ${tone}${isMoonshot ? " is-moonshot" : !isLive ? " is-shadow" : ""}`;
@@ -1085,8 +1124,8 @@ function buildTradeCard(candidate, regime, lane) {
     <div class="card-art">
       <div class="card-art-glow"></div>
       <span class="card-symbol-giant">${candidate.symbol}</span>
-      <div class="card-gem card-score-gem" title="Forge score">
-        ${Number(candidate.forge_score || 0).toFixed(2)}
+      <div class="card-gem card-score-gem" title="Council policy score">
+        ${displayedPolicyScore.toFixed(2)}
       </div>
       <div class="card-gem card-gem-direction" title="Direction">${dir}</div>
     </div>
@@ -1110,11 +1149,11 @@ function buildTradeCard(candidate, regime, lane) {
 
       <div class="card-score-bar-wrap">
         <div class="card-score-bar-label">
-          <span>Conviction</span>
-          <span>${Number(candidate.forge_score || 0).toFixed(2)}</span>
+          <span>Policy Score</span>
+          <span>${displayedPolicyScore.toFixed(2)}</span>
         </div>
         <div class="card-score-bar-track">
-          <div class="card-score-bar-fill" style="width:${scoreBarWidth(candidate.forge_score)}"></div>
+          <div class="card-score-bar-fill" style="width:${scoreBarWidth(displayedPolicyScore)}"></div>
         </div>
       </div>
 
@@ -1152,6 +1191,16 @@ function buildTradeCard(candidate, regime, lane) {
           <span class="card-stat-value">${pct(candidate.expected_return_pct, 0)}</span>
         </div>
         ${
+          candidate.risk_adjusted_score != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Council Policy</span>
+          <span class="card-stat-value">${Number(candidate.risk_adjusted_score).toFixed(2)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
           candidate.payoff_edge_score != null
             ? `
         <div class="card-stat">
@@ -1167,6 +1216,36 @@ function buildTradeCard(candidate, regime, lane) {
         <div class="card-stat">
           <span class="card-stat-label">Edge After Friction</span>
           <span class="card-stat-value">${pct(candidate.expected_edge_after_friction_pct, 0)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          candidate.prob_fill_quality_ok != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Fill Quality</span>
+          <span class="card-stat-value">${pct(candidate.prob_fill_quality_ok, 0)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          displayedNoTradePressure != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">No-Trade Pressure</span>
+          <span class="card-stat-value">${pct(displayedNoTradePressure, 0)}</span>
+        </div>
+        `
+            : ""
+        }
+        ${
+          displayedSentinelPressure != null
+            ? `
+        <div class="card-stat">
+          <span class="card-stat-label">Sentinel Pressure</span>
+          <span class="card-stat-value">${pct(displayedSentinelPressure, 0)}</span>
         </div>
         `
             : ""
@@ -1496,7 +1575,7 @@ function renderForgeDiagnostics(payload) {
       summaryItemHtml(
         "No-Trade Rule",
         payload?.council?.summary?.no_trade_discipline
-          ? `min ${Number(payload.council.summary.no_trade_discipline.minimum_live_score).toFixed(2)}`
+          ? `score ${Number(payload.council.summary.no_trade_discipline.effective_minimum_live_score).toFixed(2)} · no-trade ${pct(payload.council.summary.no_trade_discipline.max_live_no_trade_prob, 0)}`
           : "—",
       ),
     ].join("");
@@ -1507,9 +1586,16 @@ function attributionCandidateSummary(row) {
   if (!row || typeof row !== "object") return "—";
   const parts = [];
   if (row.symbol) parts.push(`${row.symbol} ${String(row.option_type || "").toUpperCase()}`.trim());
+  if (Number.isFinite(Number(row.policy_score))) parts.push(`policy ${Number(row.policy_score).toFixed(2)}`);
   if (Number.isFinite(Number(row.forge_score))) parts.push(`forge ${Number(row.forge_score).toFixed(2)}`);
   if (Number.isFinite(Number(row.expected_edge_after_friction_pct))) {
     parts.push(`post-friction ${pct(row.expected_edge_after_friction_pct, 0)}`);
+  }
+  if (Number.isFinite(Number(row.prob_fill_quality_ok))) {
+    parts.push(`fill ${pct(row.prob_fill_quality_ok, 0)}`);
+  }
+  if (Number.isFinite(Number(row.no_trade_pressure))) {
+    parts.push(`no-trade ${pct(row.no_trade_pressure, 0)}`);
   }
   const flags = Array.isArray(row.council_risk_flags) ? row.council_risk_flags.filter(Boolean) : [];
   if (flags.length) parts.push(flags.slice(0, 2).join(" · ").replaceAll("_", " "));
@@ -1540,11 +1626,19 @@ function blockedSymbolsSummary(blocked) {
   const scoreAndExtrinsic = Array.isArray(blocked.score_and_extrinsic)
     ? blocked.score_and_extrinsic
     : [];
+  const modelNoTrade = Array.isArray(blocked.model_no_trade) ? blocked.model_no_trade : [];
+  const fillQuality = Array.isArray(blocked.fill_quality) ? blocked.fill_quality : [];
+  const sentinelPressure = Array.isArray(blocked.sentinel_no_trade_pressure)
+    ? blocked.sentinel_no_trade_pressure
+    : [];
   if (scoreOnly.length) parts.push(`score ${scoreOnly.join(", ")}`);
   if (extrinsicOnly.length) parts.push(`extrinsic ${extrinsicOnly.join(", ")}`);
   if (scoreAndExtrinsic.length) {
     parts.push(`score+extrinsic ${scoreAndExtrinsic.join(", ")}`);
   }
+  if (modelNoTrade.length) parts.push(`no-trade ${modelNoTrade.join(", ")}`);
+  if (fillQuality.length) parts.push(`fill ${fillQuality.join(", ")}`);
+  if (sentinelPressure.length) parts.push(`sentinel ${sentinelPressure.join(", ")}`);
   return parts.join(" · ") || "No blocked-symbol sample";
 }
 
@@ -1555,6 +1649,8 @@ function coreFilterAuditSummary(audit) {
     `${integer(audit.score_only_fail_count)} score`,
     `${integer(audit.extrinsic_only_fail_count)} extrinsic`,
     `${integer(audit.score_and_extrinsic_fail_count)} both`,
+    `${integer(audit.model_no_trade_fail_count)} no-trade`,
+    `${integer(audit.fill_quality_fail_count)} fill`,
   ].join(" · ");
 }
 
@@ -1940,7 +2036,7 @@ async function renderBoard(payload) {
         .map((row, i) =>
           rowHtml(
             `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
-            `ask ${money(row.ask ?? row.premium)} · edge ${pct(row.payoff_edge_score ?? row.prob_positive_option_pnl, 0)} · rank ${row.learned_rank_score ?? "—"}`,
+            `ask ${money(row.ask ?? row.premium)} · edge ${pct(row.payoff_edge_score ?? row.prob_positive_option_pnl, 0)} · policy ${Number(policyScore(row)).toFixed(2)}`,
             toneClass(row.option_type),
             `Forge ${String(i + 1).padStart(2, "0")}`,
           ),
@@ -2012,7 +2108,7 @@ async function loadCardRationale(candidate, regime) {
         ? `Explanation only: ${rationale}`
         : sentenceList(
             candidate.notes,
-            `${candidate.symbol} ${candidate.option_type} — Forge score ${Number(candidate.forge_score || 0).toFixed(2)}.`,
+            `${candidate.symbol} ${candidate.option_type} — policy score ${policyScore(candidate).toFixed(2)}.`,
           );
   }
 }

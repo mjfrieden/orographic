@@ -96,6 +96,32 @@ class SentinelTests(unittest.TestCase):
         self.assertEqual(score.call_relevance, 0.0)
         self.assertEqual(score.put_relevance, 0.0)
         self.assertEqual(score.no_trade_relevance, 1.0)
+        self.assertIn("structured_event", score.model_mode)
+
+    def test_fetch_ai_multiplier_can_fallback_to_local_structured_event_model(self) -> None:
+        event_context = {
+            "dataset_tags": "fnspid,edt",
+            "fnspid_sentiment_mean": 0.8,
+            "fnspid_novelty_score": 0.85,
+            "fnspid_catalyst_density": 0.9,
+            "edt_guidance_score": 1.0,
+        }
+        fake_news = [{"title": "Company raises forward guidance"}]
+
+        with (
+            mock.patch("engine.orographic.sentinel.yf.Ticker") as ticker_mock,
+            mock.patch("engine.orographic.sentinel.urllib.request.urlopen", side_effect=OSError("offline")),
+        ):
+            ticker_mock.return_value.news = fake_news
+            score = fetch_ai_multiplier("TEST", direction="call", scout_score=0.4, event_context=event_context)
+
+        self.assertEqual(score.event_type, "guidance")
+        self.assertEqual(score.source_reliability, "high")
+        self.assertEqual(score.novelty, "high")
+        self.assertGreater(score.call_relevance, score.put_relevance)
+        self.assertLess(score.no_trade_relevance, 1.0)
+        self.assertIsNotNone(score.model_artifact_sha256)
+        self.assertIn("structured_event", score.model_mode)
 
 
 if __name__ == "__main__":

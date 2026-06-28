@@ -9,7 +9,7 @@ the underlying equity returns of the candidate set.
 
 This prevents the system from treating NVDA + AMD + MSFT as three independent
 trades when they share a near-1.0 correlation. Positions are sized using
-a simple fractional Kelly criterion derived from the ML scout_score.
+a simple fractional Kelly criterion derived from the current policy score.
 
 Falls back to the original rank-ordering behaviour if:
   - scipy is not installed
@@ -37,6 +37,9 @@ ABSTAIN_REASON_LABELS = {
     "no_forge_candidates": "No Forge candidates reached Council.",
     "below_live_score": "All candidates fell below the live-score gate.",
     "extrinsic_limit": "All candidates failed the extrinsic ceiling.",
+    "model_no_trade": "Model no-trade discipline blocked every live candidate.",
+    "fill_quality": "All candidates failed the fill-quality gate.",
+    "sentinel_no_trade_pressure": "Sentinel event pressure blocked every live candidate.",
     "symbol_probation": "All candidates are live-blocked by symbol probation.",
     "score_and_extrinsic_limit": "Candidates failed both score and extrinsic gates.",
     "mixed_core_filters": "Candidates were blocked by a mix of score and extrinsic gates.",
@@ -49,6 +52,9 @@ LIVE_PROBATION_SYMBOLS = frozenset({"NFLX", "TLT"})
 LIVE_PROBATION_REASON = (
     "symbol_probation: insufficient/negative realized option-outcome evidence for live promotion"
 )
+MAX_LIVE_NO_TRADE_PROB = 0.58
+MIN_LIVE_FILL_QUALITY = 0.45
+MAX_LIVE_SENTINEL_NO_TRADE_PRESSURE = 0.42
 
 
 # ── Markowitz helpers ─────────────────────────────────────────────────────────
@@ -151,16 +157,103 @@ def _markowitz_weights(
         return None
 
 
-def _kelly_weight(scout_score: float, win_rate_est: float = 0.54, b: float = 1.2) -> float:
+def _clip(value: float, low: float = 0.0, high: float = 1.0) -> float:
+    return min(max(float(value), low), high)
+
+
+def _kelly_weight(score: float, win_rate_est: float = 0.54, b: float = 1.2) -> float:
     """
     Fractional Kelly sizing (half-Kelly): f = (p*b - q) / b * 0.5
-    Uses the scout_score to nudge the win-rate estimate from the base rate.
+    Uses the normalized policy score to nudge the win-rate estimate.
     """
-    # Map scout_score in [-1, +1] to a ±5pp win-rate adjustment
-    p = min(max(win_rate_est + scout_score * 0.05, 0.30), 0.75)
+    normalized = _clip((score + 1.0) / 2.0) if score < 0.0 else _clip(score)
+    p = min(max(win_rate_est + (normalized - 0.5) * 0.16, 0.30), 0.75)
     q = 1.0 - p
     kelly_full = (p * b - q) / b
     return max(round(kelly_full * 0.5, 4), 0.05)   # half-Kelly, min 5%
+
+
+def _base_candidate_score(candidate: ContractCandidate) -> float:
+    for field in (
+        "learned_rank_score",
+        "final_candidate_score",
+        "utility_after_friction_score",
+        "payoff_model_score",
+        "forge_score",
+    ):
+        value = getattr(candidate, field, None)
+        if value is not None:
+            return _clip(float(value))
+    return _clip(float(candidate.forge_score))
+
+
+def _normalized_edge_score(candidate: ContractCandidate) -> float:
+    edge = getattr(candidate, "expected_edge_after_friction_pct", None)
+    if edge is None:
+        edge = getattr(candidate, "expected_return_pct", None)
+        edge = float(edge) * 0.25 if edge is not None else 0.0
+    return _clip(0.5 + float(edge) / 0.40)
+
+
+def _candidate_fill_quality(candidate: ContractCandidate) -> float:
+    for field in ("prob_fill_quality_ok", "fill_quality_score", "liquidity_score"):
+        value = getattr(candidate, field, None)
+        if value is not None:
+            return _clip(float(value))
+    return 0.5
+
+
+def _candidate_path_quality(candidate: ContractCandidate) -> float:
+    value = getattr(candidate, "path_holding_quality_score", None)
+    if value is not None:
+        return _clip(float(value))
+    return 0.5
+
+
+def _candidate_sentinel_alignment(candidate: ContractCandidate) -> float:
+    confidence = _clip(float(getattr(candidate, "sentinel_confidence", 0.0) or 0.0))
+    side_relevance = getattr(
+        candidate,
+        "sentinel_call_relevance" if candidate.option_type == "call" else "sentinel_put_relevance",
+        None,
+    )
+    if side_relevance is None:
+        return 0.5
+    return _clip(float(side_relevance)) * max(confidence, 0.35)
+
+
+def _sentinel_no_trade_pressure(candidate: ContractCandidate) -> float:
+    relevance = _clip(float(getattr(candidate, "sentinel_no_trade_relevance", 0.0) or 0.0))
+    confidence = _clip(float(getattr(candidate, "sentinel_confidence", 0.0) or 0.0))
+    return _clip(relevance * max(confidence, 0.35))
+
+
+def _candidate_no_trade_pressure(candidate: ContractCandidate) -> float:
+    return max(
+        _clip(float(getattr(candidate, "prob_no_trade", 0.0) or 0.0)),
+        _clip(float(getattr(candidate, "scout_no_trade_prob", 0.0) or 0.0)),
+        _sentinel_no_trade_pressure(candidate),
+    )
+
+
+def _candidate_live_score(candidate: ContractCandidate) -> float:
+    base_score = _base_candidate_score(candidate)
+    utility_score = getattr(candidate, "utility_after_friction_score", None)
+    utility_score = _clip(float(utility_score)) if utility_score is not None else base_score
+    edge_score = _normalized_edge_score(candidate)
+    fill_quality = _candidate_fill_quality(candidate)
+    path_quality = _candidate_path_quality(candidate)
+    sentinel_alignment = _candidate_sentinel_alignment(candidate)
+    no_trade_headroom = 1.0 - _candidate_no_trade_pressure(candidate)
+    return _clip(
+        0.32 * base_score
+        + 0.18 * utility_score
+        + 0.16 * edge_score
+        + 0.14 * fill_quality
+        + 0.10 * path_quality
+        + 0.10 * sentinel_alignment
+        + 0.10 * no_trade_headroom
+    )
 
 
 def _avg_pairwise_corr(corr: np.ndarray | None) -> float | None:
@@ -182,12 +275,18 @@ def _annotate_risk(
     for candidate in candidates:
         sector = sector_for_symbol(candidate.symbol)
         candidate.sector = sector
+        live_score = _candidate_live_score(candidate)
+        fill_quality = _candidate_fill_quality(candidate)
+        no_trade_pressure = _candidate_no_trade_pressure(candidate)
+        sentinel_pressure = _sentinel_no_trade_pressure(candidate)
         candidate.suggested_allocation_pct = round(
-            min(max(_kelly_weight(candidate.scout_score) * candidate.allocation_weight, 0.01), 0.25),
+            min(max(_kelly_weight(live_score) * candidate.allocation_weight, 0.01), 0.25),
             4,
         )
         candidate.risk_adjusted_score = round(
-            candidate.forge_score * (1.0 - min(candidate.extrinsic_ratio, 1.0) * 0.08),
+            live_score
+            * (1.0 - min(candidate.extrinsic_ratio, 1.0) * 0.04)
+            * (0.90 + 0.10 * fill_quality),
             4,
         )
         flags = list(candidate.council_risk_flags)
@@ -197,6 +296,12 @@ def _annotate_risk(
             flags.append("high_extrinsic")
         if candidate.spread_pct > 0.16:
             flags.append("wide_spread")
+        if no_trade_pressure > MAX_LIVE_NO_TRADE_PROB:
+            flags.append("model_no_trade")
+        if fill_quality < MIN_LIVE_FILL_QUALITY:
+            flags.append("fill_quality")
+        if sentinel_pressure > MAX_LIVE_SENTINEL_NO_TRADE_PRESSURE:
+            flags.append("sentinel_no_trade_pressure")
         candidate.council_risk_flags = sorted(set(flags))
 
 
@@ -212,9 +317,19 @@ def _audit_candidate(row: ContractCandidate) -> dict[str, Any]:
         "expiry": row.expiry,
         "strike": row.strike,
         "forge_score": row.forge_score,
+        "effective_candidate_score": round(_effective_candidate_score(row), 4),
         "learned_rank_score": row.learned_rank_score,
+        "final_candidate_score": row.final_candidate_score,
+        "risk_adjusted_score": row.risk_adjusted_score,
+        "utility_after_friction_score": row.utility_after_friction_score,
         "expected_edge_after_friction_pct": row.expected_edge_after_friction_pct,
         "friction_buffer_pct": row.friction_buffer_pct,
+        "prob_no_trade": row.prob_no_trade,
+        "scout_no_trade_prob": row.scout_no_trade_prob,
+        "prob_fill_quality_ok": row.prob_fill_quality_ok,
+        "sentinel_confidence": row.sentinel_confidence,
+        "sentinel_no_trade_relevance": row.sentinel_no_trade_relevance,
+        "sentinel_no_trade_pressure": round(_sentinel_no_trade_pressure(row), 4),
         "extrinsic_ratio": row.extrinsic_ratio,
         "contract_cost": row.contract_cost,
         "spread_pct": row.spread_pct,
@@ -253,13 +368,10 @@ def _normalize_market_shock(value: MarketShockRegime | dict[str, Any] | None) ->
 
 
 def _effective_candidate_score(candidate: ContractCandidate) -> float:
-    learned = getattr(candidate, "learned_rank_score", None)
-    if learned is not None:
-        return float(learned)
     adjusted = getattr(candidate, "risk_adjusted_score", None)
     if adjusted is not None:
         return float(adjusted)
-    return float(candidate.forge_score)
+    return _candidate_live_score(candidate)
 
 
 def _board_utility(board: list[ContractCandidate]) -> float:
@@ -409,6 +521,9 @@ def select_board(
     max_same_side_share: float = 0.67,
     max_same_sector_share: float = 0.67,
     max_live_extrinsic_ratio: float = 0.96,
+    max_live_no_trade_prob: float = MAX_LIVE_NO_TRADE_PROB,
+    min_live_fill_quality: float = MIN_LIVE_FILL_QUALITY,
+    max_live_sentinel_no_trade_pressure: float = MAX_LIVE_SENTINEL_NO_TRADE_PRESSURE,
     corr_matrix: np.ndarray | None = None,
     fetch_live_corr: bool = True,
     prior_live_board_symbols: list[str] | None = None,
@@ -441,6 +556,10 @@ def select_board(
     score_only_blocked: list[ContractCandidate] = []
     extrinsic_only_blocked: list[ContractCandidate] = []
     score_and_extrinsic_blocked: list[ContractCandidate] = []
+    no_trade_blocked: list[ContractCandidate] = []
+    fill_quality_blocked: list[ContractCandidate] = []
+    sentinel_pressure_blocked: list[ContractCandidate] = []
+    mixed_policy_blocked: list[ContractCandidate] = []
     probation_blocked: list[ContractCandidate] = []
 
     for candidate in candidates:
@@ -457,36 +576,64 @@ def select_board(
             if candidate.option_type == "put" and effective_minimum_put_live_score is not None
             else effective_minimum_live_score
         )
-        score_ok = candidate.forge_score >= required_score
+        live_score = _effective_candidate_score(candidate)
+        fill_quality = _candidate_fill_quality(candidate)
+        no_trade_pressure = _candidate_no_trade_pressure(candidate)
+        sentinel_pressure = _sentinel_no_trade_pressure(candidate)
+        score_ok = live_score >= required_score
         extrinsic_ok = candidate.extrinsic_ratio <= effective_max_live_extrinsic_ratio
+        no_trade_ok = no_trade_pressure <= max_live_no_trade_prob
+        fill_quality_ok = fill_quality >= min_live_fill_quality
+        sentinel_ok = sentinel_pressure <= max_live_sentinel_no_trade_pressure
         if shock.label != NEUTRAL_MARKET_SHOCK.label:
             flags = set(candidate.council_risk_flags)
             flags.add(f"market_shock:{shock.label}")
             if candidate.option_type in shock.blocked_sides:
                 flags.add("market_shock_side_block")
             candidate.council_risk_flags = sorted(flags)
-        if score_ok and extrinsic_ok and not symbol_on_probation:
+        if score_ok and extrinsic_ok and no_trade_ok and fill_quality_ok and sentinel_ok and not symbol_on_probation:
             eligible.append(candidate)
-        elif symbol_on_probation:
+            continue
+
+        if symbol_on_probation:
             probation_blocked.append(candidate)
-        elif not score_ok and not extrinsic_ok:
-            score_and_extrinsic_blocked.append(candidate)
-        elif not score_ok:
+            continue
+
+        failures: list[str] = []
+        if not score_ok:
+            failures.append("score")
+        if not extrinsic_ok:
+            failures.append("extrinsic")
+        if not no_trade_ok:
+            failures.append("no_trade")
+            no_trade_blocked.append(candidate)
+        if not fill_quality_ok:
+            failures.append("fill_quality")
+            fill_quality_blocked.append(candidate)
+        if not sentinel_ok:
+            failures.append("sentinel")
+            sentinel_pressure_blocked.append(candidate)
+
+        if failures == ["score"]:
             score_only_blocked.append(candidate)
-        else:
+        elif failures == ["extrinsic"]:
             extrinsic_only_blocked.append(candidate)
+        elif failures == ["score", "extrinsic"]:
+            score_and_extrinsic_blocked.append(candidate)
+        else:
+            mixed_policy_blocked.append(candidate)
 
     shadow_fallback = [
         c for c in candidates
         if c not in eligible
     ]
 
-    # ── De-duplicate by symbol (keep highest forge_score per symbol) ──
+    # ── De-duplicate by symbol (keep highest Council policy score per symbol) ──
     seen: dict[str, ContractCandidate] = {}
     for c in eligible:
-        if c.symbol not in seen or c.forge_score > seen[c.symbol].forge_score:
+        if c.symbol not in seen or _effective_candidate_score(c) > _effective_candidate_score(seen[c.symbol]):
             seen[c.symbol] = c
-    unique_eligible = list(seen.values())
+    unique_eligible = sorted(seen.values(), key=_effective_candidate_score, reverse=True)
     side_balance_rejections = 0
     side_balance_demotions = 0
 
@@ -504,9 +651,9 @@ def select_board(
 
         if corr is not None and corr.shape == (len(syms), len(syms)):
             corr_used = corr
-            exp_rets = np.array([(c.scout_score + 1.0) / 2.0 for c in unique_eligible])
+            exp_rets = np.array([_effective_candidate_score(c) for c in unique_eligible])
             # Approximate symbol volatility from the candidate's implied vol
-            approx_vols = np.array([c.implied_volatility for c in unique_eligible])
+            approx_vols = np.array([max(float(c.implied_volatility), 0.10) for c in unique_eligible])
             result = _markowitz_weights(exp_rets, corr, approx_vols, live_size)
 
             if result is not None:
@@ -605,7 +752,7 @@ def select_board(
     shadow_pool = sorted(
         candidates,
         key=lambda row: (
-            float(getattr(row, "learned_rank_score", None) or row.forge_score),
+            _effective_candidate_score(row),
             row.forge_score,
         ),
         reverse=True,
@@ -626,7 +773,7 @@ def select_board(
         shadow_board = sorted(
             list({row.contract_symbol: row for row in [*live_board, *shadow_board]}.values()),
             key=lambda row: (
-                float(getattr(row, "learned_rank_score", None) or row.forge_score),
+                _effective_candidate_score(row),
                 row.forge_score,
             ),
             reverse=True,
@@ -643,6 +790,12 @@ def select_board(
     elif not eligible:
         if len(probation_blocked) == len(candidates):
             primary_reason = "symbol_probation"
+        elif len(no_trade_blocked) == len(candidates):
+            primary_reason = "model_no_trade"
+        elif len(fill_quality_blocked) == len(candidates):
+            primary_reason = "fill_quality"
+        elif len(sentinel_pressure_blocked) == len(candidates):
+            primary_reason = "sentinel_no_trade_pressure"
         elif len(extrinsic_only_blocked) + len(score_and_extrinsic_blocked) + len(probation_blocked) == len(candidates):
             primary_reason = (
                 "score_and_extrinsic_limit"
@@ -692,6 +845,9 @@ def select_board(
             "effective_minimum_put_live_score": effective_minimum_put_live_score,
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
             "effective_max_live_extrinsic_ratio": effective_max_live_extrinsic_ratio,
+            "max_live_no_trade_prob": max_live_no_trade_prob,
+            "min_live_fill_quality": min_live_fill_quality,
+            "max_live_sentinel_no_trade_pressure": max_live_sentinel_no_trade_pressure,
             "max_same_side_share": max_same_side_share,
             "max_same_sector_share": max_same_sector_share,
             "live_probation_symbols": sorted(LIVE_PROBATION_SYMBOLS),
@@ -709,6 +865,10 @@ def select_board(
             "score_only_fail_count": len(score_only_blocked),
             "extrinsic_only_fail_count": len(extrinsic_only_blocked),
             "score_and_extrinsic_fail_count": len(score_and_extrinsic_blocked),
+            "model_no_trade_fail_count": len(no_trade_blocked),
+            "fill_quality_fail_count": len(fill_quality_blocked),
+            "sentinel_no_trade_pressure_fail_count": len(sentinel_pressure_blocked),
+            "mixed_policy_fail_count": len(mixed_policy_blocked),
             "symbol_probation_fail_count": len(probation_blocked),
             "side_balance_rejections": side_balance_rejections,
             "side_balance_demotions": side_balance_demotions,
@@ -716,12 +876,20 @@ def select_board(
                 "score_only": [row.symbol for row in score_only_blocked[:3]],
                 "extrinsic_only": [row.symbol for row in extrinsic_only_blocked[:3]],
                 "score_and_extrinsic": [row.symbol for row in score_and_extrinsic_blocked[:3]],
+                "model_no_trade": [row.symbol for row in no_trade_blocked[:3]],
+                "fill_quality": [row.symbol for row in fill_quality_blocked[:3]],
+                "sentinel_no_trade_pressure": [row.symbol for row in sentinel_pressure_blocked[:3]],
+                "mixed_policy": [row.symbol for row in mixed_policy_blocked[:3]],
                 "symbol_probation": [row.symbol for row in probation_blocked[:3]],
             },
             "best_rejected_candidates": {
                 "score_only": [_audit_candidate(row) for row in score_only_blocked[:5]],
                 "extrinsic_only": [_audit_candidate(row) for row in extrinsic_only_blocked[:5]],
                 "score_and_extrinsic": [_audit_candidate(row) for row in score_and_extrinsic_blocked[:5]],
+                "model_no_trade": [_audit_candidate(row) for row in no_trade_blocked[:5]],
+                "fill_quality": [_audit_candidate(row) for row in fill_quality_blocked[:5]],
+                "sentinel_no_trade_pressure": [_audit_candidate(row) for row in sentinel_pressure_blocked[:5]],
+                "mixed_policy": [_audit_candidate(row) for row in mixed_policy_blocked[:5]],
                 "symbol_probation": [_audit_candidate(row) for row in probation_blocked[:5]],
             },
         },

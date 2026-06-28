@@ -54,6 +54,7 @@ from engine.orographic.event_features import (
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s")
 log = logging.getLogger(__name__)
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = Path(__file__).parent / "orographic" / "models"
 MODEL_PATH = MODEL_DIR / "scout_model.pkl"
 SIDE_MODEL_PATH = MODEL_DIR / "scout_side_model.pkl"
@@ -106,6 +107,14 @@ def _load_training_universe() -> list[str]:
 TRAINING_UNIVERSE = _load_training_universe()
 SIDE_CLASS_MAP = {0: "put_edge", 1: "no_trade", 2: "call_edge"}
 SIDE_CLASS_TO_ID = {value: key for key, value in SIDE_CLASS_MAP.items()}
+
+
+def _artifact_path_for_card(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return str(resolved.relative_to(REPO_ROOT))
+    except ValueError:
+        return str(resolved)
 
 
 def _default_option_outcome_inputs() -> list[Path]:
@@ -1185,12 +1194,24 @@ def train(
             if side_target == "strict_real_option_payoff"
             else "trained_underlying_three_class",
             "classes": ["call_edge", "put_edge", "no_trade"],
+            "probability_fields": ["call_edge_prob", "put_edge_prob", "no_trade_prob"],
+            "derived_fields": ["direction", "scout_score"],
             "label_definition": (
                 "call_edge/put_edge/no_trade from strict-real option PnL by symbol/date"
                 if side_target == "strict_real_option_payoff"
                 else "call_edge if fwd_5d_return > +1%, put_edge if fwd_5d_return < -1%, otherwise no_trade"
             ),
+            "decision_contract": (
+                "When OROGRAPHIC_SIDE_MODEL_MODE=active, Scout direction and scout_score are derived from "
+                "the three-class probabilities and no_trade becomes a first-class abstain."
+            ),
             "training_metrics": side_training_metrics,
+        },
+        "activation_policy": {
+            "default": "shadow",
+            "active_env": "OROGRAPHIC_SIDE_MODEL_MODE=active",
+            "shadow_behavior": "Three-class Scout remains observational, with only high-confidence shadow no-trade vetoes logged.",
+            "active_behavior": "Three-class Scout becomes the canonical call/put/no-trade policy and may abstain before Forge.",
         },
         "feature_cols": available,
         "feature_importances": [
@@ -1205,16 +1226,16 @@ def train(
         "calibration": calibration_metrics,
         "observability": observability,
         "artifacts": {
-            "model_path": str(MODEL_PATH),
+            "model_path": _artifact_path_for_card(MODEL_PATH),
             "model_sha256": _sha256_file(MODEL_PATH),
-            "side_model_path": str(SIDE_MODEL_PATH),
+            "side_model_path": _artifact_path_for_card(SIDE_MODEL_PATH),
             "side_model_sha256": _sha256_file(SIDE_MODEL_PATH),
-            "scaler_path": str(SCALER_PATH),
+            "scaler_path": _artifact_path_for_card(SCALER_PATH),
             "scaler_sha256": _sha256_file(SCALER_PATH),
         },
         "limitations": [
             (
-                "Primary Scout target is strict-real option-direction edge, but no-trade abstention still relies on the side-aware Scout artifact and downstream Council gates."
+                "Primary Scout target is strict-real option-direction edge; no-trade becomes a first-class Scout abstain only when OROGRAPHIC_SIDE_MODEL_MODE=active."
                 if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
                 else "Directional Scout target is underlying stock return, not option payoff."
             ),

@@ -64,6 +64,8 @@ class PayoffModelTests(unittest.TestCase):
         self.assertEqual(candidate.forge_score, 0.61)
         self.assertEqual(candidate.pre_payoff_forge_score, 0.61)
         self.assertIsNotNone(candidate.prob_positive_option_pnl)
+        self.assertIsNotNone(candidate.prob_no_trade)
+        self.assertIsNotNone(candidate.path_holding_quality_score)
 
     def test_artifact_can_score_in_shadow_mode(self) -> None:
         candidates = [_candidate("call", 0.4, 0.51), _candidate("put", -0.5, 0.49)]
@@ -103,6 +105,9 @@ class PayoffModelTests(unittest.TestCase):
         self.assertEqual(candidates[0].forge_score, 0.51)
         self.assertEqual(candidates[0].prob_positive_option_pnl, 1.0)
         self.assertEqual(candidates[0].expected_option_return_pct_model, 0.25)
+        self.assertIsNotNone(candidates[0].prob_no_trade)
+        self.assertIsNotNone(candidates[0].prob_fill_quality_ok)
+        self.assertIsNotNone(candidates[0].path_holding_quality_score)
         self.assertTrue(any("Payoff model shadow" in note for note in candidates[0].notes))
 
     def test_artifact_replaces_score_by_default_active_mode(self) -> None:
@@ -143,6 +148,10 @@ class PayoffModelTests(unittest.TestCase):
         self.assertEqual(call.ranker_mode, "active")
         self.assertNotEqual(call.forge_score, 0.51)
         self.assertTrue(any("Payoff model ranker active" in note for note in call.notes))
+        self.assertTrue(any("Forge multi-head active" in note for note in call.notes))
+        self.assertIsNotNone(call.prob_no_trade)
+        self.assertIsNotNone(call.prob_fill_quality_ok)
+        self.assertIsNotNone(call.path_holding_quality_score)
         self.assertIsNone(call.call_contract_selector_score)
         self.assertFalse(any("Nimrod call contract selector active" in note for note in call.notes))
         self.assertIsNone(put.call_contract_selector_score)

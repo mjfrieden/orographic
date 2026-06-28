@@ -120,6 +120,8 @@ class ScoutTests(unittest.TestCase):
         self.assertAlmostEqual(signal.scout_score, -0.55, places=4)
         self.assertEqual(signal.scout_model_mode, "trained_option_payoff_three_class")
         self.assertEqual(diagnostics["side_model_override"]["target"], "strict_real_option_payoff")
+        self.assertTrue(diagnostics["side_aware"]["active_policy"]["applied"])
+        self.assertEqual(diagnostics["side_aware"]["active_policy"]["policy"], "canonical_three_class")
 
     def test_option_payoff_side_model_shadow_conflict_is_logged_but_not_blocked(self) -> None:
         with (
@@ -151,6 +153,36 @@ class ScoutTests(unittest.TestCase):
         self.assertEqual(diagnostics["side_aware"]["shadow_guard"]["reason"], "shadow_direction_conflict")
         self.assertEqual(diagnostics["side_aware"]["shadow_guard"]["preferred_side"], "put")
         self.assertTrue(diagnostics["side_aware"]["shadow_guard"]["passed"])
+
+    def test_option_payoff_side_model_active_no_trade_blocks_trade(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "active"}),
+            mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.20, "put_edge": 0.10, "no_trade": 0.70},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNone(signal)
+        self.assertEqual(diagnostics["reason"], "scout_model_no_trade")
+        self.assertEqual(diagnostics["side_aware"]["active_policy"]["reason"], "scout_model_no_trade")
+        self.assertTrue(diagnostics["side_aware"]["active_policy"]["applied"])
+        self.assertFalse(diagnostics["side_aware"]["active_policy"]["passed"])
 
     def test_option_payoff_side_model_shadow_no_trade_blocks_trade(self) -> None:
         with (

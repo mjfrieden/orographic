@@ -8,8 +8,8 @@ from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 
-def _candidate(symbol: str, option_type: str, score: float) -> ContractCandidate:
-    return ContractCandidate(
+def _candidate(symbol: str, option_type: str, score: float, **overrides: float | str | None) -> ContractCandidate:
+    candidate = ContractCandidate(
         symbol=symbol,
         contract_symbol=f"{symbol}TEST",
         option_type=option_type,
@@ -32,8 +32,20 @@ def _candidate(symbol: str, option_type: str, score: float) -> ContractCandidate
         extrinsic_ratio=0.7,
         scout_score=0.7,
         forge_score=score,
+        final_candidate_score=score,
+        utility_after_friction_score=score,
+        expected_edge_after_friction_pct=0.0,
+        prob_fill_quality_ok=0.55,
+        path_holding_quality_score=0.5,
+        sentinel_confidence=0.3,
+        sentinel_call_relevance=0.5 if option_type == "call" else 0.3,
+        sentinel_put_relevance=0.5 if option_type == "put" else 0.3,
+        sentinel_no_trade_relevance=0.1,
         notes=[],
     )
+    for field, value in overrides.items():
+        setattr(candidate, field, value)
+    return candidate
 
 
 class CouncilTests(unittest.TestCase):
@@ -80,6 +92,41 @@ class CouncilTests(unittest.TestCase):
             result.summary["abstain_audit"]["blocked_symbols"]["extrinsic_only"],
             ["AAPL"],
         )
+
+    def test_council_blocks_high_model_no_trade_pressure(self) -> None:
+        candidate = _candidate(
+            "AAPL",
+            "call",
+            0.88,
+            prob_no_trade=0.81,
+            scout_no_trade_prob=0.79,
+            sentinel_no_trade_relevance=0.2,
+        )
+        result = select_board(
+            [candidate],
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+        )
+
+        self.assertTrue(result.abstain)
+        self.assertEqual(result.summary["abstain_audit"]["primary_reason"], "model_no_trade")
+        self.assertEqual(result.summary["abstain_audit"]["blocked_symbols"]["model_no_trade"], ["AAPL"])
+
+    def test_council_blocks_low_fill_quality(self) -> None:
+        candidate = _candidate(
+            "AAPL",
+            "call",
+            0.9,
+            prob_fill_quality_ok=0.21,
+            fill_quality_score=0.21,
+        )
+        result = select_board(
+            [candidate],
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+        )
+
+        self.assertTrue(result.abstain)
+        self.assertEqual(result.summary["abstain_audit"]["primary_reason"], "fill_quality")
+        self.assertEqual(result.summary["abstain_audit"]["blocked_symbols"]["fill_quality"], ["AAPL"])
 
     def test_council_prefers_prior_board_when_replacement_uplift_is_small(self) -> None:
         candidates = [
@@ -134,6 +181,41 @@ class CouncilTests(unittest.TestCase):
         self.assertFalse(result.abstain)
         self.assertEqual([row.symbol for row in result.live_board], ["BAC"])
         self.assertNotIn("symbol_probation", result.live_board[0].council_risk_flags)
+
+    def test_council_prefers_policy_score_over_raw_forge_score(self) -> None:
+        candidates = [
+            _candidate(
+                "AAPL",
+                "call",
+                0.91,
+                final_candidate_score=0.52,
+                utility_after_friction_score=0.54,
+                expected_edge_after_friction_pct=0.01,
+                prob_fill_quality_ok=0.55,
+                path_holding_quality_score=0.45,
+            ),
+            _candidate(
+                "MSFT",
+                "put",
+                0.78,
+                final_candidate_score=0.89,
+                utility_after_friction_score=0.87,
+                expected_edge_after_friction_pct=0.16,
+                prob_fill_quality_ok=0.86,
+                path_holding_quality_score=0.82,
+                sentinel_put_relevance=0.8,
+            ),
+        ]
+
+        result = select_board(
+            candidates,
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+            live_size=1,
+            fetch_live_corr=False,
+        )
+
+        self.assertFalse(result.abstain)
+        self.assertEqual([row.symbol for row in result.live_board], ["MSFT"])
 
     def test_market_shock_overlay_forces_live_abstain_but_keeps_shadow_visibility(self) -> None:
         shock = MarketShockRegime(

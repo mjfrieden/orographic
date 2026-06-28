@@ -220,6 +220,8 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
                     regime_bucket=regime_bucket,
                     pnl_pct=0.2 if idx % 3 else -0.1,
                     prob_positive_option_pnl=0 if idx % 3 == 0 else 1,
+                    prob_no_trade=1 if idx % 3 == 0 else 0,
+                    prob_fill_quality_ok=1,
                     expected_option_return_pct=0.2 if idx % 3 else -0.1,
                     prob_exceeds_breakeven=0 if idx % 4 == 0 else 1,
                     max_favorable_excursion_before_expiry=0.35,
@@ -302,6 +304,9 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
         self.assertEqual(report["training_data"]["primary_artifact"], "option_outcome_dataset")
         self.assertEqual(report["selected_family"], "linear")
         self.assertEqual(report["cross_validation"]["selected_family"], "linear")
+        self.assertRegex(report["trained_at"], r"^\d{4}-\d{2}-\d{2}$")
+        self.assertIn("prob_no_trade", report["integrated_heads"])
+        self.assertIn("path_decay_risk", report["integrated_heads"])
         self.assertIn("family_bakeoff", report["cross_validation"])
         self.assertEqual(report["promotion_gates"]["status"], "hold")
         self.assertTrue(report["promotion_gates"]["gates"]["friction_flip_observability"]["passed"])

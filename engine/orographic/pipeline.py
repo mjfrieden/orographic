@@ -103,6 +103,43 @@ def _coerce_int(value: object) -> int:
         return 0
 
 
+def _coerce_float(value: object) -> float | None:
+    if isinstance(value, Number):
+        return float(value)
+    try:
+        return float(str(value))
+    except (TypeError, ValueError):
+        return None
+
+
+def _row_policy_score(row: dict[str, Any]) -> float | None:
+    for key in ("risk_adjusted_score", "learned_rank_score", "final_candidate_score", "forge_score"):
+        value = _coerce_float(row.get(key))
+        if value is not None:
+            return round(value, 4)
+    return None
+
+
+def _row_sentinel_no_trade_pressure(row: dict[str, Any]) -> float | None:
+    relevance = _coerce_float(row.get("sentinel_no_trade_relevance"))
+    confidence = _coerce_float(row.get("sentinel_confidence"))
+    if relevance is None and confidence is None:
+        return None
+    return round(max(relevance or 0.0, 0.0) * max(confidence or 0.0, 0.35), 4)
+
+
+def _row_no_trade_pressure(row: dict[str, Any]) -> float | None:
+    candidates = [
+        _coerce_float(row.get("prob_no_trade")),
+        _coerce_float(row.get("scout_no_trade_prob")),
+        _row_sentinel_no_trade_pressure(row),
+    ]
+    values = [value for value in candidates if value is not None]
+    if not values:
+        return None
+    return round(max(values), 4)
+
+
 def _recommendation_id(run_generated_at_utc: str, contract_symbol: object, lane: str) -> str:
     contract = str(contract_symbol or "").strip().upper()
     return f"{run_generated_at_utc}|{contract}|{lane}"
@@ -207,11 +244,22 @@ def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]
                 "expiry": row.get("expiry"),
                 "strike": row.get("strike"),
                 "forge_score": row.get("forge_score"),
+                "policy_score": _row_policy_score(row),
                 "learned_rank_score": row.get("learned_rank_score"),
+                "final_candidate_score": row.get("final_candidate_score"),
                 "ranker_mode": row.get("ranker_mode"),
                 "contract_cost": row.get("contract_cost"),
                 "sector": row.get("sector"),
                 "risk_adjusted_score": row.get("risk_adjusted_score"),
+                "utility_after_friction_score": row.get("utility_after_friction_score"),
+                "expected_edge_after_friction_pct": row.get("expected_edge_after_friction_pct"),
+                "prob_fill_quality_ok": row.get("prob_fill_quality_ok"),
+                "prob_no_trade": row.get("prob_no_trade"),
+                "scout_no_trade_prob": row.get("scout_no_trade_prob"),
+                "no_trade_pressure": _row_no_trade_pressure(row),
+                "sentinel_confidence": row.get("sentinel_confidence"),
+                "sentinel_no_trade_relevance": row.get("sentinel_no_trade_relevance"),
+                "sentinel_no_trade_pressure": _row_sentinel_no_trade_pressure(row),
                 "path_holding_quality_score": row.get("path_holding_quality_score"),
                 "path_early_profit_take_prob": row.get("path_early_profit_take_prob"),
                 "path_decay_risk": row.get("path_decay_risk"),
@@ -233,8 +281,19 @@ def _compact_attribution_contract_view(rows: list[dict[str, Any]]) -> list[dict[
                 "expiry": row.get("expiry"),
                 "strike": row.get("strike"),
                 "forge_score": row.get("forge_score"),
+                "policy_score": _row_policy_score(row),
+                "risk_adjusted_score": row.get("risk_adjusted_score"),
+                "final_candidate_score": row.get("final_candidate_score"),
+                "utility_after_friction_score": row.get("utility_after_friction_score"),
                 "payoff_edge_score": row.get("payoff_edge_score"),
                 "expected_edge_after_friction_pct": row.get("expected_edge_after_friction_pct"),
+                "prob_fill_quality_ok": row.get("prob_fill_quality_ok"),
+                "prob_no_trade": row.get("prob_no_trade"),
+                "scout_no_trade_prob": row.get("scout_no_trade_prob"),
+                "no_trade_pressure": _row_no_trade_pressure(row),
+                "sentinel_confidence": row.get("sentinel_confidence"),
+                "sentinel_no_trade_relevance": row.get("sentinel_no_trade_relevance"),
+                "sentinel_no_trade_pressure": _row_sentinel_no_trade_pressure(row),
                 "path_holding_quality_score": row.get("path_holding_quality_score"),
                 "path_early_profit_take_prob": row.get("path_early_profit_take_prob"),
                 "path_decay_risk": row.get("path_decay_risk"),
@@ -333,6 +392,9 @@ def _prospective_pick_row(
             "payoff_model_score": row.get("payoff_model_score"),
             "final_candidate_score": row.get("final_candidate_score"),
             "prob_positive_option_pnl": row.get("prob_positive_option_pnl"),
+            "prob_no_trade": row.get("prob_no_trade"),
+            "prob_fill_quality_ok": row.get("prob_fill_quality_ok"),
+            "prob_exceeds_breakeven": row.get("prob_exceeds_breakeven"),
             "expected_option_return_pct_model": row.get("expected_option_return_pct_model"),
             "expected_edge_after_friction_pct": row.get("expected_edge_after_friction_pct"),
             "friction_buffer_pct": row.get("friction_buffer_pct"),
@@ -351,6 +413,22 @@ def _prospective_pick_row(
             "projected_move_pct": row.get("projected_move_pct"),
             "realized_vol_20d": row.get("realized_vol_20d"),
             "atr_pct_14d": row.get("atr_pct_14d"),
+            "scout_call_edge_prob": row.get("scout_call_edge_prob"),
+            "scout_put_edge_prob": row.get("scout_put_edge_prob"),
+            "scout_no_trade_prob": row.get("scout_no_trade_prob"),
+            "sentinel_event_type": row.get("sentinel_event_type"),
+            "sentinel_source_reliability": row.get("sentinel_source_reliability"),
+            "sentinel_novelty": row.get("sentinel_novelty"),
+            "sentinel_holding_window_fit": row.get("sentinel_holding_window_fit"),
+            "sentinel_holding_window_label": row.get("sentinel_holding_window_label"),
+            "sentinel_time_horizon": row.get("sentinel_time_horizon"),
+            "sentinel_decay_half_life": row.get("sentinel_decay_half_life"),
+            "sentinel_confidence": row.get("sentinel_confidence"),
+            "sentinel_call_relevance": row.get("sentinel_call_relevance"),
+            "sentinel_put_relevance": row.get("sentinel_put_relevance"),
+            "sentinel_no_trade_relevance": row.get("sentinel_no_trade_relevance"),
+            "sentinel_spot_effect": row.get("sentinel_spot_effect"),
+            "sentinel_iv_effect": row.get("sentinel_iv_effect"),
             "council_risk_flags": row.get("council_risk_flags", []),
             "friction_gate_passed": row.get("friction_gate_passed"),
         },
@@ -448,9 +526,11 @@ def _model_artifact_status() -> dict[str, Any]:
         "scout_model": MODEL_DIR / "scout_model.pkl",
         "scout_scaler": MODEL_DIR / "scout_scaler.pkl",
         "scout_side_model": MODEL_DIR / "scout_side_model.pkl",
+        "sentinel_model": MODEL_DIR / "sentinel_model.json",
         "payoff_model": MODEL_DIR / "payoff_model.pkl",
         "path_model": MODEL_DIR / "path_model.pkl",
         "scout_model_card": MODEL_DIR / "scout_model_card.json",
+        "sentinel_model_card": MODEL_DIR / "sentinel_model_card.json",
         "payoff_model_card": MODEL_DIR / "payoff_model_card.json",
         "path_model_card": MODEL_DIR / "path_model_card.json",
     }
@@ -1779,8 +1859,14 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
             "council_holdout_count": len(council_holdouts),
             "live_avg_forge_score": _average_metric(live_board, "forge_score"),
             "shadow_avg_forge_score": _average_metric(shadow_board, "forge_score"),
+            "live_avg_policy_score": _average_metric(live_board, "risk_adjusted_score"),
+            "shadow_avg_policy_score": _average_metric(shadow_board, "risk_adjusted_score"),
             "live_avg_edge_after_friction_pct": _average_metric(live_board, "expected_edge_after_friction_pct"),
             "shadow_avg_edge_after_friction_pct": _average_metric(shadow_board, "expected_edge_after_friction_pct"),
+            "live_avg_fill_quality_ok": _average_metric(live_board, "prob_fill_quality_ok"),
+            "shadow_avg_fill_quality_ok": _average_metric(shadow_board, "prob_fill_quality_ok"),
+            "live_avg_no_trade_prob": _average_metric(live_board, "prob_no_trade"),
+            "shadow_avg_no_trade_prob": _average_metric(shadow_board, "prob_no_trade"),
             "live_avg_path_holding_quality_score": _average_metric(live_board, "path_holding_quality_score"),
             "shadow_avg_path_holding_quality_score": _average_metric(shadow_board, "path_holding_quality_score"),
             "side_aware_directional_disagreements": _coerce_int(summary.get("scout_side_aware_directional_disagreements")),

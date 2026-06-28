@@ -42,6 +42,10 @@ REGIME_COUNTERTREND_PENALTY = 0.18
 REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
 SHADOW_SIDE_VETO_MIN_PROB = 0.70
 SHADOW_SIDE_VETO_MIN_MARGIN = 0.20
+CANONICAL_THREE_CLASS_MODES = {
+    "trained_option_payoff_three_class",
+    "trained_underlying_three_class",
+}
 
 
 # ── Model loader (singleton, loaded once per process) ────────────────────────
@@ -203,6 +207,51 @@ def _apply_shadow_side_guard(
         return True, diagnostics
 
     return True, diagnostics
+
+
+def _apply_active_side_policy(
+    *,
+    direction: str,
+    side_probs: dict[str, float],
+    side_model_mode: str,
+    side_activation_mode: str,
+) -> tuple[bool, str, float, dict[str, object]]:
+    preferred = _preferred_side_from_probabilities(side_probs)
+    call_prob = round(_side_probability(side_probs, "call"), 4)
+    put_prob = round(_side_probability(side_probs, "put"), 4)
+    no_trade_prob = round(_side_probability(side_probs, "no_trade"), 4)
+    derived_score = round(_clip(call_prob - put_prob), 4)
+    diagnostics = {
+        "applied": False,
+        "passed": True,
+        "policy": "inactive",
+        "preferred_side": preferred,
+        "call_probability": call_prob,
+        "put_probability": put_prob,
+        "no_trade_probability": no_trade_prob,
+        "derived_scout_score": derived_score,
+        "reason": None,
+        "note": None,
+    }
+    if side_activation_mode != "active" or side_model_mode not in CANONICAL_THREE_CLASS_MODES:
+        return True, direction, derived_score, diagnostics
+
+    diagnostics["applied"] = True
+    diagnostics["policy"] = "canonical_three_class"
+    if preferred == "no_trade":
+        diagnostics["passed"] = False
+        diagnostics["reason"] = "scout_model_no_trade"
+        diagnostics["note"] = (
+            "Scout three-class model abstained with no-trade as the top class "
+            f"({no_trade_prob:.2%}; call {call_prob:.2%}, put {put_prob:.2%})"
+        )
+        return False, direction, derived_score, diagnostics
+
+    diagnostics["note"] = (
+        "Scout three-class model selected the active side "
+        f"({preferred} {max(call_prob, put_prob):.2%}; no-trade {no_trade_prob:.2%})"
+    )
+    return True, preferred, derived_score, diagnostics
 
 
 def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tuple[dict[str, float], str]:
@@ -565,6 +614,11 @@ def build_signal(
         else (_side_aware_probabilities(base_scout_score), "heuristic_three_class")
     )
     side_activation_mode = _side_model_activation_mode()
+    diagnostics["side_aware"] = {
+        "model_mode": side_model_mode,
+        "activation_mode": side_activation_mode,
+        **side_probs,
+    }
     if side_model_mode == "trained_option_payoff_three_class":
         option_payoff_score = _clip(side_probs["call_edge"] - side_probs["put_edge"])
         diagnostics["side_model_override"] = {
@@ -573,14 +627,25 @@ def build_signal(
             "directional_model_score": round(float(raw_score if raw_score is not None else 0.0), 4),
             "option_payoff_score": round(float(option_payoff_score), 4),
         }
-        if side_activation_mode == "active":
-            direction = "call" if option_payoff_score >= 0 else "put"
-            base_scout_score = option_payoff_score
-            technical_score = option_payoff_score
+    active_policy_passed, active_direction, active_score, active_policy = _apply_active_side_policy(
+        direction=direction,
+        side_probs=side_probs,
+        side_model_mode=side_model_mode,
+        side_activation_mode=side_activation_mode,
+    )
+    diagnostics["side_aware"]["active_policy"] = active_policy
+    if active_policy.get("applied"):
+        direction = active_direction
+        base_scout_score = active_score
+        technical_score = active_score
+    if not active_policy_passed:
+        diagnostics["reason"] = active_policy["reason"]
+        diagnostics["active_side_policy_note"] = active_policy["note"]
+        return (None, diagnostics) if return_diagnostics else None
 
     conviction_score = (
         base_scout_score
-        if side_model_mode == "trained_option_payoff_three_class" and side_activation_mode == "active"
+        if active_policy.get("applied")
         else (raw_score if using_ml else technical_score)
     )
     diagnostics["pre_veto_direction"] = direction
@@ -589,10 +654,6 @@ def build_signal(
     diagnostics["primary_target"] = primary_target
     diagnostics["target_description"] = target_description
     diagnostics["event_dataset_features"] = event_context
-    diagnostics["side_aware"] = {
-        "model_mode": side_model_mode,
-        **side_probs,
-    }
     shadow_guard_passed, shadow_guard = _apply_shadow_side_guard(
         direction=direction,
         side_probs=side_probs,
@@ -641,9 +702,12 @@ def build_signal(
         "multiplier": round(float(ai_score.multiplier), 4),
         "shadow_multiplier": round(float(ai_score.shadow_multiplier), 4),
         "mode": ai_score.mode,
+        "model_mode": ai_score.model_mode,
+        "model_artifact_sha256": ai_score.model_artifact_sha256,
         "catalyst": ai_score.catalyst,
         "rationale": ai_score.rationale,
         "sentiment_score": round(float(ai_score.sentiment_score), 4),
+        "structured_event_score": round(float(ai_score.structured_event_score), 4),
         "event_type": ai_score.event_type,
         "event_polarity": round(float(ai_score.event_polarity), 4),
         "directional_relevance": ai_score.directional_relevance,
@@ -673,6 +737,8 @@ def build_signal(
         notes.append(f"ML model active ({probability_label}={probability_display:.2%})")
     else:
         notes.append("heuristic fallback active (model not found)")
+    if active_policy.get("applied") and active_policy.get("note"):
+        notes.append(str(active_policy["note"]))
     if alignment_note:
         notes.append(alignment_note)
     if shadow_guard.get("applied") and shadow_guard.get("note"):
@@ -752,6 +818,7 @@ def scan_symbols_with_diagnostics(
         "side_aware_directional_disagreements": 0,
         "side_aware_no_trade_disagreements": 0,
         "shadow_side_veto_rejections": 0,
+        "active_side_model_no_trade_rejections": 0,
         "side_aware_scores": [],
         "sentinel_scores": [],
         "rejections": [],
@@ -847,20 +914,26 @@ def scan_symbols_with_diagnostics(
                 elif comparison_direction in {"call", "put"} and preferred_side != comparison_direction:
                     scout_diagnostics["side_aware_directional_disagreements"] += 1
             shadow_guard = side_aware.get("shadow_guard") if isinstance(side_aware.get("shadow_guard"), dict) else {}
+            active_policy = side_aware.get("active_policy") if isinstance(side_aware.get("active_policy"), dict) else {}
             if shadow_guard.get("reason") == "shadow_no_trade_veto" or signal_diagnostics.get("reason") in {
                 "shadow_no_trade_veto",
                 "shadow_direction_conflict",
             }:
                 scout_diagnostics["shadow_side_veto_rejections"] += 1
+            if active_policy.get("reason") == "scout_model_no_trade" or signal_diagnostics.get("reason") == "scout_model_no_trade":
+                scout_diagnostics["active_side_model_no_trade_rejections"] += 1
             scout_diagnostics["side_aware_scores"].append(
                 {
                     "symbol": cleaned,
                     "model_mode": side_aware.get("model_mode"),
+                    "activation_mode": side_aware.get("activation_mode"),
                     "call_edge": side_aware.get("call_edge"),
                     "put_edge": side_aware.get("put_edge"),
                     "no_trade": side_aware.get("no_trade"),
                     "active_direction": active_direction if active_direction in {"call", "put"} else None,
                     "active_scout_score": signal.scout_score if signal is not None else None,
+                    "active_policy_applied": bool(active_policy.get("applied")),
+                    "active_policy_reason": active_policy.get("reason"),
                     "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
                     "shadow_preferred_side": shadow_guard.get("preferred_side", preferred_side),
                     "shadow_guard_applied": bool(shadow_guard.get("applied")),
@@ -878,8 +951,10 @@ def scan_symbols_with_diagnostics(
                     "multiplier": sentinel.get("multiplier"),
                     "shadow_multiplier": sentinel.get("shadow_multiplier"),
                     "mode": sentinel.get("mode"),
+                    "model_mode": sentinel.get("model_mode"),
                     "catalyst": sentinel.get("catalyst"),
                     "sentiment_score": sentinel.get("sentiment_score"),
+                    "structured_event_score": sentinel.get("structured_event_score"),
                     "event_type": sentinel.get("event_type"),
                     "event_polarity": sentinel.get("event_polarity"),
                     "directional_relevance": sentinel.get("directional_relevance"),

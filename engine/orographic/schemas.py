@@ -63,6 +63,9 @@ class ContractCandidate:
     extrinsic_ratio: float
     scout_score: float
     forge_score: float
+    scout_call_edge_prob: float | None = None
+    scout_put_edge_prob: float | None = None
+    scout_no_trade_prob: float | None = None
     short_strike: float | None = None
     short_ask: float | None = None
     short_bid: float | None = None
@@ -109,14 +112,21 @@ class ContractCandidate:
     suggested_allocation_pct: float | None = None
     sentinel_holding_window_fit: float | None = None
     sentinel_holding_window_label: str | None = None
+    sentinel_event_type: str | None = None
     sentinel_decay_half_life: str | None = None
     sentinel_time_horizon: str | None = None
     sentinel_confidence: float | None = None
+    sentinel_source_reliability: str | None = None
+    sentinel_novelty: str | None = None
     sentinel_call_relevance: float | None = None
     sentinel_put_relevance: float | None = None
     sentinel_no_trade_relevance: float | None = None
     sentinel_spot_effect: float | None = None
     sentinel_iv_effect: float | None = None
+    prob_no_trade: float | None = None
+    no_trade_score: float | None = None
+    prob_fill_quality_ok: float | None = None
+    fill_quality_score: float | None = None
     path_early_profit_take_prob: float | None = None
     path_expected_mfe_pct: float | None = None
     path_decay_risk: float | None = None

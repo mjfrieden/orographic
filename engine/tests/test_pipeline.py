@@ -616,6 +616,13 @@ class PipelineTests(unittest.TestCase):
                     "expiry": "2026-04-27",
                     "strike": 69.0,
                     "forge_score": 0.74,
+                    "risk_adjusted_score": 0.79,
+                    "final_candidate_score": 0.77,
+                    "prob_fill_quality_ok": 0.81,
+                    "prob_no_trade": 0.18,
+                    "scout_no_trade_prob": 0.12,
+                    "sentinel_confidence": 0.6,
+                    "sentinel_no_trade_relevance": 0.1,
                     "expected_edge_after_friction_pct": 0.18,
                     "contract_cost": 145.0,
                     "council_risk_flags": [],
@@ -656,6 +663,13 @@ class PipelineTests(unittest.TestCase):
                         "expiry": "2026-04-27",
                         "strike": 69.0,
                         "forge_score": 0.74,
+                        "risk_adjusted_score": 0.79,
+                        "final_candidate_score": 0.77,
+                        "prob_fill_quality_ok": 0.81,
+                        "prob_no_trade": 0.18,
+                        "scout_no_trade_prob": 0.12,
+                        "sentinel_confidence": 0.6,
+                        "sentinel_no_trade_relevance": 0.1,
                         "expected_edge_after_friction_pct": 0.18,
                         "contract_cost": 145.0,
                         "council_risk_flags": [],
@@ -725,8 +739,12 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(artifact["summary"]["council_holdout_count"], 1)
         self.assertEqual(artifact["summary"]["live_side_mix"], {"call": 1, "put": 0})
         self.assertEqual(artifact["summary"]["abstain_primary_reason"], "live_board_available")
+        self.assertEqual(artifact["summary"]["live_avg_policy_score"], 0.79)
         self.assertEqual(artifact["council_holdouts"][0]["symbol"], "SPY")
         self.assertEqual(artifact["friction_vetoes"][0]["symbol"], "DIA")
+        self.assertEqual(artifact["top_live_board"][0]["policy_score"], 0.79)
+        self.assertEqual(artifact["top_live_board"][0]["prob_fill_quality_ok"], 0.81)
+        self.assertEqual(artifact["top_live_board"][0]["no_trade_pressure"], 0.18)
         self.assertEqual(
             artifact["layer_breakdown"]["council"]["abstain_audit"]["primary_reason"],
             "live_board_available",

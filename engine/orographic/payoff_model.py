@@ -27,6 +27,9 @@ RANKER_MODE_ENV = "OROGRAPHIC_PAYOFF_MODEL_MODE"
 FEATURE_COLS = [
     "option_type_is_call",
     "side_aligned_directional_edge",
+    "scout_call_edge_prob",
+    "scout_put_edge_prob",
+    "scout_no_trade_prob",
     "heuristic_forge_score",
     "moneyness",
     "abs_delta",
@@ -48,6 +51,7 @@ FEATURE_COLS = [
     "allocation_weight",
     "dte",
     "liquidity_score",
+    "fill_quality_score",
     "regime_bias",
     "regime_is_risk_on",
     "regime_is_risk_off",
@@ -58,6 +62,11 @@ FEATURE_COLS = [
     "sentinel_no_trade_relevance",
     "sentinel_spot_effect",
     "sentinel_iv_effect",
+    "sentinel_event_present",
+    "sentinel_time_horizon_score",
+    "sentinel_decay_half_life_score",
+    "sentinel_source_reliability_score",
+    "sentinel_novelty_score",
 ]
 
 _ARTIFACT: dict[str, Any] | None = None
@@ -158,6 +167,16 @@ def liquidity_score(candidate: ContractCandidate) -> float:
     return _clip(0.50 * spread_component + 0.30 * oi_component + 0.20 * volume_component)
 
 
+def fill_quality_score(candidate: ContractCandidate) -> float:
+    spread_pct = max(_safe_float(candidate.spread_pct), 0.0)
+    open_interest = max(_safe_float(candidate.open_interest), 0.0)
+    volume = max(_safe_float(candidate.volume), 0.0)
+    spread_component = 1.0 - min(spread_pct / 0.18, 1.0)
+    oi_component = min(log1p(open_interest) / log1p(1000.0), 1.0)
+    volume_component = min(log1p(volume) / log1p(250.0), 1.0)
+    return _clip(0.55 * spread_component + 0.25 * oi_component + 0.20 * volume_component)
+
+
 def regime_alignment_score(candidate: ContractCandidate, regime: MarketRegime | None) -> float:
     if regime is None or regime.mode == "neutral":
         return 0.55
@@ -170,6 +189,47 @@ def regime_alignment_score(candidate: ContractCandidate, regime: MarketRegime | 
     return 0.25
 
 
+def _time_horizon_score(value: object) -> float:
+    bucket = str(value or "").strip().lower()
+    mapping = {
+        "intraday": 0.2,
+        "one_day": 0.4,
+        "three_days": 0.7,
+        "one_week": 1.0,
+        "longer": 0.6,
+    }
+    return mapping.get(bucket, 0.0)
+
+
+def _decay_half_life_score(value: object) -> float:
+    bucket = str(value or "").strip().lower()
+    mapping = {
+        "intraday": 0.15,
+        "one_day": 0.35,
+        "three_days": 0.7,
+        "one_week": 1.0,
+        "longer": 0.6,
+    }
+    return mapping.get(bucket, 0.0)
+
+
+def _ordinal_score(value: object, mapping: dict[str, float], default: float = 0.0) -> float:
+    cleaned = str(value or "").strip().lower()
+    return mapping.get(cleaned, default)
+
+
+def _fallback_path_predictions(
+    candidate: ContractCandidate,
+    regime: MarketRegime | None,
+    *,
+    as_of: date | None = None,
+) -> tuple[float, float, float]:
+    from engine.orographic.path_model import _heuristic_predictions, feature_row as path_feature_row
+
+    row = path_feature_row(candidate, regime, as_of=as_of)
+    return _heuristic_predictions(candidate, row)
+
+
 def feature_row(
     candidate: ContractCandidate,
     regime: MarketRegime | None = None,
@@ -178,6 +238,7 @@ def feature_row(
 ) -> dict[str, float]:
     directional = side_aligned_directional_edge(candidate)
     liquidity = liquidity_score(candidate)
+    fill_quality = fill_quality_score(candidate)
     regime_alignment = regime_alignment_score(candidate, regime)
     regime_bias = _safe_float(getattr(regime, "bias", 0.0), 0.0)
     heuristic_score = _safe_float(
@@ -203,9 +264,13 @@ def feature_row(
             None,
         )
     )
+    sentinel_event_present = 0.0 if str(getattr(candidate, "sentinel_event_type", "none") or "none").strip().lower() == "none" else 1.0
     return {
         "option_type_is_call": 1.0 if candidate.option_type == "call" else 0.0,
         "side_aligned_directional_edge": directional,
+        "scout_call_edge_prob": _clip(_safe_float(getattr(candidate, "scout_call_edge_prob", None))),
+        "scout_put_edge_prob": _clip(_safe_float(getattr(candidate, "scout_put_edge_prob", None))),
+        "scout_no_trade_prob": _clip(_safe_float(getattr(candidate, "scout_no_trade_prob", None))),
         "heuristic_forge_score": heuristic_score,
         "moneyness": _safe_float(candidate.moneyness),
         "abs_delta": abs(_safe_float(candidate.delta)),
@@ -227,6 +292,7 @@ def feature_row(
         "allocation_weight": max(_safe_float(candidate.allocation_weight, 1.0), 0.0),
         "dte": float(_days_to_expiry(candidate, as_of=as_of)),
         "liquidity_score": liquidity,
+        "fill_quality_score": fill_quality,
         "regime_bias": regime_bias,
         "regime_is_risk_on": 1.0 if getattr(regime, "mode", None) == "risk_on" else 0.0,
         "regime_is_risk_off": 1.0 if getattr(regime, "mode", None) == "risk_off" else 0.0,
@@ -237,6 +303,17 @@ def feature_row(
         "sentinel_no_trade_relevance": _safe_float(getattr(candidate, "sentinel_no_trade_relevance", None)),
         "sentinel_spot_effect": _safe_float(getattr(candidate, "sentinel_spot_effect", None)),
         "sentinel_iv_effect": _safe_float(getattr(candidate, "sentinel_iv_effect", None)),
+        "sentinel_event_present": sentinel_event_present,
+        "sentinel_time_horizon_score": _time_horizon_score(getattr(candidate, "sentinel_time_horizon", None)),
+        "sentinel_decay_half_life_score": _decay_half_life_score(getattr(candidate, "sentinel_decay_half_life", None)),
+        "sentinel_source_reliability_score": _ordinal_score(
+            getattr(candidate, "sentinel_source_reliability", None),
+            {"unknown": 0.0, "low": 0.25, "medium": 0.6, "high": 1.0},
+        ),
+        "sentinel_novelty_score": _ordinal_score(
+            getattr(candidate, "sentinel_novelty", None),
+            {"unknown": 0.0, "stale": 0.15, "moderate": 0.55, "fresh": 1.0, "new": 1.0},
+        ),
     }
 
 
@@ -392,6 +469,11 @@ def score_candidates(
     expected_return = np.zeros(len(candidates), dtype=float)
     prob_positive = np.zeros(len(candidates), dtype=float)
     prob_breakeven = np.zeros(len(candidates), dtype=float)
+    prob_no_trade = np.zeros(len(candidates), dtype=float)
+    prob_fill_quality_ok = np.zeros(len(candidates), dtype=float)
+    path_take_profit = np.zeros(len(candidates), dtype=float)
+    path_expected_mfe = np.zeros(len(candidates), dtype=float)
+    path_decay_risk = np.zeros(len(candidates), dtype=float)
     mfe = np.zeros(len(candidates), dtype=float)
     adverse = np.zeros(len(candidates), dtype=float)
 
@@ -413,6 +495,16 @@ def score_candidates(
                 X,
                 float(defaults.get("prob_exceeds_breakeven", 0.50)),
             )
+            prob_no_trade[idx] = _predict_classifier(
+                bundle.get("no_trade_classifier"),
+                X,
+                float(defaults.get("prob_no_trade", 0.50)),
+            )
+            prob_fill_quality_ok[idx] = _predict_classifier(
+                bundle.get("fill_quality_classifier"),
+                X,
+                float(defaults.get("prob_fill_quality_ok", 0.50)),
+            )
             expected_return[idx] = _predict_regressor(
                 bundle.get("expected_return_regressor"),
                 X,
@@ -428,13 +520,44 @@ def score_candidates(
                 X,
                 float(defaults.get("adverse_excursion_risk", 0.0)),
             )
+            path_take_profit[idx] = _predict_classifier(
+                bundle.get("path_take_profit_classifier"),
+                X,
+                float(defaults.get("path_early_profit_take_prob", 0.5)),
+            )
+            path_expected_mfe[idx] = _predict_regressor(
+                bundle.get("path_mfe_regressor"),
+                X,
+                float(defaults.get("path_expected_mfe_pct", 0.0)),
+            )
+            path_decay_risk[idx] = _predict_regressor(
+                bundle.get("path_decay_regressor"),
+                X,
+                float(defaults.get("path_decay_risk", 0.5)),
+            )
     else:
         for i, candidate in enumerate(candidates):
             expected_return[i] = _safe_float(candidate.expected_return_pct)
             prob_positive[i] = _clip(0.50 + expected_return[i] / 4.0)
             prob_breakeven[i] = _clip(0.50 + (_safe_float(candidate.projected_move_pct) - _safe_float(candidate.breakeven_move_pct)) * 4.0)
+            prob_fill_quality_ok[i] = fill_quality_score(candidate)
+            prob_no_trade[i] = _clip(
+                0.18
+                + 0.35 * (1.0 - prob_fill_quality_ok[i])
+                + 0.20 * _clip(_safe_float(candidate.extrinsic_ratio))
+                + 0.18 * _clip(_safe_float(getattr(candidate, "scout_no_trade_prob", None)))
+                + 0.15 * _clip(_safe_float(getattr(candidate, "sentinel_no_trade_relevance", None)))
+                - 0.20 * _clip(side_aligned_directional_edge(candidate)),
+                0.0,
+                1.0,
+            )
             mfe[i] = max(expected_return[i], 0.0)
             adverse[i] = min(expected_return[i], 0.0)
+            (
+                path_take_profit[i],
+                path_expected_mfe[i],
+                path_decay_risk[i],
+            ) = _fallback_path_predictions(candidate, regime, as_of=as_of)
 
     expected_return_rank = _rank_percentile(expected_return)
 
@@ -445,9 +568,19 @@ def score_candidates(
         )
         directional = side_aligned_directional_edge(candidate)
         liquidity = liquidity_score(candidate)
+        fill_quality = _clip(float(prob_fill_quality_ok[i]))
         regime_alignment = regime_alignment_score(candidate, regime)
         edge_after_friction = _expected_edge_after_friction_pct(candidate, float(expected_return[i]))
         utility_after_friction = _utility_after_friction_score(edge_after_friction)
+        no_trade = _clip(float(prob_no_trade[i]))
+        normalized_path_mfe = _clip(float(path_expected_mfe[i]) / 0.45, 0.0, 1.0)
+        holding_quality = _clip(
+            0.40 * _clip(float(path_take_profit[i]))
+            + 0.35 * normalized_path_mfe
+            + 0.25 * (1.0 - _clip(float(path_decay_risk[i]))),
+            0.0,
+            1.0,
+        )
         stability_adjustment, turnover_risk_penalty, is_prior_live_symbol = _stability_adjustment(
             candidate=candidate,
             edge_after_friction=edge_after_friction,
@@ -455,27 +588,41 @@ def score_candidates(
             turnover_switch_penalty=turnover_switch_penalty,
         )
         base_final_score = _clip(
-            0.25 * directional
-            + 0.30 * _clip(float(prob_positive[i]))
-            + 0.15 * _clip(float(expected_return_rank[i]))
+            0.16 * directional
+            + 0.20 * _clip(float(prob_positive[i]))
+            + 0.12 * _clip(float(prob_breakeven[i]))
+            + 0.12 * _clip(float(expected_return_rank[i]))
             + 0.10 * liquidity
-            + 0.10 * regime_alignment
-            + 0.10 * utility_after_friction
+            + 0.10 * fill_quality
+            + 0.10 * holding_quality
+            + 0.08 * regime_alignment
+            + 0.12 * utility_after_friction
+            - 0.10 * no_trade
         )
         final_score = _clip(base_final_score + stability_adjustment)
 
         candidate.pre_payoff_forge_score = round(pre_payoff_score, 4)
         candidate.directional_edge = round(directional, 4)
         candidate.liquidity_score = round(liquidity, 4)
+        candidate.fill_quality_score = round(fill_quality, 4)
         candidate.regime_alignment_score = round(regime_alignment, 4)
         candidate.prob_positive_option_pnl = round(_clip(float(prob_positive[i])), 4)
         candidate.payoff_edge_score = candidate.prob_positive_option_pnl
+        candidate.prob_no_trade = round(no_trade, 4)
+        candidate.no_trade_score = round(1.0 - no_trade, 4)
+        candidate.prob_fill_quality_ok = round(fill_quality, 4)
         candidate.expected_option_return_pct_model = round(float(expected_return[i]), 4)
         candidate.expected_option_return_pct_rank = round(float(expected_return_rank[i]), 4)
         candidate.prob_exceeds_breakeven = round(_clip(float(prob_breakeven[i])), 4)
         candidate.breakeven_edge_score = candidate.prob_exceeds_breakeven
         candidate.max_favorable_excursion_before_expiry = round(float(mfe[i]), 4)
         candidate.adverse_excursion_risk = round(float(adverse[i]), 4)
+        candidate.path_early_profit_take_prob = round(_clip(float(path_take_profit[i])), 4)
+        candidate.path_expected_mfe_pct = round(float(path_expected_mfe[i]), 4)
+        candidate.path_decay_risk = round(_clip(float(path_decay_risk[i])), 4)
+        candidate.path_holding_quality_score = round(holding_quality, 4)
+        candidate.path_model_mode = "integrated_forge"
+        candidate.path_model_artifact_sha256 = artifact_hash
         candidate.friction_buffer_pct = _friction_buffer_pct(candidate)
         candidate.expected_edge_after_friction_pct = edge_after_friction
         candidate.utility_after_friction_score = round(utility_after_friction, 4)
@@ -502,6 +649,11 @@ def score_candidates(
                     candidate.notes.append(
                         f"Turnover penalty applied ({turnover_risk_penalty:.2f}) because post-friction edge is thin"
                     )
+                if not any("forge multi-head" in note.lower() for note in candidate.notes):
+                    candidate.notes.append(
+                        "Forge multi-head active: "
+                        f"no-trade {no_trade:.2f}, fill {fill_quality:.2f}, path {holding_quality:.2f}"
+                    )
             else:
                 candidate.forge_score = round(pre_payoff_score, 4)
                 if not any("payoff model shadow" in note.lower() for note in candidate.notes):
@@ -512,3 +664,34 @@ def score_candidates(
 
     candidates.sort(key=lambda candidate: candidate.forge_score, reverse=True)
     return candidates
+
+
+def summarize_path_heads(candidates: list[ContractCandidate]) -> dict[str, Any]:
+    if not candidates:
+        return {
+            "mode_counts": {},
+            "scored_candidates": 0,
+            "avg_holding_quality_score": None,
+            "avg_early_profit_take_prob": None,
+            "avg_decay_risk": None,
+        }
+    mode_counts: dict[str, int] = {}
+    holding_quality: list[float] = []
+    take_profit: list[float] = []
+    decay: list[float] = []
+    for candidate in candidates:
+        mode = str(getattr(candidate, "path_model_mode", None) or "shadow")
+        mode_counts[mode] = mode_counts.get(mode, 0) + 1
+        if candidate.path_holding_quality_score is not None:
+            holding_quality.append(float(candidate.path_holding_quality_score))
+        if candidate.path_early_profit_take_prob is not None:
+            take_profit.append(float(candidate.path_early_profit_take_prob))
+        if candidate.path_decay_risk is not None:
+            decay.append(float(candidate.path_decay_risk))
+    return {
+        "mode_counts": mode_counts,
+        "scored_candidates": len(candidates),
+        "avg_holding_quality_score": round(sum(holding_quality) / len(holding_quality), 4) if holding_quality else None,
+        "avg_early_profit_take_prob": round(sum(take_profit) / len(take_profit), 4) if take_profit else None,
+        "avg_decay_risk": round(sum(decay) / len(decay), 4) if decay else None,
+    }

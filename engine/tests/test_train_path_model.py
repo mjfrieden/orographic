@@ -62,6 +62,8 @@ class TrainPathModelTests(unittest.TestCase):
                     regime_bucket=regime_bucket,
                     pnl_pct=0.2 if idx % 3 else -0.1,
                     prob_positive_option_pnl=0 if idx % 3 == 0 else 1,
+                    prob_no_trade=1 if idx % 3 == 0 else 0,
+                    prob_fill_quality_ok=1,
                     expected_option_return_pct=0.2 if idx % 3 else -0.1,
                     prob_exceeds_breakeven=0 if idx % 4 == 0 else 1,
                     max_favorable_excursion_before_expiry=0.35 if idx % 2 == 0 else 0.12,

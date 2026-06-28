@@ -1,29 +1,36 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-06-22",
+  "generated_at": "2026-06-27",
   "artifacts": {
     "scout_model": {
       "path": "engine/orographic/models/scout_model.pkl",
-      "sha256": "a355728430d601a4fc6f4bd229b80dd401c32821a751f62a39bf835fb41dd90e",
+      "sha256": "1d4699183413c18a2492af181e0143a79e5bd2472b8a88155ac9d777cfa070e9",
       "required": true,
       "role": "active directional Scout model"
     },
     "scout_scaler": {
       "path": "engine/orographic/models/scout_scaler.pkl",
-      "sha256": "4d21e1fafbea398359f372e649a12063b9873923889302d7787a4afd642ed0ca",
+      "sha256": "ada91ac7659033b41fabc2db33847b2f1dd71296a2e96d7138f79587d1367757",
       "required": true,
       "role": "active directional Scout scaler and calibrator metadata"
     },
     "scout_side_model": {
       "path": "engine/orographic/models/scout_side_model.pkl",
-      "sha256": "8bb27a544ed7383ea75da486c584b2f3958ffb778564186bb65ebf4533f8a091",
+      "sha256": "43ebe05b6643cb95321ffadae456efa87190d70ddb09156c18a76b678c48648a",
       "required": true,
       "role": "shadow option-payoff side-aware Scout model",
       "activation_env": "OROGRAPHIC_SIDE_MODEL_MODE=active"
     },
+    "sentinel_model": {
+      "path": "engine/orographic/models/sentinel_model.json",
+      "sha256": "8cbeb8e6dc964a1181561930e27fc7cc2255e1ff13916a8f658a8103baa23002",
+      "required": true,
+      "role": "shadow structured Sentinel event model",
+      "activation_env": "OROGRAPHIC_SENTINEL_MODE=active"
+    },
     "payoff_model": {
       "path": "engine/orographic/models/payoff_model.pkl",
-      "sha256": "b27a680af86d2b8120afce7c7b9cc2c2fdf7f716b34f202025d5481617de9c2e",
+      "sha256": "4f27b9e55fad8ba9c29f902b503d58636c5de6628dab2465c200a73ef1bfdc0e",
       "required": true,
       "role": "active option payoff ranker",
       "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
@@ -37,13 +44,19 @@
     },
     "scout_model_card": {
       "path": "engine/orographic/models/scout_model_card.json",
-      "sha256": "37ee7b25ce3b6d1878f8328ec46b634377e61f444c1e65ed85644e86980198ca",
+      "sha256": "ec814c59a288f96410012089723d3070c91c87be6da88df50fb22e5e7867d525",
       "required": true,
       "role": "Scout model governance card"
     },
+    "sentinel_model_card": {
+      "path": "engine/orographic/models/sentinel_model_card.json",
+      "sha256": "eb13a07d52bac05eb971b262b5c83a426c14ced017be45482c74d4eee1f68a6b",
+      "required": true,
+      "role": "Sentinel model governance card"
+    },
     "payoff_model_card": {
       "path": "engine/orographic/models/payoff_model_card.json",
-      "sha256": "a42e9d3aa93596fe4fe209030816147eccc1d00ece7e86774a99cad7dd6a52cc",
+      "sha256": "d55f4b098ddcba006c3b8deb6353ee5081288585a712128dd6f55d305e8e0eed",
       "required": true,
       "role": "payoff ranker model governance card"
     },

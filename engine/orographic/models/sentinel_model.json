@@ -1,0 +1,177 @@
+{
+  "artifact": "sentinel_model",
+  "version": 1,
+  "trained_at": "2026-06-27",
+  "category_scores": {
+    "source_reliability": {
+      "high": 1.0,
+      "medium": 0.75,
+      "low": 0.4,
+      "unknown": 0.5
+    },
+    "novelty": {
+      "high": 1.0,
+      "medium": 0.7,
+      "low": 0.35,
+      "unknown": 0.45
+    },
+    "magnitude_bucket": {
+      "small": 0.35,
+      "medium": 0.65,
+      "large": 1.0,
+      "unknown": 0.25
+    },
+    "time_horizon": {
+      "intraday": 0.25,
+      "one_day": 0.4,
+      "one_to_three_days": 0.8,
+      "three_to_five_days": 0.7,
+      "one_week": 0.6,
+      "longer": 0.45,
+      "unknown": 0.35
+    },
+    "decay_half_life": {
+      "intraday": 0.2,
+      "one_day": 0.4,
+      "three_days": 0.7,
+      "one_week": 0.85,
+      "longer": 0.55,
+      "unknown": 0.35
+    }
+  },
+  "event_profiles": {
+    "earnings": {
+      "call_bias": 0.16,
+      "put_bias": 0.16,
+      "no_trade_bias": 0.02,
+      "confidence_boost": 0.08,
+      "default_horizon": "one_to_three_days",
+      "default_decay": "three_days"
+    },
+    "guidance": {
+      "call_bias": 0.12,
+      "put_bias": 0.12,
+      "no_trade_bias": 0.03,
+      "confidence_boost": 0.06,
+      "default_horizon": "one_to_three_days",
+      "default_decay": "three_days"
+    },
+    "analyst": {
+      "call_bias": 0.08,
+      "put_bias": 0.08,
+      "no_trade_bias": 0.05,
+      "confidence_boost": 0.03,
+      "default_horizon": "one_day",
+      "default_decay": "one_day"
+    },
+    "regulatory": {
+      "call_bias": 0.08,
+      "put_bias": 0.18,
+      "no_trade_bias": 0.14,
+      "confidence_boost": 0.05,
+      "default_horizon": "one_week",
+      "default_decay": "one_week"
+    },
+    "macro": {
+      "call_bias": 0.1,
+      "put_bias": 0.1,
+      "no_trade_bias": 0.08,
+      "confidence_boost": 0.04,
+      "default_horizon": "one_week",
+      "default_decay": "one_week"
+    },
+    "geopolitical": {
+      "call_bias": 0.06,
+      "put_bias": 0.16,
+      "no_trade_bias": 0.12,
+      "confidence_boost": 0.04,
+      "default_horizon": "one_week",
+      "default_decay": "one_week"
+    },
+    "clinical_trial": {
+      "call_bias": 0.18,
+      "put_bias": 0.18,
+      "no_trade_bias": 0.06,
+      "confidence_boost": 0.08,
+      "default_horizon": "one_week",
+      "default_decay": "one_week"
+    },
+    "contract": {
+      "call_bias": 0.14,
+      "put_bias": 0.08,
+      "no_trade_bias": 0.04,
+      "confidence_boost": 0.06,
+      "default_horizon": "one_to_three_days",
+      "default_decay": "three_days"
+    },
+    "news": {
+      "call_bias": 0.08,
+      "put_bias": 0.08,
+      "no_trade_bias": 0.08,
+      "confidence_boost": 0.02,
+      "default_horizon": "one_day",
+      "default_decay": "one_day"
+    },
+    "none": {
+      "call_bias": 0.0,
+      "put_bias": 0.0,
+      "no_trade_bias": 0.18,
+      "confidence_boost": 0.0,
+      "default_horizon": "unknown",
+      "default_decay": "unknown"
+    }
+  },
+  "spot_vs_iv_effect": {
+    "spot": {
+      "call": 0.08,
+      "put": 0.08,
+      "no_trade": 0.02
+    },
+    "iv": {
+      "call": 0.03,
+      "put": 0.03,
+      "no_trade": 0.08
+    },
+    "mixed": {
+      "call": 0.05,
+      "put": 0.05,
+      "no_trade": 0.04
+    },
+    "unknown": {
+      "call": 0.0,
+      "put": 0.0,
+      "no_trade": 0.02
+    }
+  },
+  "context_weights": {
+    "fnspid_sentiment_mean": 0.18,
+    "fnspid_catalyst_density": 0.14,
+    "fnspid_news_volume_3d": 0.05,
+    "fnspid_novelty_score": 0.08,
+    "edt_event_intensity": 0.08,
+    "edt_guidance_score": 0.11,
+    "edt_new_contract_score": 0.1,
+    "edt_clinical_trial_score": 0.12,
+    "edt_risk_warning_score": -0.12,
+    "edt_violation_score": -0.15,
+    "edt_rating_action_score": -0.08,
+    "mirai_risk_on_score": 0.1,
+    "mirai_risk_off_score": -0.12,
+    "mirai_macro_shock_score": -0.1,
+    "mirai_geopolitical_risk_score": -0.08,
+    "sec_material_event_score": 0.1,
+    "sec_material_event_score_5d": 0.08,
+    "sec_offering_flag": -0.12,
+    "sec_proxy_flag": -0.04,
+    "stocktwits_bullish_ratio": 0.07,
+    "stocktwits_bearish_ratio": -0.07
+  },
+  "shadow_multiplier_bounds": [
+    0.88,
+    1.12
+  ],
+  "live_multiplier_bounds": [
+    0.84,
+    1.16
+  ]
+}

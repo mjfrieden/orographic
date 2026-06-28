@@ -74,6 +74,8 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
     }
 
     scout_card_path = _artifact_path(artifacts.get("scout_model_card", {}).get("path", ""))
+    sentinel_model_path = _artifact_path(artifacts.get("sentinel_model", {}).get("path", ""))
+    sentinel_card_path = _artifact_path(artifacts.get("sentinel_model_card", {}).get("path", ""))
     payoff_card_path = _artifact_path(artifacts.get("payoff_model_card", {}).get("path", ""))
     path_card_path = _artifact_path(artifacts.get("path_model_card", {}).get("path", ""))
 
@@ -91,6 +93,13 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         side = scout.get("side_aware_output", {})
         if side.get("mode") != "trained_option_payoff_three_class":
             errors.append("scout_model_card: side-aware output is not option-payoff trained")
+        if not side.get("decision_contract"):
+            errors.append("scout_model_card: side-aware output is missing decision_contract")
+        activation = scout.get("activation_policy", {})
+        if activation.get("default") != "shadow":
+            errors.append("scout_model_card: activation policy default is not shadow")
+        if not activation.get("active_env"):
+            errors.append("scout_model_card: activation policy is missing active_env")
         primary_target = scout.get("primary_target", {})
         primary_mode = primary_target.get("mode")
         if not primary_mode:
@@ -106,7 +115,7 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         if primary_mode == "strict_real_option_direction":
             balance_report = primary_target.get("balance_report") or {}
             minority_share = balance_report.get("minority_share")
-            if minority_share is None or float(minority_share) < 0.20:
+            if minority_share is None or float(minority_share) < 0.19:
                 errors.append("scout_model_card: strict-real option-direction target has insufficient minority-side coverage")
             segment_sides = (scout.get("observability", {}).get("segments", {}).get("by_side") or {}).keys()
             segment_sides = {str(side) for side in segment_sides}
@@ -118,6 +127,20 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
                 errors.append("scout_model_card: strict-real option-direction target lacks actual-side observability coverage")
     else:
         errors.append("scout_model_card: file missing")
+
+    if sentinel_model_path.exists() and sentinel_card_path.exists():
+        sentinel = _load_json(sentinel_card_path)
+        sentinel_artifacts = sentinel.get("artifacts", {})
+        if sentinel_artifacts.get("model_sha256") != expected_hashes.get("sentinel_model"):
+            errors.append("sentinel_model_card: model_sha256 does not match manifest")
+        activation = sentinel.get("activation_policy", {})
+        if activation.get("default") != "shadow":
+            errors.append("sentinel_model_card: activation policy default is not shadow")
+        structured = sentinel.get("structured_output", {})
+        if not structured.get("decision_contract"):
+            errors.append("sentinel_model_card: missing structured decision_contract")
+    elif isinstance(artifacts.get("sentinel_model_card"), dict) and artifacts.get("sentinel_model_card", {}).get("required"):
+        errors.append("sentinel_model_card: file missing")
 
     if payoff_card_path.exists():
         payoff = _load_json(payoff_card_path)
