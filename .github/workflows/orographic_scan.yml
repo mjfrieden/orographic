@@ -295,10 +295,56 @@ jobs:
         if: ${{ always() }}
         run: |
           python scripts/build_scan_health_summary.py \
+            --output web/data/diagnostics/scan_health_summary_latest.json \
             --r2-status "${{ steps.upload_r2.outcome || 'skipped' }}" \
             --dashboard-push-status "${{ steps.push_snapshot.outcome || 'skipped' }}" \
             --dashboard-deploy-status "${{ steps.deploy_pages.outcome || 'skipped' }}" \
             --warn-only
+
+      - name: Commit scan health summary
+        id: health_summary
+        if: ${{ always() }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/data/diagnostics/scan_health_summary_latest.json
+          if git diff --cached --quiet; then
+            echo "health_summary_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No scan health summary changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: refresh Orographic scan health summary"
+          echo "health_summary_changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push scan health summary to GitHub
+        id: push_health_summary
+        if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' }}
+        continue-on-error: true
+        run: |
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Scan health summary push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "Scan health summary push failed after ${attempt} attempts." >&2
+              exit 1
+            fi
+            sleep_seconds=$((attempt * 15))
+            echo "Retrying scan health summary push in ${sleep_seconds}s..."
+            sleep "${sleep_seconds}"
+          done
+
+      - name: Deploy scan health summary to Cloudflare Pages
+        id: deploy_health_summary
+        if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        continue-on-error: true
+        run: |
+          npx wrangler pages deploy web \
+            --project-name orographic \
+            --branch "${GITHUB_REF_NAME}" \
+            --commit-hash "$(git rev-parse HEAD)" \
+            --commit-message "scan health summary refresh (${GITHUB_REF_NAME})"
 
       - name: Upload live research data artifact
         if: ${{ always() }}
@@ -320,6 +366,18 @@ jobs:
         if: ${{ steps.deploy_pages.outcome == 'failure' }}
         run: |
           echo "Snapshot was built, but Cloudflare Pages deploy failed." >&2
+          exit 1
+
+      - name: Fail when scan health summary push did not reach GitHub
+        if: ${{ steps.health_summary.outputs.health_summary_changed == 'true' && steps.push_health_summary.outcome == 'failure' }}
+        run: |
+          echo "Scan health summary was written, but GitHub push never succeeded." >&2
+          exit 1
+
+      - name: Fail when scan health summary Cloudflare Pages deploy failed
+        if: ${{ steps.deploy_health_summary.outcome == 'failure' }}
+        run: |
+          echo "Scan health summary was built, but Cloudflare Pages deploy failed." >&2
           exit 1
 
       - name: Fail when R2 research archival failed
