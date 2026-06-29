@@ -1,0 +1,160 @@
+{
+  "artifact": "scan_health_summary",
+  "schema_version": 1,
+  "generated_at_utc": "2026-06-29T15:05:45.982711Z",
+  "status": "passed",
+  "snapshot": {
+    "path": "web/data/latest_run.json",
+    "generated_at_utc": "2026-06-29T15:03:24+00:00",
+    "age_minutes": 2.37,
+    "regime_mode": "neutral",
+    "regime_bias": -0.1777,
+    "scout_signal_count": 34,
+    "pre_forge_signal_count": 9,
+    "forge_candidate_count": 9,
+    "abstain": true,
+    "live_count": 0,
+    "shadow_count": 3
+  },
+  "labels": {
+    "prospective": {
+      "path": "web/data/diagnostics/prospective_pick_ledger.json",
+      "exists": true,
+      "updated_at_utc": "2026-06-29T15:03:49+00:00",
+      "runs": 81,
+      "picks": 757,
+      "pending": 15,
+      "partial": 67,
+      "complete": 675,
+      "with_any_mark": 742,
+      "with_all_fixed_marks": 675,
+      "missing_outcome_quotes": 0,
+      "quote_coverage_pct": 1.0,
+      "marks_written_last_run": 0,
+      "quotes_missing_last_run": 610
+    },
+    "moonshot": {
+      "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
+      "exists": true,
+      "updated_at_utc": "2026-06-29T15:03:49+00:00",
+      "runs": 39,
+      "picks": 109,
+      "pending": 7,
+      "partial": 20,
+      "complete": 82,
+      "with_any_mark": 102,
+      "with_all_fixed_marks": 82,
+      "missing_outcome_quotes": 0,
+      "quote_coverage_pct": 1.0,
+      "marks_written_last_run": 0,
+      "quotes_missing_last_run": 55
+    },
+    "marked_picks": 844,
+    "missing_outcome_quotes": 0,
+    "quote_coverage_pct": 1.0
+  },
+  "research": {
+    "audit_status": "passed",
+    "audit_summary": {
+      "archived_rows": 15035,
+      "archived_symbols": 34,
+      "prospective_ledger_pick_rows": 757,
+      "moonshot_ledger_pick_rows": 109,
+      "recommendation_dataset_rows": 757,
+      "moonshot_dataset_rows": 109,
+      "combined_dataset_rows": 866
+    },
+    "archive_rows": 15035,
+    "archive_symbols": 34,
+    "recommendation_dataset_rows": 757,
+    "moonshot_dataset_rows": 109,
+    "combined_dataset_rows": 866
+  },
+  "publishing": {
+    "dashboard_push_status": "success",
+    "dashboard_deploy_status": "success",
+    "r2_status": "success"
+  },
+  "checks": [
+    {
+      "name": "snapshot_exists",
+      "passed": true,
+      "path": "web/data/latest_run.json"
+    },
+    {
+      "name": "snapshot_is_fresh",
+      "passed": true,
+      "actual_age_minutes": 2.37,
+      "max_age_minutes": 240
+    },
+    {
+      "name": "scan_emitted_scout_signals",
+      "passed": true,
+      "actual": 34
+    },
+    {
+      "name": "prospective_ledger_exists",
+      "passed": true,
+      "path": "web/data/diagnostics/prospective_pick_ledger.json"
+    },
+    {
+      "name": "moonshot_ledger_exists",
+      "passed": true,
+      "path": "web/data/diagnostics/moonshot_prospective_ledger.json"
+    },
+    {
+      "name": "labeled_outcomes_exist",
+      "passed": true,
+      "actual_marked_picks": 844
+    },
+    {
+      "name": "quote_coverage",
+      "passed": true,
+      "actual": 1.0,
+      "required_min": 0.95
+    },
+    {
+      "name": "archive_manifest_exists",
+      "passed": true,
+      "path": "engine/data/live_options_archive/coverage_manifest.json"
+    },
+    {
+      "name": "archive_rows_captured",
+      "passed": true,
+      "actual": 15035
+    },
+    {
+      "name": "research_audit_passed",
+      "passed": true,
+      "actual": "passed"
+    },
+    {
+      "name": "recommendation_dataset_rows",
+      "passed": true,
+      "actual": 757,
+      "required_min": 1
+    },
+    {
+      "name": "combined_dataset_consistency",
+      "passed": true,
+      "actual": 866,
+      "expected": 866
+    },
+    {
+      "name": "dashboard_push_completed",
+      "passed": true,
+      "actual": "success"
+    },
+    {
+      "name": "dashboard_deploy_completed",
+      "passed": true,
+      "actual": "success"
+    },
+    {
+      "name": "r2_archival_completed",
+      "passed": true,
+      "actual": "success"
+    }
+  ],
+  "failed_checks": []
+}
