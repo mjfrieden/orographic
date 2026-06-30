@@ -1,0 +1,5511 @@
+{
+  "artifact": "forge_rejection_waterfall",
+  "product": "Orographic",
+  "generated_at_utc": "2026-06-07T04:08:32+00:00",
+  "trading_day": "2026-06-06",
+  "timezone": "America/Chicago",
+  "scan_settings": {
+    "live_size": 3,
+    "shadow_size": 3,
+    "forge_intake": 12,
+    "universe_size": 100,
+    "minimum_days_to_expiry": 7,
+    "maximum_days_to_expiry": 14,
+    "minimum_live_score": 0.76,
+    "minimum_put_live_score": 0.84,
+    "max_live_extrinsic_ratio": 0.9,
+    "moonshot_size": 1,
+    "moonshot_threshold": 0.68,
+    "moonshot_max_cost_basis": 225.0,
+    "enforce_pre_council_friction_gate": false
+  },
+  "model_modes": {
+    "directional_scout": "artifact",
+    "side_aware_scout": "shadow",
+    "sentinel": "shadow",
+    "payoff_ranker": "active",
+    "path_model": "shadow",
+    "side_model_source": "artifact",
+    "path_model_source": "artifact"
+  },
+  "model_artifacts": {
+    "scout_model": {
+      "present": true,
+      "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+      "required": true
+    },
+    "scout_scaler": {
+      "present": true,
+      "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+      "required": true
+    },
+    "scout_side_model": {
+      "present": true,
+      "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+      "required": true
+    },
+    "payoff_model": {
+      "present": true,
+      "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+      "required": true
+    },
+    "path_model": {
+      "present": true,
+      "sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9",
+      "required": false
+    },
+    "scout_model_card": {
+      "present": true,
+      "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+      "required": true
+    },
+    "payoff_model_card": {
+      "present": true,
+      "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+      "required": true
+    },
+    "path_model_card": {
+      "present": true,
+      "sha256": "f9483d315cd4bc1010d09e270d1fbd92cf895197b439cbe40cac96537043e239",
+      "required": false
+    }
+  },
+  "summary": {
+    "universe_size": 100,
+    "scout_signal_count": 0,
+    "pre_forge_signal_count": 0,
+    "forge_candidate_count": 0,
+    "passed_symbol_count": 0,
+    "forge_symbol_pass_rate": null,
+    "live_count": 0,
+    "shadow_count": 0,
+    "abstain": true,
+    "scout_pre_veto_direction_counts": {
+      "call": 100,
+      "put": 0
+    },
+    "scout_final_direction_counts": {
+      "call": 0,
+      "put": 0
+    },
+    "scout_counter_regime_survivors": 0,
+    "forge_candidate_side_mix": {
+      "call": 0,
+      "put": 0
+    },
+    "live_board_side_mix": {
+      "call": 0,
+      "put": 0
+    },
+    "abstain_primary_reason": "no_forge_candidates"
+  },
+  "top_scout_names": [],
+  "pre_forge": {
+    "selected_symbols": [],
+    "settings": {
+      "target_count": 12,
+      "minimum_days_to_expiry": 7,
+      "maximum_days_to_expiry": 14,
+      "base_max_premium": 1.6,
+      "base_max_spread_pct": 0.18,
+      "min_open_interest": 150,
+      "min_volume": 25
+    },
+    "rejection_counts": [],
+    "rejections": []
+  },
+  "scout": {
+    "settings": {
+      "regime_same_side_bonus": 0.08,
+      "regime_countertrend_penalty": 0.18,
+      "regime_countertrend_min_abs_score": 0.35
+    },
+    "pre_veto_direction_counts": {
+      "call": 100,
+      "put": 0
+    },
+    "final_direction_counts": {
+      "call": 0,
+      "put": 0
+    },
+    "counter_regime_survivors": 0,
+    "sentinel_scores": [],
+    "side_aware_scores": [
+      {
+        "symbol": "SPY",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0123,
+        "put_edge": 0.0,
+        "no_trade": 0.9876,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "QQQ",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0219,
+        "put_edge": 0.0003,
+        "no_trade": 0.9778,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "IWM",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.4042,
+        "put_edge": 0.0018,
+        "no_trade": 0.594,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "DIA",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1015,
+        "put_edge": 0.0002,
+        "no_trade": 0.8983,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "XLF",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6334,
+        "put_edge": 0.0174,
+        "no_trade": 0.3492,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "XLK",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0072,
+        "put_edge": 0.009,
+        "no_trade": 0.9838,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "XLE",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8878,
+        "put_edge": 0.0039,
+        "no_trade": 0.1084,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "XLI",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5566,
+        "put_edge": 0.0017,
+        "no_trade": 0.4417,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "XLV",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1263,
+        "put_edge": 0.0026,
+        "no_trade": 0.8711,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "XLY",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2896,
+        "put_edge": 0.0,
+        "no_trade": 0.7104,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "XLP",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5905,
+        "put_edge": 0.0435,
+        "no_trade": 0.366,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "XLU",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2124,
+        "put_edge": 0.0625,
+        "no_trade": 0.7251,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "SMH",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0568,
+        "put_edge": 0.0285,
+        "no_trade": 0.9147,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "TLT",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9152,
+        "put_edge": 0.0005,
+        "no_trade": 0.0843,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "GLD",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7425,
+        "put_edge": 0.1291,
+        "no_trade": 0.1284,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "SLV",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0199,
+        "put_edge": 0.9756,
+        "no_trade": 0.0045,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "HYG",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2617,
+        "put_edge": 0.0003,
+        "no_trade": 0.738,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "USO",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7987,
+        "put_edge": 0.0047,
+        "no_trade": 0.1966,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "ARKK",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0742,
+        "put_edge": 0.4842,
+        "no_trade": 0.4416,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "AAPL",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1979,
+        "put_edge": 0.6912,
+        "no_trade": 0.1109,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "MSFT",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0056,
+        "put_edge": 0.4603,
+        "no_trade": 0.5341,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "NVDA",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.085,
+        "put_edge": 0.3053,
+        "no_trade": 0.6097,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "GOOGL",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9357,
+        "put_edge": 0.0073,
+        "no_trade": 0.0569,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "AMZN",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9189,
+        "put_edge": 0.0004,
+        "no_trade": 0.0807,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "META",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.176,
+        "put_edge": 0.2483,
+        "no_trade": 0.5757,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "TSLA",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6705,
+        "put_edge": 0.0028,
+        "no_trade": 0.3267,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "BRK-B",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.275,
+        "put_edge": 0.0001,
+        "no_trade": 0.7249,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "LLY",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3879,
+        "put_edge": 0.4532,
+        "no_trade": 0.159,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "AVGO",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0153,
+        "put_edge": 0.6573,
+        "no_trade": 0.3274,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "JPM",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5708,
+        "put_edge": 0.0,
+        "no_trade": 0.4291,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "UNH",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.236,
+        "put_edge": 0.0064,
+        "no_trade": 0.7575,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "V",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7471,
+        "put_edge": 0.0292,
+        "no_trade": 0.2237,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "XOM",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.4745,
+        "put_edge": 0.0038,
+        "no_trade": 0.5216,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "MA",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3251,
+        "put_edge": 0.1758,
+        "no_trade": 0.4991,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "JNJ",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0506,
+        "put_edge": 0.0002,
+        "no_trade": 0.9491,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "PG",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6124,
+        "put_edge": 0.0024,
+        "no_trade": 0.3852,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "COST",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2876,
+        "put_edge": 0.0441,
+        "no_trade": 0.6683,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "HD",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8988,
+        "put_edge": 0.0094,
+        "no_trade": 0.0918,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "ABBV",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6957,
+        "put_edge": 0.0007,
+        "no_trade": 0.3036,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "CVX",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8355,
+        "put_edge": 0.0021,
+        "no_trade": 0.1623,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "CRM",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6142,
+        "put_edge": 0.0192,
+        "no_trade": 0.3665,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "NFLX",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7421,
+        "put_edge": 0.0002,
+        "no_trade": 0.2576,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "WMT",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5361,
+        "put_edge": 0.3499,
+        "no_trade": 0.114,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "KO",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2139,
+        "put_edge": 0.0052,
+        "no_trade": 0.7809,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "BAC",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3427,
+        "put_edge": 0.0,
+        "no_trade": 0.6573,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "PEP",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8767,
+        "put_edge": 0.0001,
+        "no_trade": 0.1232,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "IBM",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0482,
+        "put_edge": 0.8967,
+        "no_trade": 0.0551,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "ORCL",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0722,
+        "put_edge": 0.1934,
+        "no_trade": 0.7344,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "CSCO",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0339,
+        "put_edge": 0.8132,
+        "no_trade": 0.1529,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "ACN",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3683,
+        "put_edge": 0.5796,
+        "no_trade": 0.0521,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "ADBE",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0995,
+        "put_edge": 0.0457,
+        "no_trade": 0.8548,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "QCOM",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0698,
+        "put_edge": 0.0813,
+        "no_trade": 0.8489,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "INTC",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9745,
+        "put_edge": 0.0002,
+        "no_trade": 0.0253,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "TXN",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3844,
+        "put_edge": 0.0119,
+        "no_trade": 0.6036,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "AMD",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1997,
+        "put_edge": 0.232,
+        "no_trade": 0.5683,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "MU",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0083,
+        "put_edge": 0.949,
+        "no_trade": 0.0427,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "AMAT",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0911,
+        "put_edge": 0.031,
+        "no_trade": 0.8779,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "LRCX",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2215,
+        "put_edge": 0.1456,
+        "no_trade": 0.6329,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "KLAC",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0869,
+        "put_edge": 0.2017,
+        "no_trade": 0.7114,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "ANET",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5522,
+        "put_edge": 0.2117,
+        "no_trade": 0.2362,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "NOW",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0854,
+        "put_edge": 0.0686,
+        "no_trade": 0.846,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "PANW",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0274,
+        "put_edge": 0.8283,
+        "no_trade": 0.1442,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "CRWD",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0663,
+        "put_edge": 0.683,
+        "no_trade": 0.2506,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "PLTR",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1271,
+        "put_edge": 0.5491,
+        "no_trade": 0.3238,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "UBER",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9165,
+        "put_edge": 0.0145,
+        "no_trade": 0.0689,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "SHOP",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5428,
+        "put_edge": 0.1709,
+        "no_trade": 0.2863,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "MCD",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1059,
+        "put_edge": 0.0759,
+        "no_trade": 0.8182,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "DIS",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9492,
+        "put_edge": 0.0015,
+        "no_trade": 0.0494,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "NKE",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3392,
+        "put_edge": 0.4948,
+        "no_trade": 0.1659,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "BA",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1553,
+        "put_edge": 0.1163,
+        "no_trade": 0.7284,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "GS",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1145,
+        "put_edge": 0.5146,
+        "no_trade": 0.3709,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "MS",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7319,
+        "put_edge": 0.1982,
+        "no_trade": 0.0699,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "WFC",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6164,
+        "put_edge": 0.0001,
+        "no_trade": 0.3835,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "C",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6917,
+        "put_edge": 0.0001,
+        "no_trade": 0.3082,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "AXP",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1783,
+        "put_edge": 0.039,
+        "no_trade": 0.7827,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "PYPL",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3588,
+        "put_edge": 0.1687,
+        "no_trade": 0.4725,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "COF",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8579,
+        "put_edge": 0.0048,
+        "no_trade": 0.1373,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "BLK",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0574,
+        "put_edge": 0.0356,
+        "no_trade": 0.907,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "SCHW",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7586,
+        "put_edge": 0.1525,
+        "no_trade": 0.0888,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "PFE",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3294,
+        "put_edge": 0.0354,
+        "no_trade": 0.6351,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "MRK",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1664,
+        "put_edge": 0.0872,
+        "no_trade": 0.7463,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "AMGN",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2454,
+        "put_edge": 0.0002,
+        "no_trade": 0.7544,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "GILD",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2599,
+        "put_edge": 0.002,
+        "no_trade": 0.7381,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "TMO",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5834,
+        "put_edge": 0.0096,
+        "no_trade": 0.4071,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "ISRG",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5566,
+        "put_edge": 0.4208,
+        "no_trade": 0.0226,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "DHR",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.3405,
+        "put_edge": 0.0023,
+        "no_trade": 0.6572,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "T",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8679,
+        "put_edge": 0.0012,
+        "no_trade": 0.1309,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "VZ",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.6821,
+        "put_edge": 0.0001,
+        "no_trade": 0.3178,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "TMUS",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.9541,
+        "put_edge": 0.0012,
+        "no_trade": 0.0447,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "CAT",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.2373,
+        "put_edge": 0.0006,
+        "no_trade": 0.762,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "DE",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.0236,
+        "put_edge": 0.0,
+        "no_trade": 0.9764,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "GE",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8357,
+        "put_edge": 0.0336,
+        "no_trade": 0.1306,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "HON",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.039,
+        "put_edge": 0.288,
+        "no_trade": 0.6731,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      },
+      {
+        "symbol": "RTX",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5951,
+        "put_edge": 0.0025,
+        "no_trade": 0.4024,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "LMT",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.5838,
+        "put_edge": 0.0515,
+        "no_trade": 0.3647,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "LOW",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8863,
+        "put_edge": 0.0041,
+        "no_trade": 0.1096,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "SBUX",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.7968,
+        "put_edge": 0.0,
+        "no_trade": 0.2031,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "CMG",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1241,
+        "put_edge": 0.8031,
+        "no_trade": 0.0728,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "put",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_direction_conflict",
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "COP",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.8852,
+        "put_edge": 0.0006,
+        "no_trade": 0.1142,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "call",
+        "shadow_guard_applied": false,
+        "shadow_guard_reason": null,
+        "passed": false,
+        "reason": "extreme_vol"
+      },
+      {
+        "symbol": "UPS",
+        "model_mode": "trained_option_payoff_three_class",
+        "call_edge": 0.1406,
+        "put_edge": 0.2953,
+        "no_trade": 0.5641,
+        "active_direction": "call",
+        "active_scout_score": null,
+        "pre_veto_direction": "call",
+        "shadow_preferred_side": "no_trade",
+        "shadow_guard_applied": true,
+        "shadow_guard_reason": "shadow_no_trade_veto",
+        "passed": false,
+        "reason": "shadow_no_trade_veto"
+      }
+    ],
+    "rejection_counts": [
+      {
+        "reason": "extreme_vol",
+        "count": 59
+      },
+      {
+        "reason": "shadow_no_trade_veto",
+        "count": 41
+      }
+    ],
+    "rejections": [
+      {
+        "symbol": "SPY",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.6826,
+          "option_payoff_score": 0.0123
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.6826,
+        "base_scout_score": 0.6826,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0123,
+          "put_edge": 0.0,
+          "no_trade": 0.9876,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.9876,
+            "direction_probability": 0.0123,
+            "margin_vs_direction": 0.9753,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (98.76%, margin 97.53%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (98.76%, margin 97.53%)"
+      },
+      {
+        "symbol": "QQQ",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5071,
+          "option_payoff_score": 0.0216
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5071,
+        "base_scout_score": 0.5071,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0219,
+          "put_edge": 0.0003,
+          "no_trade": 0.9778,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.9778,
+            "direction_probability": 0.0219,
+            "margin_vs_direction": 0.9559,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (97.78%, margin 95.59%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (97.78%, margin 95.59%)"
+      },
+      {
+        "symbol": "IWM",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5216,
+          "option_payoff_score": 0.4024
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5216,
+        "base_scout_score": 0.5216,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.4042,
+          "put_edge": 0.0018,
+          "no_trade": 0.594,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.594,
+            "direction_probability": 0.4042,
+            "margin_vs_direction": 0.1898,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (59.40%, margin 18.98%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (59.40%, margin 18.98%)"
+      },
+      {
+        "symbol": "DIA",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.6289,
+          "option_payoff_score": 0.1013
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.6289,
+        "base_scout_score": 0.6289,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1015,
+          "put_edge": 0.0002,
+          "no_trade": 0.8983,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.8983,
+            "direction_probability": 0.1015,
+            "margin_vs_direction": 0.7968,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (89.83%, margin 79.68%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (89.83%, margin 79.68%)"
+      },
+      {
+        "symbol": "XLF",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4652,
+          "option_payoff_score": 0.616
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4652,
+        "base_scout_score": 0.4652,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6334,
+          "put_edge": 0.0174,
+          "no_trade": 0.3492,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6334,
+            "direction_probability": 0.6334,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "XLK",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4255,
+          "option_payoff_score": -0.0018
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4255,
+        "base_scout_score": 0.4255,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0072,
+          "put_edge": 0.009,
+          "no_trade": 0.9838,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.9838,
+            "direction_probability": 0.0072,
+            "margin_vs_direction": 0.9766,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (98.38%, margin 97.66%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (98.38%, margin 97.66%)"
+      },
+      {
+        "symbol": "XLE",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3519,
+          "option_payoff_score": 0.8839
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3519,
+        "base_scout_score": 0.3519,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8878,
+          "put_edge": 0.0039,
+          "no_trade": 0.1084,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8878,
+            "direction_probability": 0.8878,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "XLI",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4676,
+          "option_payoff_score": 0.5549
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4676,
+        "base_scout_score": 0.4676,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5566,
+          "put_edge": 0.0017,
+          "no_trade": 0.4417,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5566,
+            "direction_probability": 0.5566,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "XLV",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4353,
+          "option_payoff_score": 0.1237
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4353,
+        "base_scout_score": 0.4353,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1263,
+          "put_edge": 0.0026,
+          "no_trade": 0.8711,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.8711,
+            "direction_probability": 0.1263,
+            "margin_vs_direction": 0.7448,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (87.11%, margin 74.48%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (87.11%, margin 74.48%)"
+      },
+      {
+        "symbol": "XLY",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5679,
+          "option_payoff_score": 0.2896
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5679,
+        "base_scout_score": 0.5679,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2896,
+          "put_edge": 0.0,
+          "no_trade": 0.7104,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7104,
+            "direction_probability": 0.2896,
+            "margin_vs_direction": 0.4208,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (71.04%, margin 42.08%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (71.04%, margin 42.08%)"
+      },
+      {
+        "symbol": "XLP",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3618,
+          "option_payoff_score": 0.547
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3618,
+        "base_scout_score": 0.3618,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5905,
+          "put_edge": 0.0435,
+          "no_trade": 0.366,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5905,
+            "direction_probability": 0.5905,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "XLU",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2946,
+          "option_payoff_score": 0.1499
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2946,
+        "base_scout_score": 0.2946,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2124,
+          "put_edge": 0.0625,
+          "no_trade": 0.7251,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7251,
+            "direction_probability": 0.2124,
+            "margin_vs_direction": 0.5127,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (72.51%, margin 51.27%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (72.51%, margin 51.27%)"
+      },
+      {
+        "symbol": "SMH",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4086,
+          "option_payoff_score": 0.0283
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4086,
+        "base_scout_score": 0.4086,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0568,
+          "put_edge": 0.0285,
+          "no_trade": 0.9147,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.9147,
+            "direction_probability": 0.0568,
+            "margin_vs_direction": 0.8579,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (91.47%, margin 85.79%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (91.47%, margin 85.79%)"
+      },
+      {
+        "symbol": "TLT",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.6373,
+          "option_payoff_score": 0.9147
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.6373,
+        "base_scout_score": 0.6373,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9152,
+          "put_edge": 0.0005,
+          "no_trade": 0.0843,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9152,
+            "direction_probability": 0.9152,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "GLD",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4455,
+          "option_payoff_score": 0.6134
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4455,
+        "base_scout_score": 0.4455,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7425,
+          "put_edge": 0.1291,
+          "no_trade": 0.1284,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7425,
+            "direction_probability": 0.7425,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "SLV",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4034,
+          "option_payoff_score": -0.9557
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4034,
+        "base_scout_score": 0.4034,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0199,
+          "put_edge": 0.9756,
+          "no_trade": 0.0045,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.9756,
+            "direction_probability": 0.0199,
+            "margin_vs_direction": 0.9557,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 97.56%, margin 95.57%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "HYG",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.7136,
+          "option_payoff_score": 0.2614
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.7136,
+        "base_scout_score": 0.7136,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2617,
+          "put_edge": 0.0003,
+          "no_trade": 0.738,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.738,
+            "direction_probability": 0.2617,
+            "margin_vs_direction": 0.4763,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (73.80%, margin 47.63%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (73.80%, margin 47.63%)"
+      },
+      {
+        "symbol": "USO",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4579,
+          "option_payoff_score": 0.794
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4579,
+        "base_scout_score": 0.4579,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7987,
+          "put_edge": 0.0047,
+          "no_trade": 0.1966,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7987,
+            "direction_probability": 0.7987,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "ARKK",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3138,
+          "option_payoff_score": -0.41
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3138,
+        "base_scout_score": 0.3138,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0742,
+          "put_edge": 0.4842,
+          "no_trade": 0.4416,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.4842,
+            "direction_probability": 0.0742,
+            "margin_vs_direction": 0.41,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "AAPL",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4521,
+          "option_payoff_score": -0.4933
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4521,
+        "base_scout_score": 0.4521,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1979,
+          "put_edge": 0.6912,
+          "no_trade": 0.1109,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.6912,
+            "direction_probability": 0.1979,
+            "margin_vs_direction": 0.4933,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 69.12%, margin 49.33%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "MSFT",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3082,
+          "option_payoff_score": -0.4547
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3082,
+        "base_scout_score": 0.3082,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0056,
+          "put_edge": 0.4603,
+          "no_trade": 0.5341,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.5341,
+            "direction_probability": 0.0056,
+            "margin_vs_direction": 0.5285,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (53.41%, margin 52.85%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (53.41%, margin 52.85%)"
+      },
+      {
+        "symbol": "NVDA",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2997,
+          "option_payoff_score": -0.2203
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2997,
+        "base_scout_score": 0.2997,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.085,
+          "put_edge": 0.3053,
+          "no_trade": 0.6097,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6097,
+            "direction_probability": 0.085,
+            "margin_vs_direction": 0.5247,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (60.97%, margin 52.47%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (60.97%, margin 52.47%)"
+      },
+      {
+        "symbol": "GOOGL",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4454,
+          "option_payoff_score": 0.9284
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4454,
+        "base_scout_score": 0.4454,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9357,
+          "put_edge": 0.0073,
+          "no_trade": 0.0569,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9357,
+            "direction_probability": 0.9357,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "AMZN",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5856,
+          "option_payoff_score": 0.9185
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5856,
+        "base_scout_score": 0.5856,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9189,
+          "put_edge": 0.0004,
+          "no_trade": 0.0807,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9189,
+            "direction_probability": 0.9189,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "META",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3409,
+          "option_payoff_score": -0.0723
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3409,
+        "base_scout_score": 0.3409,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.176,
+          "put_edge": 0.2483,
+          "no_trade": 0.5757,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.5757,
+            "direction_probability": 0.176,
+            "margin_vs_direction": 0.3997,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (57.57%, margin 39.97%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (57.57%, margin 39.97%)"
+      },
+      {
+        "symbol": "TSLA",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2401,
+          "option_payoff_score": 0.6677
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2401,
+        "base_scout_score": 0.2401,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6705,
+          "put_edge": 0.0028,
+          "no_trade": 0.3267,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6705,
+            "direction_probability": 0.6705,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "BRK-B",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3393,
+          "option_payoff_score": 0.2749
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3393,
+        "base_scout_score": 0.3393,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.275,
+          "put_edge": 0.0001,
+          "no_trade": 0.7249,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7249,
+            "direction_probability": 0.275,
+            "margin_vs_direction": 0.4499,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (72.49%, margin 44.99%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (72.49%, margin 44.99%)"
+      },
+      {
+        "symbol": "LLY",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.424,
+          "option_payoff_score": -0.0653
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.424,
+        "base_scout_score": 0.424,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3879,
+          "put_edge": 0.4532,
+          "no_trade": 0.159,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.4532,
+            "direction_probability": 0.3879,
+            "margin_vs_direction": 0.0653,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "AVGO",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4266,
+          "option_payoff_score": -0.642
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4266,
+        "base_scout_score": 0.4266,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0153,
+          "put_edge": 0.6573,
+          "no_trade": 0.3274,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.6573,
+            "direction_probability": 0.0153,
+            "margin_vs_direction": 0.642,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 65.73%, margin 64.20%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "JPM",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4028,
+          "option_payoff_score": 0.5708
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4028,
+        "base_scout_score": 0.4028,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5708,
+          "put_edge": 0.0,
+          "no_trade": 0.4291,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5708,
+            "direction_probability": 0.5708,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "UNH",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5045,
+          "option_payoff_score": 0.2296
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5045,
+        "base_scout_score": 0.5045,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.236,
+          "put_edge": 0.0064,
+          "no_trade": 0.7575,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7575,
+            "direction_probability": 0.236,
+            "margin_vs_direction": 0.5215,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (75.75%, margin 52.15%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (75.75%, margin 52.15%)"
+      },
+      {
+        "symbol": "V",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4158,
+          "option_payoff_score": 0.7179
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4158,
+        "base_scout_score": 0.4158,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7471,
+          "put_edge": 0.0292,
+          "no_trade": 0.2237,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7471,
+            "direction_probability": 0.7471,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "XOM",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3128,
+          "option_payoff_score": 0.4707
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3128,
+        "base_scout_score": 0.3128,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.4745,
+          "put_edge": 0.0038,
+          "no_trade": 0.5216,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.5216,
+            "direction_probability": 0.4745,
+            "margin_vs_direction": 0.0471,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "MA",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3701,
+          "option_payoff_score": 0.1493
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3701,
+        "base_scout_score": 0.3701,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3251,
+          "put_edge": 0.1758,
+          "no_trade": 0.4991,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.4991,
+            "direction_probability": 0.3251,
+            "margin_vs_direction": 0.174,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "JNJ",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2014,
+          "option_payoff_score": 0.0504
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2014,
+        "base_scout_score": 0.2014,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0506,
+          "put_edge": 0.0002,
+          "no_trade": 0.9491,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.9491,
+            "direction_probability": 0.0506,
+            "margin_vs_direction": 0.8985,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (94.91%, margin 89.85%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (94.91%, margin 89.85%)"
+      },
+      {
+        "symbol": "PG",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.1937,
+          "option_payoff_score": 0.61
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.1937,
+        "base_scout_score": 0.1937,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6124,
+          "put_edge": 0.0024,
+          "no_trade": 0.3852,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6124,
+            "direction_probability": 0.6124,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "COST",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2277,
+          "option_payoff_score": 0.2435
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2277,
+        "base_scout_score": 0.2277,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2876,
+          "put_edge": 0.0441,
+          "no_trade": 0.6683,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6683,
+            "direction_probability": 0.2876,
+            "margin_vs_direction": 0.3807,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (66.83%, margin 38.07%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (66.83%, margin 38.07%)"
+      },
+      {
+        "symbol": "HD",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3517,
+          "option_payoff_score": 0.8894
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3517,
+        "base_scout_score": 0.3517,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8988,
+          "put_edge": 0.0094,
+          "no_trade": 0.0918,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8988,
+            "direction_probability": 0.8988,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "ABBV",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4914,
+          "option_payoff_score": 0.695
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4914,
+        "base_scout_score": 0.4914,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6957,
+          "put_edge": 0.0007,
+          "no_trade": 0.3036,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6957,
+            "direction_probability": 0.6957,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "CVX",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3612,
+          "option_payoff_score": 0.8334
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3612,
+        "base_scout_score": 0.3612,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8355,
+          "put_edge": 0.0021,
+          "no_trade": 0.1623,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8355,
+            "direction_probability": 0.8355,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "CRM",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3079,
+          "option_payoff_score": 0.595
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3079,
+        "base_scout_score": 0.3079,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6142,
+          "put_edge": 0.0192,
+          "no_trade": 0.3665,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6142,
+            "direction_probability": 0.6142,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "NFLX",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4333,
+          "option_payoff_score": 0.7419
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4333,
+        "base_scout_score": 0.4333,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7421,
+          "put_edge": 0.0002,
+          "no_trade": 0.2576,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7421,
+            "direction_probability": 0.7421,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "WMT",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.1321,
+          "option_payoff_score": 0.1862
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.1321,
+        "base_scout_score": 0.1321,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5361,
+          "put_edge": 0.3499,
+          "no_trade": 0.114,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5361,
+            "direction_probability": 0.5361,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "KO",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4161,
+          "option_payoff_score": 0.2087
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4161,
+        "base_scout_score": 0.4161,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2139,
+          "put_edge": 0.0052,
+          "no_trade": 0.7809,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7809,
+            "direction_probability": 0.2139,
+            "margin_vs_direction": 0.567,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (78.09%, margin 56.70%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (78.09%, margin 56.70%)"
+      },
+      {
+        "symbol": "BAC",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4937,
+          "option_payoff_score": 0.3427
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4937,
+        "base_scout_score": 0.4937,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3427,
+          "put_edge": 0.0,
+          "no_trade": 0.6573,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6573,
+            "direction_probability": 0.3427,
+            "margin_vs_direction": 0.3146,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (65.73%, margin 31.46%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (65.73%, margin 31.46%)"
+      },
+      {
+        "symbol": "PEP",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4426,
+          "option_payoff_score": 0.8766
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4426,
+        "base_scout_score": 0.4426,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8767,
+          "put_edge": 0.0001,
+          "no_trade": 0.1232,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8767,
+            "direction_probability": 0.8767,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "IBM",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5103,
+          "option_payoff_score": -0.8485
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5103,
+        "base_scout_score": 0.5103,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0482,
+          "put_edge": 0.8967,
+          "no_trade": 0.0551,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.8967,
+            "direction_probability": 0.0482,
+            "margin_vs_direction": 0.8485,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 89.67%, margin 84.85%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "ORCL",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4882,
+          "option_payoff_score": -0.1212
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4882,
+        "base_scout_score": 0.4882,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0722,
+          "put_edge": 0.1934,
+          "no_trade": 0.7344,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7344,
+            "direction_probability": 0.0722,
+            "margin_vs_direction": 0.6622,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (73.44%, margin 66.22%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (73.44%, margin 66.22%)"
+      },
+      {
+        "symbol": "CSCO",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.419,
+          "option_payoff_score": -0.7793
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.419,
+        "base_scout_score": 0.419,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0339,
+          "put_edge": 0.8132,
+          "no_trade": 0.1529,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.8132,
+            "direction_probability": 0.0339,
+            "margin_vs_direction": 0.7793,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 81.32%, margin 77.93%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "ACN",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3737,
+          "option_payoff_score": -0.2113
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3737,
+        "base_scout_score": 0.3737,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3683,
+          "put_edge": 0.5796,
+          "no_trade": 0.0521,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.5796,
+            "direction_probability": 0.3683,
+            "margin_vs_direction": 0.2113,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 57.96%, margin 21.13%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "ADBE",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.238,
+          "option_payoff_score": 0.0538
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.238,
+        "base_scout_score": 0.238,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0995,
+          "put_edge": 0.0457,
+          "no_trade": 0.8548,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.8548,
+            "direction_probability": 0.0995,
+            "margin_vs_direction": 0.7553,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (85.48%, margin 75.53%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (85.48%, margin 75.53%)"
+      },
+      {
+        "symbol": "QCOM",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5322,
+          "option_payoff_score": -0.0115
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5322,
+        "base_scout_score": 0.5322,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0698,
+          "put_edge": 0.0813,
+          "no_trade": 0.8489,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.8489,
+            "direction_probability": 0.0698,
+            "margin_vs_direction": 0.7791,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (84.89%, margin 77.91%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (84.89%, margin 77.91%)"
+      },
+      {
+        "symbol": "INTC",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5901,
+          "option_payoff_score": 0.9743
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5901,
+        "base_scout_score": 0.5901,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9745,
+          "put_edge": 0.0002,
+          "no_trade": 0.0253,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9745,
+            "direction_probability": 0.9745,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "TXN",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5482,
+          "option_payoff_score": 0.3725
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5482,
+        "base_scout_score": 0.5482,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3844,
+          "put_edge": 0.0119,
+          "no_trade": 0.6036,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6036,
+            "direction_probability": 0.3844,
+            "margin_vs_direction": 0.2192,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (60.36%, margin 21.92%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (60.36%, margin 21.92%)"
+      },
+      {
+        "symbol": "AMD",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5319,
+          "option_payoff_score": -0.0323
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5319,
+        "base_scout_score": 0.5319,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1997,
+          "put_edge": 0.232,
+          "no_trade": 0.5683,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.5683,
+            "direction_probability": 0.1997,
+            "margin_vs_direction": 0.3686,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (56.83%, margin 36.86%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (56.83%, margin 36.86%)"
+      },
+      {
+        "symbol": "MU",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5026,
+          "option_payoff_score": -0.9407
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5026,
+        "base_scout_score": 0.5026,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0083,
+          "put_edge": 0.949,
+          "no_trade": 0.0427,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.949,
+            "direction_probability": 0.0083,
+            "margin_vs_direction": 0.9407,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 94.90%, margin 94.07%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "AMAT",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4426,
+          "option_payoff_score": 0.0601
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4426,
+        "base_scout_score": 0.4426,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0911,
+          "put_edge": 0.031,
+          "no_trade": 0.8779,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.8779,
+            "direction_probability": 0.0911,
+            "margin_vs_direction": 0.7868,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (87.79%, margin 78.68%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (87.79%, margin 78.68%)"
+      },
+      {
+        "symbol": "LRCX",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4886,
+          "option_payoff_score": 0.0759
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4886,
+        "base_scout_score": 0.4886,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2215,
+          "put_edge": 0.1456,
+          "no_trade": 0.6329,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6329,
+            "direction_probability": 0.2215,
+            "margin_vs_direction": 0.4114,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (63.29%, margin 41.14%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (63.29%, margin 41.14%)"
+      },
+      {
+        "symbol": "KLAC",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.423,
+          "option_payoff_score": -0.1148
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.423,
+        "base_scout_score": 0.423,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0869,
+          "put_edge": 0.2017,
+          "no_trade": 0.7114,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7114,
+            "direction_probability": 0.0869,
+            "margin_vs_direction": 0.6245,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (71.14%, margin 62.45%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (71.14%, margin 62.45%)"
+      },
+      {
+        "symbol": "ANET",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4869,
+          "option_payoff_score": 0.3405
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4869,
+        "base_scout_score": 0.4869,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5522,
+          "put_edge": 0.2117,
+          "no_trade": 0.2362,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5522,
+            "direction_probability": 0.5522,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "NOW",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3762,
+          "option_payoff_score": 0.0168
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3762,
+        "base_scout_score": 0.3762,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0854,
+          "put_edge": 0.0686,
+          "no_trade": 0.846,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.846,
+            "direction_probability": 0.0854,
+            "margin_vs_direction": 0.7606,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (84.60%, margin 76.06%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (84.60%, margin 76.06%)"
+      },
+      {
+        "symbol": "PANW",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5154,
+          "option_payoff_score": -0.8009
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5154,
+        "base_scout_score": 0.5154,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0274,
+          "put_edge": 0.8283,
+          "no_trade": 0.1442,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.8283,
+            "direction_probability": 0.0274,
+            "margin_vs_direction": 0.8009,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 82.83%, margin 80.09%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "CRWD",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.403,
+          "option_payoff_score": -0.6167
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.403,
+        "base_scout_score": 0.403,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0663,
+          "put_edge": 0.683,
+          "no_trade": 0.2506,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.683,
+            "direction_probability": 0.0663,
+            "margin_vs_direction": 0.6167,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 68.30%, margin 61.67%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "PLTR",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3787,
+          "option_payoff_score": -0.422
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3787,
+        "base_scout_score": 0.3787,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1271,
+          "put_edge": 0.5491,
+          "no_trade": 0.3238,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.5491,
+            "direction_probability": 0.1271,
+            "margin_vs_direction": 0.422,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 54.91%, margin 42.20%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "UBER",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2074,
+          "option_payoff_score": 0.902
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2074,
+        "base_scout_score": 0.2074,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9165,
+          "put_edge": 0.0145,
+          "no_trade": 0.0689,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9165,
+            "direction_probability": 0.9165,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "SHOP",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4319,
+          "option_payoff_score": 0.3719
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4319,
+        "base_scout_score": 0.4319,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5428,
+          "put_edge": 0.1709,
+          "no_trade": 0.2863,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5428,
+            "direction_probability": 0.5428,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "MCD",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3363,
+          "option_payoff_score": 0.03
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3363,
+        "base_scout_score": 0.3363,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1059,
+          "put_edge": 0.0759,
+          "no_trade": 0.8182,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.8182,
+            "direction_probability": 0.1059,
+            "margin_vs_direction": 0.7123,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (81.82%, margin 71.23%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (81.82%, margin 71.23%)"
+      },
+      {
+        "symbol": "DIS",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5094,
+          "option_payoff_score": 0.9477
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5094,
+        "base_scout_score": 0.5094,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9492,
+          "put_edge": 0.0015,
+          "no_trade": 0.0494,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9492,
+            "direction_probability": 0.9492,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "NKE",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4825,
+          "option_payoff_score": -0.1556
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4825,
+        "base_scout_score": 0.4825,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3392,
+          "put_edge": 0.4948,
+          "no_trade": 0.1659,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.4948,
+            "direction_probability": 0.3392,
+            "margin_vs_direction": 0.1556,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "BA",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2853,
+          "option_payoff_score": 0.039
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2853,
+        "base_scout_score": 0.2853,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1553,
+          "put_edge": 0.1163,
+          "no_trade": 0.7284,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7284,
+            "direction_probability": 0.1553,
+            "margin_vs_direction": 0.5731,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (72.84%, margin 57.31%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (72.84%, margin 57.31%)"
+      },
+      {
+        "symbol": "GS",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.464,
+          "option_payoff_score": -0.4001
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.464,
+        "base_scout_score": 0.464,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1145,
+          "put_edge": 0.5146,
+          "no_trade": 0.3709,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.5146,
+            "direction_probability": 0.1145,
+            "margin_vs_direction": 0.4001,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 51.46%, margin 40.01%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "MS",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5169,
+          "option_payoff_score": 0.5337
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5169,
+        "base_scout_score": 0.5169,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7319,
+          "put_edge": 0.1982,
+          "no_trade": 0.0699,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7319,
+            "direction_probability": 0.7319,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "WFC",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3878,
+          "option_payoff_score": 0.6163
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3878,
+        "base_scout_score": 0.3878,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6164,
+          "put_edge": 0.0001,
+          "no_trade": 0.3835,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6164,
+            "direction_probability": 0.6164,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "C",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5231,
+          "option_payoff_score": 0.6916
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5231,
+        "base_scout_score": 0.5231,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6917,
+          "put_edge": 0.0001,
+          "no_trade": 0.3082,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6917,
+            "direction_probability": 0.6917,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "AXP",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4038,
+          "option_payoff_score": 0.1393
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4038,
+        "base_scout_score": 0.4038,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1783,
+          "put_edge": 0.039,
+          "no_trade": 0.7827,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7827,
+            "direction_probability": 0.1783,
+            "margin_vs_direction": 0.6044,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (78.27%, margin 60.44%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (78.27%, margin 60.44%)"
+      },
+      {
+        "symbol": "PYPL",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3649,
+          "option_payoff_score": 0.1901
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3649,
+        "base_scout_score": 0.3649,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3588,
+          "put_edge": 0.1687,
+          "no_trade": 0.4725,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.4725,
+            "direction_probability": 0.3588,
+            "margin_vs_direction": 0.1137,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "COF",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4115,
+          "option_payoff_score": 0.8531
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4115,
+        "base_scout_score": 0.4115,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8579,
+          "put_edge": 0.0048,
+          "no_trade": 0.1373,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8579,
+            "direction_probability": 0.8579,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "BLK",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3951,
+          "option_payoff_score": 0.0218
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3951,
+        "base_scout_score": 0.3951,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0574,
+          "put_edge": 0.0356,
+          "no_trade": 0.907,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.907,
+            "direction_probability": 0.0574,
+            "margin_vs_direction": 0.8496,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (90.70%, margin 84.96%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (90.70%, margin 84.96%)"
+      },
+      {
+        "symbol": "SCHW",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2665,
+          "option_payoff_score": 0.6061
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2665,
+        "base_scout_score": 0.2665,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7586,
+          "put_edge": 0.1525,
+          "no_trade": 0.0888,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7586,
+            "direction_probability": 0.7586,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "PFE",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3585,
+          "option_payoff_score": 0.294
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3585,
+        "base_scout_score": 0.3585,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3294,
+          "put_edge": 0.0354,
+          "no_trade": 0.6351,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6351,
+            "direction_probability": 0.3294,
+            "margin_vs_direction": 0.3057,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (63.51%, margin 30.57%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (63.51%, margin 30.57%)"
+      },
+      {
+        "symbol": "MRK",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3574,
+          "option_payoff_score": 0.0792
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3574,
+        "base_scout_score": 0.3574,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1664,
+          "put_edge": 0.0872,
+          "no_trade": 0.7463,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7463,
+            "direction_probability": 0.1664,
+            "margin_vs_direction": 0.5799,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (74.63%, margin 57.99%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (74.63%, margin 57.99%)"
+      },
+      {
+        "symbol": "AMGN",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2883,
+          "option_payoff_score": 0.2452
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2883,
+        "base_scout_score": 0.2883,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2454,
+          "put_edge": 0.0002,
+          "no_trade": 0.7544,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7544,
+            "direction_probability": 0.2454,
+            "margin_vs_direction": 0.509,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (75.44%, margin 50.90%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (75.44%, margin 50.90%)"
+      },
+      {
+        "symbol": "GILD",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2933,
+          "option_payoff_score": 0.2579
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2933,
+        "base_scout_score": 0.2933,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2599,
+          "put_edge": 0.002,
+          "no_trade": 0.7381,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.7381,
+            "direction_probability": 0.2599,
+            "margin_vs_direction": 0.4782,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (73.81%, margin 47.82%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (73.81%, margin 47.82%)"
+      },
+      {
+        "symbol": "TMO",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5019,
+          "option_payoff_score": 0.5738
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5019,
+        "base_scout_score": 0.5019,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5834,
+          "put_edge": 0.0096,
+          "no_trade": 0.4071,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5834,
+            "direction_probability": 0.5834,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "ISRG",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.1931,
+          "option_payoff_score": 0.1358
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.1931,
+        "base_scout_score": 0.1931,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5566,
+          "put_edge": 0.4208,
+          "no_trade": 0.0226,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5566,
+            "direction_probability": 0.5566,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "DHR",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3253,
+          "option_payoff_score": 0.3382
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3253,
+        "base_scout_score": 0.3253,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.3405,
+          "put_edge": 0.0023,
+          "no_trade": 0.6572,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6572,
+            "direction_probability": 0.3405,
+            "margin_vs_direction": 0.3167,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (65.72%, margin 31.67%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (65.72%, margin 31.67%)"
+      },
+      {
+        "symbol": "T",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4672,
+          "option_payoff_score": 0.8667
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4672,
+        "base_scout_score": 0.4672,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8679,
+          "put_edge": 0.0012,
+          "no_trade": 0.1309,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8679,
+            "direction_probability": 0.8679,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "VZ",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4607,
+          "option_payoff_score": 0.682
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4607,
+        "base_scout_score": 0.4607,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.6821,
+          "put_edge": 0.0001,
+          "no_trade": 0.3178,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.6821,
+            "direction_probability": 0.6821,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "TMUS",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4654,
+          "option_payoff_score": 0.9529
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4654,
+        "base_scout_score": 0.4654,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.9541,
+          "put_edge": 0.0012,
+          "no_trade": 0.0447,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.9541,
+            "direction_probability": 0.9541,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "CAT",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4097,
+          "option_payoff_score": 0.2367
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4097,
+        "base_scout_score": 0.4097,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.2373,
+          "put_edge": 0.0006,
+          "no_trade": 0.762,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.762,
+            "direction_probability": 0.2373,
+            "margin_vs_direction": 0.5247,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (76.20%, margin 52.47%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (76.20%, margin 52.47%)"
+      },
+      {
+        "symbol": "DE",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3391,
+          "option_payoff_score": 0.0236
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3391,
+        "base_scout_score": 0.3391,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.0236,
+          "put_edge": 0.0,
+          "no_trade": 0.9764,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.9764,
+            "direction_probability": 0.0236,
+            "margin_vs_direction": 0.9528,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (97.64%, margin 95.28%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (97.64%, margin 95.28%)"
+      },
+      {
+        "symbol": "GE",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3552,
+          "option_payoff_score": 0.8021
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3552,
+        "base_scout_score": 0.3552,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8357,
+          "put_edge": 0.0336,
+          "no_trade": 0.1306,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8357,
+            "direction_probability": 0.8357,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "HON",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3159,
+          "option_payoff_score": -0.249
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3159,
+        "base_scout_score": 0.3159,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.039,
+          "put_edge": 0.288,
+          "no_trade": 0.6731,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.6731,
+            "direction_probability": 0.039,
+            "margin_vs_direction": 0.6341,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (67.31%, margin 63.41%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (67.31%, margin 63.41%)"
+      },
+      {
+        "symbol": "RTX",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.2271,
+          "option_payoff_score": 0.5926
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.2271,
+        "base_scout_score": 0.2271,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5951,
+          "put_edge": 0.0025,
+          "no_trade": 0.4024,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5951,
+            "direction_probability": 0.5951,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "LMT",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5017,
+          "option_payoff_score": 0.5323
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5017,
+        "base_scout_score": 0.5017,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.5838,
+          "put_edge": 0.0515,
+          "no_trade": 0.3647,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.5838,
+            "direction_probability": 0.5838,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "LOW",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3746,
+          "option_payoff_score": 0.8822
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3746,
+        "base_scout_score": 0.3746,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8863,
+          "put_edge": 0.0041,
+          "no_trade": 0.1096,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8863,
+            "direction_probability": 0.8863,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "SBUX",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.5652,
+          "option_payoff_score": 0.7968
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.5652,
+        "base_scout_score": 0.5652,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.7968,
+          "put_edge": 0.0,
+          "no_trade": 0.2031,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.7968,
+            "direction_probability": 0.7968,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "CMG",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.232,
+          "option_payoff_score": -0.679
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.232,
+        "base_scout_score": 0.232,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1241,
+          "put_edge": 0.8031,
+          "no_trade": 0.0728,
+          "shadow_guard": {
+            "applied": true,
+            "passed": true,
+            "preferred_side": "put",
+            "preferred_probability": 0.8031,
+            "direction_probability": 0.1241,
+            "margin_vs_direction": 0.679,
+            "reason": "shadow_direction_conflict",
+            "note": "side-aware shadow model flagged an opposite-side conflict was dominant (put 80.31%, margin 67.90%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "COP",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "extreme_vol",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.3913,
+          "option_payoff_score": 0.8846
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.3913,
+        "base_scout_score": 0.3913,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.8852,
+          "put_edge": 0.0006,
+          "no_trade": 0.1142,
+          "shadow_guard": {
+            "applied": false,
+            "passed": true,
+            "preferred_side": "call",
+            "preferred_probability": 0.8852,
+            "direction_probability": 0.8852,
+            "margin_vs_direction": 0.0,
+            "reason": null,
+            "note": null
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false
+      },
+      {
+        "symbol": "UPS",
+        "regime_mode": "extreme_vol",
+        "passed": false,
+        "reason": "shadow_no_trade_veto",
+        "side_model_override": {
+          "target": "strict_real_option_payoff",
+          "mode": "shadow",
+          "directional_model_score": 0.4202,
+          "option_payoff_score": -0.1547
+        },
+        "pre_veto_direction": "call",
+        "conviction_score": 0.4202,
+        "base_scout_score": 0.4202,
+        "primary_target": "underlying_forward_return",
+        "target_description": "probability that forward 5-day underlying return is positive",
+        "event_dataset_features": {},
+        "side_aware": {
+          "model_mode": "trained_option_payoff_three_class",
+          "call_edge": 0.1406,
+          "put_edge": 0.2953,
+          "no_trade": 0.5641,
+          "shadow_guard": {
+            "applied": true,
+            "passed": false,
+            "preferred_side": "no_trade",
+            "preferred_probability": 0.5641,
+            "direction_probability": 0.1406,
+            "margin_vs_direction": 0.4235,
+            "reason": "shadow_no_trade_veto",
+            "note": "side-aware shadow model vetoed the setup as no-trade dominant (56.41%, margin 42.35%)"
+          }
+        },
+        "regime_adjustment": 0.0,
+        "counter_regime_survivor": false,
+        "shadow_side_guard_note": "side-aware shadow model vetoed the setup as no-trade dominant (56.41%, margin 42.35%)"
+      }
+    ]
+  },
+  "forge": {
+    "waterfall": {
+      "signals_considered": 0,
+      "signals_with_expiry": 0,
+      "signals_with_chain": 0,
+      "rows_after_basic": 0,
+      "rows_positive_bid_ask": 0,
+      "rows_within_long_leg_cap": 0,
+      "rows_within_spread_cap": 0,
+      "rows_passing_liquidity": 0,
+      "rows_passing_moneyness": 0,
+      "rows_passing_delta": 0,
+      "rows_passing_net_debit": 0,
+      "final_candidates": 0,
+      "candidates_after_friction_gate": 0,
+      "candidates_after_deduplication": 0
+    },
+    "learned_ranker": {
+      "mode_counts": {},
+      "active_default": true,
+      "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
+      "scored_candidates": 0,
+      "avg_learned_rank_score": null
+    },
+    "settings": {
+      "minimum_days_to_expiry": 7,
+      "maximum_days_to_expiry": 14,
+      "base_max_premium": 1.6,
+      "base_max_spread_pct": 0.18,
+      "min_open_interest": 150,
+      "min_volume": 25,
+      "min_abs_delta": 0.25,
+      "max_abs_delta": 0.75,
+      "iv_rank_gate": 0.7,
+      "min_expected_edge_after_friction_pct": 0.05,
+      "enforce_pre_council_friction_gate": false,
+      "max_structures_per_symbol_side": 2,
+      "min_moneyness_gap": 0.01,
+      "max_structures_per_symbol": 1,
+      "turnover_switch_penalty": 0.03,
+      "prior_live_board_symbols": []
+    },
+    "deduplication": {
+      "max_structures_per_symbol_side": 2,
+      "min_moneyness_gap": 0.01,
+      "max_structures_per_symbol": 1,
+      "strong_ticker_moneyness_gap": 0.035,
+      "strong_ticker_delta_gap": 0.2,
+      "strong_ticker_min_score": 0.68,
+      "strong_ticker_min_edge_after_friction_pct": 0.15,
+      "removed_candidates": 0,
+      "kept_candidates": 0
+    },
+    "rejection_counts": [],
+    "per_symbol": []
+  },
+  "final_board": {
+    "abstain": true,
+    "abstain_reasons": [
+      "Council abstained because no contract cleared the live board threshold."
+    ],
+    "abstain_audit": {
+      "primary_reason": "no_forge_candidates",
+      "primary_reason_label": "No Forge candidates reached Council.",
+      "requested_live_size": 3,
+      "candidate_count": 0,
+      "core_filter_pass_count": 0,
+      "unique_eligible_count": 0,
+      "score_only_fail_count": 0,
+      "extrinsic_only_fail_count": 0,
+      "score_and_extrinsic_fail_count": 0,
+      "symbol_probation_fail_count": 0,
+      "side_balance_rejections": 0,
+      "side_balance_demotions": 0,
+      "blocked_symbols": {
+        "score_only": [],
+        "extrinsic_only": [],
+        "score_and_extrinsic": [],
+        "symbol_probation": []
+      },
+      "best_rejected_candidates": {
+        "score_only": [],
+        "extrinsic_only": [],
+        "score_and_extrinsic": [],
+        "symbol_probation": []
+      }
+    },
+    "council_notes": [
+      "Council abstained because no contract cleared the live board threshold.",
+      "Council is operating under a neutral market regime."
+    ],
+    "live_board": [],
+    "shadow_board": []
+  },
+  "promotion_readiness": {
+    "decision": "keep_shadow",
+    "decision_label": "Keep new ML/AI layers in shadow",
+    "promotion_path": [
+      "shadow",
+      "tie_breaker",
+      "small_weight",
+      "limited_active",
+      "active"
+    ],
+    "policy": {
+      "minimum_shadow_trading_days": 30,
+      "preferred_shadow_trading_days": 60,
+      "minimum_disagreement_trades": 30,
+      "minimum_pnl_lift_pct": 0.1,
+      "required_windows": [
+        "3_month",
+        "6_month",
+        "12_month"
+      ],
+      "promotion_rule": "Promote only if shadow beats active when they disagree, after costs, out of sample, without worse drawdown."
+    },
+    "gates": [
+      {
+        "name": "Disagreement P&L",
+        "status": "pending",
+        "target": "Shadow beats active when they disagree, after costs."
+      },
+      {
+        "name": "Live Shadow Window",
+        "status": "pending",
+        "target": "At least 30 trading days, preferably 60."
+      },
+      {
+        "name": "Backtest Windows",
+        "status": "pending",
+        "target": "Shadow beats active over 3, 6, and 12 month windows."
+      },
+      {
+        "name": "Calibration",
+        "status": "pending",
+        "target": "Brier score improves or stays close while P&L improves."
+      },
+      {
+        "name": "Risk Shape",
+        "status": "pending",
+        "target": "Sharpe is no worse and drawdown does not materially increase."
+      },
+      {
+        "name": "Coverage",
+        "status": "pending",
+        "target": "Option-chain coverage remains stable and representative."
+      }
+    ],
+    "models": [
+      {
+        "name": "Side-Aware Scout",
+        "mode": "shadow",
+        "role": "call / put / no-trade probabilities",
+        "status": "collecting_evidence",
+        "recommendation": "Keep shadow until disagreement P&L is positive out of sample.",
+        "observations": 100,
+        "disagreements": 59,
+        "side_mix": {
+          "call": 41,
+          "put": 15,
+          "no_trade": 44,
+          "unknown": 0
+        },
+        "model_modes": {
+          "trained_option_payoff_three_class": 100
+        },
+        "promotion_step": "shadow"
+      },
+      {
+        "name": "Sentinel Event Extractor",
+        "mode": "shadow",
+        "role": "event extraction and direction-aware risk tags",
+        "status": "collecting_evidence",
+        "recommendation": "Keep as event intelligence until event tags prove risk-adjusted lift.",
+        "observations": 0,
+        "non_neutral_events": 0,
+        "mode_counts": {},
+        "event_type_counts": {},
+        "status_counts": {},
+        "options_impact_label_counts": {},
+        "recommended_use_counts": {},
+        "promotion_step": "shadow"
+      },
+      {
+        "name": "Payoff Ranker",
+        "mode": "shadow",
+        "role": "option payoff-aware ranking",
+        "status": "production_monitor",
+        "recommendation": "Monitor calibration and drift; this is the recovered edge-bearing model.",
+        "observations": 0,
+        "mode_counts": {},
+        "avg_learned_rank_score": null,
+        "promotion_step": "active"
+      },
+      {
+        "name": "Path Quality Model",
+        "mode": "shadow",
+        "role": "hold-window quality, take-profit odds, and decay risk",
+        "status": "collecting_evidence",
+        "recommendation": "Keep shadow until path metrics improve disagreement handling without increasing decay-driven losers.",
+        "observations": 0,
+        "mode_counts": {},
+        "avg_holding_quality_score": null,
+        "avg_early_profit_take_prob": null,
+        "avg_decay_risk": null,
+        "promotion_step": "shadow"
+      },
+      {
+        "name": "Council Risk Intelligence",
+        "mode": "observe",
+        "role": "correlation, sector exposure, sizing, no-trade discipline",
+        "status": "observe_only",
+        "recommendation": "Keep warnings visible; promote hard demotions only after shadow P&L improves.",
+        "observations": 0,
+        "live_risk_flags": 0,
+        "shadow_risk_flags": 0,
+        "avg_pairwise_correlation": null,
+        "live_sector_counts": {},
+        "promotion_step": "observe"
+      }
+    ]
+  }
+}

@@ -160,6 +160,12 @@ class TradeLeg:
     sentinel_no_trade_relevance: float | None = None
     sentinel_spot_effect: float | None = None
     sentinel_iv_effect: float | None = None
+    sentinel_status: str | None = None
+    sentinel_options_impact_label: str | None = None
+    sentinel_recommended_use: str | None = None
+    sentinel_veto_reason: str | None = None
+    sentinel_tie_breaker_score: float | None = None
+    sentinel_size_multiplier: float | None = None
     path_early_profit_take_prob: float | None = None
     path_expected_mfe_pct: float | None = None
     path_decay_risk: float | None = None
@@ -479,6 +485,12 @@ def price_trade(
         sentinel_no_trade_relevance=getattr(candidate, "sentinel_no_trade_relevance", None),
         sentinel_spot_effect=getattr(candidate, "sentinel_spot_effect", None),
         sentinel_iv_effect=getattr(candidate, "sentinel_iv_effect", None),
+        sentinel_status=getattr(candidate, "sentinel_status", None),
+        sentinel_options_impact_label=getattr(candidate, "sentinel_options_impact_label", None),
+        sentinel_recommended_use=getattr(candidate, "sentinel_recommended_use", None),
+        sentinel_veto_reason=getattr(candidate, "sentinel_veto_reason", None),
+        sentinel_tie_breaker_score=getattr(candidate, "sentinel_tie_breaker_score", None),
+        sentinel_size_multiplier=getattr(candidate, "sentinel_size_multiplier", None),
         path_early_profit_take_prob=getattr(candidate, "path_early_profit_take_prob", None),
         path_expected_mfe_pct=getattr(candidate, "path_expected_mfe_pct", None),
         path_decay_risk=getattr(candidate, "path_decay_risk", None),

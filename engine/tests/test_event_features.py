@@ -89,6 +89,26 @@ class EventFeatureTests(unittest.TestCase):
         self.assertEqual(snapshot.dataset_tags, "fnspid,edt")
         self.assertEqual(snapshot.to_feature_dict()["fnspid_news_volume_1d"], 6.0)
 
+    def test_latest_event_feature_snapshot_can_reject_stale_rows(self) -> None:
+        rows = [
+            {
+                "symbol": "AAPL",
+                "date": "2026-04-01",
+                "sec_signal_count_1d": 1.0,
+                "dataset_tags": "sec_filings",
+            }
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "daily_event_features.csv"
+            write_event_feature_frame(rows, path)
+            store = load_event_feature_frame(path)
+
+        stale = latest_event_feature_snapshot("AAPL", store, as_of=pd.Timestamp("2026-04-10"), max_age_days=5)
+        fresh = latest_event_feature_snapshot("AAPL", store, as_of=pd.Timestamp("2026-04-05"), max_age_days=5)
+
+        self.assertIsNone(stale)
+        self.assertIsNotNone(fresh)
+
     def test_global_macro_rows_are_combined_with_symbol_specific_rows(self) -> None:
         rows = [
             {

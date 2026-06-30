@@ -8,6 +8,7 @@ from engine.backtest.alpha_experiment import (
     _path_shadow_board,
     _summarize_path_shadow_week,
     apply_path_tiebreaker,
+    apply_sentinel_controls,
     apply_symbol_priors,
     build_symbol_priors,
     build_variants,
@@ -81,6 +82,58 @@ class AlphaExperimentTests(unittest.TestCase):
         names = [row.name for row in variants]
         self.assertIn("council_cost_cap_path_tiebreaker", names)
         self.assertIn("council_cost_cap_path_tiebreaker_loose", names)
+        self.assertIn("council_cost_cap_sentinel_veto", names)
+        self.assertIn("council_cost_cap_sentinel_size_down", names)
+        self.assertIn("council_cost_cap_sentinel_tiebreaker", names)
+
+    def test_apply_sentinel_controls_can_veto_candidates(self) -> None:
+        risky = _candidate(
+            "RISK",
+            sentinel_recommended_use="veto_candidate",
+            sentinel_options_impact_label="post_event_decay_risk",
+            sentinel_veto_reason="post_event_decay_risk",
+        )
+        ok = _candidate("OK", forge_score=0.55, sentinel_recommended_use="observe")
+
+        adjusted, diag = apply_sentinel_controls([risky, ok], mode="veto")
+
+        self.assertEqual([row.symbol for row in adjusted], ["OK"])
+        self.assertEqual(diag["vetoed"], 1)
+        self.assertEqual(diag["would_veto"], 1)
+        self.assertEqual(diag["veto_details"][0]["symbol"], "RISK")
+
+    def test_apply_sentinel_controls_can_size_down_without_dropping(self) -> None:
+        risky = _candidate(
+            "RISK",
+            allocation_weight=2.0,
+            sentinel_recommended_use="reduce_size",
+            sentinel_size_multiplier=0.5,
+        )
+
+        adjusted, diag = apply_sentinel_controls([risky], mode="size_down")
+
+        self.assertEqual(len(adjusted), 1)
+        self.assertAlmostEqual(adjusted[0].allocation_weight, 1.0, places=4)
+        self.assertEqual(diag["resized"], 1)
+
+    def test_apply_sentinel_controls_can_rerank_candidates(self) -> None:
+        weak = _candidate(
+            "WEAK",
+            forge_score=0.62,
+            sentinel_recommended_use="veto_candidate",
+            sentinel_no_trade_relevance=0.8,
+        )
+        strong = _candidate(
+            "STRONG",
+            forge_score=0.60,
+            sentinel_recommended_use="tie_breaker",
+            sentinel_tie_breaker_score=0.05,
+        )
+
+        adjusted, diag = apply_sentinel_controls([weak, strong], mode="tiebreaker")
+
+        self.assertEqual(adjusted[0].symbol, "STRONG")
+        self.assertEqual(diag["reranked"], 2)
 
     def test_path_shadow_board_prefers_higher_holding_quality(self) -> None:
         live = _candidate("LIVE", forge_score=0.7)

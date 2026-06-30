@@ -10,6 +10,7 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, rank_contracts_with_diagnostics, select_signals_for_forge
+from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.pipeline import (
     _load_prior_live_board_symbols,
     append_board_recommendation_history,
@@ -72,7 +73,52 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
     )
 
 
+def _candidate(symbol: str, **overrides: object) -> ContractCandidate:
+    payload = {
+        "symbol": symbol,
+        "contract_symbol": f"{symbol}260410C00100000",
+        "option_type": "call",
+        "expiry": "2026-04-10",
+        "strike": 100.0,
+        "bid": 1.4,
+        "ask": 1.5,
+        "last": 1.45,
+        "premium": 1.5,
+        "contract_cost": 150.0,
+        "spread_pct": 0.04,
+        "open_interest": 500,
+        "volume": 300,
+        "implied_volatility": 0.25,
+        "delta": 0.45,
+        "moneyness": 0.0,
+        "projected_move_pct": 0.03,
+        "breakeven_move_pct": 0.02,
+        "expected_return_pct": 0.6,
+        "extrinsic_ratio": 0.7,
+        "scout_score": 0.6,
+        "forge_score": 0.8,
+        "allocation_weight": 1.0,
+        "notes": [],
+    }
+    payload.update(overrides)
+    return ContractCandidate(**payload)
+
+
 class PipelineTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.market_shock = MarketShockRegime(
+            label="normal_crosscurrents",
+            severity=0.0,
+            stance="allow",
+            global_abstain=False,
+        )
+        self.market_shock_patcher = mock.patch(
+            "engine.orographic.pipeline.classify_current_market_shock",
+            return_value=self.market_shock,
+        )
+        self.market_shock_mock = self.market_shock_patcher.start()
+        self.addCleanup(self.market_shock_patcher.stop)
+
     def test_load_prior_live_board_symbols_reads_latest_entry(self) -> None:
         payload = {
             "entries": [
@@ -149,6 +195,80 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_live_score"], 0.76)
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_put_live_score"], 0.84)
         self.assertEqual(select_board_mock.call_args.kwargs["max_live_extrinsic_ratio"], 0.90)
+        self.assertEqual(payload["scan_settings"]["sentinel_control_mode"], "veto")
+        self.assertEqual(payload["scan_settings"]["market_shock_control_mode"], "active")
+        self.assertEqual(payload["market_shock"]["label"], "normal_crosscurrents")
+        self.assertEqual(payload["diagnostics"]["sentinel_controls"]["mode"], "veto")
+        self.assertEqual(payload["diagnostics"]["market_shock"]["mode"], "active")
+        self.assertEqual(select_board_mock.call_args.kwargs["market_shock"], self.market_shock)
+
+    def test_run_scan_sentinel_shadow_records_without_changing_council_pool(self) -> None:
+        signal = _signal("AAA")
+        risky = _candidate(
+            "RISK",
+            sentinel_recommended_use="veto_candidate",
+            sentinel_options_impact_label="post_event_decay_risk",
+            sentinel_veto_reason="post_event_decay_risk",
+        )
+        ok = _candidate("OK", forge_score=0.79, sentinel_recommended_use="observe")
+        council_payload = {"live_board": [], "shadow_board": [], "abstain": True, "summary": {"candidate_count": 2, "live_count": 0, "shadow_count": 0, "notes": []}}
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"), [signal], {}),
+            ),
+            mock.patch("engine.orographic.pipeline.select_signals_for_forge", return_value=([signal], {})),
+            mock.patch(
+                "engine.orographic.pipeline.rank_contracts_with_diagnostics",
+                return_value=([risky, ok], {"waterfall": {}, "learned_ranker": {}}),
+            ),
+            mock.patch("engine.orographic.pipeline.select_moonshot_lane", return_value={"summary": {"pick_count": 0, "eligible_count": 0}, "picks": []}),
+            mock.patch(
+                "engine.orographic.pipeline.select_board",
+                return_value=mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True),
+            ) as select_board_mock,
+        ):
+            payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None, sentinel_control_mode="shadow"))
+
+        council_candidates = select_board_mock.call_args.args[0]
+        self.assertEqual([row.symbol for row in council_candidates], ["RISK", "OK"])
+        self.assertFalse(payload["diagnostics"]["sentinel_controls"]["applied"])
+        self.assertEqual(payload["diagnostics"]["sentinel_controls"]["would_veto"], 1)
+
+    def test_run_scan_sentinel_veto_removes_candidates_before_council(self) -> None:
+        signal = _signal("AAA")
+        risky = _candidate(
+            "RISK",
+            sentinel_recommended_use="veto_candidate",
+            sentinel_options_impact_label="post_event_decay_risk",
+            sentinel_veto_reason="post_event_decay_risk",
+        )
+        ok = _candidate("OK", forge_score=0.79, sentinel_recommended_use="observe")
+        council_payload = {"live_board": [], "shadow_board": [], "abstain": True, "summary": {"candidate_count": 1, "live_count": 0, "shadow_count": 0, "notes": []}}
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"), [signal], {}),
+            ),
+            mock.patch("engine.orographic.pipeline.select_signals_for_forge", return_value=([signal], {})),
+            mock.patch(
+                "engine.orographic.pipeline.rank_contracts_with_diagnostics",
+                return_value=([risky, ok], {"waterfall": {}, "learned_ranker": {}}),
+            ),
+            mock.patch("engine.orographic.pipeline.select_moonshot_lane", return_value={"summary": {"pick_count": 0, "eligible_count": 0}, "picks": []}),
+            mock.patch(
+                "engine.orographic.pipeline.select_board",
+                return_value=mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True),
+            ) as select_board_mock,
+        ):
+            payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None, sentinel_control_mode="veto"))
+
+        council_candidates = select_board_mock.call_args.args[0]
+        self.assertEqual([row.symbol for row in council_candidates], ["OK"])
+        self.assertTrue(payload["diagnostics"]["sentinel_controls"]["applied"])
+        self.assertEqual(payload["diagnostics"]["sentinel_controls"]["vetoed"], 1)
 
     def test_pre_forge_gate_skips_illiquid_signals_and_backfills_next_names(self) -> None:
         signals = [_signal("AAA"), _signal("BBB"), _signal("CCC")]

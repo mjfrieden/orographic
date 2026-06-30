@@ -457,10 +457,13 @@ def rank_contracts_with_diagnostics(
         }
         sentinel_event = signal.sentinel_event if isinstance(signal.sentinel_event, dict) else {}
         if sentinel_event:
+            symbol_diag["sentinel_status"] = sentinel_event.get("status") or sentinel_event.get("source")
             symbol_diag["sentinel_event_type"] = sentinel_event.get("event_type")
             symbol_diag["sentinel_time_horizon"] = sentinel_event.get("time_horizon")
             symbol_diag["sentinel_decay_half_life"] = sentinel_event.get("decay_half_life")
             symbol_diag["sentinel_direction_3d"] = sentinel_event.get("direction_3d")
+            symbol_diag["sentinel_options_impact_label"] = sentinel_event.get("options_impact_label")
+            symbol_diag["sentinel_recommended_use"] = sentinel_event.get("recommended_use")
 
         expiry = next_expiry(
             option_expiries(signal.symbol),
@@ -615,6 +618,12 @@ def rank_contracts_with_diagnostics(
             sentinel_spot_effect, sentinel_iv_effect = _sentinel_effect_flags(
                 sentinel_event.get("spot_vs_iv_effect")
             )
+            sentinel_status = str(sentinel_event.get("status") or sentinel_event.get("source") or "unknown")
+            sentinel_options_impact_label = str(sentinel_event.get("options_impact_label") or "unknown")
+            sentinel_recommended_use = str(sentinel_event.get("recommended_use") or "observe")
+            sentinel_veto_reason = sentinel_event.get("veto_reason")
+            sentinel_tie_breaker_score = float(sentinel_event.get("tie_breaker_score") or 0.0)
+            sentinel_size_multiplier = float(sentinel_event.get("size_multiplier") or 1.0)
             liquidity_score = _clip(
                 0.45
                 + 0.18 * min(open_interest / 800.0, 1.0)
@@ -655,6 +664,8 @@ def rank_contracts_with_diagnostics(
                 notes.append(
                     f"Sentinel shadow fit: {sentinel_event.get('time_horizon', 'unknown')} catalyst aligns with {days_to_expiry} DTE"
                 )
+            if sentinel_recommended_use in {"veto_candidate", "reduce_size", "tie_breaker", "flag_event_risk"}:
+                notes.append(f"Sentinel shadow action: {sentinel_recommended_use}")
 
             candidates.append(
                 ContractCandidate(
@@ -701,6 +712,13 @@ def rank_contracts_with_diagnostics(
                     sentinel_no_trade_relevance=round(sentinel_no_trade_relevance, 4),
                     sentinel_spot_effect=round(sentinel_spot_effect, 4),
                     sentinel_iv_effect=round(sentinel_iv_effect, 4),
+                    sentinel_status=sentinel_status,
+                    sentinel_options_impact_label=sentinel_options_impact_label,
+                    sentinel_recommended_use=sentinel_recommended_use,
+                    sentinel_veto_reason=str(sentinel_veto_reason) if sentinel_veto_reason else None,
+                    sentinel_tie_breaker_score=round(sentinel_tie_breaker_score, 4),
+                    sentinel_size_multiplier=round(sentinel_size_multiplier, 4),
+                    sentinel_event=dict(sentinel_event),
                     notes=notes,
                 )
             )

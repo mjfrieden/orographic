@@ -35,6 +35,7 @@ from engine.backtest.results import (
     save_option_outcome_dataset,
 )
 from engine.backtest.options_provider import HistoricalOptionsProvider
+from engine.orographic.event_features import DEFAULT_EVENT_FEATURES_PATH, load_event_feature_frame
 
 logging.basicConfig(
     level=logging.INFO,
@@ -90,6 +91,7 @@ def run(
     max_symbol_candidates_per_week: int | None = None,
     max_sector_candidates_per_week: int | None = None,
     option_outcome_output: Path | None = None,
+    event_features_path: Path | None = DEFAULT_EVENT_FEATURES_PATH,
 ) -> None:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Backtest window: %s → %s (%d months)", start_date, end_date, months)
@@ -99,6 +101,15 @@ def run(
     # across OptionsDX CSV imports and DoltHub/API-derived ingests.
     data_dir = options_data_dir or Path(__file__).parents[2] / "engine" / "data" / "optionsdx"
     options_provider = HistoricalOptionsProvider(data_dir=data_dir)
+    event_feature_store = load_event_feature_frame(event_features_path)
+    if event_feature_store.empty:
+        log.info("Sentinel event-feature store is empty or missing: %s", event_features_path)
+    else:
+        log.info(
+            "Loaded Sentinel event-feature store: %d row(s), %d symbol(s)",
+            len(event_feature_store),
+            int(event_feature_store["symbol"].nunique()),
+        )
 
     # ── Prefetch all equity histories ──────────────────────────────────────
     log.info("Fetching equity history …")
@@ -146,6 +157,7 @@ def run(
                 max_entry_spread_pct=max_entry_spread_pct,
                 min_entry_open_interest=min_entry_open_interest,
                 min_entry_volume=min_entry_volume,
+                event_feature_store=event_feature_store,
             )
         except Exception as exc:
             log.warning("  replay_week failed: %s", exc)
@@ -303,6 +315,12 @@ def main() -> None:
         default=None,
         help="Optional JSON output path for the canonical friction-aware option outcome dataset. Defaults to a derived canonical path.",
     )
+    parser.add_argument(
+        "--event-features",
+        type=Path,
+        default=DEFAULT_EVENT_FEATURES_PATH,
+        help="Canonical daily event-feature store for deterministic Sentinel replay.",
+    )
     args = parser.parse_args()
 
     end_date = date.fromisoformat(args.end_date) if args.end_date else date.today()
@@ -337,6 +355,7 @@ def main() -> None:
         max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
         max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
         option_outcome_output=args.option_outcome_output,
+        event_features_path=args.event_features,
     )
 
 

@@ -69,6 +69,10 @@ class SentinelTests(unittest.TestCase):
         self.assertEqual(score.headlines, ["Company beats earnings estimates"])
         self.assertEqual(score.multiplier, 1.0)
         self.assertAlmostEqual(score.shadow_multiplier, 1.08, places=4)
+        self.assertEqual(score.status, "ai_success_event")
+        self.assertEqual(score.source, "ai_success_event")
+        self.assertEqual(score.options_impact_label, "spot_up_iv_down")
+        self.assertIn(score.recommended_use, {"flag_event_risk", "tie_breaker", "observe"})
 
     def test_fetch_ai_multiplier_defaults_missing_structured_fields_to_neutral(self) -> None:
         payload = {
@@ -96,6 +100,35 @@ class SentinelTests(unittest.TestCase):
         self.assertEqual(score.call_relevance, 0.0)
         self.assertEqual(score.put_relevance, 0.0)
         self.assertEqual(score.no_trade_relevance, 1.0)
+        self.assertEqual(score.status, "ai_success_neutral")
+
+    def test_fetch_ai_multiplier_reports_yfinance_error_and_uses_event_context(self) -> None:
+        event_context = {
+            "dataset_tags": "fnspid,sec_filings,mirai",
+            "fnspid_news_volume_3d": 4,
+            "fnspid_sentiment_mean": -0.2,
+            "mirai_risk_off_score": 0.6,
+            "sec_material_event_score": 0.4,
+        }
+
+        with mock.patch("engine.orographic.sentinel.yf.Ticker", side_effect=RuntimeError("yf down")):
+            score = fetch_ai_multiplier("TEST", direction="put", scout_score=-0.4, event_context=event_context)
+
+        self.assertEqual(score.status, "yf_error")
+        self.assertEqual(score.source, "event_feature_fallback")
+        self.assertEqual(score.error, "yf down")
+        self.assertEqual(score.event_type, "macro")
+        self.assertIn(score.options_impact_label, {"spot_down_iv_up", "post_event_decay_risk", "pre_event_premium_risk"})
+        self.assertTrue(score.headlines)
+
+    def test_fetch_ai_multiplier_reports_no_news_without_event_context(self) -> None:
+        with mock.patch("engine.orographic.sentinel.yf.Ticker") as ticker_mock:
+            ticker_mock.return_value.news = []
+            score = fetch_ai_multiplier("TEST", direction="call", scout_score=0.2)
+
+        self.assertEqual(score.status, "no_news")
+        self.assertEqual(score.source, "no_news")
+        self.assertEqual(score.headlines, [])
 
 
 if __name__ == "__main__":

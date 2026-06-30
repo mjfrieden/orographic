@@ -510,6 +510,7 @@ def build_signal(
         symbol,
         event_feature_store,
         as_of=close.index[-1] if len(close.index) else None,
+        max_age_days=5,
     )
     event_context = event_feature_snapshot.to_context_dict() if event_feature_snapshot is not None else {}
     feats = _extract_features(
@@ -647,6 +648,13 @@ def build_signal(
         "source": ai_score.source,
         "headlines": list(ai_score.headlines or []),
         "event_context": dict(ai_score.event_context or event_context),
+        "status": ai_score.status,
+        "error": ai_score.error,
+        "options_impact_label": ai_score.options_impact_label,
+        "recommended_use": ai_score.recommended_use,
+        "veto_reason": ai_score.veto_reason,
+        "tie_breaker_score": round(float(ai_score.tie_breaker_score), 4),
+        "size_multiplier": round(float(ai_score.size_multiplier), 4),
     }
 
     notes: list[str] = []

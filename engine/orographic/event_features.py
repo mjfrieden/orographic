@@ -223,6 +223,7 @@ def latest_event_feature_snapshot(
     event_feature_frame: pd.DataFrame | None,
     *,
     as_of: date | datetime | pd.Timestamp | None = None,
+    max_age_days: int | None = None,
 ) -> EventFeatureSnapshot | None:
     if event_feature_frame is None or event_feature_frame.empty:
         return None
@@ -247,6 +248,10 @@ def latest_event_feature_snapshot(
         if combined.empty:
             return None
     latest_date = combined["date"].max()
+    if lookup_date is not None and max_age_days is not None:
+        age_days = (lookup_date.normalize() - pd.to_datetime(latest_date)).days
+        if age_days < 0 or age_days > max(max_age_days, 0):
+            return None
     same_day = combined.loc[combined["date"] == latest_date].copy()
     snapshot_date = pd.to_datetime(latest_date, errors="coerce")
     normalized_date = snapshot_date.date() if not pd.isna(snapshot_date) else None

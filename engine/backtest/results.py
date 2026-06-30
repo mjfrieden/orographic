@@ -354,6 +354,12 @@ def option_outcome_row(t: TradeLeg) -> dict[str, Any]:
         "sentinel_no_trade_relevance": _round_or_none(t.sentinel_no_trade_relevance, 4),
         "sentinel_spot_effect": _round_or_none(t.sentinel_spot_effect, 4),
         "sentinel_iv_effect": _round_or_none(t.sentinel_iv_effect, 4),
+        "sentinel_status": t.sentinel_status,
+        "sentinel_options_impact_label": t.sentinel_options_impact_label,
+        "sentinel_recommended_use": t.sentinel_recommended_use,
+        "sentinel_veto_reason": t.sentinel_veto_reason,
+        "sentinel_tie_breaker_score": _round_or_none(t.sentinel_tie_breaker_score, 4),
+        "sentinel_size_multiplier": _round_or_none(t.sentinel_size_multiplier, 4),
         "path_early_profit_take_prob": _round_or_none(t.path_early_profit_take_prob, 4),
         "path_expected_mfe_pct": _round_or_none(t.path_expected_mfe_pct, 4),
         "path_decay_risk": _round_or_none(t.path_decay_risk, 4),
@@ -455,6 +461,8 @@ def canonicalize_option_outcome_row(row: dict[str, Any]) -> dict[str, Any]:
             "sentinel_no_trade_relevance",
             "sentinel_spot_effect",
             "sentinel_iv_effect",
+            "sentinel_tie_breaker_score",
+            "sentinel_size_multiplier",
             "path_early_profit_take_prob",
             "path_expected_mfe_pct",
             "path_decay_risk",
@@ -465,6 +473,13 @@ def canonicalize_option_outcome_row(row: dict[str, Any]) -> dict[str, Any]:
                 if normalized.get(field) is not None
                 else None
             )
+        for field in (
+            "sentinel_status",
+            "sentinel_options_impact_label",
+            "sentinel_recommended_use",
+            "sentinel_veto_reason",
+        ):
+            normalized[field] = str(normalized.get(field) or "").strip().lower() or None
         return normalized
 
     raw_cost_basis = row.get("raw_cost_basis")
@@ -537,6 +552,8 @@ def canonicalize_option_outcome_row(row: dict[str, Any]) -> dict[str, Any]:
         "sentinel_no_trade_relevance",
         "sentinel_spot_effect",
         "sentinel_iv_effect",
+        "sentinel_tie_breaker_score",
+        "sentinel_size_multiplier",
         "path_early_profit_take_prob",
         "path_expected_mfe_pct",
         "path_decay_risk",
@@ -548,6 +565,13 @@ def canonicalize_option_outcome_row(row: dict[str, Any]) -> dict[str, Any]:
             else None
         )
     normalized["path_model_mode"] = str(normalized.get("path_model_mode") or "").strip().lower() or None
+    for field in (
+        "sentinel_status",
+        "sentinel_options_impact_label",
+        "sentinel_recommended_use",
+        "sentinel_veto_reason",
+    ):
+        normalized[field] = str(normalized.get(field) or "").strip().lower() or None
     return normalized
 
 

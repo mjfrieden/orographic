@@ -45,6 +45,20 @@ def _signal() -> ScoutSignal:
     )
 
 
+def _history(rows: int = 90, *, end: str = "2026-04-06") -> pd.DataFrame:
+    index = pd.bdate_range(end=end, periods=rows)
+    close = pd.Series([100 + i * 0.15 for i in range(rows)], index=index, dtype=float)
+    return pd.DataFrame(
+        {
+            "Close": close,
+            "High": close + 1.0,
+            "Low": close - 1.0,
+            "Volume": pd.Series([1_000_000 + i * 1000 for i in range(rows)], index=index, dtype=float),
+        },
+        index=index,
+    )
+
+
 class ReplayTests(unittest.TestCase):
     def test_replay_constructs_single_leg_candidate(self) -> None:
         chain = pd.DataFrame(
@@ -244,6 +258,59 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(len(result.candidates), 1)
         self.assertAlmostEqual(result.candidates[0].path_holding_quality_score or 0.0, 0.77, places=4)
         self.assertEqual(result.candidates[0].path_model_mode, "shadow")
+
+    def test_replay_week_attaches_historical_sentinel_event_features(self) -> None:
+        chain = pd.DataFrame(
+            [
+                {
+                    "option_type": "C",
+                    "expire_date": "2026-04-10",
+                    "strike": 112.0,
+                    "bid": 1.7,
+                    "ask": 1.8,
+                    "delta": 0.55,
+                    "implied_volatility": 0.30,
+                    "open_interest": 1200,
+                    "trade_volume": 400,
+                }
+            ]
+        )
+        event_store = pd.DataFrame(
+            [
+                {
+                    "symbol": "TEST",
+                    "date": pd.Timestamp("2026-04-06"),
+                    "fnspid_news_volume_1d": 4.0,
+                    "fnspid_news_volume_3d": 7.0,
+                    "fnspid_sentiment_mean": 0.6,
+                    "fnspid_catalyst_density": 0.5,
+                    "dataset_tags": "fnspid",
+                }
+            ]
+        )
+        hist = _history()
+        with (
+            patch("engine.backtest.replay._ml_scout_score", return_value=0.55),
+            patch("engine.orographic.payoff_model.score_candidates", return_value=None),
+            patch("engine.orographic.path_model.score_candidates", return_value=None),
+        ):
+            result = replay_week(
+                date(2026, 4, 6),
+                ["TEST"],
+                {"TEST": hist},
+                hist,
+                _history(end="2026-04-06"),
+                _ReplayProvider(chain),
+                event_feature_store=event_store,
+            )
+
+        self.assertEqual(len(result.candidates), 1)
+        candidate = result.candidates[0]
+        self.assertEqual(candidate.sentinel_status, "ai_success_event")
+        self.assertGreater(candidate.sentinel_confidence or 0.0, 0.0)
+        self.assertIn(candidate.sentinel_options_impact_label, {"spot_up_iv_down", "pre_event_premium_risk"})
+        self.assertIn(candidate.sentinel_recommended_use, {"observe", "tie_breaker", "reduce_size", "veto_candidate"})
+        self.assertEqual(candidate.sentinel_event["event_context"]["dataset_tags"], "fnspid")
 
 
 if __name__ == "__main__":

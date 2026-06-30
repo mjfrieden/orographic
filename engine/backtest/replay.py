@@ -24,6 +24,7 @@ import numpy as np
 import pandas as pd
 
 from engine.orographic.schemas import ContractCandidate, MarketRegime, ScoutSignal
+from engine.orographic.event_features import latest_event_feature_snapshot
 from engine.orographic.forge import (
     _breakeven_move_pct,
     _candidate_moneyness,
@@ -31,6 +32,8 @@ from engine.orographic.forge import (
     _net_debit_cap,
     _projected_move_pct,
     _spread_cap,
+    _sentinel_effect_flags,
+    _sentinel_holding_window_fit,
 )
 from engine.orographic.scout import (
     _apply_regime_alignment,
@@ -42,6 +45,7 @@ from engine.orographic.scout import (
     _clip,
     _load_model,
 )
+from engine.orographic.sentinel import score_event_context, score_to_event_dict
 from engine.backtest.fetcher import (
     fetch_equity_history,
     friday_of_week,
@@ -186,6 +190,7 @@ def build_signal_as_of(
     history_df: pd.DataFrame,
     regime: MarketRegime,
     spy_history: pd.DataFrame | None = None,
+    event_feature_store: pd.DataFrame | None = None,
 ) -> ScoutSignal | None:
     """
     Run Scout signal generation against historical data ending on `as_of`.
@@ -215,9 +220,22 @@ def build_signal_as_of(
             spy_close_aligned = pd.to_numeric(spy_slice["Close"], errors="coerce").dropna()
             spy_close_aligned = spy_close_aligned.reindex(close.index, method="ffill").dropna()
 
+    event_feature_snapshot = latest_event_feature_snapshot(
+        symbol,
+        event_feature_store,
+        as_of=as_of,
+        max_age_days=5,
+    )
+    event_context = event_feature_snapshot.to_context_dict() if event_feature_snapshot is not None else {}
+
     # ── ML inference (Sanitized & Unbiased) ──
     # We are now using a model trained strictly on pre-2026 data.
-    feats    = _extract_features(close, frame, spy_close_aligned)
+    feats    = _extract_features(
+        close,
+        frame,
+        spy_close_aligned,
+        event_snapshot=event_feature_snapshot.to_feature_dict() if event_feature_snapshot is not None else None,
+    )
     ml_score = _ml_scout_score(feats)
     using_ml = ml_score is not None
     
@@ -260,6 +278,19 @@ def build_signal_as_of(
         notes.append("RSI is balanced")
     if atr_pct_14d > 0.05:
         notes.append("ATR elevated")
+    sentinel_score = score_event_context(
+        symbol,
+        direction=direction,
+        event_context=event_context,
+        status="ai_success_event" if event_context else "no_news",
+        sentinel_mode="shadow",
+    )
+    sentinel_event = score_to_event_dict(sentinel_score, fallback_context=event_context)
+    if event_feature_snapshot is not None:
+        tags = event_feature_snapshot.dataset_tags or "event_dataset"
+        notes.append(f"Dataset-backed event context active ({tags})")
+    if sentinel_score.time_horizon not in {"unknown", "intraday"} or sentinel_score.decay_half_life not in {"unknown", "intraday"}:
+        notes.append(f"Sentinel horizon {sentinel_score.time_horizon} · decay {sentinel_score.decay_half_life}")
 
     return ScoutSignal(
         symbol=symbol,
@@ -273,6 +304,7 @@ def build_signal_as_of(
         technical_score=round(technical_score, 4),
         empirical_score=round(empirical_score, 4),
         scout_score=round(scout_score, 4),
+        sentinel_event=sentinel_event,
         notes=notes,
     )
 
@@ -494,6 +526,31 @@ def forge_candidates_as_of(
             notes = [f"Sourced via historical option chain ({expiry_policy})"]
         else:
             notes = [f"Sourced via synthetic Black-Scholes fallback chain ({expiry_policy})"]
+        sentinel_event = signal.sentinel_event if isinstance(signal.sentinel_event, dict) else {}
+        holding_window_fit, holding_window_label = _sentinel_holding_window_fit(signal, days_to_expiry)
+        sentinel_confidence = _clip(float(sentinel_event.get("confidence") or 0.0), 0.0, 1.0)
+        sentinel_call_relevance = _clip(float(sentinel_event.get("call_relevance") or 0.0), 0.0, 1.0)
+        sentinel_put_relevance = _clip(float(sentinel_event.get("put_relevance") or 0.0), 0.0, 1.0)
+        sentinel_no_trade_relevance = _clip(float(sentinel_event.get("no_trade_relevance") or 0.0), 0.0, 1.0)
+        sentinel_spot_effect, sentinel_iv_effect = _sentinel_effect_flags(
+            sentinel_event.get("spot_vs_iv_effect")
+        )
+        sentinel_status = str(sentinel_event.get("status") or sentinel_event.get("source") or "unknown")
+        sentinel_options_impact_label = str(sentinel_event.get("options_impact_label") or "unknown")
+        sentinel_recommended_use = str(sentinel_event.get("recommended_use") or "observe")
+        sentinel_veto_reason = sentinel_event.get("veto_reason")
+        sentinel_tie_breaker_score = float(sentinel_event.get("tie_breaker_score") or 0.0)
+        sentinel_size_multiplier = float(sentinel_event.get("size_multiplier") or 1.0)
+        if holding_window_label == "mismatch":
+            notes.append(
+                f"Sentinel shadow mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
+            )
+        elif holding_window_label == "well_matched":
+            notes.append(
+                f"Sentinel shadow fit: {sentinel_event.get('time_horizon', 'unknown')} catalyst aligns with {days_to_expiry} DTE"
+            )
+        if sentinel_recommended_use in {"veto_candidate", "reduce_size", "tie_breaker", "flag_event_risk"}:
+            notes.append(f"Sentinel shadow action: {sentinel_recommended_use}")
 
         candidates.append(ContractCandidate(
             symbol=signal.symbol,
@@ -527,6 +584,27 @@ def forge_candidates_as_of(
             iv_rank=round(ivr, 4),
             entry_data_source=chain_source,
             entry_quote_type="ask" if chain_source == "real_chain" else "modeled",
+            realized_vol_20d=round(signal.realized_vol_20d, 4),
+            atr_pct_14d=round(signal.atr_pct_14d, 4),
+            premium_pct_of_spot=round(actual_premium / spot, 4) if spot > 0 else None,
+            vrp_gap=round(max(vol - signal.realized_vol_20d, 0.0), 4),
+            sentinel_holding_window_fit=holding_window_fit,
+            sentinel_holding_window_label=holding_window_label,
+            sentinel_decay_half_life=sentinel_event.get("decay_half_life"),
+            sentinel_time_horizon=sentinel_event.get("time_horizon"),
+            sentinel_confidence=round(sentinel_confidence, 4),
+            sentinel_call_relevance=round(sentinel_call_relevance, 4),
+            sentinel_put_relevance=round(sentinel_put_relevance, 4),
+            sentinel_no_trade_relevance=round(sentinel_no_trade_relevance, 4),
+            sentinel_spot_effect=round(sentinel_spot_effect, 4),
+            sentinel_iv_effect=round(sentinel_iv_effect, 4),
+            sentinel_status=sentinel_status,
+            sentinel_options_impact_label=sentinel_options_impact_label,
+            sentinel_recommended_use=sentinel_recommended_use,
+            sentinel_veto_reason=str(sentinel_veto_reason) if sentinel_veto_reason else None,
+            sentinel_tie_breaker_score=round(sentinel_tie_breaker_score, 4),
+            sentinel_size_multiplier=round(sentinel_size_multiplier, 4),
+            sentinel_event=dict(sentinel_event),
             notes=notes,
         ))
 
@@ -559,6 +637,7 @@ def replay_week(
     max_entry_spread_pct: float | None = None,
     min_entry_open_interest: int = 150,
     min_entry_volume: int = 25,
+    event_feature_store: pd.DataFrame | None = None,
 ) -> WeekReplay:
     """
     Reconstruct what Scout + Forge would have produced on the given Monday.
@@ -602,7 +681,7 @@ def replay_week(
         except Exception:
             pass
         try:
-            sig = build_signal_as_of(symbol, monday, hist, regime, spy_history)
+            sig = build_signal_as_of(symbol, monday, hist, regime, spy_history, event_feature_store)
         except Exception as exc:
             log.warning("Scout replay failed for %s on %s: %s", symbol, monday, exc)
             sig = None

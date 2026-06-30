@@ -53,6 +53,7 @@ def build_audit_report(
     combined_dataset: Path,
     min_archive_rows: int = 1,
     min_recommendation_rows: int = 0,
+    allow_missing_empty_moonshot_ledger: bool = False,
 ) -> dict[str, Any]:
     archive = _load_json(live_archive_manifest)
     archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
@@ -65,6 +66,9 @@ def build_audit_report(
     combined_dataset_rows = _dataset_rows(combined_dataset)
 
     archive_required = min_archive_rows > 0
+    moonshot_ledger_present = moonshot_ledger.exists() or (
+        allow_missing_empty_moonshot_ledger and moonshot_rows == 0 and moonshot_dataset_rows == 0
+    )
     checks = [
         {
             "name": "live_archive_manifest_exists",
@@ -91,7 +95,7 @@ def build_audit_report(
         },
         {
             "name": "moonshot_ledger_exists",
-            "passed": moonshot_ledger.exists(),
+            "passed": moonshot_ledger_present,
             "actual": str(moonshot_ledger),
         },
         {
@@ -167,6 +171,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--research-dataset-dir", type=Path, default=Path("output/research_datasets"))
     parser.add_argument("--min-archive-rows", type=int, default=1)
     parser.add_argument("--min-recommendation-rows", type=int, default=0)
+    parser.add_argument("--allow-missing-empty-moonshot-ledger", action="store_true")
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/research_data_capture_audit.json"))
     return parser.parse_args()
 
@@ -182,6 +187,7 @@ def main() -> int:
         combined_dataset=args.research_dataset_dir / "all_recommendation_outcomes.parquet",
         min_archive_rows=max(int(args.min_archive_rows), 0),
         min_recommendation_rows=max(int(args.min_recommendation_rows), 0),
+        allow_missing_empty_moonshot_ledger=bool(args.allow_missing_empty_moonshot_ledger),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")

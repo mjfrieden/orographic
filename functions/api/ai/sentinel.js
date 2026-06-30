@@ -60,6 +60,12 @@ export async function onRequestPost(context) {
       direction,
       mode,
       source: "fallback_no_ai",
+      status: "sentinel_503",
+      options_impact_label: "unknown",
+      recommended_use: "observe",
+      veto_reason: null,
+      tie_breaker_score: 0.0,
+      size_multiplier: 1.0,
     });
   }
 
@@ -90,6 +96,12 @@ export async function onRequestPost(context) {
         direction,
         mode,
         source: "fallback_no_news",
+        status: "no_news",
+        options_impact_label: "unknown",
+        recommended_use: "observe",
+        veto_reason: null,
+        tie_breaker_score: 0.0,
+        size_multiplier: 1.0,
     });
   }
 
@@ -119,6 +131,7 @@ magnitude_bucket: small, medium, large, unknown
 decay_half_life: intraday, one_day, three_days, one_week, longer, unknown
 spot_vs_iv_effect: spot, iv, mixed, unknown
 call_relevance, put_relevance, no_trade_relevance: floats between 0.0 and 1.0
+options_impact_label: spot_up_iv_down, spot_down_iv_up, iv_expansion_only, post_event_decay_risk, pre_event_premium_risk, unknown
 
 Headlines:
 ${newsText}
@@ -127,7 +140,7 @@ Structured daily event context from Orographic's local feature store:
 ${eventContext ? JSON.stringify(eventContext) : "none"}
 
 You MUST reply ONLY with a valid JSON object exactly matching this schema, completely unformatted (no markdown blocks or backticks):
-{"event_type":"earnings","event_polarity":0.7,"directional_relevance":"call","novelty":"new","source_reliability":"major_news","time_horizon":"one_to_three_days","direction_1d":"up","direction_3d":"up","direction_5d":"neutral","magnitude_bucket":"medium","decay_half_life":"three_days","spot_vs_iv_effect":"spot","call_relevance":0.82,"put_relevance":0.08,"no_trade_relevance":0.15,"confidence":0.74,"catalyst":"earnings beat","rationale":"Recent earnings headlines indicate upside demand surprise."}`;
+{"event_type":"earnings","event_polarity":0.7,"directional_relevance":"call","novelty":"new","source_reliability":"major_news","time_horizon":"one_to_three_days","direction_1d":"up","direction_3d":"up","direction_5d":"neutral","magnitude_bucket":"medium","decay_half_life":"three_days","spot_vs_iv_effect":"spot","options_impact_label":"spot_up_iv_down","call_relevance":0.82,"put_relevance":0.08,"no_trade_relevance":0.15,"confidence":0.74,"catalyst":"earnings beat","rationale":"Recent earnings headlines indicate upside demand surprise."}`;
 
   try {
     const response = await context.env.AI.run("@cf/meta/llama-3-8b-instruct", {
@@ -165,6 +178,16 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
       const magnitudeBucket = normalizeEnum(parsed.magnitude_bucket, ["small", "medium", "large", "unknown"], "unknown");
       const decayHalfLife = normalizeEnum(parsed.decay_half_life, ["intraday", "one_day", "three_days", "one_week", "longer", "unknown"], "unknown");
       const spotVsIvEffect = normalizeEnum(parsed.spot_vs_iv_effect, ["spot", "iv", "mixed", "unknown"], "unknown");
+      const parsedOptionsImpactLabel = normalizeOptionsImpactLabel(parsed.options_impact_label);
+      const optionsImpactLabel = parsedOptionsImpactLabel !== "unknown"
+        ? parsedOptionsImpactLabel
+        : inferOptionsImpactLabel({
+          eventPolarity,
+          spotVsIvEffect,
+          direction3d,
+          noTradeRelevance: Number(parsed.no_trade_relevance ?? 0.2),
+          eventContext,
+        });
       const defaultCallRelevance =
         directionalRelevance === "call" || directionalRelevance === "both" ? 0.7 : 0.15;
       const defaultPutRelevance =
@@ -184,6 +207,17 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
         noTradeRelevance,
       });
       const multiplier = mode === "active" ? shadowMultiplier : 1.0;
+      const status = eventType !== "none" && eventType !== "no_clear_event" || Math.abs(shadowMultiplier - 1.0) > 0.0001
+        ? "ai_success_event"
+        : "ai_success_neutral";
+      const recommended = recommendedUse({
+        eventType,
+        novelty: normalizeEnum(parsed.novelty, ["stale", "incremental", "new", "unknown"], "unknown"),
+        confidence,
+        noTradeRelevance,
+        shadowMultiplier,
+        optionsImpactLabel,
+      });
       return jsonResponse({ 
         ok: true, 
         multiplier,
@@ -201,6 +235,7 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
         magnitude_bucket: magnitudeBucket,
         decay_half_life: decayHalfLife,
         spot_vs_iv_effect: spotVsIvEffect,
+        options_impact_label: optionsImpactLabel,
         call_relevance: Number(callRelevance.toFixed(4)),
         put_relevance: Number(putRelevance.toFixed(4)),
         no_trade_relevance: Number(noTradeRelevance.toFixed(4)),
@@ -210,6 +245,11 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
         catalyst: parsed.catalyst || "none",
         rationale: parsed.rationale || "Structured event extracted via Llama-3.",
         source: "@cf/meta/llama-3-8b-instruct",
+        status,
+        recommended_use: recommended.recommended_use,
+        veto_reason: recommended.veto_reason,
+        tie_breaker_score: recommended.tie_breaker_score,
+        size_multiplier: recommended.size_multiplier,
       });
     } catch (parseError) {
       // Model hallucinated or returned malformed JSON
@@ -239,6 +279,12 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
           catalyst: "parse_error",
           rationale: "LLM failed to adhere to strict JSON schema.",
           source: "parse_error",
+          status: "parse_error",
+          options_impact_label: "unknown",
+          recommended_use: "observe",
+          veto_reason: null,
+          tie_breaker_score: 0.0,
+          size_multiplier: 1.0,
           raw: response?.response
       });
     }
@@ -270,6 +316,12 @@ You MUST reply ONLY with a valid JSON object exactly matching this schema, compl
       catalyst: "error",
       rationale: "Failed to connect to Cloudflare AI inference.",
       source: "error",
+      status: "sentinel_503",
+      options_impact_label: "unknown",
+      recommended_use: "observe",
+      veto_reason: null,
+      tie_breaker_score: 0.0,
+      size_multiplier: 1.0,
       error: String(error.message || error)
     });
   }
@@ -353,6 +405,21 @@ function normalizeDirectionalBucket(value) {
   return normalizeEnum(value, ["up", "down", "neutral"], "neutral");
 }
 
+function normalizeOptionsImpactLabel(value) {
+  return normalizeEnum(
+    value,
+    [
+      "spot_up_iv_down",
+      "spot_down_iv_up",
+      "iv_expansion_only",
+      "post_event_decay_risk",
+      "pre_event_premium_risk",
+      "unknown",
+    ],
+    "unknown",
+  );
+}
+
 function clamp(value, low, high) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(low, Math.min(high, value));
@@ -393,4 +460,62 @@ function directionalBucketScore(value) {
   if (value === "up") return 1;
   if (value === "down") return -1;
   return 0;
+}
+
+function eventContextNumber(eventContext, key) {
+  if (!eventContext || typeof eventContext !== "object") return 0;
+  const value = Number(eventContext[key] || 0);
+  return Number.isFinite(value) ? value : 0;
+}
+
+function inferOptionsImpactLabel({ eventPolarity, spotVsIvEffect, direction3d, noTradeRelevance, eventContext }) {
+  const ivHeavy = spotVsIvEffect === "iv" || spotVsIvEffect === "mixed" || eventContextNumber(eventContext, "fnspid_catalyst_density") > 0.6;
+  const riskOff = eventContextNumber(eventContext, "mirai_risk_off_score") > eventContextNumber(eventContext, "mirai_risk_on_score");
+  const filingRisk = eventContextNumber(eventContext, "sec_offering_flag") > 0 || eventContextNumber(eventContext, "sec_material_event_score") > 0.7;
+  if (noTradeRelevance >= 0.7 || filingRisk) return ivHeavy ? "pre_event_premium_risk" : "post_event_decay_risk";
+  if (ivHeavy && Math.abs(eventPolarity) < 0.25) return "iv_expansion_only";
+  if (eventPolarity > 0.15 || direction3d === "up") return ivHeavy ? "pre_event_premium_risk" : "spot_up_iv_down";
+  if (eventPolarity < -0.15 || direction3d === "down" || riskOff) return ivHeavy || riskOff ? "spot_down_iv_up" : "post_event_decay_risk";
+  return "unknown";
+}
+
+function recommendedUse({ eventType, novelty, confidence, noTradeRelevance, shadowMultiplier, optionsImpactLabel }) {
+  if (noTradeRelevance >= 0.75 || ["pre_event_premium_risk", "post_event_decay_risk"].includes(optionsImpactLabel)) {
+    return {
+      recommended_use: "veto_candidate",
+      veto_reason: optionsImpactLabel,
+      tie_breaker_score: 0.0,
+      size_multiplier: Number(Math.max(0.35, 1.0 - noTradeRelevance * 0.5).toFixed(4)),
+    };
+  }
+  if (["earnings", "guidance", "legal_regulatory", "fraud_accounting", "financing"].includes(eventType)) {
+    return {
+      recommended_use: "flag_event_risk",
+      veto_reason: null,
+      tie_breaker_score: Number(((shadowMultiplier - 1.0) * confidence).toFixed(4)),
+      size_multiplier: 1.0,
+    };
+  }
+  if (["new", "incremental"].includes(novelty) && confidence >= 0.5 && Math.abs(shadowMultiplier - 1.0) >= 0.015) {
+    return {
+      recommended_use: "tie_breaker",
+      veto_reason: null,
+      tie_breaker_score: Number(((shadowMultiplier - 1.0) * confidence).toFixed(4)),
+      size_multiplier: 1.0,
+    };
+  }
+  if (noTradeRelevance >= 0.45) {
+    return {
+      recommended_use: "reduce_size",
+      veto_reason: null,
+      tie_breaker_score: 0.0,
+      size_multiplier: Number(Math.max(0.5, 1.0 - noTradeRelevance * 0.35).toFixed(4)),
+    };
+  }
+  return {
+    recommended_use: "observe",
+    veto_reason: null,
+    tie_breaker_score: Number(((shadowMultiplier - 1.0) * confidence).toFixed(4)),
+    size_multiplier: 1.0,
+  };
 }

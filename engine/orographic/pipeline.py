@@ -12,8 +12,10 @@ from zoneinfo import ZoneInfo
 
 from .council import select_board
 from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
+from .market_shock import classify_current_market_shock
 from .moonshot import select_moonshot_lane
 from .scout import scan_symbols_with_diagnostics
+from .sentinel_controls import normalize_sentinel_control_mode, apply_sentinel_controls
 
 
 DEFAULT_UNIVERSE_FILE = Path(__file__).resolve().parents[1] / "sample_universe.txt"
@@ -60,6 +62,8 @@ class PipelineConfig:
     moonshot_threshold: float = 0.68
     moonshot_max_cost_basis: float = 225.0
     enforce_pre_council_friction_gate: bool = False
+    sentinel_control_mode: str = "veto"
+    market_shock_control_mode: str = "active"
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
 
 log = logging.getLogger(__name__)
@@ -213,6 +217,10 @@ def _compact_contract_view(rows: list[dict[str, Any]]) -> list[dict[str, object]
                 "path_decay_risk": row.get("path_decay_risk"),
                 "path_model_mode": row.get("path_model_mode"),
                 "is_spread": bool(row.get("is_spread")),
+                "sentinel_status": row.get("sentinel_status"),
+                "sentinel_event_type": (row.get("sentinel_event") or {}).get("event_type") if isinstance(row.get("sentinel_event"), dict) else None,
+                "sentinel_options_impact_label": row.get("sentinel_options_impact_label"),
+                "sentinel_recommended_use": row.get("sentinel_recommended_use"),
             }
         )
     return compact
@@ -238,6 +246,9 @@ def _compact_attribution_contract_view(rows: list[dict[str, Any]]) -> list[dict[
                 "contract_cost": row.get("contract_cost"),
                 "council_risk_flags": row.get("council_risk_flags", []),
                 "notes": row.get("notes", []),
+                "sentinel_status": row.get("sentinel_status"),
+                "sentinel_options_impact_label": row.get("sentinel_options_impact_label"),
+                "sentinel_recommended_use": row.get("sentinel_recommended_use"),
             }
         )
     return compact
@@ -349,6 +360,32 @@ def _prospective_pick_row(
             "atr_pct_14d": row.get("atr_pct_14d"),
             "council_risk_flags": row.get("council_risk_flags", []),
             "friction_gate_passed": row.get("friction_gate_passed"),
+        },
+        "sentinel": {
+            "status": row.get("sentinel_status"),
+            "event_type": (row.get("sentinel_event") or {}).get("event_type") if isinstance(row.get("sentinel_event"), dict) else None,
+            "event_polarity": (row.get("sentinel_event") or {}).get("event_polarity") if isinstance(row.get("sentinel_event"), dict) else None,
+            "source": (row.get("sentinel_event") or {}).get("source") if isinstance(row.get("sentinel_event"), dict) else None,
+            "mode": (row.get("sentinel_event") or {}).get("mode") if isinstance(row.get("sentinel_event"), dict) else None,
+            "shadow_multiplier": (row.get("sentinel_event") or {}).get("shadow_multiplier") if isinstance(row.get("sentinel_event"), dict) else None,
+            "confidence": row.get("sentinel_confidence"),
+            "call_relevance": row.get("sentinel_call_relevance"),
+            "put_relevance": row.get("sentinel_put_relevance"),
+            "no_trade_relevance": row.get("sentinel_no_trade_relevance"),
+            "time_horizon": row.get("sentinel_time_horizon"),
+            "decay_half_life": row.get("sentinel_decay_half_life"),
+            "holding_window_fit": row.get("sentinel_holding_window_fit"),
+            "holding_window_label": row.get("sentinel_holding_window_label"),
+            "spot_effect": row.get("sentinel_spot_effect"),
+            "iv_effect": row.get("sentinel_iv_effect"),
+            "options_impact_label": row.get("sentinel_options_impact_label"),
+            "recommended_use": row.get("sentinel_recommended_use"),
+            "veto_reason": row.get("sentinel_veto_reason"),
+            "tie_breaker_score": row.get("sentinel_tie_breaker_score"),
+            "size_multiplier": row.get("sentinel_size_multiplier"),
+            "headlines": (row.get("sentinel_event") or {}).get("headlines") if isinstance(row.get("sentinel_event"), dict) else [],
+            "event_context": (row.get("sentinel_event") or {}).get("event_context") if isinstance(row.get("sentinel_event"), dict) else {},
+            "raw_event": row.get("sentinel_event") if isinstance(row.get("sentinel_event"), dict) else {},
         },
         "context": {
             "regime": regime,
@@ -610,6 +647,9 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     sentinel_rows = scout.get("sentinel_scores") if isinstance(scout.get("sentinel_scores"), list) else []
     sentinel_modes: dict[str, int] = {}
     sentinel_events: dict[str, int] = {}
+    sentinel_statuses: dict[str, int] = {}
+    sentinel_impact_labels: dict[str, int] = {}
+    sentinel_recommended_uses: dict[str, int] = {}
     sentinel_non_neutral = 0
     for row in sentinel_rows:
         if not isinstance(row, dict):
@@ -618,6 +658,12 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         sentinel_modes[mode] = sentinel_modes.get(mode, 0) + 1
         event_type = str(row.get("event_type") or "none")
         sentinel_events[event_type] = sentinel_events.get(event_type, 0) + 1
+        status = str(row.get("status") or row.get("source") or "unknown")
+        sentinel_statuses[status] = sentinel_statuses.get(status, 0) + 1
+        impact = str(row.get("options_impact_label") or "unknown")
+        sentinel_impact_labels[impact] = sentinel_impact_labels.get(impact, 0) + 1
+        recommended_use = str(row.get("recommended_use") or "observe")
+        sentinel_recommended_uses[recommended_use] = sentinel_recommended_uses.get(recommended_use, 0) + 1
         shadow_multiplier = row.get("shadow_multiplier")
         if isinstance(shadow_multiplier, Number) and abs(float(shadow_multiplier) - 1.0) > 0.0001:
             sentinel_non_neutral += 1
@@ -695,6 +741,9 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "non_neutral_events": sentinel_non_neutral,
             "mode_counts": sentinel_modes,
             "event_type_counts": sentinel_events,
+            "status_counts": sentinel_statuses,
+            "options_impact_label_counts": sentinel_impact_labels,
+            "recommended_use_counts": sentinel_recommended_uses,
             "promotion_step": "shadow",
         },
         {
@@ -1578,9 +1627,20 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
         moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
+        sentinel_control_mode = normalize_sentinel_control_mode(
+            getattr(config, "sentinel_control_mode", os.getenv("OROGRAPHIC_SENTINEL_CONTROL_MODE", "veto"))
+        )
         model_artifacts = _model_artifact_status()
         model_modes = _model_mode_status(model_artifacts)
         regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
+        market_shock = classify_current_market_shock(regime)
+        market_shock_control_mode = str(
+            getattr(config, "market_shock_control_mode", os.getenv("OROGRAPHIC_MARKET_SHOCK_CONTROL_MODE", "active"))
+            or "active"
+        ).strip().lower()
+        if market_shock_control_mode not in {"active", "shadow", "off"}:
+            market_shock_control_mode = "active"
+        council_market_shock = market_shock if market_shock_control_mode == "active" else None
         log.info("Scout signal generation complete. Evaluating candidates...")
 
         forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
@@ -1607,9 +1667,20 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             prior_live_board_symbols=prior_live_board_symbols,
         )
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
+        council_candidates, sentinel_control_diagnostics = apply_sentinel_controls(
+            forge_candidates,
+            mode=sentinel_control_mode,
+        )
+        log.info(
+            "Sentinel controls mode=%s applied=%s candidates %d → %d.",
+            sentinel_control_mode,
+            sentinel_control_diagnostics.get("applied"),
+            len(forge_candidates),
+            len(council_candidates),
+        )
 
         council = select_board(
-            forge_candidates,
+            council_candidates,
             regime,
             live_size=live_size,
             shadow_size=shadow_size,
@@ -1617,10 +1688,11 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             minimum_put_live_score=minimum_put_live_score,
             max_live_extrinsic_ratio=max_live_extrinsic_ratio,
             prior_live_board_symbols=prior_live_board_symbols,
+            market_shock=council_market_shock,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
         moonshot_lane = select_moonshot_lane(
-            forge_candidates,
+            council_candidates,
             regime,
             slot_count=moonshot_size,
             threshold=moonshot_threshold,
@@ -1655,17 +1727,26 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_threshold": moonshot_threshold,
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
+                "sentinel_control_mode": sentinel_control_mode,
+                "market_shock_control_mode": market_shock_control_mode,
             },
             "model_modes": model_modes,
             "regime": regime.to_dict(),
+            "market_shock": market_shock.to_dict(),
             "scout_signals": [row.to_dict() for row in scout_signals],
-            "forge_candidates": [row.to_dict() for row in forge_candidates],
+            "forge_candidates": [row.to_dict() for row in council_candidates],
             "council": council.to_dict(),
             "moonshot_lane": moonshot_lane,
             "diagnostics": {
                 "scout": scout_diagnostics,
                 "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
+                "sentinel_controls": sentinel_control_diagnostics,
+                "market_shock": {
+                    "mode": market_shock_control_mode,
+                    "applied": market_shock_control_mode == "active",
+                    "policy": market_shock.to_dict(),
+                },
             },
             "model_artifacts": model_artifacts,
             "summary": {
@@ -1678,7 +1759,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout_side_aware_no_trade_disagreements": scout_diagnostics.get("side_aware_no_trade_disagreements", 0),
                 "scout_shadow_side_veto_rejections": scout_diagnostics.get("shadow_side_veto_rejections", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
-                "forge_candidate_count": len(forge_candidates),
+                "forge_candidate_count": len(council_candidates),
                 "moonshot_pick_count": moonshot_lane["summary"]["pick_count"],
                 "moonshot_eligible_count": moonshot_lane["summary"]["eligible_count"],
                 "forge_learned_ranker": forge_diagnostics.get("learned_ranker", {}),

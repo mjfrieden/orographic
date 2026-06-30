@@ -1421,6 +1421,27 @@ function ratioOrDash(numerator, denominator, digits = 1) {
   return `${((num / den) * 100).toFixed(digits)}%`;
 }
 
+function countBy(rows, key, fallback = "unknown") {
+  if (!Array.isArray(rows)) return {};
+  return rows.reduce((acc, row) => {
+    const value = String(row?.[key] || fallback).trim() || fallback;
+    acc[value] = (acc[value] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function topCounts(counts, limit = 3) {
+  if (!counts || typeof counts !== "object") return "—";
+  const entries = Object.entries(counts)
+    .filter(([, value]) => Number(value) > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]))
+    .slice(0, limit);
+  if (!entries.length) return "—";
+  return entries
+    .map(([key, value]) => `${String(key).replaceAll("_", " ")} ${integer(value)}`)
+    .join(" · ");
+}
+
 function estimateTradeValue(order, fallbackQty, fallbackPrice) {
   const explicit = Number(order?.order_cost ?? order?.cost);
   if (Number.isFinite(explicit) && explicit > 0) return explicit;
@@ -1535,24 +1556,43 @@ function renderForgeDiagnostics(payload) {
   }
 
   if (observabilityEl) {
-    const sentinelModes = (scoutDiag.sentinel_scores || []).reduce(
-      (acc, row) => {
-        const mode = row.mode || "shadow";
-        acc[mode] = (acc[mode] || 0) + 1;
-        return acc;
-      },
-      {},
-    );
+    const sentinelRows = Array.isArray(scoutDiag.sentinel_scores)
+      ? scoutDiag.sentinel_scores
+      : [];
+    const sentinelStatuses = countBy(sentinelRows, "status");
+    const sentinelModes = countBy(sentinelRows, "mode", "shadow");
+    const sentinelImpacts = countBy(sentinelRows, "options_impact_label");
+    const sentinelUses = countBy(sentinelRows, "recommended_use", "observe");
+    const sentinelEvents = sentinelRows.filter((row) => {
+      const multiplier = Number(row?.shadow_multiplier);
+      const eventType = String(row?.event_type || "none");
+      return (Number.isFinite(multiplier) && Math.abs(multiplier - 1) > 0.0001) ||
+        !["none", "no_clear_event", "unknown"].includes(eventType);
+    }).length;
     observabilityEl.innerHTML = [
       summaryItemHtml(
         "Scout Side View",
         `${integer(scoutDiag.side_aware_scores?.length)} symbols`,
       ),
       summaryItemHtml(
-        "Sentinel",
-        Object.entries(sentinelModes)
-          .map(([mode, count]) => `${mode} ${count}`)
-          .join(" · ") || "neutral",
+        "Sentinel Obs",
+        sentinelRows.length ? `${integer(sentinelRows.length)} symbols · ${integer(sentinelEvents)} event signals` : "0 observations",
+      ),
+      summaryItemHtml(
+        "Sentinel Status",
+        topCounts(sentinelStatuses, 4),
+      ),
+      summaryItemHtml(
+        "Sentinel Impact",
+        topCounts(sentinelImpacts, 3),
+      ),
+      summaryItemHtml(
+        "Sentinel Use",
+        topCounts(sentinelUses, 3),
+      ),
+      summaryItemHtml(
+        "Sentinel Mode",
+        topCounts(sentinelModes, 3),
       ),
       summaryItemHtml(
         "Ranker Mode",
@@ -1720,6 +1760,15 @@ function renderPromotionModelCard(model) {
     metricRows.push(summaryItemHtml("Mode Counts", compactCounts(model.mode_counts)));
   } else if (model.model_modes) {
     metricRows.push(summaryItemHtml("Model Modes", compactCounts(model.model_modes)));
+  }
+  if (model.status_counts) {
+    metricRows.push(summaryItemHtml("Status Counts", compactCounts(model.status_counts)));
+  }
+  if (model.options_impact_label_counts) {
+    metricRows.push(summaryItemHtml("Impact Labels", compactCounts(model.options_impact_label_counts)));
+  }
+  if (model.recommended_use_counts) {
+    metricRows.push(summaryItemHtml("Shadow Uses", compactCounts(model.recommended_use_counts)));
   }
   if (model.live_sector_counts) {
     metricRows.push(summaryItemHtml("Live Sectors", compactCounts(model.live_sector_counts)));

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 import json
 import os
 from pathlib import Path
@@ -122,6 +122,42 @@ def _update_path_rules(outcomes: dict[str, Any]) -> None:
                 break
 
 
+def _missing_due_fixed_windows(entry: dict[str, Any], pick: dict[str, Any], now_utc: datetime | None = None) -> list[str]:
+    due = due_fixed_exit_windows(str(entry.get("run_generated_at_utc") or ""), now_utc)
+    outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
+    return [name for name, is_due in due.items() if is_due and fixed_marks.get(name) is None]
+
+
+def _parse_pick_expiry(pick: dict[str, Any]) -> date | None:
+    raw_expiry = str(pick.get("expiry") or "").strip()
+    if raw_expiry:
+        try:
+            return datetime.strptime(raw_expiry, "%Y-%m-%d").date()
+        except ValueError:
+            pass
+    contract_symbol = str(pick.get("contract_symbol") or "").strip().upper()
+    for index, char in enumerate(contract_symbol):
+        if char not in {"C", "P"} or index < 6:
+            continue
+        raw = contract_symbol[index - 6 : index]
+        if not raw.isdigit():
+            continue
+        try:
+            return datetime.strptime(raw, "%y%m%d").date()
+        except ValueError:
+            continue
+    return None
+
+
+def _is_expired_for_live_quote(pick: dict[str, Any], now_utc: datetime | None = None) -> bool:
+    expiry = _parse_pick_expiry(pick)
+    if expiry is None:
+        return False
+    now = (now_utc or datetime.now(timezone.utc)).astimezone(MARKET_TZ)
+    return expiry < now.date()
+
+
 def _outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
     summary = {
         "picks": 0,
@@ -187,7 +223,7 @@ def mark_prospective_ledger(
             symbol = str(pick.get("contract_symbol") or "").strip().upper()
             quote = quotes_by_symbol.get(symbol)
             if quote is None:
-                if any(due.values()):
+                if _missing_due_fixed_windows(entry, pick, now) and not _is_expired_for_live_quote(pick, now):
                     stats["quotes_missing"] += 1
                 continue
             outcomes = pick.setdefault("outcomes", {})
@@ -218,6 +254,24 @@ def mark_prospective_ledger(
     return updated, stats
 
 
+TRADIER_QUOTE_BATCH_SIZE = 75
+
+
+def _fetch_tradier_quotes_once(
+    symbols: list[str],
+    *,
+    token: str,
+    base_url: str,
+) -> dict[str, dict[str, Any]]:
+    if not symbols:
+        return {}
+    url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(symbols), 'greeks': 'false'})}"
+    request = Request(url, headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
+    with urlopen(request, timeout=20) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    return normalize_quotes(payload)
+
+
 def fetch_tradier_quotes(symbols: list[str], *, env: dict[str, str] | None = None) -> dict[str, dict[str, Any]]:
     source = env or os.environ
     token = str(source.get("TRADIER_ACCESS_TOKEN") or source.get("OROGRAPHIC_TRADIER_ACCESS_TOKEN") or "").strip()
@@ -229,25 +283,36 @@ def fetch_tradier_quotes(symbols: list[str], *, env: dict[str, str] | None = Non
     cleaned = [symbol.strip().upper() for symbol in symbols if str(symbol).strip()]
     if not cleaned:
         return {}
-    url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(cleaned), 'greeks': 'false'})}"
-    request = Request(url, headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
-    with urlopen(request, timeout=20) as response:
-        payload = json.loads(response.read().decode("utf-8"))
-    return normalize_quotes(payload)
+    quotes: dict[str, dict[str, Any]] = {}
+    for start in range(0, len(cleaned), TRADIER_QUOTE_BATCH_SIZE):
+        batch = cleaned[start : start + TRADIER_QUOTE_BATCH_SIZE]
+        quotes.update(_fetch_tradier_quotes_once(batch, token=token, base_url=base_url))
+    return quotes
 
 
-def mark_prospective_ledger_file(path: str | Path, *, max_symbols: int = 500) -> tuple[Path, dict[str, int]]:
+def mark_prospective_ledger_file(
+    path: str | Path,
+    *,
+    max_symbols: int = 500,
+    now_utc: datetime | None = None,
+) -> tuple[Path, dict[str, int]]:
     ledger_path = Path(path)
     ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    now = (now_utc or datetime.now(timezone.utc)).astimezone(timezone.utc)
     symbols: list[str] = []
     for entry in ledger.get("entries", []):
         if not isinstance(entry, dict):
             continue
         for pick in entry.get("picks", []):
-            if isinstance(pick, dict) and str(pick.get("contract_symbol") or "").strip():
-                symbols.append(str(pick["contract_symbol"]).strip().upper())
+            if not isinstance(pick, dict) or not str(pick.get("contract_symbol") or "").strip():
+                continue
+            if not _missing_due_fixed_windows(entry, pick, now):
+                continue
+            if _is_expired_for_live_quote(pick, now):
+                continue
+            symbols.append(str(pick["contract_symbol"]).strip().upper())
     unique_symbols = list(dict.fromkeys(symbols))[:max(max_symbols, 1)]
     quotes = fetch_tradier_quotes(unique_symbols)
-    updated, stats = mark_prospective_ledger(ledger, quotes)
+    updated, stats = mark_prospective_ledger(ledger, quotes, now_utc=now)
     ledger_path.write_text(json.dumps(updated, indent=2), encoding="utf-8")
     return ledger_path, stats

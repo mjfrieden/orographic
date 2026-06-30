@@ -4,6 +4,7 @@ import unittest
 from unittest import mock
 
 from engine.orographic.council import select_board
+from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 
@@ -156,6 +157,39 @@ class CouncilTests(unittest.TestCase):
             result.summary["abstain_audit"]["primary_reason_label"],
             "All candidates are live-blocked by symbol probation.",
         )
+
+    def test_market_shock_overlay_forces_live_abstain_but_keeps_shadow_visibility(self) -> None:
+        shock = MarketShockRegime(
+            label="extreme_vol_deleveraging",
+            severity=0.92,
+            stance="abstain",
+            global_abstain=True,
+            live_score_buffer=0.12,
+            put_score_buffer=0.12,
+            max_extrinsic_ratio=0.72,
+            blocked_sides=["call", "put"],
+        )
+        candidates = [
+            _candidate("AAPL", "call", 0.95),
+            _candidate("MSFT", "put", 0.94),
+        ]
+
+        result = select_board(
+            candidates,
+            MarketRegime(mode="extreme_vol", bias=-0.7, source_symbol="SPY"),
+            live_size=2,
+            shadow_size=2,
+            market_shock=shock,
+        )
+
+        self.assertTrue(result.abstain)
+        self.assertEqual(result.live_board, [])
+        self.assertEqual({row.symbol for row in result.shadow_board}, {"AAPL", "MSFT"})
+        self.assertEqual(result.summary["abstain_audit"]["primary_reason"], "market_shock_abstain")
+        self.assertEqual(result.summary["market_shock"]["label"], "extreme_vol_deleveraging")
+        self.assertGreater(result.summary["no_trade_discipline"]["effective_minimum_live_score"], 0.57)
+        for row in result.shadow_board:
+            self.assertIn("market_shock:extreme_vol_deleveraging", row.council_risk_flags)
 
 
 if __name__ == "__main__":

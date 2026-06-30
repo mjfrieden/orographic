@@ -1,0 +1,205 @@
+{
+  "artifact": "live_shadow_attribution",
+  "product": "Orographic",
+  "generated_at_utc": "2026-06-07T04:08:32+00:00",
+  "trading_day": "2026-06-06",
+  "timezone": "America/Chicago",
+  "scan_settings": {
+    "live_size": 3,
+    "shadow_size": 3,
+    "forge_intake": 12,
+    "universe_size": 100,
+    "minimum_days_to_expiry": 7,
+    "maximum_days_to_expiry": 14,
+    "minimum_live_score": 0.76,
+    "minimum_put_live_score": 0.84,
+    "max_live_extrinsic_ratio": 0.9,
+    "moonshot_size": 1,
+    "moonshot_threshold": 0.68,
+    "moonshot_max_cost_basis": 225.0,
+    "enforce_pre_council_friction_gate": false
+  },
+  "model_modes": {
+    "directional_scout": "artifact",
+    "side_aware_scout": "shadow",
+    "sentinel": "shadow",
+    "payoff_ranker": "active",
+    "path_model": "shadow",
+    "side_model_source": "artifact",
+    "path_model_source": "artifact"
+  },
+  "model_artifacts": {
+    "scout_model": {
+      "present": true,
+      "sha256": "94129bb3472218ad0980d9fd433afc54585ee0a0652fa6f997cec187b050ec13",
+      "required": true
+    },
+    "scout_scaler": {
+      "present": true,
+      "sha256": "99aabfe1f016a30fd7ff052c9d39198be2c46048e1cd69a61e20220e1b3be0ab",
+      "required": true
+    },
+    "scout_side_model": {
+      "present": true,
+      "sha256": "c7b8a165b9489a426e59bc25ebfb9200f7125923f9fb48fb6414b669da9cbffa",
+      "required": true
+    },
+    "payoff_model": {
+      "present": true,
+      "sha256": "ec8c13688609ce978b82a6f54ec8bab55004a573d9456ef8197edb266acc893a",
+      "required": true
+    },
+    "path_model": {
+      "present": true,
+      "sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9",
+      "required": false
+    },
+    "scout_model_card": {
+      "present": true,
+      "sha256": "9ffa9c81df4bd3ca023b3955db156ec0282421f237525dc3327714f68a2c12be",
+      "required": true
+    },
+    "payoff_model_card": {
+      "present": true,
+      "sha256": "e211efc5a6cd3b49825809875833cdc4914a703971510fcf0609b5f562944ce3",
+      "required": true
+    },
+    "path_model_card": {
+      "present": true,
+      "sha256": "f9483d315cd4bc1010d09e270d1fbd92cf895197b439cbe40cac96537043e239",
+      "required": false
+    }
+  },
+  "summary": {
+    "scout_signal_count": 0,
+    "pre_forge_signal_count": 0,
+    "forge_candidate_count": 0,
+    "live_count": 0,
+    "shadow_count": 0,
+    "abstain": true,
+    "live_side_mix": {
+      "call": 0,
+      "put": 0
+    },
+    "shadow_side_mix": {
+      "call": 0,
+      "put": 0
+    },
+    "forge_candidate_side_mix": {
+      "call": 0,
+      "put": 0
+    },
+    "friction_veto_count": 0,
+    "dedupe_removed_count": 0,
+    "pre_forge_rejection_count": 0,
+    "council_holdout_count": 0,
+    "live_avg_forge_score": null,
+    "shadow_avg_forge_score": null,
+    "live_avg_edge_after_friction_pct": null,
+    "shadow_avg_edge_after_friction_pct": null,
+    "live_avg_path_holding_quality_score": null,
+    "shadow_avg_path_holding_quality_score": null,
+    "side_aware_directional_disagreements": 15,
+    "side_aware_no_trade_disagreements": 44,
+    "shadow_side_veto_rejections": 41,
+    "abstain_primary_reason": "no_forge_candidates"
+  },
+  "layer_breakdown": {
+    "scout": {
+      "pre_veto_direction_counts": {
+        "call": 100,
+        "put": 0
+      },
+      "final_direction_counts": {
+        "call": 0,
+        "put": 0
+      },
+      "counter_regime_survivors": 0,
+      "side_aware_directional_disagreements": 15,
+      "side_aware_no_trade_disagreements": 44,
+      "shadow_side_veto_rejections": 41
+    },
+    "forge": {
+      "waterfall": {
+        "signals_considered": 0,
+        "signals_with_expiry": 0,
+        "signals_with_chain": 0,
+        "rows_after_basic": 0,
+        "rows_positive_bid_ask": 0,
+        "rows_within_long_leg_cap": 0,
+        "rows_within_spread_cap": 0,
+        "rows_passing_liquidity": 0,
+        "rows_passing_moneyness": 0,
+        "rows_passing_delta": 0,
+        "rows_passing_net_debit": 0,
+        "final_candidates": 0,
+        "candidates_after_friction_gate": 0,
+        "candidates_after_deduplication": 0
+      },
+      "path_model": {
+        "mode_counts": {},
+        "scored_candidates": 0,
+        "avg_holding_quality_score": null,
+        "avg_early_profit_take_prob": null,
+        "avg_decay_risk": null
+      },
+      "pre_council_gate": {
+        "kept": 0,
+        "dropped": 0,
+        "min_expected_edge_after_friction_pct": 0.05
+      },
+      "deduplication": {
+        "removed_candidates": 0,
+        "kept_candidates": 0,
+        "max_structures_per_symbol_side": 2,
+        "min_moneyness_gap": 0.01,
+        "max_structures_per_symbol": 1,
+        "strong_ticker_moneyness_gap": 0.035,
+        "strong_ticker_delta_gap": 0.2,
+        "strong_ticker_min_score": 0.68,
+        "strong_ticker_min_edge_after_friction_pct": 0.15
+      }
+    },
+    "council": {
+      "candidate_count": 0,
+      "live_count": 0,
+      "shadow_count": 0,
+      "avg_pairwise_correlation": null,
+      "abstain_audit": {
+        "primary_reason": "no_forge_candidates",
+        "primary_reason_label": "No Forge candidates reached Council.",
+        "requested_live_size": 3,
+        "candidate_count": 0,
+        "core_filter_pass_count": 0,
+        "unique_eligible_count": 0,
+        "score_only_fail_count": 0,
+        "extrinsic_only_fail_count": 0,
+        "score_and_extrinsic_fail_count": 0,
+        "symbol_probation_fail_count": 0,
+        "side_balance_rejections": 0,
+        "side_balance_demotions": 0,
+        "blocked_symbols": {
+          "score_only": [],
+          "extrinsic_only": [],
+          "score_and_extrinsic": [],
+          "symbol_probation": []
+        },
+        "best_rejected_candidates": {
+          "score_only": [],
+          "extrinsic_only": [],
+          "score_and_extrinsic": [],
+          "symbol_probation": []
+        }
+      },
+      "notes": [
+        "Council abstained because no contract cleared the live board threshold.",
+        "Council is operating under a neutral market regime."
+      ]
+    }
+  },
+  "top_live_board": [],
+  "top_shadow_board": [],
+  "council_holdouts": [],
+  "friction_vetoes": [],
+  "pre_forge_rejections": []
+}

@@ -30,7 +30,9 @@ from engine.backtest.results import apply_coverage_policy, build_results
 from engine.backtest.results import save_option_outcome_dataset
 from engine.backtest.runner import _load_universe
 from engine.orographic.council import select_board
+from engine.orographic.event_features import DEFAULT_EVENT_FEATURES_PATH, load_event_feature_frame
 from engine.orographic.schemas import ContractCandidate, MarketRegime
+from engine.orographic.sentinel_controls import apply_sentinel_controls
 
 logging.basicConfig(
     level=logging.INFO,
@@ -50,6 +52,9 @@ class VariantConfig:
     max_estimated_cost_basis: float | None = None
     use_symbol_priors: bool = False
     use_path_tiebreaker: bool = False
+    use_sentinel_veto: bool = False
+    use_sentinel_size_down: bool = False
+    use_sentinel_tiebreaker: bool = False
     path_tiebreaker_max_swaps: int = 1
     path_tiebreaker_max_forge_gap: float = 0.03
     path_tiebreaker_min_path_quality_edge: float = 0.10
@@ -91,6 +96,24 @@ def build_variants(cost_cap_usd: float | None) -> list[VariantConfig]:
             use_path_tiebreaker=True,
             path_tiebreaker_max_forge_gap=0.08,
             path_tiebreaker_min_path_quality_edge=0.03,
+        ),
+        VariantConfig(
+            name="council_cost_cap_sentinel_veto",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            use_sentinel_veto=True,
+        ),
+        VariantConfig(
+            name="council_cost_cap_sentinel_size_down",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            use_sentinel_size_down=True,
+        ),
+        VariantConfig(
+            name="council_cost_cap_sentinel_tiebreaker",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            use_sentinel_tiebreaker=True,
         ),
     ]
 
@@ -489,6 +512,7 @@ def run_experiment(
     max_symbol_candidates_per_week: int | None = None,
     max_sector_candidates_per_week: int | None = None,
     option_outcome_dir: Path | None = None,
+    event_features_path: Path | None = DEFAULT_EVENT_FEATURES_PATH,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -496,6 +520,15 @@ def run_experiment(
 
     data_dir = options_data_dir or Path(__file__).parents[2] / "engine" / "data" / "optionsdx"
     options_provider = HistoricalOptionsProvider(data_dir=data_dir)
+    event_feature_store = load_event_feature_frame(event_features_path)
+    if event_feature_store.empty:
+        log.info("Sentinel event-feature store is empty or missing: %s", event_features_path)
+    else:
+        log.info(
+            "Loaded Sentinel event-feature store: %d row(s), %d symbol(s)",
+            len(event_feature_store),
+            int(event_feature_store["symbol"].nunique()),
+        )
 
     log.info("Fetching equity history …")
     all_symbols = list(set(symbols + ["SPY", "^VIX"]))
@@ -540,6 +573,7 @@ def run_experiment(
             max_entry_spread_pct=max_entry_spread_pct,
             min_entry_open_interest=min_entry_open_interest,
             min_entry_volume=min_entry_volume,
+            event_feature_store=event_feature_store,
         )
         log.info(
             "Week %s → %d signal(s), %d candidate(s), regime=%s",
@@ -569,6 +603,21 @@ def run_experiment(
                 "near_miss_details": [],
                 "considered_candidates": 0,
             }
+            sentinel_diag = {
+                "mode": "off",
+                "applied": False,
+                "input_candidates": len(candidate_pool),
+                "output_candidates": len(candidate_pool),
+                "vetoed": 0,
+                "resized": 0,
+                "reranked": 0,
+                "would_veto": 0,
+                "would_resize": 0,
+                "would_rerank": 0,
+                "veto_details": [],
+                "resize_details": [],
+                "rerank_details": [],
+            }
 
             candidate_pool, cost_diag = filter_by_cost_basis(
                 candidate_pool,
@@ -579,6 +628,16 @@ def run_experiment(
 
             if variant.use_symbol_priors:
                 candidate_pool, prior_diag = apply_symbol_priors(candidate_pool, research_priors)
+            if variant.use_sentinel_veto or variant.use_sentinel_size_down or variant.use_sentinel_tiebreaker:
+                sentinel_mode = (
+                    "veto"
+                    if variant.use_sentinel_veto
+                    else "size_down" if variant.use_sentinel_size_down else "tiebreaker"
+                )
+                candidate_pool, sentinel_diag = apply_sentinel_controls(
+                    candidate_pool,
+                    mode=sentinel_mode,
+                )
             candidate_pool, concentration_diag = apply_candidate_concentration_caps(
                 candidate_pool,
                 max_symbol_candidates=max_symbol_candidates_per_week,
@@ -688,6 +747,7 @@ def run_experiment(
                 "available_priors": prior_diag["available_priors"],
                 "boosted_symbols": prior_diag["boosted_symbols"],
                 "excluded_symbols": prior_diag["excluded_symbols"],
+                "sentinel_controls": sentinel_diag,
                 "path_tiebreaker": path_tiebreaker_diag,
                 "research_prior_symbols": sorted(research_priors.keys()),
                 "selected_symbols": live_symbols,
@@ -776,6 +836,18 @@ def run_experiment(
                 1 for row in weekly_diagnostics[name]
                 if bool((row.get("path_tiebreaker") or {}).get("near_miss_details"))
             ),
+            "sentinel_vetoed_candidates": sum(
+                int((row.get("sentinel_controls") or {}).get("vetoed", 0) or 0)
+                for row in weekly_diagnostics[name]
+            ),
+            "sentinel_resized_candidates": sum(
+                int((row.get("sentinel_controls") or {}).get("resized", 0) or 0)
+                for row in weekly_diagnostics[name]
+            ),
+            "sentinel_reranked_candidates": sum(
+                int((row.get("sentinel_controls") or {}).get("reranked", 0) or 0)
+                for row in weekly_diagnostics[name]
+            ),
         }
         for name, result in variant_results.items()
     }
@@ -806,6 +878,9 @@ def run_experiment(
             "council_cost_cap_symbol_priors",
             "council_cost_cap_path_tiebreaker",
             "council_cost_cap_path_tiebreaker_loose",
+            "council_cost_cap_sentinel_veto",
+            "council_cost_cap_sentinel_size_down",
+            "council_cost_cap_sentinel_tiebreaker",
         ],
         "config": {
             "budget_per_trade_usd": base_budget_usd,
@@ -831,6 +906,7 @@ def run_experiment(
             "min_exit_volume": min_exit_volume,
             "max_symbol_candidates_per_week": max_symbol_candidates_per_week,
             "max_sector_candidates_per_week": max_sector_candidates_per_week,
+            "event_features_path": str(event_features_path) if event_features_path else None,
         },
         "variant_summaries": summaries,
         "option_outcome_datasets": {
@@ -944,6 +1020,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Directory for per-variant canonical option outcome datasets. Defaults to output/.",
     )
+    parser.add_argument(
+        "--event-features",
+        type=Path,
+        default=DEFAULT_EVENT_FEATURES_PATH,
+        help="Canonical daily event-feature store for deterministic Sentinel replay.",
+    )
     return parser.parse_args()
 
 
@@ -981,6 +1063,7 @@ def main() -> None:
         max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
         max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
         option_outcome_dir=args.option_outcome_dir,
+        event_features_path=args.event_features,
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

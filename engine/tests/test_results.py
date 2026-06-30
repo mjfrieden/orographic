@@ -268,6 +268,12 @@ class ResultsTests(unittest.TestCase):
         trade.sentinel_no_trade_relevance = 0.04
         trade.sentinel_spot_effect = 1.0
         trade.sentinel_iv_effect = 0.0
+        trade.sentinel_status = "ai_success_event"
+        trade.sentinel_options_impact_label = "spot_up_iv_down"
+        trade.sentinel_recommended_use = "tie_breaker"
+        trade.sentinel_veto_reason = None
+        trade.sentinel_tie_breaker_score = 0.025
+        trade.sentinel_size_multiplier = 0.9
         trade.path_early_profit_take_prob = 0.66
         trade.path_expected_mfe_pct = 0.24
         trade.path_decay_risk = 0.31
@@ -281,8 +287,15 @@ class ResultsTests(unittest.TestCase):
         self.assertAlmostEqual(row["premium_pct_of_spot"], 0.011, places=4)
         self.assertAlmostEqual(row["sentinel_confidence"], 0.72, places=4)
         self.assertEqual(row["sentinel_holding_window_label"], "well_matched")
+        self.assertEqual(row["sentinel_status"], "ai_success_event")
+        self.assertEqual(row["sentinel_options_impact_label"], "spot_up_iv_down")
+        self.assertEqual(row["sentinel_recommended_use"], "tie_breaker")
+        self.assertAlmostEqual(row["sentinel_tie_breaker_score"], 0.025, places=4)
+        self.assertAlmostEqual(row["sentinel_size_multiplier"], 0.9, places=4)
         self.assertAlmostEqual(round_tripped["vrp_gap"], 0.08, places=4)
         self.assertAlmostEqual(round_tripped["sentinel_call_relevance"], 0.88, places=4)
+        self.assertEqual(round_tripped["sentinel_status"], "ai_success_event")
+        self.assertEqual(round_tripped["sentinel_options_impact_label"], "spot_up_iv_down")
         self.assertAlmostEqual(round_tripped["path_early_profit_take_prob"], 0.66, places=4)
         self.assertAlmostEqual(round_tripped["path_holding_quality_score"], 0.62, places=4)
 

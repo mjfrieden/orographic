@@ -113,6 +113,13 @@ class ContractCandidate:
     sentinel_no_trade_relevance: float | None = None
     sentinel_spot_effect: float | None = None
     sentinel_iv_effect: float | None = None
+    sentinel_status: str | None = None
+    sentinel_options_impact_label: str | None = None
+    sentinel_recommended_use: str | None = None
+    sentinel_veto_reason: str | None = None
+    sentinel_tie_breaker_score: float | None = None
+    sentinel_size_multiplier: float | None = None
+    sentinel_event: dict[str, Any] = field(default_factory=dict)
     path_early_profit_take_prob: float | None = None
     path_expected_mfe_pct: float | None = None
     path_decay_risk: float | None = None

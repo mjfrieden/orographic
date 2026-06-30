@@ -96,6 +96,38 @@ class ResearchDataAuditTests(unittest.TestCase):
 
         self.assertEqual(report["status"], "passed")
 
+    def test_build_audit_report_allows_missing_empty_moonshot_ledger_when_configured(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            manifest = root / "coverage_manifest.json"
+            manifest.write_text(
+                json.dumps({"summary": {"rows_archived": 1, "symbols_archived": 1}}),
+                encoding="utf-8",
+            )
+            prospective = root / "prospective.json"
+            prospective.write_text(
+                json.dumps({"entries": [{"picks": [{"contract_symbol": "AAA1"}]}]}),
+                encoding="utf-8",
+            )
+            recommendation_dataset = root / "option_recommendation_outcomes.parquet"
+            moonshot_dataset = root / "moonshot_outcomes.parquet"
+            combined_dataset = root / "all_recommendation_outcomes.parquet"
+            pd.DataFrame([{"contract_symbol": "AAA1"}]).to_parquet(recommendation_dataset, index=False)
+            pd.DataFrame([]).to_parquet(moonshot_dataset, index=False)
+            pd.DataFrame([{"contract_symbol": "AAA1"}]).to_parquet(combined_dataset, index=False)
+
+            report = build_audit_report(
+                live_archive_manifest=manifest,
+                prospective_ledger=prospective,
+                moonshot_ledger=root / "missing_moonshot.json",
+                recommendation_dataset=recommendation_dataset,
+                moonshot_dataset=moonshot_dataset,
+                combined_dataset=combined_dataset,
+                allow_missing_empty_moonshot_ledger=True,
+            )
+
+        self.assertEqual(report["status"], "passed")
+
     def test_build_audit_report_fails_when_dataset_rows_drift_from_ledgers(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
