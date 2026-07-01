@@ -217,6 +217,29 @@ class CouncilTests(unittest.TestCase):
         self.assertFalse(result.abstain)
         self.assertEqual([row.symbol for row in result.live_board], ["MSFT"])
 
+    def test_council_percentile_gate_keeps_only_top_rank_slice(self) -> None:
+        candidates = [
+            _candidate("AAPL", "call", 0.91, final_candidate_score=0.91, utility_after_friction_score=0.91),
+            _candidate("MSFT", "call", 0.84, final_candidate_score=0.84, utility_after_friction_score=0.84),
+            _candidate("XOM", "call", 0.82, final_candidate_score=0.82, utility_after_friction_score=0.82),
+        ]
+
+        result = select_board(
+            candidates,
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+            live_size=1,
+            live_percentile_gate=0.95,
+            fetch_live_corr=False,
+        )
+
+        self.assertFalse(result.abstain)
+        self.assertEqual([row.symbol for row in result.live_board], ["AAPL"])
+        self.assertEqual(result.summary["abstain_audit"]["percentile_gate_fail_count"], 2)
+        self.assertEqual(
+            result.summary["abstain_audit"]["blocked_symbols"]["percentile_gate"],
+            ["MSFT", "XOM"],
+        )
+
     def test_market_shock_overlay_forces_live_abstain_but_keeps_shadow_visibility(self) -> None:
         shock = MarketShockRegime(
             label="extreme_vol_deleveraging",

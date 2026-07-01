@@ -518,6 +518,7 @@ def select_board(
     shadow_size: int = 3,
     minimum_live_score: float = 0.57,
     minimum_put_live_score: float | None = None,
+    live_percentile_gate: float = 0.0,
     max_same_side_share: float = 0.67,
     max_same_sector_share: float = 0.67,
     max_live_extrinsic_ratio: float = 0.96,
@@ -561,6 +562,7 @@ def select_board(
     sentinel_pressure_blocked: list[ContractCandidate] = []
     mixed_policy_blocked: list[ContractCandidate] = []
     probation_blocked: list[ContractCandidate] = []
+    percentile_gate_blocked: list[ContractCandidate] = []
 
     for candidate in candidates:
         symbol_on_probation = candidate.symbol.upper() in LIVE_PROBATION_SYMBOLS
@@ -634,6 +636,13 @@ def select_board(
         if c.symbol not in seen or _effective_candidate_score(c) > _effective_candidate_score(seen[c.symbol]):
             seen[c.symbol] = c
     unique_eligible = sorted(seen.values(), key=_effective_candidate_score, reverse=True)
+    percentile_rank_cutoff = 0
+    if unique_eligible and live_percentile_gate > 0.0:
+        keep_count = max(1, int(np.ceil(len(unique_eligible) * max(1.0 - live_percentile_gate, 0.0))))
+        percentile_rank_cutoff = keep_count
+        percentile_live = unique_eligible[:keep_count]
+        percentile_gate_blocked = unique_eligible[keep_count:]
+        unique_eligible = percentile_live
     side_balance_rejections = 0
     side_balance_demotions = 0
 
@@ -845,6 +854,8 @@ def select_board(
             "effective_minimum_put_live_score": effective_minimum_put_live_score,
             "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
             "effective_max_live_extrinsic_ratio": effective_max_live_extrinsic_ratio,
+            "live_percentile_gate": live_percentile_gate,
+            "live_percentile_keep_count": percentile_rank_cutoff,
             "max_live_no_trade_prob": max_live_no_trade_prob,
             "min_live_fill_quality": min_live_fill_quality,
             "max_live_sentinel_no_trade_pressure": max_live_sentinel_no_trade_pressure,
@@ -870,6 +881,7 @@ def select_board(
             "sentinel_no_trade_pressure_fail_count": len(sentinel_pressure_blocked),
             "mixed_policy_fail_count": len(mixed_policy_blocked),
             "symbol_probation_fail_count": len(probation_blocked),
+            "percentile_gate_fail_count": len(percentile_gate_blocked),
             "side_balance_rejections": side_balance_rejections,
             "side_balance_demotions": side_balance_demotions,
             "blocked_symbols": {
@@ -881,6 +893,7 @@ def select_board(
                 "sentinel_no_trade_pressure": [row.symbol for row in sentinel_pressure_blocked[:3]],
                 "mixed_policy": [row.symbol for row in mixed_policy_blocked[:3]],
                 "symbol_probation": [row.symbol for row in probation_blocked[:3]],
+                "percentile_gate": [row.symbol for row in percentile_gate_blocked[:3]],
             },
             "best_rejected_candidates": {
                 "score_only": [_audit_candidate(row) for row in score_only_blocked[:5]],
@@ -891,6 +904,7 @@ def select_board(
                 "sentinel_no_trade_pressure": [_audit_candidate(row) for row in sentinel_pressure_blocked[:5]],
                 "mixed_policy": [_audit_candidate(row) for row in mixed_policy_blocked[:5]],
                 "symbol_probation": [_audit_candidate(row) for row in probation_blocked[:5]],
+                "percentile_gate": [_audit_candidate(row) for row in percentile_gate_blocked[:5]],
             },
         },
         "notes":               notes,
