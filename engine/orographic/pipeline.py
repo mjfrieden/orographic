@@ -56,9 +56,8 @@ class PipelineConfig:
     forge_intake: int = 12
     minimum_days_to_expiry: int = 7
     maximum_days_to_expiry: int = 14
-    minimum_live_score: float = 0.76
+    minimum_live_score: float = 0.86
     minimum_put_live_score: float = 0.84
-    live_percentile_gate: float = 0.95
     max_live_extrinsic_ratio: float = 0.90
     moonshot_size: int = 1
     moonshot_threshold: float = 0.68
@@ -1972,9 +1971,8 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         forge_intake = _config_int(config, "forge_intake", 12, minimum=1)
         minimum_days_to_expiry = _config_int(config, "minimum_days_to_expiry", 7, minimum=0)
         maximum_days_to_expiry = _config_int(config, "maximum_days_to_expiry", 14, minimum=0)
-        minimum_live_score = _config_float(config, "minimum_live_score", 0.76, minimum=0.0, maximum=1.0)
+        minimum_live_score = _config_float(config, "minimum_live_score", 0.86, minimum=0.0, maximum=1.0)
         minimum_put_live_score = _config_float(config, "minimum_put_live_score", 0.84, minimum=0.0, maximum=1.0)
-        live_percentile_gate = _config_float(config, "live_percentile_gate", 0.95, minimum=0.0, maximum=1.0)
         max_live_extrinsic_ratio = _config_float(config, "max_live_extrinsic_ratio", 0.90, minimum=0.0, maximum=1.0)
         moonshot_size = _config_int(config, "moonshot_size", 1, minimum=0)
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
@@ -2025,7 +2023,6 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             shadow_size=shadow_size,
             minimum_live_score=minimum_live_score,
             minimum_put_live_score=minimum_put_live_score,
-            live_percentile_gate=live_percentile_gate,
             max_live_extrinsic_ratio=max_live_extrinsic_ratio,
             prior_live_board_symbols=prior_live_board_symbols,
             market_shock=council_market_shock,
@@ -2062,7 +2059,6 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "maximum_days_to_expiry": maximum_days_to_expiry,
                 "minimum_live_score": minimum_live_score,
                 "minimum_put_live_score": minimum_put_live_score,
-                "live_percentile_gate": live_percentile_gate,
                 "max_live_extrinsic_ratio": max_live_extrinsic_ratio,
                 "moonshot_size": moonshot_size,
                 "moonshot_threshold": moonshot_threshold,

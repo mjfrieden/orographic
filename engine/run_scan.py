@@ -165,7 +165,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--minimum-live-score",
         type=float,
-        default=0.76,
+        default=0.86,
         help="Minimum Forge score required for live-board call candidates.",
     )
     parser.add_argument(
@@ -173,12 +173,6 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.84,
         help="Minimum Forge score required for live-board put candidates.",
-    )
-    parser.add_argument(
-        "--live-percentile-gate",
-        type=float,
-        default=0.95,
-        help="Only candidates in the top percentile slice of Council live score are eligible for the live board.",
     )
     parser.add_argument(
         "--max-live-extrinsic-ratio",
@@ -229,7 +223,6 @@ def main() -> int:
             maximum_days_to_expiry=max(int(args.maximum_days_to_expiry), 0),
             minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
             minimum_put_live_score=max(min(float(args.minimum_put_live_score), 1.0), 0.0),
-            live_percentile_gate=max(min(float(args.live_percentile_gate), 1.0), 0.0),
             max_live_extrinsic_ratio=max(min(float(args.max_live_extrinsic_ratio), 1.0), 0.0),
             moonshot_size=max(int(args.moonshot_size), 0),
             moonshot_threshold=max(min(float(args.moonshot_threshold), 1.0), 0.0),
