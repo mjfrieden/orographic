@@ -7,6 +7,10 @@ on:
     # This is 9:07 AM, 12:07 PM, and 3:07 PM in America/Chicago during daylight saving time.
     - cron: "7 14,17,20 * * 1-5"
 
+concurrency:
+  group: orographic-scan-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 

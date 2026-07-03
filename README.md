@@ -346,10 +346,10 @@ As of April 1, 2026, the default recommendation is:
 
 1. Put the repo on GitHub.
 2. Connect `web/` to Cloudflare Pages.
-3. Let a scheduled GitHub Actions workflow write `web/data/latest_run.json`.
-4. Let Cloudflare Pages redeploy on commit.
+3. Let a scheduled GitHub Actions scan write `web/data/latest_run.json`, commit the refreshed artifacts, and trigger the Pages redeploy from `main`.
+4. Keep Cloudflare Pages connected to the repo so the commit remains the publish event.
 
-An optional `pages_deploy.yml` workflow is included for direct-upload deploys if you would rather use GitHub Actions plus a Cloudflare API token instead of dashboard Git integration.
+The `orographic_scan.yml` workflow is the canonical production publisher. It refreshes the snapshot, pushes the artifact commit to GitHub, and deploys Pages from that commit.
 
 If you want $0 with a private repo, use a self-hosted GitHub runner on your machine instead of GitHub-hosted minutes.
 
