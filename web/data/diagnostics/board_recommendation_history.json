@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-07-03T21:20:25+00:00",
+  "updated_at_utc": "2026-07-06T13:58:13+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 146,
+    "runs": 147,
     "live_picks_emitted": 32,
     "shadow_picks_emitted": 331,
-    "abstain_runs": 120,
+    "abstain_runs": 121,
     "abstain_primary_reasons": [
       {
         "reason": "mixed_core_filters",
@@ -19,7 +19,7 @@
       },
       {
         "reason": "no_forge_candidates",
-        "count": 18
+        "count": 19
       },
       {
         "reason": "unknown",
@@ -36816,6 +36816,97 @@
           ]
         }
       ]
+    },
+    {
+      "run_generated_at_utc": "2026-07-06T13:58:13+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3062,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 1,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.86,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "market_shock_control_mode": "active"
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "active",
+        "sentinel": "active",
+        "payoff_ranker": "active",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 16,
+        "pre_forge_signal_count": 0,
+        "forge_candidate_count": 0,
+        "live_count": 0,
+        "shadow_count": 0,
+        "abstain_audit": {
+          "primary_reason": "no_forge_candidates",
+          "primary_reason_label": "No Forge candidates reached Council.",
+          "requested_live_size": 1,
+          "candidate_count": 0,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 0,
+          "model_no_trade_fail_count": 0,
+          "fill_quality_fail_count": 0,
+          "sentinel_no_trade_pressure_fail_count": 0,
+          "mixed_policy_fail_count": 0,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "model_no_trade": [],
+            "fill_quality": [],
+            "sentinel_no_trade_pressure": [],
+            "mixed_policy": [],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "model_no_trade": [],
+            "fill_quality": [],
+            "sentinel_no_trade_pressure": [],
+            "mixed_policy": [],
+            "symbol_probation": []
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": []
     }
   ]
 }
