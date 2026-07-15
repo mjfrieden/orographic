@@ -7,6 +7,7 @@ const SNAPSHOT_SOURCE = "./data/latest_run.json";
 const PROSPECTIVE_LEDGER_SOURCE = "./data/diagnostics/prospective_pick_ledger.json";
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
+const PROSPECTIVE_RECENT_ROW_LIMIT = 24;
 
 // ── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -770,7 +771,7 @@ function allProspectivePicks(ledger) {
   );
 }
 
-function latestProspectivePicks(ledger, limit = 12) {
+function latestProspectivePicks(ledger, limit = PROSPECTIVE_RECENT_ROW_LIMIT) {
   return allProspectivePicks(ledger).reverse().slice(0, limit);
 }
 
@@ -940,7 +941,7 @@ function renderProspectiveScoreboard(ledger) {
   }
 
   if (!tbody) return;
-  const rows = latestProspectivePicks(ledger, 12);
+  const rows = latestProspectivePicks(ledger);
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">Prospective ledger has no picks yet.</td></tr>`;
     return;
