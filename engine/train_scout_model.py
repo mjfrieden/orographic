@@ -70,6 +70,16 @@ DEFAULT_OPTION_OUTCOME_INPUT_CANDIDATES = [
 PRIMARY_TARGET_UNDERLYING = "underlying_forward_return"
 PRIMARY_TARGET_OPTION_DIRECTION = "strict_real_option_direction"
 NON_SEC_EVENT_PREFIXES = ("fnspid_", "edt_", "mirai_", "stocktwits_")
+NARRATIVE_TRAINING_FEATURE_COLUMNS = [
+    "narrative_attention_1d",
+    "narrative_attention_3d",
+    "narrative_attention_acceleration_3d",
+    "narrative_source_diversity_1d",
+    "narrative_duplicate_ratio_1d",
+    "narrative_novelty_mean_1d",
+    "narrative_directional_intensity_1d",
+    "narrative_confirmation_score_1d",
+]
 SEC_CURATED_EVENT_FEATURE_COLUMNS = [
     "sec_8k_flag",
     "sec_10q_flag",
@@ -124,6 +134,7 @@ def _default_option_outcome_inputs() -> list[Path]:
 def _selected_event_feature_columns(columns: pd.Index | list[str]) -> list[str]:
     available_columns = [str(column) for column in columns]
     event_columns = [column for column in available_columns if column.startswith(NON_SEC_EVENT_PREFIXES)]
+    event_columns += [column for column in NARRATIVE_TRAINING_FEATURE_COLUMNS if column in available_columns]
     curated_sec = [column for column in SEC_CURATED_EVENT_FEATURE_COLUMNS if column in available_columns]
     if curated_sec:
         return event_columns + curated_sec

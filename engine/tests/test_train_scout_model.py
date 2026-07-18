@@ -207,6 +207,9 @@ class TrainScoutModelTests(unittest.TestCase):
                 "sec_signal_count_1d",
                 "sec_signal_ratio",
                 "sec_8k_flag",
+                "narrative_attention_acceleration_3d",
+                "narrative_confirmation_score_1d",
+                "narrative_hype_pressure",
             ]
         )
 
@@ -216,6 +219,9 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertIn("sec_8k_flag", selected)
         self.assertNotIn("sec_filing_count_1d", selected)
         self.assertNotIn("sec_insider_count", selected)
+        self.assertIn("narrative_attention_acceleration_3d", selected)
+        self.assertIn("narrative_confirmation_score_1d", selected)
+        self.assertNotIn("narrative_hype_pressure", selected)
 
 
 if __name__ == "__main__":

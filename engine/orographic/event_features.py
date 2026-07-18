@@ -69,6 +69,15 @@ EVENT_FEATURE_COLUMNS = [
     "stocktwits_bullish_ratio",
     "stocktwits_bearish_ratio",
     "stocktwits_emotion_intensity",
+    "narrative_attention_1d",
+    "narrative_attention_3d",
+    "narrative_attention_acceleration_3d",
+    "narrative_source_diversity_1d",
+    "narrative_duplicate_ratio_1d",
+    "narrative_novelty_mean_1d",
+    "narrative_directional_intensity_1d",
+    "narrative_confirmation_score_1d",
+    "narrative_hype_pressure",
 ]
 NON_NUMERIC_EVENT_COLUMNS = ["dataset_tags"]
 STANDARD_EVENT_COLUMNS = ["symbol", "date", *EVENT_FEATURE_COLUMNS, *NON_NUMERIC_EVENT_COLUMNS]

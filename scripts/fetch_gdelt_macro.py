@@ -6,7 +6,7 @@ import json
 import time
 import urllib.parse
 import urllib.request
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
@@ -30,6 +30,12 @@ def _parse_args() -> argparse.Namespace:
         type=Path,
         required=True,
         help="Output CSV path for raw GDELT article rows.",
+    )
+    parser.add_argument(
+        "--observatory-output",
+        type=Path,
+        default=None,
+        help="Optionally merge fetched rows into the point-in-time Event Observatory.",
     )
     parser.add_argument(
         "--query",
@@ -120,6 +126,7 @@ def _fetch_articles_for_day(
             with urllib.request.urlopen(request, timeout=60) as response:
                 payload = json.load(response)
             articles = payload.get("articles", [])
+            first_seen_at = datetime.now(UTC).isoformat()
             time.sleep(max(pause_seconds, 0.0))
             return [
                 {
@@ -131,6 +138,7 @@ def _fetch_articles_for_day(
                     "url": article.get("url"),
                     "query_date": day.isoformat(),
                     "query": query,
+                    "first_seen_at": first_seen_at,
                 }
                 for article in articles
             ]
@@ -167,7 +175,9 @@ def main() -> None:
 
     days = _iter_days(start, end, mondays_only=bool(args.mondays_only))
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    fieldnames = ["date", "headline", "domain", "sourcecountry", "language", "url", "query_date", "query"]
+    fieldnames = [
+        "date", "headline", "domain", "sourcecountry", "language", "url", "query_date", "query", "first_seen_at"
+    ]
 
     existing_rows, seen_urls = _load_existing_rows(args.output) if args.resume else ([], set())
     rows = existing_rows[:]
@@ -210,6 +220,17 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     print(f"Saved {len(rows)} rows -> {args.output}")
+    if args.observatory_output:
+        from engine.orographic.event_observatory import build_observatory, write_observatory, write_quality_report
+
+        observatory, report = build_observatory(
+            [("gdelt", "macro", args.output)],
+            existing_path=args.observatory_output,
+        )
+        write_observatory(observatory, args.observatory_output)
+        quality_path = args.observatory_output.with_suffix(args.observatory_output.suffix + ".quality.json")
+        write_quality_report(report, quality_path)
+        print(f"Merged GDELT observations -> {args.observatory_output} ({report.rows} total rows)")
 
 
 if __name__ == "__main__":

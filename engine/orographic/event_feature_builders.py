@@ -9,6 +9,7 @@ from typing import Any
 
 import pandas as pd
 
+from .event_observatory import load_observatory
 from .event_features import GLOBAL_EVENT_SYMBOL, load_event_feature_frame, write_event_feature_frame
 
 FNSPID_DATASET_TAG = "fnspid"
@@ -16,6 +17,7 @@ EDT_DATASET_TAG = "edt"
 MIRAI_DATASET_TAG = "mirai"
 STOCKEMOTIONS_DATASET_TAG = "stockemotions"
 SEC_FILINGS_DATASET_TAG = "sec_filings"
+NARRATIVE_EXPECTATIONS_DATASET_TAG = "narrative_expectations"
 CANDIDATE_HEADLINE_WORDS = (
     "acquisition",
     "acquire",
@@ -797,6 +799,246 @@ def build_sec_filing_daily_features(
     ]
 
 
+def _build_narrative_daily_features(observations: pd.DataFrame) -> pd.DataFrame:
+    narrative = observations.loc[
+        observations["source_kind"].isin({"news", "social"})
+        & observations["headline"].astype(str).str.strip().ne("")
+    ].copy()
+    if narrative.empty:
+        return _empty_canonical_frame()
+    narrative["headline_key"] = (
+        narrative["headline"].map(_normalize_text).str.replace(r"[^a-z0-9]+", " ", regex=True).str.strip()
+    )
+    narrative["sentiment_abs"] = narrative["sentiment"].abs().clip(0.0, 1.0)
+    story_sources = narrative.groupby(
+        ["symbol", "date", "headline_key"], as_index=False
+    ).agg(story_source_count=("source", "nunique"))
+    story_daily = story_sources.groupby(["symbol", "date"], as_index=False).agg(
+        unique_headlines=("headline_key", "size"),
+        confirmed_headlines=("story_source_count", lambda values: int((values >= 2).sum())),
+    )
+    base = narrative.groupby(["symbol", "date"], as_index=False).agg(
+        narrative_attention_1d=("event_id", "size"),
+        source_count=("source", "nunique"),
+        narrative_novelty_mean_1d=("novelty", "mean"),
+        narrative_directional_intensity_1d=("sentiment_abs", "mean"),
+    )
+    base = base.merge(story_daily, on=["symbol", "date"], how="left")
+    base["narrative_duplicate_ratio_1d"] = (
+        1.0 - base["unique_headlines"] / base["narrative_attention_1d"].replace(0, 1)
+    ).clip(0.0, 1.0)
+    base["narrative_source_diversity_1d"] = ((base["source_count"] - 1.0) / 2.0).clip(0.0, 1.0)
+    base["narrative_confirmation_score_1d"] = (
+        base["confirmed_headlines"] / base["unique_headlines"].replace(0, 1)
+    ).clip(0.0, 1.0)
+
+    expanded_frames: list[pd.DataFrame] = []
+    fill_columns = [
+        "narrative_attention_1d",
+        "narrative_source_diversity_1d",
+        "narrative_duplicate_ratio_1d",
+        "narrative_novelty_mean_1d",
+        "narrative_directional_intensity_1d",
+        "narrative_confirmation_score_1d",
+    ]
+    for symbol, symbol_frame in base.groupby("symbol", sort=False):
+        indexed = symbol_frame.set_index("date").sort_index()
+        calendar = pd.date_range(indexed.index.min(), indexed.index.max(), freq="D")
+        indexed = indexed.reindex(calendar)
+        indexed["symbol"] = symbol
+        indexed[fill_columns] = indexed[fill_columns].fillna(0.0)
+        indexed["narrative_attention_3d"] = indexed["narrative_attention_1d"].rolling(3, min_periods=1).sum()
+        prior_attention = indexed["narrative_attention_1d"].shift(1).rolling(3, min_periods=1).mean().fillna(0.0)
+        indexed["narrative_attention_acceleration_3d"] = (
+            (indexed["narrative_attention_1d"] - prior_attention) / (prior_attention + 1.0)
+        ).clip(-1.0, 5.0)
+        attention_pressure = indexed["narrative_attention_acceleration_3d"].clip(lower=0.0) / 5.0
+        active = indexed["narrative_attention_1d"].gt(0).astype(float)
+        indexed["narrative_hype_pressure"] = active * (
+            0.30 * attention_pressure
+            + 0.20 * indexed["narrative_duplicate_ratio_1d"]
+            + 0.15 * indexed["narrative_directional_intensity_1d"]
+            + 0.15 * (1.0 - indexed["narrative_novelty_mean_1d"].clip(0.0, 1.0))
+            + 0.10 * (1.0 - indexed["narrative_source_diversity_1d"])
+            + 0.10 * (1.0 - indexed["narrative_confirmation_score_1d"])
+        ).clip(0.0, 1.0)
+        indexed["date"] = indexed.index
+        expanded_frames.append(indexed.reset_index(drop=True))
+    result = pd.concat(expanded_frames, ignore_index=True)
+    result["dataset_tags"] = NARRATIVE_EXPECTATIONS_DATASET_TAG
+    return result[
+        [
+            "symbol",
+            "date",
+            "narrative_attention_1d",
+            "narrative_attention_3d",
+            "narrative_attention_acceleration_3d",
+            "narrative_source_diversity_1d",
+            "narrative_duplicate_ratio_1d",
+            "narrative_novelty_mean_1d",
+            "narrative_directional_intensity_1d",
+            "narrative_confirmation_score_1d",
+            "narrative_hype_pressure",
+            "dataset_tags",
+        ]
+    ]
+
+
+def build_observatory_daily_features(source_path: Path, *, sec_8k_weight: float = 1.0) -> pd.DataFrame:
+    """Aggregate replay-safe Observatory records using their effective observation date."""
+    observations = load_observatory(source_path)
+    if observations.empty:
+        return _empty_canonical_frame()
+    observations = observations.copy()
+    observations["date"] = observations["effective_at"].dt.tz_convert(None).dt.normalize()
+    frames: list[pd.DataFrame] = []
+    frames.append(_build_narrative_daily_features(observations))
+
+    news = observations.loc[observations["source_kind"] == "news"].copy()
+    if not news.empty:
+        news["catalyst_hit"] = news["headline"].str.contains(CANDIDATE_HEADLINE_PATTERN, regex=True)
+        news["sentiment_sq"] = news["sentiment"] ** 2
+        news_base = news.groupby(["symbol", "date"], as_index=False).agg(
+            fnspid_news_volume_1d=("event_id", "size"),
+            sentiment_sum=("sentiment", "sum"),
+            sentiment_sumsq=("sentiment_sq", "sum"),
+            fnspid_novelty_score=("novelty", "mean"),
+            catalyst_hits=("catalyst_hit", "sum"),
+        )
+        denominator = news_base["fnspid_news_volume_1d"].replace(0, 1)
+        news_base["fnspid_sentiment_mean"] = news_base["sentiment_sum"] / denominator
+        variance = news_base["sentiment_sumsq"] / denominator - news_base["fnspid_sentiment_mean"] ** 2
+        news_base["fnspid_sentiment_std"] = variance.clip(lower=0.0).pow(0.5)
+        news_base["fnspid_catalyst_density"] = (news_base["catalyst_hits"] / denominator).clip(0.0, 1.0)
+        news_base = news_base.sort_values(["symbol", "date"])
+        news_base["fnspid_news_volume_3d"] = (
+            news_base.groupby("symbol")["fnspid_news_volume_1d"]
+            .rolling(3, min_periods=1)
+            .sum()
+            .reset_index(level=0, drop=True)
+        )
+        news_base["dataset_tags"] = FNSPID_DATASET_TAG
+        frames.append(news_base)
+
+    structured = observations.loc[observations["source_kind"] == "structured_event"].copy()
+    if not structured.empty:
+        structured["event_name"] = structured["event_type"].map(_normalize_edt_event)
+        structured["edt_event_intensity"] = structured["event_name"].ne("no_event").astype(float)
+        for event_name, column in EDT_CATEGORY_COLUMNS.items():
+            structured[column] = structured["event_name"].eq(event_name).astype(float)
+        event_columns = sorted(set(EDT_CATEGORY_COLUMNS.values()))
+        structured_base = structured.groupby(["symbol", "date"], as_index=False).agg(
+            {"edt_event_intensity": "sum", **{column: "sum" for column in event_columns}}
+        )
+        for column in ("edt_financing_score", "edt_violation_score", "edt_risk_warning_score", "edt_rating_action_score"):
+            structured_base[column] = 0.0
+        structured_base["dataset_tags"] = EDT_DATASET_TAG
+        frames.append(structured_base)
+
+    macro = observations.loc[observations["source_kind"] == "macro"].copy()
+    if not macro.empty:
+        macro_text = (macro["headline"].fillna("") + " " + macro["event_type"].fillna("")).map(_normalize_text)
+        macro["mirai_risk_off_score"] = macro_text.str.contains(MIRAI_RISK_OFF_PATTERN, regex=True).astype(float)
+        macro["mirai_risk_on_score"] = macro_text.str.contains(MIRAI_RISK_ON_PATTERN, regex=True).astype(float)
+        macro["mirai_commodity_risk_score"] = macro_text.str.contains(MIRAI_COMMODITY_PATTERN, regex=True).astype(float)
+        macro["mirai_geopolitical_risk_score"] = (
+            macro_text.str.contains(MIRAI_GEO_PATTERN, regex=True) | macro["mirai_risk_off_score"].gt(0)
+        ).astype(float)
+        macro["mirai_macro_shock_score"] = (
+            0.6 * macro["mirai_risk_off_score"]
+            + 0.35 * macro["mirai_commodity_risk_score"]
+            + 0.25 * macro["mirai_geopolitical_risk_score"]
+            + 0.25 * macro["mirai_risk_on_score"]
+        ).clip(0.0, 1.0)
+        macro_columns = [
+            "mirai_macro_shock_score",
+            "mirai_geopolitical_risk_score",
+            "mirai_commodity_risk_score",
+            "mirai_risk_on_score",
+            "mirai_risk_off_score",
+        ]
+        macro_base = macro.groupby(["symbol", "date"], as_index=False)[macro_columns].mean()
+        macro_base["dataset_tags"] = MIRAI_DATASET_TAG
+        frames.append(macro_base)
+
+    sec = observations.loc[observations["source_kind"] == "sec"].copy()
+    if not sec.empty:
+        sec["form_norm"] = sec["event_type"].map(_normalize_sec_form)
+        sec["base_form_norm"] = sec["form_norm"].str.replace(r"/A$", "", regex=True)
+        sec["sec_filing_count_1d"] = 1.0
+        sec["sec_amendment_count"] = sec["form_norm"].str.endswith("/A").astype(float)
+        sec["sec_8k_count"] = sec["base_form_norm"].isin(SEC_8K_FORMS).astype(float)
+        sec["sec_10q_count"] = sec["base_form_norm"].isin(SEC_10Q_FORMS).astype(float)
+        sec["sec_10k_count"] = sec["base_form_norm"].isin(SEC_10K_FORMS).astype(float)
+        sec["sec_offering_count"] = sec["base_form_norm"].isin(SEC_SIGNAL_OFFERING_FORMS).astype(float)
+        sec["sec_capital_markets_count"] = sec["base_form_norm"].str.startswith(SEC_CAPITAL_MARKETS_PREFIXES).astype(float)
+        sec["sec_debt_markets_count"] = sec["base_form_norm"].isin(SEC_DEBT_HEAVY_FORMS).astype(float)
+        sec["sec_fwp_count"] = sec["base_form_norm"].isin(SEC_FWP_FORMS).astype(float)
+        sec["sec_proxy_count"] = sec["form_norm"].isin(SEC_PROXY_FORMS).astype(float)
+        sec["sec_ownership_count"] = sec["form_norm"].isin(SEC_OWNERSHIP_FORMS).astype(float)
+        sec["sec_insider_count"] = sec["base_form_norm"].isin(SEC_INSIDER_FORMS).astype(float)
+        count_columns = [column for column in sec.columns if column.startswith("sec_") and column.endswith(("_count", "_1d"))]
+        sec_base = sec.groupby(["symbol", "date"], as_index=False)[count_columns].sum()
+        for source_column, flag_column in (
+            ("sec_8k_count", "sec_8k_flag"),
+            ("sec_10q_count", "sec_10q_flag"),
+            ("sec_10k_count", "sec_10k_flag"),
+            ("sec_offering_count", "sec_offering_flag"),
+            ("sec_proxy_count", "sec_proxy_flag"),
+        ):
+            sec_base[flag_column] = sec_base[source_column].gt(0).astype(float)
+        sec_base["sec_signal_count_1d"] = sec_base[
+            ["sec_8k_flag", "sec_10q_flag", "sec_10k_flag", "sec_offering_flag", "sec_proxy_flag"]
+        ].sum(axis=1)
+        sec_base["sec_material_event_score"] = (
+            sec_base["sec_8k_flag"] * float(sec_8k_weight)
+            + sec_base["sec_10q_flag"] * 1.25
+            + sec_base["sec_10k_flag"] * 1.5
+            + sec_base["sec_offering_flag"] * 1.1
+            + sec_base["sec_proxy_flag"] * 0.9
+        )
+        sec_base["sec_capital_markets_noise_count"] = (
+            sec_base["sec_capital_markets_count"] - sec_base["sec_offering_count"]
+        ).clip(lower=0.0)
+        sec_base["sec_noise_count_1d"] = sec_base[
+            ["sec_ownership_count", "sec_insider_count", "sec_amendment_count"]
+        ].sum(axis=1)
+        sec_base["sec_signal_ratio"] = (
+            sec_base["sec_signal_count_1d"]
+            / (sec_base["sec_signal_count_1d"] + sec_base["sec_noise_count_1d"]).replace(0.0, 1.0)
+        ).clip(0.0, 1.0)
+        sec_base = sec_base.sort_values(["symbol", "date"])
+        for source_column, target_column in (
+            ("sec_filing_count_1d", "sec_filing_count_5d"),
+            ("sec_signal_count_1d", "sec_signal_count_5d"),
+            ("sec_material_event_score", "sec_material_event_score_5d"),
+        ):
+            sec_base[target_column] = (
+                sec_base.groupby("symbol")[source_column]
+                .rolling(5, min_periods=1)
+                .sum()
+                .reset_index(level=0, drop=True)
+            )
+        sec_base["dataset_tags"] = SEC_FILINGS_DATASET_TAG
+        frames.append(sec_base)
+
+    social = observations.loc[observations["source_kind"] == "social"].copy()
+    if not social.empty:
+        social["bullish"] = social["sentiment"].gt(0).astype(float)
+        social["bearish"] = social["sentiment"].lt(0).astype(float)
+        social["emotion_intensity"] = social["sentiment"].abs().clip(0.0, 1.0)
+        social_base = social.groupby(["symbol", "date"], as_index=False).agg(
+            stocktwits_message_count=("event_id", "size"),
+            stocktwits_bullish_ratio=("bullish", "mean"),
+            stocktwits_bearish_ratio=("bearish", "mean"),
+            stocktwits_emotion_intensity=("emotion_intensity", "mean"),
+        )
+        social_base["dataset_tags"] = STOCKEMOTIONS_DATASET_TAG
+        frames.append(social_base)
+
+    return merge_canonical_event_frames(frames)
+
+
 def build_event_feature_store(
     *,
     fnspid_inputs: list[Path] | None = None,
@@ -805,6 +1047,7 @@ def build_event_feature_store(
     sec_inputs: list[Path] | None = None,
     sec_8k_weight: float = 1.0,
     stockemotions_inputs: list[Path] | None = None,
+    observatory_inputs: list[Path] | None = None,
     merge_existing_path: Path | None = None,
 ) -> pd.DataFrame:
     frames: list[pd.DataFrame] = []
@@ -820,6 +1063,8 @@ def build_event_feature_store(
         frames.append(build_sec_filing_daily_features(path, sec_8k_weight=sec_8k_weight))
     for path in stockemotions_inputs or []:
         frames.append(build_stockemotions_daily_features(path))
+    for path in observatory_inputs or []:
+        frames.append(build_observatory_daily_features(path, sec_8k_weight=sec_8k_weight))
     return merge_canonical_event_frames(frames)
 
 
