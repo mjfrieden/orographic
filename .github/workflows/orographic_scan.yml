@@ -83,6 +83,18 @@ jobs:
             --continue-on-error \
             --output engine/data/event_observatory/raw/gdelt_macro.csv \
             --observatory-output engine/data/event_observatory/event_observatory.parquet
+          python scripts/fetch_gdelt_company_news.py \
+            --start-date "${EVENT_DATE}" \
+            --end-date "${EVENT_DATE}" \
+            --universe-file engine/sample_universe.txt \
+            --aliases engine/company_aliases.json \
+            --batch-size 8 \
+            --max-records-per-batch 50 \
+            --pause-seconds 2 \
+            --resume \
+            --continue-on-error \
+            --output engine/data/event_observatory/raw/gdelt_company_news.csv \
+            --observatory-output engine/data/event_observatory/event_observatory.parquet
           python scripts/build_event_features.py \
             --observatory-input engine/data/event_observatory/event_observatory.parquet \
             --output engine/data/event_observatory/daily_event_features.parquet \
