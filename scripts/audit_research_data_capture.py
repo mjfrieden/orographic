@@ -53,6 +53,9 @@ def build_audit_report(
     combined_dataset: Path,
     min_archive_rows: int = 1,
     min_recommendation_rows: int = 0,
+    event_quality_report: Path | None = None,
+    event_coverage_report: Path | None = None,
+    event_enriched_dataset: Path | None = None,
 ) -> dict[str, Any]:
     archive = _load_json(live_archive_manifest)
     archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
@@ -63,6 +66,12 @@ def build_audit_report(
     recommendation_dataset_rows = _dataset_rows(recommendation_dataset)
     moonshot_dataset_rows = _dataset_rows(moonshot_dataset)
     combined_dataset_rows = _dataset_rows(combined_dataset)
+    event_quality = _load_json(event_quality_report) if event_quality_report else {}
+    event_coverage = _load_json(event_coverage_report) if event_coverage_report else {}
+    event_coverage_summary = (
+        event_coverage.get("summary") if isinstance(event_coverage.get("summary"), dict) else {}
+    )
+    event_enriched_rows = _dataset_rows(event_enriched_dataset) if event_enriched_dataset else -1
 
     archive_required = min_archive_rows > 0
     checks = [
@@ -140,6 +149,38 @@ def build_audit_report(
             "expected": prospective_rows + moonshot_rows,
         },
     ]
+    if event_quality_report is not None:
+        checks.append(
+            {
+                "name": "event_quality_report_exists",
+                "passed": event_quality_report.exists(),
+                "actual": str(event_quality_report),
+            }
+        )
+    if event_coverage_report is not None:
+        checks.append(
+            {
+                "name": "event_coverage_report_exists",
+                "passed": event_coverage_report.exists(),
+                "actual": str(event_coverage_report),
+            }
+        )
+    if event_enriched_dataset is not None:
+        checks.extend(
+            [
+                {
+                    "name": "event_enriched_dataset_exists",
+                    "passed": event_enriched_rows >= 0,
+                    "actual": str(event_enriched_dataset),
+                },
+                {
+                    "name": "event_enriched_dataset_matches_outcomes",
+                    "passed": event_enriched_rows == combined_dataset_rows,
+                    "actual": event_enriched_rows,
+                    "expected": combined_dataset_rows,
+                },
+            ]
+        )
     failed = [check for check in checks if not bool(check["passed"])]
     return {
         "artifact": "research_data_capture_audit",
@@ -153,6 +194,12 @@ def build_audit_report(
             "recommendation_dataset_rows": recommendation_dataset_rows,
             "moonshot_dataset_rows": moonshot_dataset_rows,
             "combined_dataset_rows": combined_dataset_rows,
+            "event_observation_rows": int(event_quality.get("rows") or 0),
+            "event_enriched_dataset_rows": event_enriched_rows,
+            "rows_with_prior_events": int(event_coverage_summary.get("rows_with_prior_events") or 0),
+            "complete_outcome_event_coverage_pct": float(
+                event_coverage_summary.get("complete_outcome_event_coverage_pct") or 0.0
+            ),
         },
         "checks": checks,
         "failed_checks": failed,
@@ -168,6 +215,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-archive-rows", type=int, default=1)
     parser.add_argument("--min-recommendation-rows", type=int, default=0)
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/research_data_capture_audit.json"))
+    parser.add_argument(
+        "--event-quality-report",
+        type=Path,
+        default=Path("engine/data/event_observatory/event_observatory.parquet.quality.json"),
+    )
+    parser.add_argument(
+        "--event-coverage-report",
+        type=Path,
+        default=Path("output/research_datasets/event_outcome_coverage.json"),
+    )
+    parser.add_argument(
+        "--event-enriched-dataset",
+        type=Path,
+        default=Path("output/research_datasets/event_enriched_option_outcomes.parquet"),
+    )
     return parser.parse_args()
 
 
@@ -182,6 +244,9 @@ def main() -> int:
         combined_dataset=args.research_dataset_dir / "all_recommendation_outcomes.parquet",
         min_archive_rows=max(int(args.min_archive_rows), 0),
         min_recommendation_rows=max(int(args.min_recommendation_rows), 0),
+        event_quality_report=args.event_quality_report,
+        event_coverage_report=args.event_coverage_report,
+        event_enriched_dataset=args.event_enriched_dataset,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")

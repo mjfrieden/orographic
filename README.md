@@ -146,6 +146,38 @@ The store builder accepts raw `.csv`, `.csv.gz`, `.gz`, and `.zip` archives drop
 
 Build the optional canonical daily event-feature store used by Scout and Sentinel shadow diagnostics:
 
+For replayable production inputs, first normalize raw observations into the Event Observatory. Each
+record retains the canonical raw payload and source lineage, and uses the later of publication time and first-seen time as its
+effective timestamp, preventing delayed observations from leaking into earlier training dates:
+
+```bash
+PYTHONPATH=. ./.venv/bin/python scripts/build_event_observatory.py \
+  --input sec=sec=/path/to/sec_filings.csv \
+  --input wire=news=/path/to/timestamped_news.jsonl \
+  --input macro=macro=/path/to/macro_events.csv \
+  --output engine/data/event_features/event_observatory.parquet
+```
+
+Input specifications use `SOURCE=KIND=PATH`; supported kinds are `news`, `structured_event`,
+`macro`, `sec`, and `social`. The companion `.quality.json` reports rejected and duplicate rows,
+symbol/source coverage, missing evidence, and collection-delay percentiles. Existing event IDs are
+immutable: rebuilding against an existing store fails if a source reuses an ID for changed content.
+
+The scheduled scan restores a rolling Event Observatory cache, collects current SEC filings for the
+latest snapshot symbols and current GDELT macro headlines, then rebuilds daily features before Scout
+runs. Configure `OROGRAPHIC_SEC_USER_AGENT` as an SEC-compliant application identity containing a
+real contact address. The rolling Observatory, quality report, raw collection files, daily features,
+and event-enriched outcomes are included in workflow artifacts and the optional R2 research export.
+
+Build daily features from the normalized store:
+
+```bash
+PYTHONPATH=. ./.venv/bin/python scripts/build_event_features.py \
+  --observatory-input engine/data/event_features/event_observatory.parquet
+```
+
+The legacy source-specific inputs remain available for research and migration:
+
 ```bash
 ./.venv/bin/python scripts/build_event_features.py \
   --fnspid-input /path/to/fnspid_news.csv \
@@ -155,6 +187,32 @@ Build the optional canonical daily event-feature store used by Scout and Sentine
 ```
 
 This writes `engine/data/event_features/daily_event_features.parquet` by default. Override the path with `OROGRAPHIC_EVENT_FEATURES_PATH` or `engine/train_scout_model.py --event-features-path`.
+
+Build a leakage-safe event-coverage dataset after the canonical research datasets exist:
+
+```bash
+PYTHONPATH=. ./.venv/bin/python scripts/build_event_outcome_coverage.py \
+  --observatory engine/data/event_observatory/event_observatory.parquet \
+  --outcomes output/research_datasets/all_recommendation_outcomes.parquet
+```
+
+The resulting `event_enriched_option_outcomes.parquet` preserves every recommendation row and adds
+only observations whose effective timestamp was at or before that recommendation. Its companion
+`event_outcome_coverage.json` tracks activation across all recommendations and completed outcomes.
+
+Observatory news and social records also produce the Narrative Expectations feature family:
+
+- one-day and three-day attention volume
+- three-day attention acceleration using calendar-day gaps
+- independent-source diversity and duplicate-story concentration
+- mean novelty, directional intensity, and multi-source confirmation
+- `narrative_hype_pressure`, a bounded diagnostic composite
+
+Scout training may use the atomic narrative features. The composite hype-pressure score is excluded
+from the training slice and remains diagnostic until payoff-aware ablations establish incremental
+value. SEC filings and macro events remain separate evidence families; they do not count as narrative
+attention merely because they exist in the Observatory. Event-enriched outcome rows include matching
+`*_at_entry` fields calculated from observations available before each recommendation timestamp.
 
 SEC filing inputs are now curated before Scout training: raw filing counts stay in the canonical store for diagnostics, but the model prefers higher-signal SEC features such as `8-K`, `10-Q`, `10-K`, proxy, and targeted offering flags plus compact rolling aggregates instead of training directly on the noisiest insider and ownership traffic. Broad capital-markets traffic like `424B2` and `FWP` is retained for diagnostics, but kept out of the Scout signal slice.
 

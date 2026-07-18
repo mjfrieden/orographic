@@ -3,16 +3,20 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import os
 import time
 import urllib.request
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
 
 CIK_LOOKUP_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL_TEMPLATE = "https://data.sec.gov/submissions/CIK{cik}.json"
-DEFAULT_USER_AGENT = "Mozilla/5.0 Orographic-SEC-Research/1.0 contact-local-research@example.com"
+DEFAULT_USER_AGENT = os.getenv("OROGRAPHIC_SEC_USER_AGENT") or (
+    "Mozilla/5.0 Orographic-SEC-Research/1.0 contact-local-research@example.com"
+)
+SEC_ARCHIVE_URL_TEMPLATE = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession}/{document}"
 
 
 def _parse_args() -> argparse.Namespace:
@@ -33,7 +37,19 @@ def _parse_args() -> argparse.Namespace:
         default=Path("engine/sample_universe.txt"),
         help="Universe file with one symbol per line.",
     )
+    parser.add_argument(
+        "--snapshot",
+        type=Path,
+        default=None,
+        help="Use symbols present in an Orographic snapshot when --symbols is omitted.",
+    )
     parser.add_argument("--output", type=Path, required=True, help="Output CSV path.")
+    parser.add_argument(
+        "--observatory-output",
+        type=Path,
+        default=None,
+        help="Optionally merge fetched rows into the point-in-time Event Observatory.",
+    )
     parser.add_argument(
         "--pause-seconds",
         type=float,
@@ -57,6 +73,16 @@ def _parse_args() -> argparse.Namespace:
 def _load_symbols(args: argparse.Namespace) -> list[str]:
     if args.symbols:
         return [token.strip().upper() for token in args.symbols.split(",") if token.strip()]
+    if args.snapshot and args.snapshot.exists():
+        payload = json.loads(args.snapshot.read_text(encoding="utf-8"))
+        symbols: list[str] = []
+        for key in ("scout_signals", "forge_candidates"):
+            rows = payload.get(key) if isinstance(payload.get(key), list) else []
+            for row in rows:
+                if isinstance(row, dict) and str(row.get("symbol") or "").strip():
+                    symbols.append(str(row["symbol"]).strip().upper())
+        if symbols:
+            return list(dict.fromkeys(symbols))
     return [
         line.strip().upper()
         for line in args.universe.read_text(encoding="utf-8").splitlines()
@@ -103,6 +129,7 @@ def _iter_recent_rows(
     symbol: str,
     start_date: date,
     end_date: date,
+    first_seen_at: str,
 ) -> list[dict[str, Any]]:
     recent = payload.get("filings", {}).get("recent", {})
     forms = recent.get("form", [])
@@ -146,11 +173,17 @@ def _iter_recent_rows(
                 "filing_date": filing_date,
                 "acceptance_datetime": str(acceptance_datetimes[idx] or ""),
                 "accession_number": str(accession_numbers[idx] or ""),
+                "first_seen_at": first_seen_at,
                 "primary_document": str(primary_documents[idx] or ""),
                 "primary_doc_description": str(primary_descriptions[idx] or ""),
                 "is_xbrl": int(is_xbrl[idx] or 0),
                 "is_inline_xbrl": int(is_inline_xbrl[idx] or 0),
                 "exchanges": exchanges,
+                "filing_url": SEC_ARCHIVE_URL_TEMPLATE.format(
+                    cik=str(cik).lstrip("0") or "0",
+                    accession=str(accession_numbers[idx] or "").replace("-", ""),
+                    document=str(primary_documents[idx] or ""),
+                ),
             }
         )
     return rows
@@ -169,6 +202,7 @@ def main() -> None:
 
     all_rows: list[dict[str, Any]] = []
     skipped: list[str] = []
+    first_seen_at = datetime.now(UTC).isoformat()
     for symbol in symbols:
         normalized = _normalize_symbol(symbol)
         entry = cik_mapping.get(normalized)
@@ -183,6 +217,7 @@ def main() -> None:
                 symbol=symbol,
                 start_date=start_date,
                 end_date=end_date,
+                first_seen_at=first_seen_at,
             )
             all_rows.extend(rows)
             print(f"{symbol}: kept {len(rows)} filing rows")
@@ -202,11 +237,13 @@ def main() -> None:
         "filing_date",
         "acceptance_datetime",
         "accession_number",
+        "first_seen_at",
         "primary_document",
         "primary_doc_description",
         "is_xbrl",
         "is_inline_xbrl",
         "exchanges",
+        "filing_url",
     ]
     with args.output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
@@ -218,6 +255,17 @@ def main() -> None:
         print(f"Skipped {len(skipped)} symbols")
         for item in skipped[:20]:
             print(f"  - {item}")
+    if args.observatory_output:
+        from engine.orographic.event_observatory import build_observatory, write_observatory, write_quality_report
+
+        observatory, report = build_observatory(
+            [("sec_edgar", "sec", args.output)],
+            existing_path=args.observatory_output,
+        )
+        write_observatory(observatory, args.observatory_output)
+        quality_path = args.observatory_output.with_suffix(args.observatory_output.suffix + ".quality.json")
+        write_quality_report(report, quality_path)
+        print(f"Merged SEC observations -> {args.observatory_output} ({report.rows} total rows)")
 
 
 if __name__ == "__main__":

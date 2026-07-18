@@ -24,6 +24,8 @@ jobs:
       OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
       OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+      OROGRAPHIC_SEC_USER_AGENT: ${{ secrets.OROGRAPHIC_SEC_USER_AGENT }}
+      OROGRAPHIC_EVENT_FEATURES_PATH: engine/data/event_observatory/daily_event_features.parquet
       OROGRAPHIC_SITE_URL: https://orographic.pages.dev
       TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
       OROGRAPHIC_TRADIER_ACCESS_TOKEN: ${{ secrets.OROGRAPHIC_TRADIER_ACCESS_TOKEN }}
@@ -49,6 +51,42 @@ jobs:
         run: |
           python -m pytest -q engine/tests
           python scripts/validate_model_artifacts.py
+
+      - name: Restore rolling Event Observatory
+        uses: actions/cache@v4
+        with:
+          path: engine/data/event_observatory
+          key: orographic-event-observatory-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            orographic-event-observatory-${{ runner.os }}-
+
+      - name: Collect timestamped event observations
+        run: |
+          EVENT_DATE="$(date -u +%F)"
+          mkdir -p engine/data/event_observatory/raw
+          if [ -n "${OROGRAPHIC_SEC_USER_AGENT}" ]; then
+            python scripts/fetch_sec_filings.py \
+              --start-date "${EVENT_DATE}" \
+              --end-date "${EVENT_DATE}" \
+              --snapshot web/data/latest_run.json \
+              --output engine/data/event_observatory/raw/sec_latest.csv \
+              --observatory-output engine/data/event_observatory/event_observatory.parquet \
+              --continue-on-error
+          else
+            echo "OROGRAPHIC_SEC_USER_AGENT is not configured; skipping SEC collection."
+          fi
+          python scripts/fetch_gdelt_macro.py \
+            --start-date "${EVENT_DATE}" \
+            --end-date "${EVENT_DATE}" \
+            --max-records-per-day 25 \
+            --resume \
+            --continue-on-error \
+            --output engine/data/event_observatory/raw/gdelt_macro.csv \
+            --observatory-output engine/data/event_observatory/event_observatory.parquet
+          python scripts/build_event_features.py \
+            --observatory-input engine/data/event_observatory/event_observatory.parquet \
+            --output engine/data/event_observatory/daily_event_features.parquet \
+            --replace
 
       - name: Mark pending prospective outcomes before scan
         if: ${{ env.TRADIER_ACCESS_TOKEN != '' || env.OROGRAPHIC_TRADIER_ACCESS_TOKEN != '' }}
@@ -95,6 +133,14 @@ jobs:
             --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
             --output-dir output/research_datasets
 
+      - name: Build point-in-time event outcome coverage
+        run: |
+          python scripts/build_event_outcome_coverage.py \
+            --observatory engine/data/event_observatory/event_observatory.parquet \
+            --outcomes output/research_datasets/all_recommendation_outcomes.parquet \
+            --output output/research_datasets/event_enriched_option_outcomes.parquet \
+            --report-output output/research_datasets/event_outcome_coverage.json
+
       - name: Audit research data capture
         run: |
           MIN_ARCHIVE_ROWS="$(python - <<'PY'
@@ -114,6 +160,9 @@ jobs:
             --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
             --research-dataset-dir output/research_datasets \
             --min-archive-rows "${MIN_ARCHIVE_ROWS}" \
+            --event-quality-report engine/data/event_observatory/event_observatory.parquet.quality.json \
+            --event-coverage-report output/research_datasets/event_outcome_coverage.json \
+            --event-enriched-dataset output/research_datasets/event_enriched_option_outcomes.parquet \
             --output output/research_datasets/research_data_capture_audit.json
 
       - name: Sync dashboard validation artifacts
@@ -293,6 +342,7 @@ jobs:
           python scripts/upload_research_artifacts_to_r2.py \
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
             engine/data/live_options_archive \
+            engine/data/event_observatory \
             output/research_datasets
 
       - name: Write scan health summary
@@ -357,6 +407,7 @@ jobs:
           name: orographic-live-research-data
           path: |
             engine/data/live_options_archive/
+            engine/data/event_observatory/
             output/research_datasets/
           retention-days: 90
 

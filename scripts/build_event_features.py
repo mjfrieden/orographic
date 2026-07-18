@@ -56,6 +56,13 @@ def parse_args() -> argparse.Namespace:
         help="Raw StockEmotions/StockTwits-style file (.csv/.json/.jsonl/.parquet). May be repeated.",
     )
     parser.add_argument(
+        "--observatory-input",
+        action="append",
+        type=Path,
+        default=None,
+        help="Normalized Event Observatory file. May be repeated.",
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=DEFAULT_EVENT_FEATURES_PATH,
@@ -79,6 +86,7 @@ def main() -> None:
         sec_inputs=args.sec_input or [],
         sec_8k_weight=args.sec_8k_weight,
         stockemotions_inputs=args.stockemotions_input or [],
+        observatory_inputs=args.observatory_input or [],
         merge_existing_path=merge_existing_path,
     )
     save_event_feature_store(frame, args.output)
