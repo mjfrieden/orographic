@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from engine.orographic.event_feature_builders import build_observatory_daily_features
+from engine.orographic.headline_intelligence import normalize_headlines
 from engine.orographic.event_observatory import (
     ObservatoryConflictError,
     assess_observatory_quality,
@@ -79,6 +80,28 @@ class EventObservatoryTests(unittest.TestCase):
         self.assertEqual(len(merged), 1)
         self.assertEqual(duplicates, 1)
         self.assertEqual(merged.iloc[0]["first_seen_at"], pd.Timestamp("2026-04-21T20:01:00Z"))
+
+    def test_classifier_enrichment_does_not_change_immutable_source_payload(self) -> None:
+        raw = pd.DataFrame(
+            [{
+                "source_event_id": "https://example.test/story-1",
+                "symbol": "AAPL",
+                "published_at": "2026-04-21T20:00:00Z",
+                "first_seen_at": "2026-04-21T20:01:00Z",
+                "headline": "Apple raises guidance after earnings beat",
+                "url": "https://example.test/story-1",
+            }]
+        )
+        existing, _ = normalize_observations(raw, source="gdelt_company_news", source_kind="news")
+        enriched, _ = normalize_headlines(raw, source="gdelt_company_news", default_source_quality=0.35)
+        incoming, _ = normalize_observations(enriched, source="gdelt_company_news", source_kind="news")
+
+        merged, duplicates = merge_observations(existing, incoming)
+
+        self.assertEqual(len(merged), 1)
+        self.assertEqual(duplicates, 1)
+        self.assertEqual(existing.iloc[0]["raw_payload_hash"], incoming.iloc[0]["raw_payload_hash"])
+        self.assertNotIn("headline_classifier_version", incoming.iloc[0]["raw_payload_json"])
 
     def test_immutable_merge_rejects_changed_payload_for_stable_event(self) -> None:
         raw = pd.DataFrame(
