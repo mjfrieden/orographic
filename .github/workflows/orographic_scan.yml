@@ -99,6 +99,12 @@ jobs:
             --health-output engine/data/event_observatory/gdelt_company_news_health.json \
             --review-queue engine/data/event_observatory/review/headline_review_queue.jsonl \
             --observatory-output engine/data/event_observatory/event_observatory.parquet
+          python scripts/fetch_company_ir_feeds.py \
+            --feeds engine/company_ir_feeds.json \
+            --output engine/data/event_observatory/raw/company_ir_latest.csv \
+            --health-output engine/data/event_observatory/company_ir_feed_health.json \
+            --review-queue engine/data/event_observatory/review/headline_review_queue.jsonl \
+            --observatory-output engine/data/event_observatory/event_observatory.parquet
           python scripts/build_event_features.py \
             --observatory-input engine/data/event_observatory/event_observatory.parquet \
             --output engine/data/event_observatory/daily_event_features.parquet \
