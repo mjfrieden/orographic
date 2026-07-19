@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from scripts.fetch_gdelt_company_news import load_aliases, map_symbols
+from scripts.fetch_gdelt_company_news import _chunks, load_aliases, map_symbols
 
 
 class GdeltCompanyNewsTests(unittest.TestCase):
@@ -28,6 +28,14 @@ class GdeltCompanyNewsTests(unittest.TestCase):
         aliases = {"T": ["AT&T"], "LOW": ["Lowe's"]}
 
         self.assertEqual(map_symbols("AT&T expands fiber near LOWE'S stores", aliases), ["T", "LOW"])
+
+    def test_default_sized_batches_reduce_request_count(self) -> None:
+        aliases = [(f"S{i}", f"Company {i}") for i in range(78)]
+
+        batches = list(_chunks(aliases, 20))
+
+        self.assertEqual(len(batches), 4)
+        self.assertEqual(sum(len(batch) for batch in batches), 78)
 
 
 if __name__ == "__main__":

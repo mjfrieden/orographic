@@ -26,12 +26,18 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--universe-file", type=Path, default=Path("engine/sample_universe.txt"))
     parser.add_argument("--aliases", type=Path, default=DEFAULT_ALIAS_PATH)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument(
+        "--health-output",
+        type=Path,
+        default=None,
+        help="Collection-health JSON path. Defaults to <output>.health.json.",
+    )
     parser.add_argument("--observatory-output", type=Path, default=None)
-    parser.add_argument("--batch-size", type=int, default=8)
+    parser.add_argument("--batch-size", type=int, default=20)
     parser.add_argument("--max-records-per-batch", type=int, default=50)
     parser.add_argument("--pause-seconds", type=float, default=2.0)
-    parser.add_argument("--retry-base-seconds", type=float, default=8.0)
-    parser.add_argument("--max-retries", type=int, default=4)
+    parser.add_argument("--retry-base-seconds", type=float, default=10.0)
+    parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--continue-on-error", action="store_true")
     return parser.parse_args()
@@ -81,6 +87,7 @@ def fetch_batch(
     pause_seconds: float,
     retry_base_seconds: float,
     max_retries: int,
+    metrics: dict[str, int] | None = None,
 ) -> list[dict[str, Any]]:
     query = "(" + " OR ".join(f'\"{alias}\"' for _, alias in batch) + ") sourcelang:english"
     startdatetime, enddatetime = _window(day)
@@ -95,6 +102,8 @@ def fetch_batch(
     url = "https://api.gdeltproject.org/api/v2/doc/doc?" + urllib.parse.urlencode(params)
     request = urllib.request.Request(url, headers={"User-Agent": DEFAULT_USER_AGENT})
     for attempt in range(max_retries + 1):
+        if metrics is not None:
+            metrics["request_attempts"] += 1
         try:
             with urllib.request.urlopen(request, timeout=60) as response:
                 articles = json.load(response).get("articles", [])
@@ -102,6 +111,8 @@ def fetch_batch(
             time.sleep(max(pause_seconds, 0.0))
             return [dict(article, first_seen_at=first_seen_at, query=query) for article in articles]
         except HTTPError as exc:
+            if metrics is not None and exc.code == 429:
+                metrics["http_429_responses"] += 1
             if exc.code != 429 or attempt >= max_retries:
                 raise
             time.sleep(retry_base_seconds * (attempt + 1))
@@ -118,6 +129,7 @@ def _load_existing(path: Path) -> tuple[list[dict[str, str]], set[tuple[str, str
 
 def main() -> None:
     args = _parse_args()
+    started_at = datetime.now(UTC)
     start, end = date.fromisoformat(args.start_date), date.fromisoformat(args.end_date)
     if end < start:
         raise ValueError("end-date must be on or after start-date")
@@ -134,9 +146,19 @@ def main() -> None:
         "domain", "sourcecountry", "language", "url", "query",
     ]
     rows, seen = _load_existing(args.output) if args.resume else ([], set())
+    initial_rows = len(rows)
+    metrics = {
+        "request_attempts": 0,
+        "http_429_responses": 0,
+        "failed_batches": 0,
+        "successful_batches": 0,
+        "articles_fetched": 0,
+    }
+    planned_batches = 0
     day = start
     while day <= end:
         for batch in _chunks(query_aliases, args.batch_size):
+            planned_batches += 1
             try:
                 articles = fetch_batch(
                     day,
@@ -145,12 +167,16 @@ def main() -> None:
                     pause_seconds=args.pause_seconds,
                     retry_base_seconds=args.retry_base_seconds,
                     max_retries=args.max_retries,
+                    metrics=metrics,
                 )
             except Exception as exc:
+                metrics["failed_batches"] += 1
                 if not args.continue_on_error:
                     raise
                 print(f"{day}: skipped batch after retries ({exc})")
                 continue
+            metrics["successful_batches"] += 1
+            metrics["articles_fetched"] += len(articles)
             batch_symbols = {symbol for symbol, _ in batch}
             scoped_aliases = {symbol: aliases[symbol] for symbol in batch_symbols}
             for article in articles:
@@ -181,6 +207,38 @@ def main() -> None:
         writer.writeheader()
         writer.writerows(rows)
     print(f"Saved {len(rows)} ticker-mapped company-news rows -> {args.output}")
+
+    completed_at = datetime.now(UTC)
+    new_rows = len(rows) - initial_rows
+    if metrics["successful_batches"] == 0:
+        status = "rate_limited" if metrics["http_429_responses"] else "failed"
+    elif metrics["failed_batches"]:
+        status = "partial"
+    elif new_rows == 0:
+        status = "empty"
+    else:
+        status = "healthy"
+    health = {
+        "artifact": "gdelt_company_news_feed_health",
+        "schema_version": 1,
+        "status": status,
+        "started_at_utc": started_at.isoformat(),
+        "completed_at_utc": completed_at.isoformat(),
+        "elapsed_seconds": round((completed_at - started_at).total_seconds(), 3),
+        "date_range": {"start": start.isoformat(), "end": end.isoformat()},
+        "universe_symbols": len(universe),
+        "configured_alias_symbols": len(aliases),
+        "planned_batches": planned_batches,
+        **metrics,
+        "existing_rows": initial_rows,
+        "new_rows": new_rows,
+        "total_rows": len(rows),
+        "mapped_symbols": len({str(row.get("symbol") or "") for row in rows if row.get("symbol")}),
+    }
+    health_output = args.health_output or args.output.with_suffix(args.output.suffix + ".health.json")
+    health_output.parent.mkdir(parents=True, exist_ok=True)
+    health_output.write_text(json.dumps(health, indent=2), encoding="utf-8")
+    print(f"Feed health: {status} -> {health_output}")
 
     if args.observatory_output:
         from engine.orographic.event_observatory import build_observatory, write_observatory, write_quality_report

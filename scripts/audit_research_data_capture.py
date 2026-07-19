@@ -56,6 +56,7 @@ def build_audit_report(
     event_quality_report: Path | None = None,
     event_coverage_report: Path | None = None,
     event_enriched_dataset: Path | None = None,
+    event_feed_health: Path | None = None,
 ) -> dict[str, Any]:
     archive = _load_json(live_archive_manifest)
     archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
@@ -72,6 +73,7 @@ def build_audit_report(
         event_coverage.get("summary") if isinstance(event_coverage.get("summary"), dict) else {}
     )
     event_enriched_rows = _dataset_rows(event_enriched_dataset) if event_enriched_dataset else -1
+    feed_health = _load_json(event_feed_health) if event_feed_health else {}
 
     archive_required = min_archive_rows > 0
     checks = [
@@ -181,7 +183,26 @@ def build_audit_report(
                 },
             ]
         )
+    if event_feed_health is not None:
+        checks.append(
+            {
+                "name": "event_feed_health_exists",
+                "passed": event_feed_health.exists(),
+                "actual": str(event_feed_health),
+            }
+        )
     failed = [check for check in checks if not bool(check["passed"])]
+    warnings = []
+    if feed_health and feed_health.get("status") != "healthy":
+        warnings.append(
+            {
+                "name": "event_feed_degraded",
+                "status": feed_health.get("status"),
+                "http_429_responses": int(feed_health.get("http_429_responses") or 0),
+                "failed_batches": int(feed_health.get("failed_batches") or 0),
+                "new_rows": int(feed_health.get("new_rows") or 0),
+            }
+        )
     return {
         "artifact": "research_data_capture_audit",
         "schema_version": 1,
@@ -200,9 +221,15 @@ def build_audit_report(
             "complete_outcome_event_coverage_pct": float(
                 event_coverage_summary.get("complete_outcome_event_coverage_pct") or 0.0
             ),
+            "event_feed_status": feed_health.get("status"),
+            "event_feed_new_rows": int(feed_health.get("new_rows") or 0),
+            "event_feed_mapped_symbols": int(feed_health.get("mapped_symbols") or 0),
+            "event_feed_http_429_responses": int(feed_health.get("http_429_responses") or 0),
+            "event_feed_elapsed_seconds": float(feed_health.get("elapsed_seconds") or 0.0),
         },
         "checks": checks,
         "failed_checks": failed,
+        "warnings": warnings,
     }
 
 
@@ -230,6 +257,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("output/research_datasets/event_enriched_option_outcomes.parquet"),
     )
+    parser.add_argument(
+        "--event-feed-health",
+        type=Path,
+        default=Path("engine/data/event_observatory/gdelt_company_news_health.json"),
+    )
     return parser.parse_args()
 
 
@@ -247,6 +279,7 @@ def main() -> int:
         event_quality_report=args.event_quality_report,
         event_coverage_report=args.event_coverage_report,
         event_enriched_dataset=args.event_enriched_dataset,
+        event_feed_health=args.event_feed_health,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")

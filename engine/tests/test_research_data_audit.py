@@ -32,6 +32,15 @@ class ResearchDataAuditTests(unittest.TestCase):
             quality.write_text(json.dumps({"rows": 3, "status": "passed"}))
             coverage = root / "event-coverage.json"
             coverage.write_text(json.dumps({"summary": {"rows_with_prior_events": 1, "complete_outcome_event_coverage_pct": 1.0}}))
+            feed_health = root / "feed-health.json"
+            feed_health.write_text(json.dumps({
+                "status": "partial",
+                "new_rows": 4,
+                "mapped_symbols": 3,
+                "http_429_responses": 1,
+                "failed_batches": 1,
+                "elapsed_seconds": 12.5,
+            }))
 
             report = build_audit_report(
                 live_archive_manifest=manifest,
@@ -43,11 +52,15 @@ class ResearchDataAuditTests(unittest.TestCase):
                 event_quality_report=quality,
                 event_coverage_report=coverage,
                 event_enriched_dataset=enriched,
+                event_feed_health=feed_health,
             )
 
         self.assertEqual(report["status"], "passed")
         self.assertEqual(report["summary"]["event_observation_rows"], 3)
         self.assertEqual(report["summary"]["rows_with_prior_events"], 1)
+        self.assertEqual(report["summary"]["event_feed_status"], "partial")
+        self.assertEqual(report["summary"]["event_feed_new_rows"], 4)
+        self.assertEqual(report["warnings"][0]["name"], "event_feed_degraded")
 
     def test_build_audit_report_passes_when_capture_artifacts_are_consistent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
