@@ -40,6 +40,21 @@ OBSERVATORY_COLUMNS = [
     "ingested_at",
 ]
 SOURCE_KINDS = {"news", "structured_event", "macro", "sec", "social"}
+# These are computed after collection. They may evolve with a classifier version and
+# must never redefine immutable source evidence or its replay hash.
+DERIVED_ENRICHMENT_FIELDS = {
+    "event_type",
+    "direction",
+    "sentiment",
+    "confidence",
+    "novelty",
+    "source_quality",
+    "requires_llm_review",
+    "headline_cluster_id",
+    "duplicate_cluster_size",
+    "headline_classifier_version",
+    "headline_classifier_source",
+}
 _COLUMN_ALIASES = {
     "source_event_id": ("source_event_id", "id", "event_id", "accession_number", "accession"),
     "symbol": ("symbol", "ticker", "stock", "cashtag", "company_symbol"),
@@ -155,10 +170,11 @@ def _hash_payload(payload: dict[str, Any]) -> str:
 
 
 def _source_payload(payload: dict[str, Any]) -> dict[str, Any]:
+    derived_fields = DERIVED_ENRICHMENT_FIELDS if "headline_classifier_version" in payload else set()
     collector_fields = {
         alias
         for alias in _COLUMN_ALIASES["first_seen_at"]
-    } | {"ingested_at", "effective_at"}
+    } | {"ingested_at", "effective_at"} | derived_fields
     return {
         str(key): value
         for key, value in payload.items()
