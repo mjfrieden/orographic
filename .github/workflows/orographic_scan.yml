@@ -88,12 +88,15 @@ jobs:
             --end-date "${EVENT_DATE}" \
             --universe-file engine/sample_universe.txt \
             --aliases engine/company_aliases.json \
-            --batch-size 8 \
+            --batch-size 20 \
             --max-records-per-batch 50 \
             --pause-seconds 2 \
+            --max-retries 1 \
+            --retry-base-seconds 10 \
             --resume \
             --continue-on-error \
             --output engine/data/event_observatory/raw/gdelt_company_news.csv \
+            --health-output engine/data/event_observatory/gdelt_company_news_health.json \
             --observatory-output engine/data/event_observatory/event_observatory.parquet
           python scripts/build_event_features.py \
             --observatory-input engine/data/event_observatory/event_observatory.parquet \
@@ -175,6 +178,7 @@ jobs:
             --event-quality-report engine/data/event_observatory/event_observatory.parquet.quality.json \
             --event-coverage-report output/research_datasets/event_outcome_coverage.json \
             --event-enriched-dataset output/research_datasets/event_enriched_option_outcomes.parquet \
+            --event-feed-health engine/data/event_observatory/gdelt_company_news_health.json \
             --output output/research_datasets/research_data_capture_audit.json
 
       - name: Sync dashboard validation artifacts
