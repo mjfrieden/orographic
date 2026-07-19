@@ -12,6 +12,10 @@ from pathlib import Path
 from typing import Any, Iterable
 from urllib.error import HTTPError
 
+import pandas as pd
+
+from engine.orographic.headline_intelligence import normalize_headlines
+
 
 DEFAULT_USER_AGENT = "OrographicEventResearch/1.0"
 DEFAULT_ALIAS_PATH = Path(__file__).resolve().parents[1] / "engine" / "company_aliases.json"
@@ -31,6 +35,12 @@ def _parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Collection-health JSON path. Defaults to <output>.health.json.",
+    )
+    parser.add_argument(
+        "--review-queue",
+        type=Path,
+        default=None,
+        help="Optional JSONL queue for low-confidence headline classifications.",
     )
     parser.add_argument("--observatory-output", type=Path, default=None)
     parser.add_argument("--batch-size", type=int, default=20)
@@ -201,12 +211,19 @@ def main() -> None:
                     })
         day += timedelta(days=1)
 
+    normalized, review = normalize_headlines(
+        pd.DataFrame(rows, columns=fields), source="gdelt_company_news", default_source_quality=0.35
+    )
+    fields = list(normalized.columns)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with args.output.open("w", encoding="utf-8", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(normalized.to_dict(orient="records"))
     print(f"Saved {len(rows)} ticker-mapped company-news rows -> {args.output}")
+    if args.review_queue and not review.empty:
+        args.review_queue.parent.mkdir(parents=True, exist_ok=True)
+        review.to_json(args.review_queue, orient="records", lines=True, mode="a")
 
     completed_at = datetime.now(UTC)
     new_rows = len(rows) - initial_rows
@@ -234,6 +251,8 @@ def main() -> None:
         "new_rows": new_rows,
         "total_rows": len(rows),
         "mapped_symbols": len({str(row.get("symbol") or "") for row in rows if row.get("symbol")}),
+        "headline_review_rows": len(review),
+        "headline_classifier_version": "headline_rules_v1",
     }
     health_output = args.health_output or args.output.with_suffix(args.output.suffix + ".health.json")
     health_output.parent.mkdir(parents=True, exist_ok=True)

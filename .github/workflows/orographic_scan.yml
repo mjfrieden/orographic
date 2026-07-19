@@ -97,6 +97,7 @@ jobs:
             --continue-on-error \
             --output engine/data/event_observatory/raw/gdelt_company_news.csv \
             --health-output engine/data/event_observatory/gdelt_company_news_health.json \
+            --review-queue engine/data/event_observatory/review/headline_review_queue.jsonl \
             --observatory-output engine/data/event_observatory/event_observatory.parquet
           python scripts/build_event_features.py \
             --observatory-input engine/data/event_observatory/event_observatory.parquet \
