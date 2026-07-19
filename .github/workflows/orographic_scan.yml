@@ -128,7 +128,7 @@ jobs:
         run: |
           python scripts/archive_live_option_chains.py \
             --snapshot web/data/latest_run.json \
-            --snapshot-symbols-only \
+            --minimum-universe-symbols 60 \
             --output-dir engine/data/live_options_archive
 
       - name: Mark due prospective pick outcomes

@@ -10,9 +10,21 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.live_options_archive import archive_live_option_chains
+from scripts.archive_live_option_chains import select_rotating_symbols
 
 
 class LiveOptionsArchiveTests(unittest.TestCase):
+    def test_rotation_preserves_candidates_and_expands_universe_coverage(self) -> None:
+        selected = select_rotating_symbols(
+            ["AAA", "BBB", "CCC", "DDD", "EEE"],
+            ["DDD", "AAA"],
+            minimum_universe_symbols=4,
+            rotation_offset=2,
+        )
+
+        self.assertEqual(selected[:2], ["DDD", "AAA"])
+        self.assertEqual(len([symbol for symbol in selected if symbol in {"AAA", "BBB", "CCC", "DDD", "EEE"}]), 4)
+        self.assertEqual(len(selected), len(set(selected)))
     def test_archive_live_option_chains_writes_empty_manifest_for_empty_symbols(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             result = archive_live_option_chains(

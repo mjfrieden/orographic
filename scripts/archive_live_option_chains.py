@@ -3,7 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 if __package__ in {None, ""}:
@@ -28,6 +28,29 @@ def _symbols_from_snapshot(path: Path) -> list[str]:
     return list(dict.fromkeys(symbols))
 
 
+def select_rotating_symbols(
+    universe: list[str],
+    priority_symbols: list[str],
+    *,
+    minimum_universe_symbols: int,
+    rotation_offset: int,
+) -> list[str]:
+    """Keep current candidates while rotating the wider universe through the archive."""
+    priority = list(dict.fromkeys(symbol.strip().upper() for symbol in priority_symbols if symbol.strip()))
+    universe = list(dict.fromkeys(symbol.strip().upper() for symbol in universe if symbol.strip()))
+    if not universe or minimum_universe_symbols <= 0:
+        return priority
+    offset = rotation_offset % len(universe)
+    rotated = universe[offset:] + universe[:offset]
+    selected = priority[:]
+    for symbol in rotated:
+        if symbol not in selected:
+            selected.append(symbol)
+        if len([item for item in selected if item in universe]) >= minimum_universe_symbols:
+            break
+    return selected
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Archive live option chains for future Orographic model training.")
     parser.add_argument("--output-dir", type=Path, default=Path("engine/data/live_options_archive"))
@@ -38,6 +61,18 @@ def parse_args() -> argparse.Namespace:
         "--snapshot-symbols-only",
         action="store_true",
         help="Archive only symbols observed in the latest snapshot instead of the full universe.",
+    )
+    parser.add_argument(
+        "--minimum-universe-symbols",
+        type=int,
+        default=0,
+        help="Rotate this many universe symbols into each archive run, in addition to snapshot candidates.",
+    )
+    parser.add_argument(
+        "--rotation-offset",
+        type=int,
+        default=None,
+        help="Optional deterministic universe rotation offset; defaults to the current UTC hour slot.",
     )
     parser.add_argument("--min-dte", type=int, default=1)
     parser.add_argument("--max-dte", type=int, default=45)
@@ -54,6 +89,17 @@ def main() -> int:
         symbols = _symbols_from_snapshot(args.snapshot)
     else:
         symbols = load_universe(args.universe_file)
+    if not args.symbols.strip() and args.minimum_universe_symbols > 0:
+        universe = load_universe(args.universe_file)
+        offset = args.rotation_offset
+        if offset is None:
+            offset = int(datetime.now(UTC).strftime("%Y%m%d%H"))
+        symbols = select_rotating_symbols(
+            universe,
+            _symbols_from_snapshot(args.snapshot),
+            minimum_universe_symbols=max(int(args.minimum_universe_symbols), 0),
+            rotation_offset=offset,
+        )
     quote_date = date.fromisoformat(args.quote_date) if args.quote_date.strip() else None
     result = archive_live_option_chains(
         symbols,
