@@ -1,12 +1,12 @@
 {
   "artifact": "scan_health_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-07-19T22:11:13.534800Z",
-  "status": "failed",
+  "generated_at_utc": "2026-07-19T22:26:37.191866Z",
+  "status": "passed",
   "snapshot": {
     "path": "web/data/latest_run.json",
-    "generated_at_utc": "2026-07-19T22:06:42+00:00",
-    "age_minutes": 4.53,
+    "generated_at_utc": "2026-07-19T22:22:11+00:00",
+    "age_minutes": 4.44,
     "regime_mode": "risk_off",
     "regime_bias": -0.244,
     "scout_signal_count": 33,
@@ -20,10 +20,10 @@
     "prospective": {
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-07-19T22:07:28+00:00",
-      "runs": 140,
-      "picks": 1326,
-      "pending": 344,
+      "updated_at_utc": "2026-07-19T22:23:07+00:00",
+      "runs": 141,
+      "picks": 1338,
+      "pending": 356,
       "partial": 20,
       "complete": 962,
       "with_any_mark": 982,
@@ -36,10 +36,10 @@
     "moonshot": {
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-07-19T22:07:29+00:00",
-      "runs": 98,
-      "picks": 307,
-      "pending": 6,
+      "updated_at_utc": "2026-07-19T22:23:08+00:00",
+      "runs": 99,
+      "picks": 310,
+      "pending": 9,
       "partial": 30,
       "complete": 271,
       "with_any_mark": 301,
@@ -56,33 +56,33 @@
   "research": {
     "audit_status": "passed",
     "audit_summary": {
-      "archived_rows": 35986,
-      "archived_symbols": 59,
-      "prospective_ledger_pick_rows": 1326,
-      "moonshot_ledger_pick_rows": 307,
-      "recommendation_dataset_rows": 1326,
-      "moonshot_dataset_rows": 307,
-      "combined_dataset_rows": 1633,
-      "event_observation_rows": 188,
-      "event_enriched_dataset_rows": 1633,
-      "rows_with_prior_events": 90,
+      "archived_rows": 36282,
+      "archived_symbols": 60,
+      "prospective_ledger_pick_rows": 1338,
+      "moonshot_ledger_pick_rows": 310,
+      "recommendation_dataset_rows": 1338,
+      "moonshot_dataset_rows": 310,
+      "combined_dataset_rows": 1648,
+      "event_observation_rows": 258,
+      "event_enriched_dataset_rows": 1648,
+      "rows_with_prior_events": 105,
       "complete_outcome_event_coverage_pct": 0.0,
       "event_feed_status": "rate_limited",
       "event_feed_new_rows": 0,
       "event_feed_mapped_symbols": 31,
-      "event_feed_http_429_responses": 4,
-      "event_feed_elapsed_seconds": 90.178
+      "event_feed_http_429_responses": 5,
+      "event_feed_elapsed_seconds": 104.256
     },
-    "archive_rows": 35986,
-    "archive_symbols": 59,
-    "recommendation_dataset_rows": 1326,
-    "moonshot_dataset_rows": 307,
-    "combined_dataset_rows": 1633
+    "archive_rows": 36282,
+    "archive_symbols": 60,
+    "recommendation_dataset_rows": 1338,
+    "moonshot_dataset_rows": 310,
+    "combined_dataset_rows": 1648
   },
   "publishing": {
     "dashboard_push_status": "success",
     "dashboard_deploy_status": "success",
-    "r2_status": "failure"
+    "r2_status": "success"
   },
   "checks": [
     {
@@ -93,7 +93,7 @@
     {
       "name": "snapshot_is_fresh",
       "passed": true,
-      "actual_age_minutes": 4.53,
+      "actual_age_minutes": 4.44,
       "max_age_minutes": 240
     },
     {
@@ -130,7 +130,7 @@
     {
       "name": "archive_rows_captured",
       "passed": true,
-      "actual": 35986
+      "actual": 36282
     },
     {
       "name": "research_audit_passed",
@@ -140,14 +140,14 @@
     {
       "name": "recommendation_dataset_rows",
       "passed": true,
-      "actual": 1326,
+      "actual": 1338,
       "required_min": 1
     },
     {
       "name": "combined_dataset_consistency",
       "passed": true,
-      "actual": 1633,
-      "expected": 1633
+      "actual": 1648,
+      "expected": 1648
     },
     {
       "name": "dashboard_push_completed",
@@ -161,15 +161,9 @@
     },
     {
       "name": "r2_archival_completed",
-      "passed": false,
-      "actual": "failure"
+      "passed": true,
+      "actual": "success"
     }
   ],
-  "failed_checks": [
-    {
-      "name": "r2_archival_completed",
-      "passed": false,
-      "actual": "failure"
-    }
-  ]
+  "failed_checks": []
 }
