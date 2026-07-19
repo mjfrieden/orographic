@@ -163,6 +163,12 @@ jobs:
             --output output/research_datasets/event_enriched_option_outcomes.parquet \
             --report-output output/research_datasets/event_outcome_coverage.json
 
+      - name: Evaluate event feature promotion readiness
+        run: |
+          python scripts/evaluate_event_scout_ablation.py \
+            --input output/research_datasets/event_enriched_option_outcomes.parquet \
+            --output output/research_datasets/event_scout_ablation.json
+
       - name: Audit research data capture
         run: |
           MIN_ARCHIVE_ROWS="$(python - <<'PY'
