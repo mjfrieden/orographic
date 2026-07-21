@@ -2,6 +2,9 @@ name: Orographic Scan
 
 on:
   workflow_dispatch:
+  schedule:
+    # Temporary fallback until the Cloudflare cron dispatcher is deployed.
+    - cron: "7 14,17,20 * * 1-5"
 
 concurrency:
   group: orographic-scan-${{ github.ref }}

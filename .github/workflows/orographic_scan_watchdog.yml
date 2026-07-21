@@ -2,6 +2,9 @@ name: Orographic Scan Watchdog
 
 on:
   workflow_dispatch:
+  schedule:
+    # Temporary fallback until the Cloudflare cron dispatcher is deployed.
+    - cron: "25 14,17,20 * * 1-5"
 
 permissions:
   actions: write
