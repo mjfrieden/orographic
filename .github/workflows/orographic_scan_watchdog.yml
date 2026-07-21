@@ -2,10 +2,6 @@ name: Orographic Scan Watchdog
 
 on:
   workflow_dispatch:
-  schedule:
-    # Check shortly after each expected weekday scan slot and trigger a fallback
-    # dispatch when GitHub skipped the scheduled event entirely.
-    - cron: "25 14,17,20 * * 1-5"
 
 permissions:
   actions: write

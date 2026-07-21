@@ -2,10 +2,6 @@ name: Orographic Scan
 
 on:
   workflow_dispatch:
-  schedule:
-    # 14:07, 17:07, and 20:07 UTC on weekdays.
-    # This is 9:07 AM, 12:07 PM, and 3:07 PM in America/Chicago during daylight saving time.
-    - cron: "7 14,17,20 * * 1-5"
 
 concurrency:
   group: orographic-scan-${{ github.ref }}
