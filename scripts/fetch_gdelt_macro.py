@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 
+from scripts.gdelt_cooldown import DEFAULT_COOLDOWN_HOURS, load_cooldown, record_rate_limit, retry_after_seconds
+
 
 DEFAULT_QUERY = (
     "(war OR attack OR sanction OR ceasefire OR oil OR opec OR diplomatic "
@@ -82,6 +84,8 @@ def _parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip day windows that still fail after retries instead of aborting the full run.",
     )
+    parser.add_argument("--cooldown-state", type=Path, default=None)
+    parser.add_argument("--cooldown-hours", type=float, default=DEFAULT_COOLDOWN_HOURS)
     return parser.parse_args()
 
 
@@ -182,9 +186,13 @@ def main() -> None:
     existing_rows, seen_urls = _load_existing_rows(args.output) if args.resume else ([], set())
     rows = existing_rows[:]
 
+    cooldown = load_cooldown(args.cooldown_state) if args.cooldown_state else None
+    if cooldown:
+        print(f"Skipping GDELT macro requests during provider cooldown until {cooldown['cooldown_until_utc']}")
+
     print(f"Fetching {len(days)} day windows from {start.isoformat()} to {end.isoformat()}")
     print(f"Query: {args.query}")
-    for day in days:
+    for day in ([] if cooldown else days):
         before = len(rows)
         try:
             fetched = _fetch_articles_for_day(
@@ -196,6 +204,15 @@ def main() -> None:
                 max_retries=args.max_retries,
             )
         except Exception as exc:
+            if isinstance(exc, HTTPError) and exc.code == 429 and args.cooldown_state:
+                cooldown = record_rate_limit(
+                    args.cooldown_state,
+                    source="gdelt_macro",
+                    cooldown_hours=args.cooldown_hours,
+                    retry_after_seconds=retry_after_seconds(exc),
+                )
+                print(f"{day.isoformat()}: GDELT rate limit activated provider cooldown")
+                break
             if not args.continue_on_error:
                 raise
             print(f"{day.isoformat()}: skipped after retries ({exc})")

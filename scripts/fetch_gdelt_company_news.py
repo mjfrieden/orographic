@@ -15,6 +15,7 @@ from urllib.error import HTTPError
 import pandas as pd
 
 from engine.orographic.headline_intelligence import normalize_headlines
+from scripts.gdelt_cooldown import DEFAULT_COOLDOWN_HOURS, load_cooldown, record_rate_limit, retry_after_seconds
 
 
 DEFAULT_USER_AGENT = "OrographicEventResearch/1.0"
@@ -50,6 +51,8 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument("--max-retries", type=int, default=1)
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--continue-on-error", action="store_true")
+    parser.add_argument("--cooldown-state", type=Path, default=None)
+    parser.add_argument("--cooldown-hours", type=float, default=DEFAULT_COOLDOWN_HOURS)
     return parser.parse_args()
 
 
@@ -164,9 +167,13 @@ def main() -> None:
         "successful_batches": 0,
         "articles_fetched": 0,
     }
+    cooldown = load_cooldown(args.cooldown_state) if args.cooldown_state else None
+    stopped_for_rate_limit = False
+    batches_per_day = len(list(_chunks(query_aliases, args.batch_size)))
+    total_planned_batches = ((end - start).days + 1) * batches_per_day
     planned_batches = 0
     day = start
-    while day <= end:
+    while day <= end and not cooldown and not stopped_for_rate_limit:
         for batch in _chunks(query_aliases, args.batch_size):
             planned_batches += 1
             try:
@@ -181,6 +188,17 @@ def main() -> None:
                 )
             except Exception as exc:
                 metrics["failed_batches"] += 1
+                if isinstance(exc, HTTPError) and exc.code == 429:
+                    stopped_for_rate_limit = True
+                    if args.cooldown_state:
+                        cooldown = record_rate_limit(
+                            args.cooldown_state,
+                            source="gdelt_company_news",
+                            cooldown_hours=args.cooldown_hours,
+                            retry_after_seconds=retry_after_seconds(exc),
+                        )
+                    print(f"{day}: GDELT rate limit activated provider cooldown")
+                    break
                 if not args.continue_on_error:
                     raise
                 print(f"{day}: skipped batch after retries ({exc})")
@@ -227,7 +245,9 @@ def main() -> None:
 
     completed_at = datetime.now(UTC)
     new_rows = len(rows) - initial_rows
-    if metrics["successful_batches"] == 0:
+    if cooldown and metrics["request_attempts"] == 0:
+        status = "rate_limit_cooldown"
+    elif metrics["successful_batches"] == 0:
         status = "rate_limited" if metrics["http_429_responses"] else "failed"
     elif metrics["failed_batches"]:
         status = "partial"
@@ -246,6 +266,7 @@ def main() -> None:
         "universe_symbols": len(universe),
         "configured_alias_symbols": len(aliases),
         "planned_batches": planned_batches,
+        "total_planned_batches": total_planned_batches,
         **metrics,
         "existing_rows": initial_rows,
         "new_rows": new_rows,
@@ -253,6 +274,9 @@ def main() -> None:
         "mapped_symbols": len({str(row.get("symbol") or "") for row in rows if row.get("symbol")}),
         "headline_review_rows": len(review),
         "headline_classifier_version": "headline_rules_v1",
+        "provider_degraded": bool(cooldown or metrics["http_429_responses"]),
+        "requests_skipped_for_cooldown": total_planned_batches if planned_batches == 0 and cooldown else 0,
+        "cooldown": cooldown,
     }
     health_output = args.health_output or args.output.with_suffix(args.output.suffix + ".health.json")
     health_output.parent.mkdir(parents=True, exist_ok=True)

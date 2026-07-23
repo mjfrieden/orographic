@@ -75,8 +75,10 @@ jobs:
             --start-date "${EVENT_DATE}" \
             --end-date "${EVENT_DATE}" \
             --max-records-per-day 25 \
+            --max-retries 0 \
             --resume \
             --continue-on-error \
+            --cooldown-state engine/data/event_observatory/gdelt_cooldown.json \
             --output engine/data/event_observatory/raw/gdelt_macro.csv \
             --observatory-output engine/data/event_observatory/event_observatory.parquet
           python scripts/fetch_gdelt_company_news.py \
@@ -87,10 +89,11 @@ jobs:
             --batch-size 20 \
             --max-records-per-batch 50 \
             --pause-seconds 2 \
-            --max-retries 1 \
+            --max-retries 0 \
             --retry-base-seconds 10 \
             --resume \
             --continue-on-error \
+            --cooldown-state engine/data/event_observatory/gdelt_cooldown.json \
             --output engine/data/event_observatory/raw/gdelt_company_news.csv \
             --health-output engine/data/event_observatory/gdelt_company_news_health.json \
             --review-queue engine/data/event_observatory/review/headline_review_queue.jsonl \
@@ -155,7 +158,7 @@ jobs:
         run: |
           python scripts/build_event_outcome_coverage.py \
             --observatory engine/data/event_observatory/event_observatory.parquet \
-            --outcomes output/research_datasets/all_recommendation_outcomes.parquet \
+            --outcomes output/research_datasets/option_recommendation_outcomes.parquet \
             --output output/research_datasets/event_enriched_option_outcomes.parquet \
             --report-output output/research_datasets/event_outcome_coverage.json
 
