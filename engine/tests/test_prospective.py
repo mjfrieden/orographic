@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import json
+from urllib.error import URLError
 from urllib.parse import parse_qs, urlparse
 import unittest
 from unittest import mock
@@ -162,6 +163,31 @@ class ProspectiveLedgerTests(unittest.TestCase):
 
         self.assertEqual(requested_batches, [symbols[:2], symbols[2:4], symbols[4:]])
         self.assertEqual(sorted(quotes.keys()), sorted(symbols))
+
+    def test_fetch_tradier_quotes_retries_transient_timeout(self) -> None:
+        class _Response:
+            def read(self) -> bytes:
+                return json.dumps({"quotes": {"quote": {"symbol": "AAA", "bid": 1.0, "ask": 1.2}}}).encode("utf-8")
+
+            def __enter__(self) -> "_Response":
+                return self
+
+            def __exit__(self, exc_type, exc, tb) -> bool:
+                return False
+
+        env = {"TRADIER_ACCESS_TOKEN": "token", "TRADIER_BASE_URL": "https://api.tradier.com/v1"}
+        with (
+            mock.patch(
+                "engine.orographic.prospective.urlopen",
+                side_effect=[URLError("timed out"), _Response()],
+            ) as urlopen_mock,
+            mock.patch("engine.orographic.prospective.time_module.sleep") as sleep_mock,
+        ):
+            quotes = fetch_tradier_quotes(["AAA"], env=env)
+
+        self.assertEqual(quotes["AAA"]["symbol"], "AAA")
+        self.assertEqual(urlopen_mock.call_count, 2)
+        sleep_mock.assert_called_once_with(1)
 
 
 if __name__ == "__main__":

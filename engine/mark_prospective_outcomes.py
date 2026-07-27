@@ -4,6 +4,7 @@ import argparse
 import logging
 import sys
 from pathlib import Path
+from urllib.error import URLError
 
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -38,6 +39,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Exit successfully when the ledger file does not exist yet.",
     )
+    parser.add_argument(
+        "--allow-quote-fetch-failure",
+        action="store_true",
+        help="Log a Tradier quote fetch failure and preserve the ledger instead of failing the process.",
+    )
     return parser.parse_args()
 
 
@@ -46,7 +52,13 @@ def main() -> int:
     if args.ignore_missing and not Path(args.ledger).exists():
         log.info("Prospective ledger %s does not exist yet; skipping.", args.ledger)
         return 0
-    path, stats = mark_prospective_ledger_file(args.ledger, max_symbols=max(int(args.max_symbols), 1))
+    try:
+        path, stats = mark_prospective_ledger_file(args.ledger, max_symbols=max(int(args.max_symbols), 1))
+    except (TimeoutError, URLError) as exc:
+        if not args.allow_quote_fetch_failure:
+            raise
+        log.warning("Unable to fetch Tradier quotes; preserving %s unchanged: %s", args.ledger, exc)
+        return 0
     log.info(
         "Updated %s: entries=%d picks=%d marks_written=%d quotes_missing=%d complete=%d partial=%d pending=%d.",
         path,

@@ -4,7 +4,10 @@ from datetime import datetime, time, timedelta, timezone
 import json
 import os
 from pathlib import Path
+import socket
+import time as time_module
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from zoneinfo import ZoneInfo
@@ -15,6 +18,8 @@ from .positions import DEFAULT_LIVE_BASE_URL, DEFAULT_SANDBOX_BASE_URL, _as_numb
 MARKET_TZ = ZoneInfo("America/Chicago")
 MARK_CLOSE_BUFFER = time(15, 5)
 DEFAULT_TRADIER_QUOTE_BATCH_SIZE = 75
+DEFAULT_TRADIER_QUOTE_TIMEOUT_SECONDS = 20
+DEFAULT_TRADIER_QUOTE_RETRIES = 2
 
 
 def _parse_dt(raw: object) -> datetime | None:
@@ -51,6 +56,29 @@ def _quote_batch_size(source: dict[str, str]) -> int:
     except (TypeError, ValueError):
         parsed = DEFAULT_TRADIER_QUOTE_BATCH_SIZE
     return max(parsed, 1)
+
+
+def _quote_request_retries(source: dict[str, str]) -> int:
+    raw = source.get("TRADIER_QUOTE_RETRIES") or source.get("OROGRAPHIC_TRADIER_QUOTE_RETRIES")
+    try:
+        parsed = int(str(raw).strip())
+    except (TypeError, ValueError):
+        parsed = DEFAULT_TRADIER_QUOTE_RETRIES
+    return max(parsed, 0)
+
+
+def _is_transient_quote_error(exc: OSError) -> bool:
+    if isinstance(exc, HTTPError):
+        return exc.code == 429 or 500 <= exc.code < 600
+    if isinstance(exc, (TimeoutError, socket.timeout)):
+        return True
+    if isinstance(exc, URLError):
+        reason = exc.reason
+        if isinstance(reason, (TimeoutError, socket.timeout)):
+            return True
+        message = str(reason).lower()
+        return any(marker in message for marker in ("timed out", "temporarily unavailable", "connection reset"))
+    return False
 
 
 def due_fixed_exit_windows(run_generated_at_utc: str, now_utc: datetime | None = None) -> dict[str, bool]:
@@ -245,13 +273,21 @@ def fetch_tradier_quotes(
     if not cleaned:
         return {}
     effective_batch_size = max(batch_size or _quote_batch_size(source), 1)
+    retries = _quote_request_retries(source)
     quotes: dict[str, dict[str, Any]] = {}
     for start in range(0, len(cleaned), effective_batch_size):
         batch = cleaned[start : start + effective_batch_size]
         url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(batch), 'greeks': 'false'})}"
         request = Request(url, headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
-        with urlopen(request, timeout=20) as response:
-            payload = json.loads(response.read().decode("utf-8"))
+        for attempt in range(retries + 1):
+            try:
+                with urlopen(request, timeout=DEFAULT_TRADIER_QUOTE_TIMEOUT_SECONDS) as response:
+                    payload = json.loads(response.read().decode("utf-8"))
+                break
+            except OSError as exc:
+                if not _is_transient_quote_error(exc) or attempt == retries:
+                    raise
+                time_module.sleep(attempt + 1)
         quotes.update(normalize_quotes(payload))
     return quotes
 

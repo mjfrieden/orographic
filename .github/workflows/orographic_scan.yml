@@ -114,10 +114,12 @@ jobs:
         run: |
           python engine/mark_prospective_outcomes.py \
             --ledger web/data/diagnostics/prospective_pick_ledger.json \
-            --ignore-missing
+            --ignore-missing \
+            --allow-quote-fetch-failure
           python engine/mark_prospective_outcomes.py \
             --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
-            --ignore-missing
+            --ignore-missing \
+            --allow-quote-fetch-failure
 
       - name: Run Orographic scan
         run: |
@@ -135,10 +137,12 @@ jobs:
         run: |
           python engine/mark_prospective_outcomes.py \
             --ledger web/data/diagnostics/prospective_pick_ledger.json \
-            --ignore-missing
+            --ignore-missing \
+            --allow-quote-fetch-failure
           python engine/mark_prospective_outcomes.py \
             --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
-            --ignore-missing
+            --ignore-missing \
+            --allow-quote-fetch-failure
 
       - name: Mark archived quote path outcomes
         run: |
@@ -158,7 +162,7 @@ jobs:
         run: |
           python scripts/build_event_outcome_coverage.py \
             --observatory engine/data/event_observatory/event_observatory.parquet \
-            --outcomes output/research_datasets/option_recommendation_outcomes.parquet \
+            --outcomes output/research_datasets/all_recommendation_outcomes.parquet \
             --output output/research_datasets/event_enriched_option_outcomes.parquet \
             --report-output output/research_datasets/event_outcome_coverage.json
 
