@@ -1,12 +1,12 @@
 {
   "artifact": "scan_health_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-07-27T20:16:35.532073Z",
-  "status": "passed",
+  "generated_at_utc": "2026-07-28T14:07:55.467846Z",
+  "status": "failed",
   "snapshot": {
     "path": "web/data/latest_run.json",
     "generated_at_utc": "2026-07-27T20:11:57+00:00",
-    "age_minutes": 4.64,
+    "age_minutes": 1075.97,
     "regime_mode": "neutral",
     "regime_bias": 0.0601,
     "scout_signal_count": 36,
@@ -54,35 +54,18 @@
     "quote_coverage_pct": 1.0
   },
   "research": {
-    "audit_status": "passed",
-    "audit_summary": {
-      "archived_rows": 32170,
-      "archived_symbols": 60,
-      "prospective_ledger_pick_rows": 1465,
-      "moonshot_ledger_pick_rows": 354,
-      "recommendation_dataset_rows": 1465,
-      "moonshot_dataset_rows": 354,
-      "combined_dataset_rows": 1819,
-      "event_observation_rows": 927,
-      "event_enriched_dataset_rows": 1819,
-      "rows_with_prior_events": 276,
-      "complete_outcome_event_coverage_pct": 0.0467,
-      "event_feed_status": "rate_limit_cooldown",
-      "event_feed_new_rows": 0,
-      "event_feed_mapped_symbols": 31,
-      "event_feed_http_429_responses": 0,
-      "event_feed_elapsed_seconds": 0.07
-    },
-    "archive_rows": 32170,
-    "archive_symbols": 60,
-    "recommendation_dataset_rows": 1465,
-    "moonshot_dataset_rows": 354,
-    "combined_dataset_rows": 1819
+    "audit_status": null,
+    "audit_summary": {},
+    "archive_rows": 0,
+    "archive_symbols": 0,
+    "recommendation_dataset_rows": -1,
+    "moonshot_dataset_rows": -1,
+    "combined_dataset_rows": -1
   },
   "publishing": {
-    "dashboard_push_status": "success",
-    "dashboard_deploy_status": "success",
-    "r2_status": "success"
+    "dashboard_push_status": "skipped",
+    "dashboard_deploy_status": "skipped",
+    "r2_status": "skipped"
   },
   "checks": [
     {
@@ -92,8 +75,8 @@
     },
     {
       "name": "snapshot_is_fresh",
-      "passed": true,
-      "actual_age_minutes": 4.64,
+      "passed": false,
+      "actual_age_minutes": 1075.97,
       "max_age_minutes": 240
     },
     {
@@ -124,46 +107,80 @@
     },
     {
       "name": "archive_manifest_exists",
-      "passed": true,
+      "passed": false,
       "path": "engine/data/live_options_archive/coverage_manifest.json"
     },
     {
       "name": "archive_rows_captured",
-      "passed": true,
-      "actual": 32170
+      "passed": false,
+      "actual": 0
     },
     {
       "name": "research_audit_passed",
-      "passed": true,
-      "actual": "passed"
+      "passed": false,
+      "actual": null
     },
     {
       "name": "recommendation_dataset_rows",
-      "passed": true,
-      "actual": 1465,
+      "passed": false,
+      "actual": -1,
       "required_min": 1
     },
     {
       "name": "combined_dataset_consistency",
-      "passed": true,
-      "actual": 1819,
-      "expected": 1819
+      "passed": false,
+      "actual": -1,
+      "expected": -2
     },
     {
       "name": "dashboard_push_completed",
       "passed": true,
-      "actual": "success"
+      "actual": "skipped"
     },
     {
       "name": "dashboard_deploy_completed",
       "passed": true,
-      "actual": "success"
+      "actual": "skipped"
     },
     {
       "name": "r2_archival_completed",
       "passed": true,
-      "actual": "success"
+      "actual": "skipped"
     }
   ],
-  "failed_checks": []
+  "failed_checks": [
+    {
+      "name": "snapshot_is_fresh",
+      "passed": false,
+      "actual_age_minutes": 1075.97,
+      "max_age_minutes": 240
+    },
+    {
+      "name": "archive_manifest_exists",
+      "passed": false,
+      "path": "engine/data/live_options_archive/coverage_manifest.json"
+    },
+    {
+      "name": "archive_rows_captured",
+      "passed": false,
+      "actual": 0
+    },
+    {
+      "name": "research_audit_passed",
+      "passed": false,
+      "actual": null
+    },
+    {
+      "name": "recommendation_dataset_rows",
+      "passed": false,
+      "actual": -1,
+      "required_min": 1
+    },
+    {
+      "name": "combined_dataset_consistency",
+      "passed": false,
+      "actual": -1,
+      "expected": -2
+    }
+  ]
 }
