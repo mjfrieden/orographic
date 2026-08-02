@@ -123,7 +123,34 @@ class EventObservatoryTests(unittest.TestCase):
         with self.assertRaises(ObservatoryConflictError):
             merge_observations(existing, changed)
 
-    def test_immutable_merge_rejects_conflicting_payloads_within_one_input(self) -> None:
+    def test_revised_source_payload_at_stable_url_is_a_new_event_version(self) -> None:
+        original = pd.DataFrame(
+            [{
+                "source_event_id": "https://investor.example.test/releases/1",
+                "symbol": "AAPL",
+                "published_at": "2026-04-21T12:00:00Z",
+                "headline": "Apple announces results",
+                "url": "https://investor.example.test/releases/1",
+            }]
+        )
+        revised = original.copy()
+        revised.loc[:, "headline"] = "Apple announces updated results"
+
+        existing, _ = normalize_observations(
+            original, source="company_ir", source_kind="news", observed_at="2026-04-21T12:01:00Z"
+        )
+        incoming, _ = normalize_observations(
+            revised, source="company_ir", source_kind="news", observed_at="2026-04-21T12:02:00Z"
+        )
+
+        merged, duplicates = merge_observations(existing, incoming)
+
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(duplicates, 0)
+        self.assertEqual(merged["source_event_id"].nunique(), 1)
+        self.assertEqual(merged["event_id"].nunique(), 2)
+
+    def test_revised_payloads_within_one_input_are_preserved_as_versions(self) -> None:
         raw = pd.DataFrame(
             [
                 {
@@ -144,8 +171,11 @@ class EventObservatoryTests(unittest.TestCase):
             raw, source="wire", source_kind="news", observed_at="2026-04-21T12:01:00Z"
         )
 
-        with self.assertRaises(ObservatoryConflictError):
-            merge_observations(pd.DataFrame(), incoming)
+        merged, duplicates = merge_observations(pd.DataFrame(), incoming)
+
+        self.assertEqual(len(merged), 2)
+        self.assertEqual(duplicates, 0)
+        self.assertEqual(merged["event_id"].nunique(), 2)
 
     def test_quality_report_measures_coverage_and_collection_delay(self) -> None:
         raw = pd.DataFrame(

@@ -185,7 +185,11 @@ def _source_payload(payload: dict[str, Any]) -> dict[str, Any]:
 def _event_fingerprint(row: dict[str, Any]) -> str:
     stable_source_id = _clean_text(row.get("source_event_id"))
     if stable_source_id:
-        identity = f"{row['source']}|{stable_source_id}|{row['symbol']}"
+        # Publishers can revise an item in-place while retaining its permalink.  The
+        # source ID locates the item, while the immutable raw-payload hash identifies
+        # its specific version.  Keeping both lets the observatory preserve the
+        # original evidence and ingest a revision without treating it as corruption.
+        identity = f"{row['source']}|{stable_source_id}|{row['symbol']}|{row['raw_payload_hash']}"
     else:
         headline = re.sub(r"[^a-z0-9]+", " ", row["headline"].lower()).strip()
         identity = "|".join(
