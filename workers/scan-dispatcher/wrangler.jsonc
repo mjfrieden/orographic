@@ -15,7 +15,9 @@
   },
   "triggers": {
     "crons": [
-      "7 14,17,20 * * 1-5"
+      // The paired UTC hours cover both Chicago offsets; the Worker dispatches
+      // only at 09:07, 12:07, and 15:07 America/Chicago on weekdays.
+      "7 14,15,17,18,20,21 * * MON-FRI"
     ]
   }
 }

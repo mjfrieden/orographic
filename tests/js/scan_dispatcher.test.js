@@ -1,7 +1,29 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { dispatchScan, dispatchUrl } from "../../workers/scan-dispatcher/src/index.js";
+import worker, {
+  dispatchScan,
+  dispatchUrl,
+  isChicagoScanSlot,
+} from "../../workers/scan-dispatcher/src/index.js";
+
+test("recognizes Chicago scan slots across daylight saving time", () => {
+  assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T14:07:00Z")), true);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-01-05T15:07:00Z")), true);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T15:07:00Z")), false);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-08-02T14:07:00Z")), false);
+});
+
+test("does not dispatch for paired UTC hours outside a Chicago scan slot", async () => {
+  let waited = false;
+  await worker.scheduled(
+    { cron: "7 14,15 * * MON-FRI", scheduledTime: Date.parse("2026-08-03T15:07:00Z") },
+    { GITHUB_DISPATCH_TOKEN: "secret" },
+    { waitUntil: () => { waited = true; } }
+  );
+
+  assert.equal(waited, false);
+});
 
 test("builds the configured GitHub workflow URL", () => {
   assert.equal(

@@ -1,4 +1,31 @@
 const GITHUB_API_VERSION = "2022-11-28";
+const CHICAGO_TIME_ZONE = "America/Chicago";
+const CHICAGO_SCAN_HOURS = new Set([9, 12, 15]);
+
+function chicagoTimeParts(scheduledTime) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CHICAGO_TIME_ZONE,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date(scheduledTime));
+
+  return Object.fromEntries(
+    parts
+      .filter(({ type }) => type !== "literal")
+      .map(({ type, value }) => [type, value])
+  );
+}
+
+export function isChicagoScanSlot(scheduledTime) {
+  const { weekday, hour, minute } = chicagoTimeParts(scheduledTime);
+  return (
+    ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) &&
+    minute === "07" &&
+    CHICAGO_SCAN_HOURS.has(Number(hour))
+  );
+}
 
 export function dispatchUrl(env) {
   const owner = env.GITHUB_OWNER || "mjfrieden";
@@ -38,11 +65,20 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
+    const scheduledTime = new Date(controller.scheduledTime).toISOString();
+    if (!isChicagoScanSlot(controller.scheduledTime)) {
+      console.log("Orographic scan dispatcher skipped non-Chicago slot", {
+        cron: controller.cron,
+        scheduledTime,
+      });
+      return;
+    }
+
     ctx.waitUntil(
       dispatchScan(env).then((result) => {
         console.log("Orographic scan dispatched", {
           cron: controller.cron,
-          scheduledTime: new Date(controller.scheduledTime).toISOString(),
+          scheduledTime,
           ...result,
         });
       })
