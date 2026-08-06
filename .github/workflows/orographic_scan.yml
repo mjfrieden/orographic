@@ -5,7 +5,9 @@ on:
 
 concurrency:
   group: orographic-scan-${{ github.ref }}
-  cancel-in-progress: true
+  # Scheduled and manually dispatched scans share this lane. Queue the later
+  # request so a manual run can never cancel an in-progress scheduled scan.
+  cancel-in-progress: false
 
 permissions:
   contents: write
