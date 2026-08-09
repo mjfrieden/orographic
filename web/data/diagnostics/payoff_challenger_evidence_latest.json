@@ -1,0 +1,110 @@
+{
+  "artifact": "payoff_challenger_prospective_evidence",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-09T16:48:50+00:00",
+  "decision": "collecting_evidence",
+  "execution_effect": "none_observation_only",
+  "policy": {
+    "label": "strict Friday-close executable outcome v2 or newer",
+    "candidate_pairing": "active and challenger score the same post-friction recommendation; friction vetoes remain ineligible",
+    "missing_outcomes": "rank replay excludes a run unless every scored candidate is resolved",
+    "minimums": {
+      "resolved_recommendations": 100,
+      "resolved_runs": 30,
+      "decision_disagreements": 30,
+      "rows_per_side": 30,
+      "rows_per_regime": 25,
+      "qualified_regimes": 2,
+      "rank_replay_runs": 30
+    }
+  },
+  "coverage": {
+    "scored_recommendations": 0,
+    "older_model_scored_recommendations_excluded": 0,
+    "resolved_recommendations": 0,
+    "resolved_runs": 0,
+    "decision_disagreements": 0,
+    "stored_broad_disagreements": 0,
+    "unresolved_scored_recommendations": 0,
+    "friday_capture_valid": 0,
+    "friday_capture_missed": 0,
+    "friday_capture_quote_missing_retryable": 0,
+    "friday_capture_integrity_pct": null
+  },
+  "overall": {
+    "active": {
+      "observations": 0,
+      "positive_rate": null,
+      "auc": null,
+      "brier": null,
+      "log_loss": null
+    },
+    "challenger": {
+      "observations": 0,
+      "positive_rate": null,
+      "auc": null,
+      "brier": null,
+      "log_loss": null
+    },
+    "baseline": {
+      "positive_rate": null,
+      "brier": null
+    }
+  },
+  "disagreement_cohort": {
+    "rows": 0,
+    "active_accuracy": null,
+    "challenger_accuracy": null,
+    "avg_net_executable_return": null
+  },
+  "rank_replay": {
+    "eligible_complete_runs": 0,
+    "incomplete_runs_excluded": 0,
+    "single_candidate_runs_excluded": 0,
+    "selection_disagreements": 0,
+    "active_top1_avg_net_return": null,
+    "shadow_top1_avg_net_return": null,
+    "paired_inference": {
+      "observations": 0,
+      "mean_lift": null,
+      "confidence_interval_95": {
+        "lower": null,
+        "upper": null
+      },
+      "probability_positive": null,
+      "method": "paired-run nonparametric bootstrap",
+      "resamples": 4000
+    },
+    "selection_policy": "top one active-payoff versus challenger probability per run from the identical fully resolved, post-friction candidate set"
+  },
+  "by_side": {},
+  "by_regime": {},
+  "gates": {
+    "sample": {
+      "resolved_recommendations": false,
+      "resolved_runs": false,
+      "decision_disagreements": false,
+      "side_coverage": false,
+      "regime_coverage": false,
+      "complete_rank_replay_runs": false,
+      "friday_capture_integrity": false
+    },
+    "performance": {
+      "discrimination_non_worse": false,
+      "calibration_skill": false,
+      "rank_replay_positive": false,
+      "side_stability": false,
+      "regime_stability": false
+    }
+  },
+  "source": {
+    "artifact": "prospective_pick_ledger",
+    "schema_version": 2,
+    "updated_at_utc": "2026-07-21T18:24:33+00:00"
+  },
+  "model_cohort": {
+    "artifact_sha256": null,
+    "policy": "analyze only the latest observed challenger artifact; never pool model versions"
+  },
+  "replay_command": "python scripts/build_payoff_challenger_evidence.py"
+}

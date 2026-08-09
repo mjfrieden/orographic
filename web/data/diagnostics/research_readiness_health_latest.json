@@ -1,0 +1,199 @@
+{
+  "artifact": "research_readiness_health",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-08T02:51:54.022145Z",
+  "status": "red",
+  "research_claims_allowed": false,
+  "promotion_allowed": false,
+  "headline": "Research evidence is blocked; resolve red gates before performance or promotion claims.",
+  "summary": {
+    "green_gates": 2,
+    "amber_gates": 0,
+    "red_gates": 4,
+    "blocking_gates": [
+      "freshness",
+      "label_cohort_completion",
+      "event_feed_health",
+      "promotion_eligibility"
+    ],
+    "warning_gates": [],
+    "observed_mark_coverage_pct": 0.7578,
+    "total_cohort_completion_pct": 0.7202,
+    "executable_quote_coverage_pct": 1.0
+  },
+  "gates": [
+    {
+      "code": "freshness",
+      "status": "red",
+      "blocking": true,
+      "title": "Artifact freshness",
+      "summary": "The current snapshot is stale or missing.",
+      "metrics": {
+        "snapshot_age_minutes": 24987.97,
+        "snapshot_max_age_minutes": 240,
+        "prospective_ledger_age_minutes": 24987.35,
+        "moonshot_ledger_age_minutes": 24987.32,
+        "evidence_max_age_minutes": 1440,
+        "stale_evidence_sources": [
+          "prospective",
+          "moonshot"
+        ]
+      },
+      "actions": [
+        "Run and publish a fresh scan before using current-state claims."
+      ]
+    },
+    {
+      "code": "label_cohort_completion",
+      "status": "red",
+      "blocking": true,
+      "title": "Outcome cohort completion",
+      "summary": "Too few emitted recommendations have complete fixed-horizon labels.",
+      "metrics": {
+        "total_picks": 1726,
+        "with_any_mark": 1308,
+        "fully_labeled": 1243,
+        "observed_mark_coverage_pct": 0.7578,
+        "total_cohort_completion_pct": 0.7202,
+        "amber_completion_threshold_pct": 0.95,
+        "red_completion_threshold_pct": 0.8,
+        "by_lane_family": {
+          "core": {
+            "picks": 1396,
+            "with_any_mark": 982,
+            "complete": 962,
+            "pending": 414,
+            "partial": 20,
+            "observed_mark_coverage_pct": 0.7034,
+            "total_cohort_completion_pct": 0.6891,
+            "executable_quote_rows": 969,
+            "friday_outcome_rows": 969,
+            "executable_quote_coverage_pct": 1.0,
+            "updated_at_utc": "2026-07-21T18:24:33+00:00",
+            "quotes_missing_last_run": 1384
+          },
+          "moonshot": {
+            "picks": 330,
+            "with_any_mark": 326,
+            "complete": 281,
+            "pending": 4,
+            "partial": 45,
+            "observed_mark_coverage_pct": 0.9879,
+            "total_cohort_completion_pct": 0.8515,
+            "executable_quote_rows": 284,
+            "friday_outcome_rows": 284,
+            "executable_quote_coverage_pct": 1.0,
+            "updated_at_utc": "2026-07-21T18:24:35+00:00",
+            "quotes_missing_last_run": 219
+          }
+        }
+      },
+      "actions": [
+        "Backfill due fixed-horizon marks and publish matched cohort cutoffs.",
+        "Do not describe observed-mark coverage as total cohort completion."
+      ]
+    },
+    {
+      "code": "executable_quote_coverage",
+      "status": "green",
+      "blocking": false,
+      "title": "Executable quote coverage",
+      "summary": "Friday outcomes have sufficient ask-to-bid quote coverage.",
+      "metrics": {
+        "executable_quote_rows": 1253,
+        "friday_outcome_rows": 1253,
+        "executable_quote_coverage_pct": 1.0,
+        "required_min_pct": 0.95,
+        "return_contract": "entry ask to exit bid; costs/slippage reported separately"
+      },
+      "actions": []
+    },
+    {
+      "code": "event_feed_health",
+      "status": "red",
+      "blocking": true,
+      "title": "Event data health",
+      "summary": "Complete outcomes lack sufficient point-in-time event coverage.",
+      "metrics": {
+        "feed_status": "rate_limited",
+        "http_429_responses": 5,
+        "new_rows": 0,
+        "complete_outcome_event_coverage_pct": 0.0,
+        "required_min_pct": 0.5
+      },
+      "actions": [
+        "Repair/backfill the point-in-time event feed before event-model claims."
+      ]
+    },
+    {
+      "code": "artifact_integrity",
+      "status": "green",
+      "blocking": false,
+      "title": "Artifact integrity",
+      "summary": "Required research artifacts and model files pass integrity checks.",
+      "metrics": {
+        "audit_status": "passed",
+        "failed_audit_checks": [],
+        "missing_required_models": [],
+        "missing_sources": []
+      },
+      "actions": []
+    },
+    {
+      "code": "promotion_eligibility",
+      "status": "red",
+      "blocking": true,
+      "title": "Promotion eligibility",
+      "summary": "Production-active models are not supported by the latest promotion comparison.",
+      "metrics": {
+        "decision": "not_ready",
+        "as_of_utc": "2026-07-10T21:16:24+00:00",
+        "coverage_complete": false,
+        "incomplete_windows": [
+          "3_month",
+          "6_month",
+          "12_month"
+        ],
+        "failed_risk_windows": [
+          "3_month",
+          "6_month",
+          "12_month"
+        ],
+        "active_model_modes": [
+          "directional_scout",
+          "side_aware_scout",
+          "sentinel",
+          "payoff_ranker",
+          "side_model_source"
+        ]
+      },
+      "actions": [
+        "Hold promotion or revert to canary/shadow until canonical gates pass."
+      ]
+    }
+  ],
+  "ui_contract": {
+    "status_values": [
+      "green",
+      "amber",
+      "red"
+    ],
+    "primary_fields": [
+      "status",
+      "headline",
+      "research_claims_allowed",
+      "promotion_allowed",
+      "summary"
+    ],
+    "gate_fields": [
+      "code",
+      "status",
+      "blocking",
+      "title",
+      "summary",
+      "metrics",
+      "actions"
+    ],
+    "display_rule": "Never collapse amber/red gates into an operational scan-health pass."
+  }
+}

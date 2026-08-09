@@ -60,12 +60,17 @@ def main() -> int:
         log.warning("Unable to fetch Tradier quotes; preserving %s unchanged: %s", args.ledger, exc)
         return 0
     log.info(
-        "Updated %s: entries=%d picks=%d marks_written=%d quotes_missing=%d complete=%d partial=%d pending=%d.",
+        "Updated %s: entries=%d picks=%d marks_written=%d valid_windows=%d retryable_missing=%d "
+        "stale_quotes=%d missed_windows=%d legacy_skipped=%d complete=%d partial=%d pending=%d.",
         path,
         stats["entries_seen"],
         stats["picks_seen"],
         stats["marks_written"],
-        stats["quotes_missing"],
+        stats["capture_windows_valid"],
+        stats["capture_windows_quote_missing"],
+        stats["capture_windows_stale_quote"],
+        stats["capture_windows_missed"],
+        stats["legacy_capture_policy_picks_skipped"],
         stats["picks_completed"],
         stats["picks_partial"],
         stats["picks_pending"],

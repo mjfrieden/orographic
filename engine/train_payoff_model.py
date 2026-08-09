@@ -27,7 +27,6 @@ from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostin
 from sklearn.dummy import DummyClassifier, DummyRegressor
 from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.metrics import brier_score_loss, log_loss, mean_absolute_error, roc_auc_score
-from sklearn.model_selection import TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import RobustScaler
 
@@ -36,6 +35,7 @@ from engine.backtest.results import build_option_outcome_dataset_summary, canoni
 from engine.orographic.forge import _breakeven_move_pct, _candidate_moneyness
 from engine.orographic.payoff_model import AveragedClassifier, AveragedRegressor, FEATURE_COLS, feature_matrix
 from engine.orographic.schemas import ContractCandidate, MarketRegime
+from engine.orographic.validation import purged_date_splits
 
 try:
     import lightgbm as lgb
@@ -93,8 +93,21 @@ def _artifact_rows(data: dict[str, Any]) -> tuple[list[dict[str, Any]], str]:
 def default_input_paths() -> list[Path]:
     existing = [path for path in DEFAULT_INPUT_CANDIDATES if path.exists()]
     if existing:
-        return existing
+        strict = [path for path in existing if _is_strict_executable_dataset(path)]
+        return strict or existing
     return [DEFAULT_INPUT_CANDIDATES[0]]
+
+
+def _is_strict_executable_dataset(path: Path) -> bool:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return bool(
+        isinstance(payload, dict)
+        and payload.get("artifact") == "option_outcome_dataset"
+        and str(payload.get("label_policy") or "").startswith("strict_executable_quote_or_fill_v")
+    )
 
 
 def _safe_float(value: object, default: float = 0.0) -> float:
@@ -405,6 +418,7 @@ def load_examples(
     canonical_rows: list[dict[str, Any]] = []
     seen: set[tuple[Any, ...]] = set()
     exact_mark_count = 0
+    examples_with_exact_quote_path = 0
     input_artifacts: dict[str, int] = {}
     input_artifact_by_file: dict[str, str] = {}
     input_rows_by_file: dict[str, int] = {}
@@ -442,6 +456,7 @@ def load_examples(
                 pnl_pct = _safe_float(canonical_trade.get("hold_period_return_after_friction_pct"))
             mfe, adverse, marks = _quote_return_path(canonical_trade, options_provider)
             exact_mark_count += marks
+            examples_with_exact_quote_path += int(marks > 0)
             canonical_rows.append(canonical_trade)
             examples.append(
                 TradeExample(
@@ -493,6 +508,11 @@ def load_examples(
         "regime_dataset_summary": regime_dataset_summary,
         "deduplicated_examples": len(examples),
         "exact_quote_marks_used": exact_mark_count,
+        "examples_with_exact_quote_path": examples_with_exact_quote_path,
+        "exact_quote_path_coverage_ratio": round(
+            examples_with_exact_quote_path / max(len(examples), 1),
+            4,
+        ),
         "options_data_dir": str(options_data_dir) if options_data_dir else None,
     }
     return examples, metadata
@@ -657,6 +677,7 @@ def _segment_metric_report(
             "rows": int(len(idx)),
             "positive_rate": round(float(segment_y.mean()), 4),
             "brier": round(float(brier_score_loss(segment_y, segment_probs)), 4),
+            "baseline_brier": round(_baseline_brier(segment_y), 4),
             "auc": round(float(roc_auc_score(segment_y, segment_probs)), 4)
             if len(set(segment_y.tolist())) > 1
             else None,
@@ -668,6 +689,7 @@ def _family_cv_report(
     X: np.ndarray,
     labels: dict[str, np.ndarray],
     dates: list[date],
+    label_dates: list[date],
     sides: np.ndarray,
     regime_buckets: np.ndarray,
     *,
@@ -676,14 +698,22 @@ def _family_cv_report(
     if len(X) < 80:
         return {"family": family, "folds": 0, "reason": "insufficient_examples"}
 
-    order = np.argsort(np.array([d.toordinal() for d in dates]))
+    order = np.argsort(np.array([d.toordinal() for d in dates]), kind="stable")
     X_sorted = X[order]
     y_positive = labels["prob_positive_option_pnl"][order]
     y_breakeven = labels["prob_exceeds_breakeven"][order]
     y_return = labels["expected_option_return_pct"][order]
     sides_sorted = sides[order]
     regimes_sorted = regime_buckets[order]
-    tscv = TimeSeriesSplit(n_splits=min(5, max(2, len(X) // 120)))
+    dates_sorted = np.array(dates, dtype=object)[order]
+    label_dates_sorted = np.array(label_dates, dtype=object)[order]
+    splits = list(
+        purged_date_splits(
+            dates_sorted,
+            label_dates_sorted,
+            n_splits=min(5, max(2, len(X) // 120)),
+        )
+    )
     positive_auc: list[float] = []
     breakeven_auc: list[float] = []
     positive_brier: list[float] = []
@@ -694,7 +724,8 @@ def _family_cv_report(
     oof_positive = np.full(len(X_sorted), np.nan, dtype=float)
     oof_breakeven = np.full(len(X_sorted), np.nan, dtype=float)
 
-    for train_idx, val_idx in tscv.split(X_sorted):
+    fold_reports: list[dict[str, Any]] = []
+    for fold, (train_idx, val_idx) in enumerate(splits, start=1):
         X_train, X_val = X_sorted[train_idx], X_sorted[val_idx]
         pos_train, pos_val = y_positive[train_idx], y_positive[val_idx]
         be_train, be_val = y_breakeven[train_idx], y_breakeven[val_idx]
@@ -719,12 +750,23 @@ def _family_cv_report(
         positive_brier.append(float(brier_score_loss(pos_val, pos_probs)))
         breakeven_brier.append(float(brier_score_loss(be_val, be_probs)))
         return_mae.append(float(mean_absolute_error(ret_val, ret_model.predict(X_val))))
+        fold_reports.append(
+            {
+                "fold": fold,
+                "train_rows": int(len(train_idx)),
+                "validation_rows": int(len(val_idx)),
+                "validation_start": min(dates_sorted[val_idx]).isoformat(),
+                "training_label_end": max(label_dates_sorted[train_idx]).isoformat(),
+            }
+        )
 
     valid_positive = np.isfinite(oof_positive)
     valid_breakeven = np.isfinite(oof_breakeven)
     return {
         "family": family,
-        "folds": int(tscv.n_splits),
+        "folds": int(len(splits)),
+        "split_policy": "date_grouped_purged_by_outcome_date",
+        "fold_reports": fold_reports,
         "positive_pnl_auc_mean": round(float(np.mean(positive_auc)), 4) if positive_auc else None,
         "breakeven_auc_mean": round(float(np.mean(breakeven_auc)), 4) if breakeven_auc else None,
         "positive_pnl_brier_mean": round(float(np.mean(positive_brier)), 4) if positive_brier else None,
@@ -784,7 +826,32 @@ def _family_sort_key(report: dict[str, Any]) -> tuple[float, ...]:
             return float("inf")
         return float(raw)
 
+    side_metrics = (
+        ((report.get("by_segment") or {}).get("side") or {}).get("prob_positive_option_pnl") or {}
+    )
+    required_side_rows = [
+        row for side in ("call", "put")
+        if isinstance((row := side_metrics.get(side)), dict)
+        and row.get("brier") is not None
+    ]
+    missing_side_penalty = 2 - len(required_side_rows)
+    worst_side_brier_excess = max(
+        (
+            float(row["brier"]) - float(row["baseline_brier"])
+            for row in required_side_rows
+            if row.get("baseline_brier") is not None
+        ),
+        default=float("inf"),
+    )
+    worst_side_auc = min(
+        (float(row.get("auc") or 0.0) for row in required_side_rows),
+        default=0.0,
+    )
+
     return (
+        float(missing_side_penalty),
+        worst_side_brier_excess,
+        -worst_side_auc,
         val("positive_pnl_brier_mean"),
         val("breakeven_brier_mean"),
         val("expected_return_mae_mean"),
@@ -797,6 +864,7 @@ def _cv_report(
     X: np.ndarray,
     labels: dict[str, np.ndarray],
     dates: list[date],
+    label_dates: list[date],
     sides: np.ndarray,
     regime_buckets: np.ndarray,
 ) -> dict[str, Any]:
@@ -805,6 +873,7 @@ def _cv_report(
             X,
             labels,
             dates,
+            label_dates,
             sides,
             regime_buckets,
             family=family,
@@ -873,11 +942,83 @@ def _regime_observability(examples: list[TradeExample], labels: dict[str, np.nda
     return rows
 
 
+def _training_feature_matrix(
+    examples: list[TradeExample],
+    *,
+    feature_cols: list[str] = FEATURE_COLS,
+) -> np.ndarray:
+    """Reconstruct features at each signal date using its stored regime only."""
+    rows: list[np.ndarray] = []
+    for example in examples:
+        mode = example.regime_bucket if example.regime_bucket in {"risk_on", "risk_off", "neutral"} else "neutral"
+        bias = 0.25 if mode == "risk_on" else (-0.25 if mode == "risk_off" else 0.0)
+        regime = MarketRegime(mode=mode, bias=bias, source_symbol="SPY")
+        rows.append(
+            feature_matrix(
+                [example.candidate],
+                regime,
+                as_of=example.entry_date,
+                feature_cols=feature_cols,
+            )[0]
+        )
+    return np.asarray(rows, dtype=float)
+
+
 def _baseline_brier(y: np.ndarray) -> float:
     if len(y) == 0:
         return 0.0
     base_rate = float(np.mean(y))
     return float(brier_score_loss(y, np.full(len(y), base_rate)))
+
+
+def _segment_quality_summary(
+    segment_metrics: dict[str, Any],
+    *,
+    min_rows: int,
+    min_auc: float,
+    required_segments: tuple[str, ...] | None = None,
+    required_qualified: int | None = None,
+) -> dict[str, Any]:
+    names = list(required_segments or sorted(segment_metrics))
+    details: dict[str, Any] = {}
+    qualified = 0
+    for name in names:
+        row = segment_metrics.get(name) if isinstance(segment_metrics, dict) else None
+        row = row if isinstance(row, dict) else {}
+        rows = int(row.get("rows", 0))
+        auc = row.get("auc")
+        brier = row.get("brier")
+        baseline = row.get("baseline_brier")
+        enough_rows = rows >= min_rows
+        discrimination_ok = auc is not None and float(auc) >= min_auc
+        calibration_ok = (
+            brier is not None
+            and baseline is not None
+            and float(brier) < float(baseline)
+        )
+        passed = enough_rows and discrimination_ok and calibration_ok
+        qualified += int(passed)
+        details[name] = {
+            "passed": passed,
+            "rows": rows,
+            "auc": auc,
+            "brier": brier,
+            "baseline_brier": baseline,
+            "checks": {
+                "minimum_rows": enough_rows,
+                "minimum_auc": discrimination_ok,
+                "brier_better_than_baseline": calibration_ok,
+            },
+        }
+    required = required_qualified if required_qualified is not None else len(names)
+    return {
+        "passed": qualified >= required,
+        "qualified_segments": qualified,
+        "required_qualified_segments": required,
+        "required_min_rows": min_rows,
+        "required_min_auc": min_auc,
+        "segments": details,
+    }
 
 
 def _promotion_gate_report(
@@ -891,6 +1032,8 @@ def _promotion_gate_report(
     positive_baseline_brier: float,
     breakeven_baseline_brier: float,
     primary_artifact: str,
+    observed_path_examples: int = 0,
+    observed_path_coverage_ratio: float = 0.0,
 ) -> dict[str, Any]:
     positive_brier = cv.get("positive_pnl_brier_mean")
     breakeven_brier = cv.get("breakeven_brier_mean")
@@ -899,6 +1042,19 @@ def _promotion_gate_report(
     regime_segments_with_depth = sum(
         1 for row in regime_dataset_summary.values()
         if isinstance(row, dict) and int(row.get("rows", 0)) >= 25
+    )
+    cv_segments = cv.get("by_segment") or {}
+    side_quality = _segment_quality_summary(
+        ((cv_segments.get("side") or {}).get("prob_positive_option_pnl") or {}),
+        min_rows=30,
+        min_auc=0.53,
+        required_segments=("call", "put"),
+    )
+    regime_quality = _segment_quality_summary(
+        ((cv_segments.get("regime") or {}).get("prob_positive_option_pnl") or {}),
+        min_rows=25,
+        min_auc=0.53,
+        required_qualified=2,
     )
     friction_flip_count = int(dataset_summary.get("friction_flip_count", 0))
     gates = {
@@ -923,10 +1079,19 @@ def _promotion_gate_report(
             "required_min_segments": 2,
             "segment_rows": regime_dataset_summary,
         },
+        "side_walk_forward_quality": side_quality,
+        "regime_walk_forward_quality": regime_quality,
         "friction_flip_observability": {
             "passed": friction_flip_count >= 5,
             "actual": friction_flip_count,
             "required_min": 5,
+        },
+        "observed_quote_path_coverage": {
+            "passed": observed_path_examples >= 150 and observed_path_coverage_ratio >= 0.25,
+            "actual_examples": observed_path_examples,
+            "actual_ratio": round(observed_path_coverage_ratio, 4),
+            "required_min_examples": 150,
+            "required_min_ratio": 0.25,
         },
         "positive_pnl_auc": {
             "passed": positive_auc is not None and positive_auc >= 0.53,
@@ -988,8 +1153,7 @@ def train(
         "path_expected_mfe_pct",
         "path_decay_risk",
     ]
-    neutral = MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY")
-    X = feature_matrix([example.candidate for example in examples], neutral, feature_cols=FEATURE_COLS)
+    X = _training_feature_matrix(examples, feature_cols=FEATURE_COLS)
     labels = {
         "prob_positive_option_pnl": np.array([example.prob_positive_option_pnl for example in examples], dtype=int),
         "prob_no_trade": np.array([example.prob_no_trade for example in examples], dtype=int),
@@ -1006,13 +1170,14 @@ def train(
         "path_decay_risk": np.array([max(-float(example.adverse_excursion_risk), 0.0) for example in examples], dtype=float),
     }
     dates = [example.entry_date for example in examples]
+    label_dates = [example.exit_date or example.entry_date for example in examples]
     sides = np.array([example.candidate.option_type for example in examples], dtype=object)
     regime_buckets = np.array([example.regime_bucket for example in examples], dtype=object)
-    cv = _cv_report(X, labels, dates, sides, regime_buckets)
+    cv = _cv_report(X, labels, dates, label_dates, sides, regime_buckets)
     selected_family = str(cv.get("selected_family") or "tree")
 
     artifact: dict[str, Any] = {
-        "version": 5,
+        "version": 6,
         "feature_cols": FEATURE_COLS,
         "selected_family": selected_family,
         "global": _fit_bundle(X, labels, _balanced_sample_weight(sides), family=selected_family),
@@ -1024,6 +1189,7 @@ def train(
             "label_means": {name: round(float(values.mean()), 4) for name, values in labels.items()},
             "regime_counts": dict(sorted(Counter(regime_buckets.tolist()).items())),
             "selected_family": selected_family,
+            "model_selection_objective": "minimize worst-side out-of-fold Brier excess before aggregate metrics",
             "family_bakeoff": cv.get("family_bakeoff", {}),
             "activation_policy": "active_by_default_for_existing payoff ranker; set OROGRAPHIC_PAYOFF_MODEL_MODE=shadow for observation-only scoring",
             "integrated_heads": integrated_heads,
@@ -1050,10 +1216,8 @@ def train(
         "side_counts": side_counts,
         "regime_counts": dict(sorted(Counter(regime_buckets.tolist()).items())),
         "exact_quote_marks_used": int(source_metadata.get("exact_quote_marks_used", 0)),
-        "option_chain_coverage_ratio": round(
-            float(source_metadata.get("exact_quote_marks_used", 0)) / max(len(examples), 1),
-            4,
-        ),
+        "examples_with_exact_quote_path": int(source_metadata.get("examples_with_exact_quote_path", 0)),
+        "option_chain_coverage_ratio": float(source_metadata.get("exact_quote_path_coverage_ratio", 0.0)),
     }
     dataset_summary = source_metadata.get("dataset_summary", {})
     side_dataset_summary = source_metadata.get("side_dataset_summary", {})
@@ -1070,6 +1234,8 @@ def train(
         positive_baseline_brier=positive_baseline_brier,
         breakeven_baseline_brier=breakeven_baseline_brier,
         primary_artifact=str(source_metadata.get("primary_training_source_artifact", "")),
+        observed_path_examples=int(source_metadata.get("examples_with_exact_quote_path", 0)),
+        observed_path_coverage_ratio=float(source_metadata.get("exact_quote_path_coverage_ratio", 0.0)),
     )
     report = {
         "artifact": "payoff_model",
@@ -1130,6 +1296,7 @@ def train(
             "min_side_examples": min_side_examples,
             "selected_family": selected_family,
             "evaluated_families": list(MODEL_FAMILIES),
+            "model_selection_objective": "worst-side Brier skill and AUC, then aggregate Brier, MAE, and AUC",
         },
     }
 

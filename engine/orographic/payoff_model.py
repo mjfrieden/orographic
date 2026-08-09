@@ -22,6 +22,7 @@ from engine.orographic.schemas import ContractCandidate, MarketRegime
 log = logging.getLogger(__name__)
 
 MODEL_PATH = Path(__file__).parent / "models" / "payoff_model.pkl"
+SHADOW_MODEL_PATH = Path(__file__).parent / "models" / "payoff_volatility_shadow.pkl"
 RANKER_MODE_ENV = "OROGRAPHIC_PAYOFF_MODEL_MODE"
 
 FEATURE_COLS = [
@@ -389,6 +390,56 @@ def _model_bundle(artifact: dict[str, Any], option_type: str) -> dict[str, Any]:
     return artifact.get("global", {})
 
 
+def _attach_payoff_shadow_observations(
+    candidates: list[ContractCandidate],
+    regime: MarketRegime | None,
+    *,
+    as_of: date | None,
+    shadow_model_path: Path,
+) -> None:
+    if not shadow_model_path.exists() or not candidates:
+        return
+    try:
+        import joblib
+
+        artifact = joblib.load(shadow_model_path)
+        if not isinstance(artifact, dict) or artifact.get("mode") != "observation_only_never_used_for_routing":
+            return
+        feature_cols = list(artifact.get("feature_cols") or [])
+        base_model = artifact.get("base_model")
+        if not feature_cols or base_model is None:
+            return
+        X = feature_matrix(candidates, regime, as_of=as_of, feature_cols=feature_cols)
+        raw = _predict_classifier(base_model, X, 0.5)
+        intercept = artifact.get("calibrator")
+        if intercept is None:
+            shadow_probs = np.clip(raw, 1e-6, 1 - 1e-6)
+        else:
+            clipped = np.clip(raw, 1e-6, 1 - 1e-6)
+            logits = np.log(clipped / (1.0 - clipped)) + float(intercept)
+            shadow_probs = np.clip(1.0 / (1.0 + np.exp(-logits)), 1e-6, 1 - 1e-6)
+        shadow_ranks = _rank_percentile(shadow_probs)
+        active_probs = np.array([
+            _clip(_safe_float(candidate.prob_positive_option_pnl, 0.5))
+            for candidate in candidates
+        ])
+        active_ranks = _rank_percentile(active_probs)
+        artifact_hash = _sha256_file(shadow_model_path)
+        for idx, candidate in enumerate(candidates):
+            probability_delta = float(shadow_probs[idx] - active_probs[idx])
+            rank_delta = float(shadow_ranks[idx] - active_ranks[idx])
+            decision_disagreement = bool((shadow_probs[idx] >= 0.5) != (active_probs[idx] >= 0.5))
+            candidate.payoff_shadow_prob_positive = round(float(shadow_probs[idx]), 4)
+            candidate.payoff_shadow_rank = round(float(shadow_ranks[idx]), 4)
+            candidate.payoff_shadow_probability_delta = round(probability_delta, 4)
+            candidate.payoff_shadow_rank_delta = round(rank_delta, 4)
+            candidate.payoff_shadow_disagreement = decision_disagreement or abs(probability_delta) >= 0.15
+            candidate.payoff_shadow_mode = "observation_only"
+            candidate.payoff_shadow_artifact_sha256 = artifact_hash
+    except Exception as exc:
+        log.warning("Payoff shadow scoring unavailable: %s", exc)
+
+
 def _rank_percentile(values: np.ndarray) -> np.ndarray:
     if len(values) == 0:
         return values
@@ -444,6 +495,7 @@ def score_candidates(
     activation_mode: str | None = None,
     prior_live_board_symbols: list[str] | None = None,
     turnover_switch_penalty: float = 0.03,
+    shadow_model_path: Path = SHADOW_MODEL_PATH,
 ) -> list[ContractCandidate]:
     """
     Add payoff-aware predictions and final scores to candidates in-place.
@@ -662,6 +714,12 @@ def score_candidates(
             candidate.forge_score = round(pre_payoff_score, 4)
             candidate.ranker_mode = "heuristic"
 
+    _attach_payoff_shadow_observations(
+        candidates,
+        regime,
+        as_of=as_of,
+        shadow_model_path=shadow_model_path,
+    )
     candidates.sort(key=lambda candidate: candidate.forge_score, reverse=True)
     return candidates
 

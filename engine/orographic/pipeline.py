@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 import logging
@@ -65,6 +66,7 @@ class PipelineConfig:
     enforce_pre_council_friction_gate: bool = False
     market_shock_control_mode: str = "active"
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
+    promotion_comparison_path: str | Path | None = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
 
 log = logging.getLogger(__name__)
 
@@ -312,6 +314,14 @@ def _prospective_outcome_template() -> dict[str, Any]:
         "quote_verification": {
             "emission_quote_captured": True,
             "outcome_quotes_captured": False,
+            "capture_policy_version": 2,
+            "capture_integrity_passed": None,
+        },
+        "capture_attempts": {
+            "one_hour": None,
+            "end_of_day": None,
+            "next_day_close": None,
+            "friday_close": None,
         },
         "fixed_exit_marks": {
             "one_hour": None,
@@ -390,6 +400,13 @@ def _prospective_pick_row(
             "forge_score": row.get("forge_score"),
             "learned_rank_score": row.get("learned_rank_score"),
             "payoff_model_score": row.get("payoff_model_score"),
+            "payoff_shadow_prob_positive": row.get("payoff_shadow_prob_positive"),
+            "payoff_shadow_rank": row.get("payoff_shadow_rank"),
+            "payoff_shadow_probability_delta": row.get("payoff_shadow_probability_delta"),
+            "payoff_shadow_rank_delta": row.get("payoff_shadow_rank_delta"),
+            "payoff_shadow_disagreement": row.get("payoff_shadow_disagreement"),
+            "payoff_shadow_mode": row.get("payoff_shadow_mode"),
+            "payoff_shadow_artifact_sha256": row.get("payoff_shadow_artifact_sha256"),
             "final_candidate_score": row.get("final_candidate_score"),
             "prob_positive_option_pnl": row.get("prob_positive_option_pnl"),
             "prob_no_trade": row.get("prob_no_trade"),
@@ -447,7 +464,7 @@ def _prospective_pick_row(
     }
 
 
-def _prospective_outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int]:
+def _prospective_outcome_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
     summary = {
         "picks": 0,
         "pending": 0,
@@ -456,6 +473,16 @@ def _prospective_outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int
         "with_any_mark": 0,
         "with_all_fixed_marks": 0,
         "missing_outcome_quotes": 0,
+        "payoff_shadow_scored": 0,
+        "payoff_shadow_disagreements": 0,
+        "payoff_shadow_resolved_friday": 0,
+        "payoff_shadow_disagreement_net_return_sum": 0.0,
+        "capture_windows_valid": 0,
+        "capture_windows_quote_missing": 0,
+        "capture_windows_stale_quote": 0,
+        "capture_windows_missed": 0,
+        "legacy_capture_policy_picks": 0,
+        "capture_policy_v2_picks": 0,
     }
     fixed_names = ("one_hour", "end_of_day", "next_day_close", "friday_close")
     for entry in entries:
@@ -465,6 +492,17 @@ def _prospective_outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int
                 continue
             summary["picks"] += 1
             outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+            scores = pick.get("scores") if isinstance(pick.get("scores"), dict) else {}
+            if isinstance(scores.get("payoff_shadow_prob_positive"), Number):
+                summary["payoff_shadow_scored"] += 1
+            disagreement = bool(scores.get("payoff_shadow_disagreement"))
+            if disagreement:
+                summary["payoff_shadow_disagreements"] += 1
+            executable_labels = outcomes.get("executable_labels") if isinstance(outcomes.get("executable_labels"), dict) else {}
+            friday_label = executable_labels.get("friday_close") if isinstance(executable_labels.get("friday_close"), dict) else None
+            if disagreement and friday_label is not None and isinstance(friday_label.get("net_executable_return"), Number):
+                summary["payoff_shadow_resolved_friday"] += 1
+                summary["payoff_shadow_disagreement_net_return_sum"] += float(friday_label["net_executable_return"])
             status = str(outcomes.get("status") or "pending")
             if status in {"pending", "partial", "complete"}:
                 summary[status] += 1
@@ -475,8 +513,33 @@ def _prospective_outcome_summary(entries: list[dict[str, Any]]) -> dict[str, int
             if len(marked) == len(fixed_names):
                 summary["with_all_fixed_marks"] += 1
             quote_verification = outcomes.get("quote_verification") if isinstance(outcomes.get("quote_verification"), dict) else {}
+            if int(quote_verification.get("capture_policy_version") or 0) < 2:
+                summary["legacy_capture_policy_picks"] += 1
+            else:
+                summary["capture_policy_v2_picks"] += 1
+            capture_attempts = outcomes.get("capture_attempts") if isinstance(outcomes.get("capture_attempts"), dict) else {}
+            for attempt in capture_attempts.values():
+                if not isinstance(attempt, dict):
+                    continue
+                capture_status = str(attempt.get("status") or "")
+                if capture_status == "captured_valid":
+                    summary["capture_windows_valid"] += 1
+                elif capture_status == "quote_missing_retryable":
+                    summary["capture_windows_quote_missing"] += 1
+                elif capture_status == "stale_quote_retryable":
+                    summary["capture_windows_stale_quote"] += 1
+                elif capture_status == "missed_live_window":
+                    summary["capture_windows_missed"] += 1
             if marked and not quote_verification.get("outcome_quotes_captured"):
                 summary["missing_outcome_quotes"] += 1
+    resolved = int(summary["payoff_shadow_resolved_friday"])
+    summary["payoff_shadow_disagreement_avg_net_return"] = (
+        round(float(summary["payoff_shadow_disagreement_net_return_sum"]) / resolved, 4)
+        if resolved else None
+    )
+    summary["payoff_shadow_disagreement_net_return_sum"] = round(
+        float(summary["payoff_shadow_disagreement_net_return_sum"]), 4
+    )
     return summary
 
 
@@ -528,17 +591,22 @@ def _model_artifact_status() -> dict[str, Any]:
         "scout_side_model": MODEL_DIR / "scout_side_model.pkl",
         "sentinel_model": MODEL_DIR / "sentinel_model.json",
         "payoff_model": MODEL_DIR / "payoff_model.pkl",
+        "payoff_volatility_shadow": MODEL_DIR / "payoff_volatility_shadow.pkl",
         "path_model": MODEL_DIR / "path_model.pkl",
         "scout_model_card": MODEL_DIR / "scout_model_card.json",
         "sentinel_model_card": MODEL_DIR / "sentinel_model_card.json",
         "payoff_model_card": MODEL_DIR / "payoff_model_card.json",
+        "payoff_volatility_shadow_card": MODEL_DIR / "payoff_volatility_shadow_card.json",
         "path_model_card": MODEL_DIR / "path_model_card.json",
     }
+    optional_artifacts = {"payoff_volatility_shadow", "payoff_volatility_shadow_card"}
     return {
         name: {
             "present": path.exists(),
             "sha256": _sha256_file(path),
-            "required": bool(
+            "required": False
+            if name in optional_artifacts
+            else bool(
                 manifest_artifacts.get(name, {}).get("required", True)
                 if isinstance(manifest_artifacts.get(name), dict)
                 else True
@@ -563,6 +631,9 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
     scout_scaler = artifact_status.get("scout_scaler", {}) if isinstance(artifact_status, dict) else {}
     side_model = artifact_status.get("scout_side_model", {}) if isinstance(artifact_status, dict) else {}
     payoff_model = artifact_status.get("payoff_model", {}) if isinstance(artifact_status, dict) else {}
+    payoff_shadow = (
+        artifact_status.get("payoff_volatility_shadow", {}) if isinstance(artifact_status, dict) else {}
+    )
     path_model = artifact_status.get("path_model", {}) if isinstance(artifact_status, dict) else {}
     directional_mode = (
         "artifact"
@@ -593,6 +664,7 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
             if bool(payoff_model.get("present"))
             else "unavailable"
         ),
+        "payoff_volatility_challenger": "observation_only" if bool(payoff_shadow.get("present")) else "unavailable",
         "path_model": _normalize_mode(
             os.getenv("OROGRAPHIC_PATH_MODEL_MODE", "shadow"),
             active_values=set(),
@@ -605,7 +677,7 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
 
 
 def _load_json_dict(path: Path) -> dict[str, Any]:
-    if not path.exists():
+    if not path.exists() or not path.is_file():
         return {}
     try:
         loaded = json.loads(path.read_text(encoding="utf-8"))
@@ -622,6 +694,37 @@ def _diagnostic_source_path(payload: dict[str, Any], key: str, default_filename:
     if isinstance(raw, Path):
         return raw
     return None
+
+
+def _promotion_gate_decision(path: str | Path | None) -> str:
+    comparison = _load_json_dict(Path(path)) if path else {}
+    decision = str(comparison.get("decision") or "not_ready").strip().lower()
+    return "pass" if decision == "pass" else decision
+
+
+@contextmanager
+def _fail_closed_model_modes(promotion_decision: str):
+    """Keep unapproved learned overlays observational until the canonical gate passes."""
+    if promotion_decision == "pass":
+        yield
+        return
+
+    names = (
+        "OROGRAPHIC_SIDE_MODEL_MODE",
+        "OROGRAPHIC_SENTINEL_MODE",
+        "OROGRAPHIC_PAYOFF_MODEL_MODE",
+    )
+    prior = {name: os.environ.get(name) for name in names}
+    try:
+        for name in names:
+            os.environ[name] = "shadow"
+        yield
+    finally:
+        for name, value in prior.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
 
 
 def _new_pick_metric_accumulator() -> dict[str, float | int]:
@@ -770,6 +873,12 @@ def _build_profitability_evidence(payload: dict[str, Any]) -> dict[str, Any]:
     research = _load_json_dict(_diagnostic_source_path(payload, "research_ledger", "research_run_ledger.json") or Path())
     board_history = _load_json_dict(_diagnostic_source_path(payload, "board_history", "board_recommendation_history.json") or Path())
     side_shadow = _load_json_dict(_diagnostic_source_path(payload, "shadow_ledger", "side_aware_scout_shadow_ledger.json") or Path())
+    promotion_comparison = _load_json_dict(
+        _diagnostic_source_path(payload, "promotion_comparison", "promotion_shadow_active_comparison_latest.json") or Path()
+    )
+    payoff_challenger_evidence = _load_json_dict(
+        _diagnostic_source_path(payload, "payoff_challenger_evidence", "payoff_challenger_evidence_latest.json") or Path()
+    )
 
     prospective_lanes = prospective.get("lanes", {}) if isinstance(prospective.get("lanes"), dict) else {}
     live_lane = prospective_lanes.get("live", {})
@@ -791,6 +900,11 @@ def _build_profitability_evidence(payload: dict[str, Any]) -> dict[str, Any]:
         "outcomes_complete": _coerce_int(prospective_outcomes.get("complete")),
         "outcomes_partial": _coerce_int(prospective_outcomes.get("partial")),
         "outcomes_pending": _coerce_int(prospective_outcomes.get("pending")),
+        "capture_policy_v2_picks": _coerce_int(prospective_outcomes.get("capture_policy_v2_picks")),
+        "capture_windows_valid": _coerce_int(prospective_outcomes.get("capture_windows_valid")),
+        "capture_windows_quote_missing": _coerce_int(prospective_outcomes.get("capture_windows_quote_missing")),
+        "capture_windows_stale_quote": _coerce_int(prospective_outcomes.get("capture_windows_stale_quote")),
+        "capture_windows_missed": _coerce_int(prospective_outcomes.get("capture_windows_missed")),
         "quote_coverage_pct": prospective.get("overall", {}).get("quote_coverage_pct"),
         "live_realized_trades": _coerce_int(live_lane.get("realized_trades")),
         "live_realized_pnl": live_lane.get("realized_pnl"),
@@ -813,6 +927,8 @@ def _build_profitability_evidence(payload: dict[str, Any]) -> dict[str, Any]:
             else None
         ),
         "canonical_baseline": _canonical_performance_baseline(),
+        "promotion_comparison": promotion_comparison,
+        "payoff_challenger_evidence": payoff_challenger_evidence,
     }
 
 
@@ -952,6 +1068,28 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     if payoff_ranker_mode not in {"active", "shadow", "unavailable"}:
         payoff_ranker_mode = "active" if "active" in ranker_modes else "shadow"
 
+    comparison = profitability_evidence.get("promotion_comparison") if isinstance(profitability_evidence.get("promotion_comparison"), dict) else {}
+    payoff_challenger_evidence = (
+        profitability_evidence.get("payoff_challenger_evidence")
+        if isinstance(profitability_evidence.get("payoff_challenger_evidence"), dict)
+        else {}
+    )
+    comparison_windows = comparison.get("windows") if isinstance(comparison.get("windows"), list) else []
+    comparison_status = str(comparison.get("decision") or "not_ready").strip().lower()
+    promotion_passed = comparison_status == "pass"
+    comparison_progress = ", ".join(
+        f"{str(row.get('window') or '').replace('_', ' ')}: {str(row.get('status') or 'not run').replace('_', ' ')}"
+        for row in comparison_windows if isinstance(row, dict)
+    ) or "No canonical comparison artifact loaded."
+    risk_progress = comparison_progress if comparison_windows else (
+        "Baseline backtest Sharpe "
+        f"{profitability_evidence.get('canonical_baseline', {}).get('backtest', {}).get('sharpe_ratio')} / "
+        "walk-forward Sharpe "
+        f"{profitability_evidence.get('canonical_baseline', {}).get('walk_forward', {}).get('sharpe_ratio')}."
+        if profitability_evidence
+        else "No baseline risk artifact loaded."
+    )
+
     gates = [
         {
             "name": "Disagreement P&L",
@@ -981,13 +1119,18 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         },
         {
             "name": "Backtest Windows",
-            "status": "pending",
+            "status": "pass" if comparison_status == "pass" else ("collecting_evidence" if comparison_windows else "pending"),
             "target": "Shadow beats active over 3, 6, and 12 month windows.",
-            "progress": "Current pipeline still needs a fresh shadow-vs-active comparison across the canonical windows.",
+            "progress": comparison_progress,
         },
         {
             "name": "Calibration",
-            "status": "collecting_evidence" if tracked_recommendations > 0 else "pending",
+            "status": (
+                "pass" if comparison_windows and all(
+                    row.get("coverage_complete") and row.get("checks", {}).get("calibration_non_worse")
+                    for row in comparison_windows if isinstance(row, dict)
+                ) else ("collecting_evidence" if tracked_recommendations > 0 else "pending")
+            ),
             "target": "Brier score improves or stays close while P&L improves.",
             "progress": (
                 f"{tracked_recommendations} tracked recommendations; quote coverage "
@@ -1002,16 +1145,16 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
         },
         {
             "name": "Risk Shape",
-            "status": "collecting_evidence",
-            "target": "Sharpe is no worse and drawdown does not materially increase.",
-            "progress": (
-                "Baseline backtest Sharpe "
-                f"{profitability_evidence.get('canonical_baseline', {}).get('backtest', {}).get('sharpe_ratio')} / "
-                "walk-forward Sharpe "
-                f"{profitability_evidence.get('canonical_baseline', {}).get('walk_forward', {}).get('sharpe_ratio')}."
-                if profitability_evidence
-                else "No baseline risk artifact loaded."
+            "status": (
+                "pass" if comparison_windows and all(
+                    row.get("coverage_complete")
+                    and row.get("checks", {}).get("sharpe_non_worse")
+                    and row.get("checks", {}).get("drawdown_non_worse")
+                    for row in comparison_windows if isinstance(row, dict)
+                ) else "collecting_evidence"
             ),
+            "target": "Sharpe is no worse and drawdown does not materially increase.",
+            "progress": risk_progress,
         },
         {
             "name": "Coverage",
@@ -1037,50 +1180,57 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     models = [
         {
             "name": "Side-Aware Scout",
-            "mode": "active" if str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
+            "mode": "active" if promotion_passed and str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
+            "configured_mode": str(model_modes.get("side_aware_scout") or "shadow").lower(),
             "role": "call / put / no-trade probabilities",
-            "status": "production_monitor" if str(model_modes.get("side_aware_scout") or "").lower() == "active" else "collecting_evidence",
+            "status": "production_monitor" if promotion_passed and str(model_modes.get("side_aware_scout") or "").lower() == "active" else "promotion_blocked",
             "recommendation": (
                 "Production-active. Monitor disagreement P&L, abstain rates, and minority-side coverage."
-                if str(model_modes.get("side_aware_scout") or "").lower() == "active"
-                else "Keep shadow until disagreement P&L is positive out of sample."
+                if promotion_passed and str(model_modes.get("side_aware_scout") or "").lower() == "active"
+                else "Keep shadow until the canonical promotion comparison passes."
             ),
             "observations": len(side_rows),
             "disagreements": side_disagreements,
             "side_mix": side_mix,
             "model_modes": side_model_modes,
             "shadow_window_runs": shadow_window_runs,
-            "promotion_step": "active" if str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
+            "promotion_step": "active" if promotion_passed and str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
         },
         {
             "name": "Sentinel Event Extractor",
-            "mode": "active" if str(model_modes.get("sentinel") or "").lower() == "active" else "shadow",
+            "mode": "active" if promotion_passed and str(model_modes.get("sentinel") or "").lower() == "active" else "shadow",
+            "configured_mode": str(model_modes.get("sentinel") or "shadow").lower(),
             "role": "event extraction and direction-aware risk tags",
-            "status": "production_monitor" if str(model_modes.get("sentinel") or "").lower() == "active" else "collecting_evidence",
+            "status": "production_monitor" if promotion_passed and str(model_modes.get("sentinel") or "").lower() == "active" else "promotion_blocked",
             "recommendation": (
                 "Production-active. Monitor event-tag calibration and no-trade pressure drift."
-                if str(model_modes.get("sentinel") or "").lower() == "active"
-                else "Keep as event intelligence until event tags prove risk-adjusted lift."
+                if promotion_passed and str(model_modes.get("sentinel") or "").lower() == "active"
+                else "Keep shadow until the canonical promotion comparison passes."
             ),
             "observations": len(sentinel_rows),
             "non_neutral_events": sentinel_non_neutral,
             "mode_counts": sentinel_modes,
             "event_type_counts": sentinel_events,
-            "promotion_step": "active" if str(model_modes.get("sentinel") or "").lower() == "active" else "shadow",
+            "promotion_step": "active" if promotion_passed and str(model_modes.get("sentinel") or "").lower() == "active" else "shadow",
         },
         {
             "name": "Payoff Ranker",
-            "mode": payoff_ranker_mode or ("active" if "active" in ranker_modes else "shadow"),
+            "mode": payoff_ranker_mode if promotion_passed else ("unavailable" if payoff_ranker_mode == "unavailable" else "shadow"),
+            "configured_mode": payoff_ranker_mode,
             "role": "option payoff-aware ranking",
-            "status": "production_monitor",
-            "recommendation": "Monitor calibration and drift; this is the recovered edge-bearing model.",
+            "status": "production_monitor" if promotion_passed and payoff_ranker_mode == "active" else "promotion_blocked",
+            "recommendation": (
+                "Monitor calibration and drift; this is the recovered edge-bearing model."
+                if promotion_passed and payoff_ranker_mode == "active"
+                else "Keep shadow until the canonical promotion comparison passes."
+            ),
             "observations": int(learned_ranker.get("scored_candidates") or 0),
             "mode_counts": ranker_modes,
             "avg_learned_rank_score": learned_ranker.get("avg_learned_rank_score"),
             "tracked_live_recommendations": tracked_live_recommendations,
             "live_realized_pnl": live_realized_pnl,
             "live_friday_close_avg_pnl_pct": live_friday_close_avg_pnl_pct,
-            "promotion_step": "active",
+            "promotion_step": "active" if promotion_passed and payoff_ranker_mode == "active" else "shadow",
         },
         {
             "name": "Path Quality Model",
@@ -1113,8 +1263,13 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     ]
 
     return {
-        "decision": "production_active",
-        "decision_label": "New ML/AI layers are production-active",
+        "decision": "production_active" if promotion_passed else "promotion_hold",
+        "decision_label": (
+            "Canonical promotion replay passed · approved models may run active"
+            if promotion_passed
+            else "Canonical promotion replay did not pass · learned overlays forced to shadow"
+        ),
+        "promotion_gate_decision": comparison_status,
         "promotion_path": ["shadow", "tie_breaker", "small_weight", "limited_active", "active"],
         "policy": {
             "minimum_shadow_trading_days": 30,
@@ -1135,6 +1290,24 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "holdout_friday_close_avg_pnl_pct": holdout_friday_close_avg_pnl_pct,
             "tracked_recommendations": tracked_recommendations,
             "quote_coverage_pct": quote_coverage_pct,
+            "promotion_comparison_decision": comparison_status,
+            "promotion_comparison_windows": comparison_windows,
+            "payoff_challenger_decision": payoff_challenger_evidence.get("decision", "not_run"),
+            "payoff_challenger_resolved": _coerce_int(
+                payoff_challenger_evidence.get("coverage", {}).get("resolved_recommendations")
+                if isinstance(payoff_challenger_evidence.get("coverage"), dict)
+                else 0
+            ),
+            "payoff_challenger_replay_runs": _coerce_int(
+                payoff_challenger_evidence.get("rank_replay", {}).get("eligible_complete_runs")
+                if isinstance(payoff_challenger_evidence.get("rank_replay"), dict)
+                else 0
+            ),
+            "capture_policy_v2_picks": _coerce_int(profitability_evidence.get("capture_policy_v2_picks")),
+            "capture_windows_valid": _coerce_int(profitability_evidence.get("capture_windows_valid")),
+            "capture_windows_quote_missing": _coerce_int(profitability_evidence.get("capture_windows_quote_missing")),
+            "capture_windows_stale_quote": _coerce_int(profitability_evidence.get("capture_windows_stale_quote")),
+            "capture_windows_missed": _coerce_int(profitability_evidence.get("capture_windows_missed")),
         },
     }
 
@@ -1462,13 +1635,23 @@ def append_prospective_pick_ledger(
     }
     rendered = {
         "artifact": "prospective_pick_ledger",
-        "schema_version": 2,
+        "schema_version": 3,
         "updated_at_utc": entry["run_generated_at_utc"],
         "max_entries": max(max_entries, 1),
         "outcome_policy": {
             "required_fixed_exits": ["one_hour", "end_of_day", "next_day_close", "friday_close"],
             "path_rules": ["take_profit_40_pct_before_stop_50_pct", "take_profit_25_pct_before_stop_50_pct"],
             "purpose": "Judge every emitted contract recommendation, whether traded or not.",
+        },
+        "payoff_shadow_policy": {
+            "mode": "observation_only",
+            "affects_candidate_selection": False,
+            "affects_position_sizing": False,
+            "affects_tradier_routing": False,
+            "tracked_evidence": [
+                "probability_and_rank_disagreement",
+                "friday_close_net_executable_return",
+            ],
         },
         "aggregate": aggregate,
         "outcome_summary": _prospective_outcome_summary(entries),
@@ -1978,42 +2161,47 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
         moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
-        model_artifacts = _model_artifact_status()
-        model_modes = _model_mode_status(model_artifacts)
-        regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
-        market_shock = classify_current_market_shock(regime)
-        market_shock_control_mode = str(
-            getattr(config, "market_shock_control_mode", os.getenv("OROGRAPHIC_MARKET_SHOCK_CONTROL_MODE", "active"))
-            or "active"
-        ).strip().lower()
-        if market_shock_control_mode not in {"active", "shadow", "off"}:
-            market_shock_control_mode = "active"
-        council_market_shock = market_shock if market_shock_control_mode == "active" else None
-        log.info("Scout signal generation complete. Evaluating candidates...")
+        promotion_comparison_path = getattr(config, "promotion_comparison_path", None)
+        if not isinstance(promotion_comparison_path, (str, os.PathLike)):
+            promotion_comparison_path = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
+        promotion_gate_decision = _promotion_gate_decision(promotion_comparison_path)
+        with _fail_closed_model_modes(promotion_gate_decision):
+            model_artifacts = _model_artifact_status()
+            model_modes = _model_mode_status(model_artifacts)
+            regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
+            market_shock = classify_current_market_shock(regime)
+            market_shock_control_mode = str(
+                getattr(config, "market_shock_control_mode", os.getenv("OROGRAPHIC_MARKET_SHOCK_CONTROL_MODE", "active"))
+                or "active"
+            ).strip().lower()
+            if market_shock_control_mode not in {"active", "shadow", "off"}:
+                market_shock_control_mode = "active"
+            council_market_shock = market_shock if market_shock_control_mode == "active" else None
+            log.info("Scout signal generation complete. Evaluating candidates...")
 
-        forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
-            scout_signals,
-            target_count=forge_intake,
-            minimum_days_to_expiry=minimum_days_to_expiry,
-            maximum_days_to_expiry=maximum_days_to_expiry,
-        )
-        log.info(
-            "Pre-Forge liquidity gate selected %d/%d signals for contract ranking.",
-            len(forge_input_signals),
-            len(scout_signals),
-        )
-        prior_live_board_symbols = _load_prior_live_board_symbols(
-            getattr(config, "board_history_path", None),
-        )
+            forge_input_signals, pre_forge_diagnostics = select_signals_for_forge(
+                scout_signals,
+                target_count=forge_intake,
+                minimum_days_to_expiry=minimum_days_to_expiry,
+                maximum_days_to_expiry=maximum_days_to_expiry,
+            )
+            log.info(
+                "Pre-Forge liquidity gate selected %d/%d signals for contract ranking.",
+                len(forge_input_signals),
+                len(scout_signals),
+            )
+            prior_live_board_symbols = _load_prior_live_board_symbols(
+                getattr(config, "board_history_path", None),
+            )
 
-        forge_candidates, forge_diagnostics = rank_contracts_with_diagnostics(
-            forge_input_signals,
-            regime,
-            minimum_days_to_expiry=minimum_days_to_expiry,
-            maximum_days_to_expiry=maximum_days_to_expiry,
-            enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
-            prior_live_board_symbols=prior_live_board_symbols,
-        )
+            forge_candidates, forge_diagnostics = rank_contracts_with_diagnostics(
+                forge_input_signals,
+                regime,
+                minimum_days_to_expiry=minimum_days_to_expiry,
+                maximum_days_to_expiry=maximum_days_to_expiry,
+                enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
+                prior_live_board_symbols=prior_live_board_symbols,
+            )
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
 
         council = select_board(
@@ -2065,6 +2253,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
                 "market_shock_control_mode": market_shock_control_mode,
+            },
+            "diagnostic_sources": {
+                "promotion_comparison": str(promotion_comparison_path) if promotion_comparison_path else None,
             },
             "model_modes": model_modes,
             "regime": regime.to_dict(),

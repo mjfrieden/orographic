@@ -177,9 +177,9 @@ def build_audit_report(
                 },
                 {
                     "name": "event_enriched_dataset_matches_outcomes",
-                    "passed": event_enriched_rows == combined_dataset_rows,
+                    "passed": event_enriched_rows == recommendation_dataset_rows,
                     "actual": event_enriched_rows,
-                    "expected": combined_dataset_rows,
+                    "expected": recommendation_dataset_rows,
                 },
             ]
         )

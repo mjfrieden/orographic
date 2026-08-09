@@ -18,15 +18,19 @@ class ResearchDataAuditTests(unittest.TestCase):
             manifest.write_text(json.dumps({"summary": {"rows_archived": 1, "symbols_archived": 1}}))
             ledger = root / "ledger.json"
             ledger.write_text(json.dumps({"entries": [{"picks": [{"contract_symbol": "AAA1"}]}]}))
-            empty_ledger = root / "empty-ledger.json"
-            empty_ledger.write_text(json.dumps({"entries": []}))
+            moonshot_ledger = root / "moonshot-ledger.json"
+            moonshot_ledger.write_text(
+                json.dumps({"entries": [{"picks": [{"contract_symbol": "AAA2"}]}]})
+            )
             recommendation = root / "option_recommendation_outcomes.parquet"
             moonshot = root / "moonshot_outcomes.parquet"
             combined = root / "all_recommendation_outcomes.parquet"
             enriched = root / "event_enriched_option_outcomes.parquet"
             pd.DataFrame([{"contract_symbol": "AAA1"}]).to_parquet(recommendation, index=False)
-            pd.DataFrame([]).to_parquet(moonshot, index=False)
-            pd.DataFrame([{"contract_symbol": "AAA1"}]).to_parquet(combined, index=False)
+            pd.DataFrame([{"contract_symbol": "AAA2"}]).to_parquet(moonshot, index=False)
+            pd.DataFrame([{"contract_symbol": "AAA1"}, {"contract_symbol": "AAA2"}]).to_parquet(
+                combined, index=False
+            )
             pd.DataFrame([{"contract_symbol": "AAA1", "event_observation_count_lookback": 1}]).to_parquet(enriched, index=False)
             quality = root / "event-quality.json"
             quality.write_text(json.dumps({"rows": 3, "status": "passed"}))
@@ -45,7 +49,7 @@ class ResearchDataAuditTests(unittest.TestCase):
             report = build_audit_report(
                 live_archive_manifest=manifest,
                 prospective_ledger=ledger,
-                moonshot_ledger=empty_ledger,
+                moonshot_ledger=moonshot_ledger,
                 recommendation_dataset=recommendation,
                 moonshot_dataset=moonshot,
                 combined_dataset=combined,
@@ -56,6 +60,14 @@ class ResearchDataAuditTests(unittest.TestCase):
             )
 
         self.assertEqual(report["status"], "passed")
+        event_enrichment_check = next(
+            check
+            for check in report["checks"]
+            if check["name"] == "event_enriched_dataset_matches_outcomes"
+        )
+        self.assertEqual(event_enrichment_check["actual"], 1)
+        self.assertEqual(event_enrichment_check["expected"], 1)
+        self.assertEqual(report["summary"]["combined_dataset_rows"], 2)
         self.assertEqual(report["summary"]["event_observation_rows"], 3)
         self.assertEqual(report["summary"]["rows_with_prior_events"], 1)
         self.assertEqual(report["summary"]["event_feed_status"], "partial")

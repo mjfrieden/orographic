@@ -18,7 +18,7 @@ from engine.backtest.results import (
     canonicalize_option_outcome_dataset,
 )
 from engine.orographic.path_outcomes import build_archived_quote_path_label
-from engine.orographic.prospective import _entry_mark
+from engine.orographic.prospective import _entry_mark, backfill_executable_labels_from_fixed_marks
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -361,6 +361,13 @@ def _flatten_pick(
         "forge_score": scores.get("forge_score"),
         "learned_rank_score": scores.get("learned_rank_score"),
         "payoff_model_score": scores.get("payoff_model_score"),
+        "payoff_shadow_prob_positive": scores.get("payoff_shadow_prob_positive"),
+        "payoff_shadow_rank": scores.get("payoff_shadow_rank"),
+        "payoff_shadow_probability_delta": scores.get("payoff_shadow_probability_delta"),
+        "payoff_shadow_rank_delta": scores.get("payoff_shadow_rank_delta"),
+        "payoff_shadow_disagreement": scores.get("payoff_shadow_disagreement"),
+        "payoff_shadow_mode": scores.get("payoff_shadow_mode"),
+        "payoff_shadow_artifact_sha256": scores.get("payoff_shadow_artifact_sha256"),
         "prob_no_trade": scores.get("prob_no_trade"),
         "prob_fill_quality_ok": scores.get("prob_fill_quality_ok"),
         "prob_exceeds_breakeven": scores.get("prob_exceeds_breakeven"),
@@ -414,7 +421,116 @@ def _flatten_pick(
             row[f"{window_name}_mark"] = mark.get("mark")
             row[f"{window_name}_pnl_pct_from_emission"] = mark.get("pnl_pct_from_emission")
             row[f"{window_name}_captured_at_utc"] = mark.get("captured_at_utc")
+    executable_labels = outcomes.get("executable_labels") if isinstance(outcomes.get("executable_labels"), dict) else {}
+    for window_name, label in executable_labels.items():
+        if not isinstance(label, dict):
+            continue
+        contract = label.get("label_contract") if isinstance(label.get("label_contract"), dict) else {}
+        label_entry = label.get("entry") if isinstance(label.get("entry"), dict) else {}
+        label_exit = label.get("exit") if isinstance(label.get("exit"), dict) else {}
+        entry_quote = label_entry.get("quote") if isinstance(label_entry.get("quote"), dict) else {}
+        exit_quote = label_exit.get("quote") if isinstance(label_exit.get("quote"), dict) else {}
+        prefix = f"{window_name}_executable_"
+        row.update({
+            f"{prefix}label_contract_id": contract.get("id"),
+            f"{prefix}label_contract_version": contract.get("version"),
+            f"{prefix}label_available_at_utc": label.get("label_available_at_utc"),
+            f"{prefix}entry_price": label_entry.get("execution_price"),
+            f"{prefix}entry_price_source": label_entry.get("execution_price_source"),
+            f"{prefix}entry_quote_age_seconds": entry_quote.get("age_at_decision_seconds"),
+            f"{prefix}exit_price": label_exit.get("execution_price"),
+            f"{prefix}exit_price_source": label_exit.get("execution_price_source"),
+            f"{prefix}exit_capture_delay_seconds": exit_quote.get("capture_delay_seconds"),
+            f"{prefix}total_fees_usd": label.get("total_fees_usd"),
+            f"{prefix}total_signed_adverse_slippage_usd": label.get("total_signed_adverse_slippage_usd"),
+            f"{prefix}net_pnl_usd": label.get("net_executable_pnl_usd"),
+            f"{prefix}net_return": label.get("net_executable_return"),
+        })
     return _apply_model_backfills(row, side_aware_by_run=side_aware_by_run)
+
+
+def _apply_executable_outcome_to_canonical_row(row: dict[str, Any], label: object) -> None:
+    """Make a valid v1 label canonical while retaining all legacy columns."""
+
+    if not isinstance(label, dict):
+        return
+    contract = label.get("label_contract") if isinstance(label.get("label_contract"), dict) else {}
+    entry = label.get("entry") if isinstance(label.get("entry"), dict) else {}
+    exit_data = label.get("exit") if isinstance(label.get("exit"), dict) else {}
+    entry_quote = entry.get("quote") if isinstance(entry.get("quote"), dict) else {}
+    exit_quote = exit_data.get("quote") if isinstance(exit_data.get("quote"), dict) else {}
+    entry_price = _coerce_float(entry.get("execution_price"))
+    exit_price = _coerce_float(exit_data.get("execution_price"))
+    gross_pnl = _coerce_float(label.get("gross_executable_pnl_usd"))
+    counterfactual_pnl = _coerce_float(label.get("midpoint_counterfactual_pnl_usd"))
+    counterfactual_cost_basis = _coerce_float(label.get("midpoint_counterfactual_cost_basis_usd"))
+    net_pnl = _coerce_float(label.get("net_executable_pnl_usd"))
+    net_return = _coerce_float(label.get("net_executable_return"))
+    cost_basis = _coerce_float(label.get("cost_basis_usd"))
+    fees = _coerce_float(label.get("total_fees_usd"))
+    if not contract.get("id") or None in (entry_price, exit_price, gross_pnl, net_pnl, net_return, cost_basis):
+        return
+
+    contracts = int(label.get("contracts") or 1)
+    multiplier = _coerce_float(label.get("contract_multiplier")) or 100.0
+    raw_cost_basis = counterfactual_cost_basis or (float(entry_price) * contracts * multiplier)
+    raw_exit_value = float(exit_price) * contracts * multiplier
+    before_friction_pnl = counterfactual_pnl if counterfactual_pnl is not None else float(gross_pnl)
+    gross_return = before_friction_pnl / raw_cost_basis if raw_cost_basis > 0 else None
+    entry_slippage = _coerce_float(entry.get("signed_adverse_slippage_usd")) or 0.0
+    exit_slippage = _coerce_float(exit_data.get("signed_adverse_slippage_usd")) or 0.0
+    label_available = str(label.get("label_available_at_utc") or "")
+    exit_observed = str(exit_quote.get("observed_at_utc") or label_available)
+    row.update({
+        "decision_at_utc": label.get("decision_at_utc"),
+        "entry_date": str(label.get("decision_at_utc") or row.get("entry_date") or "")[:10],
+        "exit_date": exit_observed[:10] or row.get("exit_date"),
+        "entry_price": float(entry_price),
+        "exit_price": float(exit_price),
+        "entry_bid": _coerce_float(entry_quote.get("bid")),
+        "entry_ask": _coerce_float(entry_quote.get("ask")),
+        "exit_bid": _coerce_float(exit_quote.get("bid")),
+        "exit_ask": _coerce_float(exit_quote.get("ask")),
+        "entry_quote_observed_at_utc": entry_quote.get("observed_at_utc"),
+        "exit_quote_observed_at_utc": exit_quote.get("observed_at_utc"),
+        "entry_quote_source": entry_quote.get("source"),
+        "exit_quote_source": exit_quote.get("source"),
+        "entry_execution_price_source": entry.get("execution_price_source"),
+        "exit_execution_price_source": exit_data.get("execution_price_source"),
+        "contracts": contracts,
+        "entry_data_source": entry_quote.get("source"),
+        "exit_data_source": exit_quote.get("source"),
+        "entry_quote_type": entry.get("execution_price_source"),
+        "exit_quote_type": exit_data.get("execution_price_source"),
+        "cost_basis": float(cost_basis),
+        "exit_value": raw_exit_value,
+        "raw_cost_basis": raw_cost_basis,
+        "raw_exit_value": raw_exit_value,
+        "pnl": float(net_pnl),
+        "pnl_pct": float(net_return),
+        "raw_pnl": before_friction_pnl,
+        "raw_pnl_pct": gross_return,
+        "entry_friction_cost_usd": _coerce_float(entry.get("fees_usd")) or 0.0,
+        "exit_friction_cost_usd": _coerce_float(exit_data.get("fees_usd")) or 0.0,
+        "total_friction_cost_usd": before_friction_pnl - float(net_pnl),
+        "friction_drag_pct": (before_friction_pnl - float(net_pnl)) / raw_cost_basis if raw_cost_basis > 0 else None,
+        "entry_slippage_pct": entry_slippage / raw_cost_basis if raw_cost_basis > 0 else None,
+        "exit_slippage_pct": exit_slippage / raw_cost_basis if raw_cost_basis > 0 else None,
+        "positive_pnl_before_friction": before_friction_pnl > 0.0,
+        "positive_pnl_after_friction": float(net_pnl) > 0.0,
+        "breakeven_before_friction": before_friction_pnl >= 0.0,
+        "breakeven_after_friction": float(net_pnl) >= 0.0,
+        "friction_flipped_winner_to_loser": before_friction_pnl > 0.0 and float(net_pnl) <= 0.0,
+        "hold_period_return_before_friction_pct": gross_return,
+        "hold_period_return_after_friction_pct": float(net_return),
+        "executable_label_contract_id": contract.get("id"),
+        "executable_label_contract_version": contract.get("version"),
+        "executable_label_available_at_utc": label_available,
+        "label_source": "executable_quote_or_fill",
+        "executable_entry_quote_age_seconds": entry_quote.get("age_at_decision_seconds"),
+        "executable_exit_capture_delay_seconds": exit_quote.get("capture_delay_seconds"),
+        "executable_total_signed_adverse_slippage_usd": label.get("total_signed_adverse_slippage_usd"),
+    })
 
 
 def _pick_with_archive_label(
@@ -442,6 +558,29 @@ def _exit_date_from_mark(mark: dict[str, Any], fallback: str) -> str:
     return fallback
 
 
+def _is_valid_executable_label(label: object) -> bool:
+    if not isinstance(label, dict):
+        return False
+    contract = label.get("label_contract") if isinstance(label.get("label_contract"), dict) else {}
+    entry = label.get("entry") if isinstance(label.get("entry"), dict) else {}
+    exit_data = label.get("exit") if isinstance(label.get("exit"), dict) else {}
+    entry_quote = entry.get("quote") if isinstance(entry.get("quote"), dict) else {}
+    exit_quote = exit_data.get("quote") if isinstance(exit_data.get("quote"), dict) else {}
+    return bool(
+        str(contract.get("id") or "").startswith("orographic.executable_option_outcome.")
+        and _coerce_float(entry_quote.get("ask")) is not None
+        and (_coerce_float(entry_quote.get("ask")) or 0.0) > 0
+        and _coerce_float(exit_quote.get("bid")) is not None
+        and (_coerce_float(exit_quote.get("bid")) or 0.0) >= 0
+        and _coerce_float(entry.get("execution_price")) is not None
+        and _coerce_float(exit_data.get("execution_price")) is not None
+        and label.get("decision_at_utc")
+        and entry_quote.get("observed_at_utc")
+        and exit_quote.get("observed_at_utc")
+        and label.get("label_available_at_utc")
+    )
+
+
 def _option_outcome_row_from_pick(
     entry: dict[str, Any],
     pick: dict[str, Any],
@@ -449,9 +588,14 @@ def _option_outcome_row_from_pick(
     exit_window: str,
     archive_dir: Path | None = None,
     side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
+    require_executable_label: bool = False,
 ) -> dict[str, Any] | None:
     enriched_pick = _pick_with_archive_label(pick, archive_dir=archive_dir)
     outcomes = enriched_pick.get("outcomes") if isinstance(enriched_pick.get("outcomes"), dict) else {}
+    executable_labels = outcomes.get("executable_labels") if isinstance(outcomes.get("executable_labels"), dict) else {}
+    executable_label = executable_labels.get(exit_window)
+    if require_executable_label and not _is_valid_executable_label(executable_label):
+        return None
     fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
     exit_mark = fixed_marks.get(exit_window) if isinstance(fixed_marks.get(exit_window), dict) else None
     if not isinstance(exit_mark, dict):
@@ -549,6 +693,8 @@ def _option_outcome_row_from_pick(
         "regime_mode": regime.get("mode"),
         "regime_bias": regime.get("bias"),
         "regime_source_symbol": regime.get("source_symbol"),
+        "regime_observed_at_utc": enriched_pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc"),
+        "regime_label_source": "signal_time_snapshot" if regime.get("mode") else None,
         "pre_payoff_forge_score": scores.get("forge_score"),
         "directional_edge": None,
         "liquidity_score": None,
@@ -562,6 +708,14 @@ def _option_outcome_row_from_pick(
         "max_favorable_excursion_before_expiry": archived_path.get("max_favorable_excursion_pct"),
         "adverse_excursion_risk": archived_path.get("max_adverse_excursion_pct"),
         "payoff_model_score": scores.get("payoff_model_score"),
+        "payoff_shadow_prob_positive": scores.get("payoff_shadow_prob_positive"),
+        "payoff_shadow_rank": scores.get("payoff_shadow_rank"),
+        "payoff_shadow_probability_delta": scores.get("payoff_shadow_probability_delta"),
+        "payoff_shadow_rank_delta": scores.get("payoff_shadow_rank_delta"),
+        "payoff_shadow_disagreement": scores.get("payoff_shadow_disagreement"),
+        "payoff_shadow_mode": scores.get("payoff_shadow_mode"),
+        "payoff_shadow_artifact_sha256": scores.get("payoff_shadow_artifact_sha256"),
+        "payoff_shadow_disagreement_realized_pnl_pct": pnl_pct if scores.get("payoff_shadow_disagreement") else None,
         "final_candidate_score": scores.get("final_candidate_score"),
         "path_early_profit_take_prob": scores.get("path_early_profit_take_prob"),
         "path_expected_mfe_pct": archived_path.get("max_favorable_excursion_pct") or path_rules.get("max_favorable_excursion_pct"),
@@ -592,6 +746,7 @@ def _option_outcome_row_from_pick(
         "fixed_exit_window": exit_window,
         "archived_quote_path": archived_path,
     }
+    _apply_executable_outcome_to_canonical_row(row, executable_label)
     return _apply_model_backfills(row, side_aware_by_run=side_aware_by_run)
 
 
@@ -602,8 +757,11 @@ def canonical_option_outcome_rows(
     exit_window: str,
     archive_dir: Path | None = None,
     side_aware_by_run: dict[tuple[str, str], dict[str, Any]] | None = None,
+    require_executable_label: bool = False,
 ) -> list[dict[str, Any]]:
     ledger = _load_json(path)
+    if require_executable_label:
+        ledger, _ = backfill_executable_labels_from_fixed_marks(ledger)
     rows: list[dict[str, Any]] = []
     for entry in ledger.get("entries", []):
         if not isinstance(entry, dict):
@@ -617,6 +775,7 @@ def canonical_option_outcome_rows(
                 exit_window=exit_window,
                 archive_dir=archive_dir,
                 side_aware_by_run=side_aware_by_run,
+                require_executable_label=require_executable_label,
             )
             if row is None:
                 continue
@@ -725,6 +884,7 @@ def main() -> int:
                 exit_window=args.canonical_exit_window,
                 archive_dir=args.archive_dir,
                 side_aware_by_run=side_aware_by_run,
+                require_executable_label=True,
             ),
             *canonical_option_outcome_rows(
                 args.moonshot_ledger,
@@ -732,6 +892,7 @@ def main() -> int:
                 exit_window=args.canonical_exit_window,
                 archive_dir=args.archive_dir,
                 side_aware_by_run=side_aware_by_run,
+                require_executable_label=True,
             ),
         ]
     )
@@ -739,6 +900,7 @@ def main() -> int:
         args.canonical_option_outcomes_output.parent.mkdir(parents=True, exist_ok=True)
         payload = {
             "artifact": "option_outcome_dataset",
+            "label_policy": "strict_executable_quote_or_fill_v2",
             "generated_at": pd.Timestamp.now("UTC").date().isoformat(),
             "backtest_start": min((row["entry_date"] for row in canonical_rows), default=None),
             "backtest_end": max((row["exit_date"] for row in canonical_rows), default=None),

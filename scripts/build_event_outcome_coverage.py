@@ -22,7 +22,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--outcomes",
         type=Path,
-        default=Path("output/research_datasets/all_recommendation_outcomes.parquet"),
+        default=Path("output/research_datasets/option_recommendation_outcomes.parquet"),
     )
     parser.add_argument(
         "--output",

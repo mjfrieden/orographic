@@ -1,0 +1,356 @@
+{
+  "artifact": "promotion_shadow_active_comparison",
+  "schema_version": 2,
+  "generated_at_utc": "2026-08-08T02:51:53+00:00",
+  "as_of_utc": "2026-07-10T21:16:24+00:00",
+  "decision": "not_ready",
+  "replay_command": "python scripts/build_promotion_comparison.py",
+  "policy": {
+    "windows_months": [
+      3,
+      6,
+      12
+    ],
+    "active_lane": "prospective live",
+    "shadow_lane": "prospective shadow",
+    "position_size": "one contract per recommendation",
+    "entry": "emission ask",
+    "exit": "Friday close bid",
+    "costs": "bid/ask spread is included; gross mid-to-mid P&L and spread cost are also reported",
+    "calibration_target": "prob_positive_option_pnl versus positive after-cost P&L",
+    "sharpe": "annualized from daily lane returns using sqrt(252), zero risk-free rate",
+    "drawdown": "peak-to-trough drawdown of compounded daily lane returns",
+    "minimum_evidence": {
+      "trades_per_lane": 30,
+      "trading_days_per_lane": 30,
+      "paired_days": 30
+    },
+    "dependence_control": "promotion must also pass after collapsing repeated intraday scans to one daily lane/contract exposure",
+    "absolute_profitability": "the cluster-adjusted challenger return must be positive, not merely less negative than active",
+    "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
+  },
+  "source_summary": {
+    "prospective_ledger_updated_at_utc": "2026-07-21T18:24:33+00:00",
+    "eligible_marked_recommendations": 286,
+    "shadow_ledger_updated_at_utc": "2026-07-21T18:23:56+00:00",
+    "shadow_runs": 201,
+    "shadow_disagreements": 7206
+  },
+  "windows": [
+    {
+      "window": "3_month",
+      "start_utc": "2026-04-10T13:49:06+00:00",
+      "end_utc": "2026-07-10T21:16:24+00:00",
+      "coverage_complete": false,
+      "coverage_by_lane": {
+        "active": false,
+        "shadow": false
+      },
+      "status": "insufficient_data",
+      "active": {
+        "trades": 10,
+        "trading_days": 8,
+        "cost_basis": 792.0,
+        "gross_pnl": 70.5,
+        "spread_cost": 132.5,
+        "net_pnl": -62.0,
+        "net_return_pct": -0.0783,
+        "win_rate": 0.3,
+        "sharpe_ratio": 1.4828,
+        "max_drawdown": -0.8475,
+        "calibration": {
+          "observations": 10,
+          "brier_score": 0.4491,
+          "expected_calibration_error": 0.4906
+        }
+      },
+      "shadow": {
+        "trades": 276,
+        "trading_days": 34,
+        "cost_basis": 28171.0,
+        "gross_pnl": 4454.5,
+        "spread_cost": 4152.5,
+        "net_pnl": 302.0,
+        "net_return_pct": 0.0107,
+        "win_rate": 0.3841,
+        "sharpe_ratio": 0.5441,
+        "max_drawdown": -0.9905,
+        "calibration": {
+          "observations": 276,
+          "brier_score": 0.3407,
+          "expected_calibration_error": 0.2974
+        }
+      },
+      "cluster_adjusted": {
+        "active": {
+          "trades": 9,
+          "trading_days": 8,
+          "cost_basis": 756.0,
+          "gross_pnl": 69.0,
+          "spread_cost": 119.0,
+          "net_pnl": -50.0,
+          "net_return_pct": -0.0661,
+          "win_rate": 0.3333,
+          "sharpe_ratio": 1.4566,
+          "max_drawdown": -0.8475,
+          "calibration": {
+            "observations": 9,
+            "brier_score": 0.4401,
+            "expected_calibration_error": 0.4642
+          }
+        },
+        "shadow": {
+          "trades": 215,
+          "trading_days": 34,
+          "cost_basis": 22991.0,
+          "gross_pnl": 2732.5,
+          "spread_cost": 3305.5,
+          "net_pnl": -573.0,
+          "net_return_pct": -0.0249,
+          "win_rate": 0.3814,
+          "sharpe_ratio": -0.2241,
+          "max_drawdown": -0.9916,
+          "calibration": {
+            "observations": 215,
+            "brier_score": 0.34,
+            "expected_calibration_error": 0.304
+          }
+        },
+        "raw_recommendations": 286,
+        "independent_daily_contracts": 224
+      },
+      "paired_day_inference": {
+        "paired_days": 8,
+        "mean_return_lift": -0.07131,
+        "confidence_interval_95": {
+          "lower": -0.660747,
+          "upper": 0.504406
+        },
+        "probability_positive": 0.4015,
+        "positive_paired_day_rate": 0.5,
+        "method": "paired-day nonparametric bootstrap",
+        "resamples": 4000
+      },
+      "checks": {
+        "minimum_evidence": false,
+        "after_cost_pnl_lift": true,
+        "absolute_profitability": false,
+        "calibration_non_worse": true,
+        "sharpe_non_worse": false,
+        "drawdown_non_worse": false,
+        "cluster_robustness": false,
+        "uncertainty_robustness": false
+      }
+    },
+    {
+      "window": "6_month",
+      "start_utc": "2026-01-09T06:21:48+00:00",
+      "end_utc": "2026-07-10T21:16:24+00:00",
+      "coverage_complete": false,
+      "coverage_by_lane": {
+        "active": false,
+        "shadow": false
+      },
+      "status": "insufficient_data",
+      "active": {
+        "trades": 10,
+        "trading_days": 8,
+        "cost_basis": 792.0,
+        "gross_pnl": 70.5,
+        "spread_cost": 132.5,
+        "net_pnl": -62.0,
+        "net_return_pct": -0.0783,
+        "win_rate": 0.3,
+        "sharpe_ratio": 1.4828,
+        "max_drawdown": -0.8475,
+        "calibration": {
+          "observations": 10,
+          "brier_score": 0.4491,
+          "expected_calibration_error": 0.4906
+        }
+      },
+      "shadow": {
+        "trades": 276,
+        "trading_days": 34,
+        "cost_basis": 28171.0,
+        "gross_pnl": 4454.5,
+        "spread_cost": 4152.5,
+        "net_pnl": 302.0,
+        "net_return_pct": 0.0107,
+        "win_rate": 0.3841,
+        "sharpe_ratio": 0.5441,
+        "max_drawdown": -0.9905,
+        "calibration": {
+          "observations": 276,
+          "brier_score": 0.3407,
+          "expected_calibration_error": 0.2974
+        }
+      },
+      "cluster_adjusted": {
+        "active": {
+          "trades": 9,
+          "trading_days": 8,
+          "cost_basis": 756.0,
+          "gross_pnl": 69.0,
+          "spread_cost": 119.0,
+          "net_pnl": -50.0,
+          "net_return_pct": -0.0661,
+          "win_rate": 0.3333,
+          "sharpe_ratio": 1.4566,
+          "max_drawdown": -0.8475,
+          "calibration": {
+            "observations": 9,
+            "brier_score": 0.4401,
+            "expected_calibration_error": 0.4642
+          }
+        },
+        "shadow": {
+          "trades": 215,
+          "trading_days": 34,
+          "cost_basis": 22991.0,
+          "gross_pnl": 2732.5,
+          "spread_cost": 3305.5,
+          "net_pnl": -573.0,
+          "net_return_pct": -0.0249,
+          "win_rate": 0.3814,
+          "sharpe_ratio": -0.2241,
+          "max_drawdown": -0.9916,
+          "calibration": {
+            "observations": 215,
+            "brier_score": 0.34,
+            "expected_calibration_error": 0.304
+          }
+        },
+        "raw_recommendations": 286,
+        "independent_daily_contracts": 224
+      },
+      "paired_day_inference": {
+        "paired_days": 8,
+        "mean_return_lift": -0.07131,
+        "confidence_interval_95": {
+          "lower": -0.675597,
+          "upper": 0.543776
+        },
+        "probability_positive": 0.3985,
+        "positive_paired_day_rate": 0.5,
+        "method": "paired-day nonparametric bootstrap",
+        "resamples": 4000
+      },
+      "checks": {
+        "minimum_evidence": false,
+        "after_cost_pnl_lift": true,
+        "absolute_profitability": false,
+        "calibration_non_worse": true,
+        "sharpe_non_worse": false,
+        "drawdown_non_worse": false,
+        "cluster_robustness": false,
+        "uncertainty_robustness": false
+      }
+    },
+    {
+      "window": "12_month",
+      "start_utc": "2025-07-10T15:27:12+00:00",
+      "end_utc": "2026-07-10T21:16:24+00:00",
+      "coverage_complete": false,
+      "coverage_by_lane": {
+        "active": false,
+        "shadow": false
+      },
+      "status": "insufficient_data",
+      "active": {
+        "trades": 10,
+        "trading_days": 8,
+        "cost_basis": 792.0,
+        "gross_pnl": 70.5,
+        "spread_cost": 132.5,
+        "net_pnl": -62.0,
+        "net_return_pct": -0.0783,
+        "win_rate": 0.3,
+        "sharpe_ratio": 1.4828,
+        "max_drawdown": -0.8475,
+        "calibration": {
+          "observations": 10,
+          "brier_score": 0.4491,
+          "expected_calibration_error": 0.4906
+        }
+      },
+      "shadow": {
+        "trades": 276,
+        "trading_days": 34,
+        "cost_basis": 28171.0,
+        "gross_pnl": 4454.5,
+        "spread_cost": 4152.5,
+        "net_pnl": 302.0,
+        "net_return_pct": 0.0107,
+        "win_rate": 0.3841,
+        "sharpe_ratio": 0.5441,
+        "max_drawdown": -0.9905,
+        "calibration": {
+          "observations": 276,
+          "brier_score": 0.3407,
+          "expected_calibration_error": 0.2974
+        }
+      },
+      "cluster_adjusted": {
+        "active": {
+          "trades": 9,
+          "trading_days": 8,
+          "cost_basis": 756.0,
+          "gross_pnl": 69.0,
+          "spread_cost": 119.0,
+          "net_pnl": -50.0,
+          "net_return_pct": -0.0661,
+          "win_rate": 0.3333,
+          "sharpe_ratio": 1.4566,
+          "max_drawdown": -0.8475,
+          "calibration": {
+            "observations": 9,
+            "brier_score": 0.4401,
+            "expected_calibration_error": 0.4642
+          }
+        },
+        "shadow": {
+          "trades": 215,
+          "trading_days": 34,
+          "cost_basis": 22991.0,
+          "gross_pnl": 2732.5,
+          "spread_cost": 3305.5,
+          "net_pnl": -573.0,
+          "net_return_pct": -0.0249,
+          "win_rate": 0.3814,
+          "sharpe_ratio": -0.2241,
+          "max_drawdown": -0.9916,
+          "calibration": {
+            "observations": 215,
+            "brier_score": 0.34,
+            "expected_calibration_error": 0.304
+          }
+        },
+        "raw_recommendations": 286,
+        "independent_daily_contracts": 224
+      },
+      "paired_day_inference": {
+        "paired_days": 8,
+        "mean_return_lift": -0.07131,
+        "confidence_interval_95": {
+          "lower": -0.657052,
+          "upper": 0.543776
+        },
+        "probability_positive": 0.3972,
+        "positive_paired_day_rate": 0.5,
+        "method": "paired-day nonparametric bootstrap",
+        "resamples": 4000
+      },
+      "checks": {
+        "minimum_evidence": false,
+        "after_cost_pnl_lift": true,
+        "absolute_profitability": false,
+        "calibration_non_worse": true,
+        "sharpe_non_worse": false,
+        "drawdown_non_worse": false,
+        "cluster_robustness": false,
+        "uncertainty_robustness": false
+      }
+    }
+  ]
+}

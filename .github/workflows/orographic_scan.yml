@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: orographic-scan-${{ github.ref }}
-  # Scheduled and manually dispatched scans share this lane. Queue the later
-  # request so a manual run can never cancel an in-progress scheduled scan.
+  group: orographic-research-write-${{ github.ref }}
+  # Scans and outcome capture both update prospective research ledgers. Queue
+  # the later writer so neither workflow can cancel or overwrite the other.
   cancel-in-progress: false
 
 permissions:

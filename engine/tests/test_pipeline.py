@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,7 +13,11 @@ import pandas as pd
 from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, rank_contracts_with_diagnostics, select_signals_for_forge
 from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.pipeline import (
+    _fail_closed_model_modes,
     _load_prior_live_board_symbols,
+    _model_artifact_status,
+    _model_mode_status,
+    _promotion_gate_decision,
     append_board_recommendation_history,
     append_moonshot_prospective_ledger,
     append_prospective_pick_ledger,
@@ -74,6 +79,102 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
 
 
 class PipelineTests(unittest.TestCase):
+    def test_payoff_volatility_challenger_is_optional_and_observation_only(self) -> None:
+        artifacts = _model_artifact_status()
+
+        self.assertTrue(artifacts["payoff_volatility_shadow"]["present"])
+        self.assertFalse(artifacts["payoff_volatility_shadow"]["required"])
+        self.assertFalse(artifacts["payoff_volatility_shadow_card"]["required"])
+        self.assertEqual(
+            _model_mode_status(artifacts)["payoff_volatility_challenger"],
+            "observation_only",
+        )
+
+    def test_canonical_promotion_gate_requires_exact_pass_decision(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            comparison_path = Path(tmpdir) / "comparison.json"
+            for decision, expected in (
+                ("pass", "pass"),
+                ("PASS", "pass"),
+                ("passed", "passed"),
+                ("approved", "approved"),
+                ("hold", "hold"),
+            ):
+                comparison_path.write_text(json.dumps({"decision": decision}), encoding="utf-8")
+                self.assertEqual(_promotion_gate_decision(comparison_path), expected)
+
+    def test_nonpassing_promotion_gate_forces_learned_overlays_to_shadow(self) -> None:
+        with mock.patch.dict(
+            "os.environ",
+            {
+                "OROGRAPHIC_SIDE_MODEL_MODE": "active",
+                "OROGRAPHIC_SENTINEL_MODE": "active",
+                "OROGRAPHIC_PAYOFF_MODEL_MODE": "active",
+            },
+            clear=False,
+        ):
+            with _fail_closed_model_modes("not_ready"):
+                self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
+                self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "shadow")
+                self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "shadow")
+            self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "active")
+            self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "active")
+            self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "active")
+
+    def test_run_scan_restores_requested_active_modes_after_fail_closed_scan(self) -> None:
+        comparison = {"artifact": "promotion_shadow_active_comparison", "decision": "not_ready", "windows": []}
+        council_payload = {
+            "live_board": [],
+            "shadow_board": [],
+            "abstain": True,
+            "summary": {"candidate_count": 0, "live_count": 0, "shadow_count": 0, "notes": []},
+        }
+
+        def scan_in_shadow(_universe):
+            self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
+            self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "shadow")
+            self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "shadow")
+            return (
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                [],
+                {"pre_veto_direction_counts": {}, "final_direction_counts": {}, "counter_regime_survivors": 0},
+            )
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            comparison_path = Path(tmpdir) / "comparison.json"
+            comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+            with (
+                mock.patch.dict(
+                    "os.environ",
+                    {
+                        "OROGRAPHIC_SIDE_MODEL_MODE": "active",
+                        "OROGRAPHIC_SENTINEL_MODE": "active",
+                        "OROGRAPHIC_PAYOFF_MODEL_MODE": "active",
+                    },
+                    clear=False,
+                ),
+                mock.patch("engine.orographic.pipeline.scan_symbols_with_diagnostics", side_effect=scan_in_shadow),
+                mock.patch("engine.orographic.pipeline.select_signals_for_forge", return_value=([], {})),
+                mock.patch("engine.orographic.pipeline.rank_contracts_with_diagnostics", return_value=([], {"waterfall": {}, "learned_ranker": {}})),
+                mock.patch(
+                    "engine.orographic.pipeline.select_board",
+                    return_value=mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True),
+                ),
+            ):
+                payload = run_scan(PipelineConfig(
+                    universe=["AAA"],
+                    board_history_path=None,
+                    promotion_comparison_path=comparison_path,
+                ))
+                self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "active")
+                self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "active")
+                self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "active")
+
+        self.assertEqual(payload["model_modes"]["side_aware_scout"], "shadow")
+        self.assertEqual(payload["model_modes"]["sentinel"], "shadow")
+        self.assertEqual(payload["model_modes"]["payoff_ranker"], "shadow")
+        self.assertEqual(payload["promotion_readiness"]["decision"], "promotion_hold")
+
     def setUp(self) -> None:
         self.market_shock = MarketShockRegime(
             label="normal_crosscurrents",
@@ -406,7 +507,7 @@ class PipelineTests(unittest.TestCase):
             artifact["final_board"]["abstain_reasons"],
             ["Council abstained because no contract cleared the live board threshold."],
         )
-        self.assertEqual(artifact["promotion_readiness"]["decision"], "production_active")
+        self.assertEqual(artifact["promotion_readiness"]["decision"], "promotion_hold")
 
     def test_build_promotion_readiness_tracks_shadow_models(self) -> None:
         payload = {
@@ -473,11 +574,12 @@ class PipelineTests(unittest.TestCase):
         readiness = build_promotion_readiness(payload)
         models = {row["name"]: row for row in readiness["models"]}
 
-        self.assertEqual(readiness["decision"], "production_active")
+        self.assertEqual(readiness["decision"], "promotion_hold")
         self.assertEqual(models["Side-Aware Scout"]["disagreements"], 1)
         self.assertEqual(models["Side-Aware Scout"]["side_mix"]["put"], 2)
         self.assertEqual(models["Sentinel Event Extractor"]["non_neutral_events"], 1)
-        self.assertEqual(models["Payoff Ranker"]["mode"], "active")
+        self.assertEqual(models["Payoff Ranker"]["mode"], "shadow")
+        self.assertEqual(models["Payoff Ranker"]["configured_mode"], "active")
         self.assertEqual(models["Path Quality Model"]["mode"], "shadow")
         self.assertEqual(models["Council Risk Intelligence"]["live_risk_flags"], 1)
         self.assertEqual(len(readiness["gates"]), 6)
@@ -486,7 +588,16 @@ class PipelineTests(unittest.TestCase):
         prospective = {
             "artifact": "prospective_pick_ledger",
             "aggregate": {"runs": 1},
-            "outcome_summary": {"complete": 2, "partial": 0, "pending": 1},
+            "outcome_summary": {
+                "complete": 2,
+                "partial": 0,
+                "pending": 1,
+                "capture_policy_v2_picks": 3,
+                "capture_windows_valid": 8,
+                "capture_windows_quote_missing": 1,
+                "capture_windows_stale_quote": 0,
+                "capture_windows_missed": 1,
+            },
             "entries": [
                 {
                     "regime": {"mode": "risk_on"},
@@ -535,6 +646,21 @@ class PipelineTests(unittest.TestCase):
         }
         research = {"artifact": "research_run_ledger", "aggregate": {"runs": 12, "abstain_runs": 5}}
         board = {"artifact": "board_recommendation_history", "aggregate": {"runs": 12, "abstain_runs": 5}}
+        comparison = {
+            "artifact": "promotion_shadow_active_comparison",
+            "decision": "not_ready",
+            "windows": [
+                {"window": "3_month", "status": "insufficient_data", "coverage_complete": False, "checks": {}},
+                {"window": "6_month", "status": "insufficient_data", "coverage_complete": False, "checks": {}},
+                {"window": "12_month", "status": "insufficient_data", "coverage_complete": False, "checks": {}},
+            ],
+        }
+        challenger_evidence = {
+            "artifact": "payoff_challenger_prospective_evidence",
+            "decision": "collecting_evidence",
+            "coverage": {"resolved_recommendations": 12},
+            "rank_replay": {"eligible_complete_runs": 4},
+        }
 
         with tempfile.TemporaryDirectory() as tmpdir:
             prospective_path = Path(tmpdir) / "prospective.json"
@@ -542,11 +668,15 @@ class PipelineTests(unittest.TestCase):
             shadow_path = Path(tmpdir) / "shadow.json"
             research_path = Path(tmpdir) / "research.json"
             board_path = Path(tmpdir) / "board.json"
+            comparison_path = Path(tmpdir) / "comparison.json"
+            challenger_evidence_path = Path(tmpdir) / "challenger.json"
             prospective_path.write_text(json.dumps(prospective), encoding="utf-8")
             moonshot_path.write_text(json.dumps(moonshot), encoding="utf-8")
             shadow_path.write_text(json.dumps(shadow), encoding="utf-8")
             research_path.write_text(json.dumps(research), encoding="utf-8")
             board_path.write_text(json.dumps(board), encoding="utf-8")
+            comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+            challenger_evidence_path.write_text(json.dumps(challenger_evidence), encoding="utf-8")
 
             payload = {
                 "model_modes": {"payoff_ranker": "active"},
@@ -556,6 +686,8 @@ class PipelineTests(unittest.TestCase):
                     "shadow_ledger": str(shadow_path),
                     "research_ledger": str(research_path),
                     "board_history": str(board_path),
+                    "promotion_comparison": str(comparison_path),
+                    "payoff_challenger_evidence": str(challenger_evidence_path),
                 },
                 "diagnostics": {
                     "scout": {"side_aware_scores": [], "sentinel_scores": []},
@@ -569,13 +701,65 @@ class PipelineTests(unittest.TestCase):
         models = {row["name"]: row for row in readiness["models"]}
         gates = {row["name"]: row for row in readiness["gates"]}
 
-        self.assertEqual(models["Payoff Ranker"]["mode"], "active")
+        self.assertEqual(models["Payoff Ranker"]["mode"], "shadow")
         self.assertEqual(models["Payoff Ranker"]["live_realized_pnl"], 25.0)
         self.assertEqual(models["Council Risk Intelligence"]["holdout_friday_close_avg_pnl_pct"], 0.25)
         self.assertEqual(readiness["profitability_summary"]["tracked_recommendations"], 3)
         self.assertEqual(readiness["profitability_summary"]["quote_coverage_pct"], 1.0)
+        self.assertEqual(readiness["profitability_summary"]["payoff_challenger_decision"], "collecting_evidence")
+        self.assertEqual(readiness["profitability_summary"]["payoff_challenger_resolved"], 12)
+        self.assertEqual(readiness["profitability_summary"]["payoff_challenger_replay_runs"], 4)
+        self.assertEqual(readiness["profitability_summary"]["capture_policy_v2_picks"], 3)
+        self.assertEqual(readiness["profitability_summary"]["capture_windows_valid"], 8)
+        self.assertEqual(readiness["profitability_summary"]["capture_windows_missed"], 1)
         self.assertEqual(gates["Live Shadow Window"]["status"], "pass")
         self.assertIn("35 shadow runs", gates["Live Shadow Window"]["progress"])
+        self.assertEqual(gates["Backtest Windows"]["status"], "collecting_evidence")
+        self.assertEqual(readiness["promotion_gate_decision"], "not_ready")
+        self.assertEqual(readiness["decision"], "promotion_hold")
+        self.assertTrue(all(row["mode"] != "active" for row in readiness["models"][:3]))
+
+    def test_build_promotion_readiness_allows_active_only_after_canonical_pass(self) -> None:
+        comparison = {
+            "artifact": "promotion_shadow_active_comparison",
+            "decision": "pass",
+            "windows": [
+                {
+                    "window": window,
+                    "status": "pass",
+                    "coverage_complete": True,
+                    "checks": {
+                        "calibration_non_worse": True,
+                        "sharpe_non_worse": True,
+                        "drawdown_non_worse": True,
+                    },
+                }
+                for window in ("3_month", "6_month", "12_month")
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            comparison_path = Path(tmpdir) / "comparison.json"
+            comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
+            readiness = build_promotion_readiness({
+                "model_modes": {
+                    "side_aware_scout": "active",
+                    "sentinel": "active",
+                    "payoff_ranker": "active",
+                },
+                "diagnostic_sources": {"promotion_comparison": str(comparison_path)},
+                "diagnostics": {
+                    "scout": {"side_aware_scores": [], "sentinel_scores": []},
+                    "forge": {"learned_ranker": {"mode_counts": {"active": 1}}},
+                },
+                "council": {"live_board": [], "shadow_board": [], "summary": {}},
+            })
+
+        models = {row["name"]: row for row in readiness["models"]}
+        self.assertEqual(readiness["decision"], "production_active")
+        self.assertEqual(readiness["promotion_gate_decision"], "pass")
+        self.assertEqual(models["Side-Aware Scout"]["mode"], "active")
+        self.assertEqual(models["Sentinel Event Extractor"]["mode"], "active")
+        self.assertEqual(models["Payoff Ranker"]["mode"], "active")
 
     def test_write_forge_rejection_waterfall_artifacts_creates_latest_and_dated_files(self) -> None:
         payload = {
@@ -1433,6 +1617,15 @@ class PipelineTests(unittest.TestCase):
             }
 
         live = candidate("AAA", "AAA1", "call", 0.86)
+        live.update({
+            "payoff_shadow_prob_positive": 0.61,
+            "payoff_shadow_rank": 0.75,
+            "payoff_shadow_probability_delta": -0.09,
+            "payoff_shadow_rank_delta": 0.12,
+            "payoff_shadow_disagreement": True,
+            "payoff_shadow_mode": "observation_only",
+            "payoff_shadow_artifact_sha256": "shadow-sha",
+        })
         shadow = candidate("BBB", "BBB1", "put", 0.78)
         veto = candidate("CCC", "CCC1", "call", 0.74, passed=False)
         holdout = candidate("DDD", "DDD1", "call", 0.71)
@@ -1482,7 +1675,11 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(entry["picks"][0]["emission_quote"]["mid"], 1.1)
         self.assertEqual(entry["picks"][0]["outcomes"]["status"], "pending")
         self.assertIsNone(entry["picks"][0]["outcomes"]["fixed_exit_marks"]["friday_close"])
+        self.assertEqual(entry["picks"][0]["outcomes"]["quote_verification"]["capture_policy_version"], 2)
+        self.assertIsNone(entry["picks"][0]["outcomes"]["capture_attempts"]["friday_close"])
         self.assertEqual(entry["picks"][0]["context"]["scan_settings"]["minimum_put_live_score"], 0.84)
+        self.assertEqual(entry["picks"][0]["scores"]["payoff_shadow_prob_positive"], 0.61)
+        self.assertTrue(entry["picks"][0]["scores"]["payoff_shadow_disagreement"])
 
         with tempfile.TemporaryDirectory() as tmpdir:
             ledger_path = append_prospective_pick_ledger(
@@ -1493,11 +1690,15 @@ class PipelineTests(unittest.TestCase):
             rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
 
         self.assertEqual(rendered["artifact"], "prospective_pick_ledger")
-        self.assertEqual(rendered["schema_version"], 2)
+        self.assertEqual(rendered["schema_version"], 3)
+        self.assertEqual(rendered["payoff_shadow_policy"]["mode"], "observation_only")
+        self.assertFalse(rendered["payoff_shadow_policy"]["affects_tradier_routing"])
         self.assertEqual(rendered["aggregate"]["runs"], 1)
         self.assertEqual(rendered["aggregate"]["pick_rows"], 4)
         self.assertEqual(rendered["aggregate"]["friction_veto"], 1)
         self.assertEqual(rendered["outcome_summary"]["pending"], 4)
+        self.assertEqual(rendered["outcome_summary"]["payoff_shadow_scored"], 1)
+        self.assertEqual(rendered["outcome_summary"]["payoff_shadow_disagreements"], 1)
 
     def test_moonshot_prospective_ledger_records_pick_and_shadow_candidates(self) -> None:
         def moonshot_candidate(contract: str, *, eligible: bool, score: float) -> dict[str, object]:
