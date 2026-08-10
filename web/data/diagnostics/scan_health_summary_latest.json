@@ -1,17 +1,17 @@
 {
   "artifact": "scan_health_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-07T20:15:22.134051Z",
-  "status": "passed",
+  "generated_at_utc": "2026-08-10T14:14:30.337034Z",
+  "status": "failed",
   "snapshot": {
     "path": "web/data/latest_run.json",
-    "generated_at_utc": "2026-08-07T20:09:48+00:00",
-    "age_minutes": 5.57,
+    "generated_at_utc": "2026-08-10T14:09:31+00:00",
+    "age_minutes": 4.99,
     "regime_mode": "risk_on",
-    "regime_bias": 0.5082,
-    "scout_signal_count": 29,
-    "pre_forge_signal_count": 12,
-    "forge_candidate_count": 11,
+    "regime_bias": 0.4277,
+    "scout_signal_count": 23,
+    "pre_forge_signal_count": 9,
+    "forge_candidate_count": 9,
     "abstain": true,
     "live_count": 0,
     "shadow_count": 3
@@ -20,10 +20,10 @@
     "prospective": {
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-08-07T20:10:56+00:00",
-      "runs": 168,
-      "picks": 1615,
-      "pending": 633,
+      "updated_at_utc": "2026-08-10T14:10:20+00:00",
+      "runs": 169,
+      "picks": 1624,
+      "pending": 642,
       "partial": 20,
       "complete": 962,
       "with_any_mark": 982,
@@ -31,58 +31,58 @@
       "missing_outcome_quotes": 0,
       "quote_coverage_pct": 1.0,
       "marks_written_last_run": 0,
-      "quotes_missing_last_run": 1604
+      "quotes_missing_last_run": 1615
     },
     "moonshot": {
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-08-07T20:10:58+00:00",
-      "runs": 126,
-      "picks": 414,
+      "updated_at_utc": "2026-08-10T14:10:21+00:00",
+      "runs": 127,
+      "picks": 418,
       "pending": 4,
-      "partial": 15,
+      "partial": 19,
       "complete": 395,
-      "with_any_mark": 410,
+      "with_any_mark": 414,
       "with_all_fixed_marks": 395,
       "missing_outcome_quotes": 0,
       "quote_coverage_pct": 1.0,
       "marks_written_last_run": 0,
-      "quotes_missing_last_run": 350
+      "quotes_missing_last_run": 354
     },
-    "marked_picks": 1392,
+    "marked_picks": 1396,
     "missing_outcome_quotes": 0,
     "quote_coverage_pct": 1.0
   },
   "research": {
     "audit_status": "passed",
     "audit_summary": {
-      "archived_rows": 36836,
+      "archived_rows": 42634,
       "archived_symbols": 60,
-      "prospective_ledger_pick_rows": 1615,
-      "moonshot_ledger_pick_rows": 414,
-      "recommendation_dataset_rows": 1615,
-      "moonshot_dataset_rows": 414,
-      "combined_dataset_rows": 2029,
-      "event_observation_rows": 1972,
-      "event_enriched_dataset_rows": 2029,
-      "rows_with_prior_events": 420,
+      "prospective_ledger_pick_rows": 1624,
+      "moonshot_ledger_pick_rows": 418,
+      "recommendation_dataset_rows": 1624,
+      "moonshot_dataset_rows": 418,
+      "combined_dataset_rows": 2042,
+      "event_observation_rows": 2011,
+      "event_enriched_dataset_rows": 2042,
+      "rows_with_prior_events": 433,
       "complete_outcome_event_coverage_pct": 0.0685,
       "event_feed_status": "rate_limit_cooldown",
       "event_feed_new_rows": 0,
       "event_feed_mapped_symbols": 31,
       "event_feed_http_429_responses": 0,
-      "event_feed_elapsed_seconds": 0.052
+      "event_feed_elapsed_seconds": 0.07
     },
-    "archive_rows": 36836,
+    "archive_rows": 42634,
     "archive_symbols": 60,
-    "recommendation_dataset_rows": 1615,
-    "moonshot_dataset_rows": 414,
-    "combined_dataset_rows": 2029
+    "recommendation_dataset_rows": 1624,
+    "moonshot_dataset_rows": 418,
+    "combined_dataset_rows": 2042
   },
   "publishing": {
     "dashboard_push_status": "success",
     "dashboard_deploy_status": "success",
-    "r2_status": "success"
+    "r2_status": "failure"
   },
   "checks": [
     {
@@ -93,13 +93,13 @@
     {
       "name": "snapshot_is_fresh",
       "passed": true,
-      "actual_age_minutes": 5.57,
+      "actual_age_minutes": 4.99,
       "max_age_minutes": 240
     },
     {
       "name": "scan_emitted_scout_signals",
       "passed": true,
-      "actual": 29
+      "actual": 23
     },
     {
       "name": "prospective_ledger_exists",
@@ -114,7 +114,7 @@
     {
       "name": "labeled_outcomes_exist",
       "passed": true,
-      "actual_marked_picks": 1392
+      "actual_marked_picks": 1396
     },
     {
       "name": "quote_coverage",
@@ -130,7 +130,7 @@
     {
       "name": "archive_rows_captured",
       "passed": true,
-      "actual": 36836
+      "actual": 42634
     },
     {
       "name": "research_audit_passed",
@@ -140,14 +140,14 @@
     {
       "name": "recommendation_dataset_rows",
       "passed": true,
-      "actual": 1615,
+      "actual": 1624,
       "required_min": 1
     },
     {
       "name": "combined_dataset_consistency",
       "passed": true,
-      "actual": 2029,
-      "expected": 2029
+      "actual": 2042,
+      "expected": 2042
     },
     {
       "name": "dashboard_push_completed",
@@ -161,9 +161,15 @@
     },
     {
       "name": "r2_archival_completed",
-      "passed": true,
-      "actual": "success"
+      "passed": false,
+      "actual": "failure"
     }
   ],
-  "failed_checks": []
+  "failed_checks": [
+    {
+      "name": "r2_archival_completed",
+      "passed": false,
+      "actual": "failure"
+    }
+  ]
 }
