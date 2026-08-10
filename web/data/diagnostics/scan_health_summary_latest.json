@@ -1,17 +1,17 @@
 {
   "artifact": "scan_health_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-10T14:14:30.337034Z",
-  "status": "failed",
+  "generated_at_utc": "2026-08-10T17:18:24.838824Z",
+  "status": "passed",
   "snapshot": {
     "path": "web/data/latest_run.json",
-    "generated_at_utc": "2026-08-10T14:09:31+00:00",
-    "age_minutes": 4.99,
+    "generated_at_utc": "2026-08-10T17:09:27+00:00",
+    "age_minutes": 8.96,
     "regime_mode": "risk_on",
-    "regime_bias": 0.4277,
-    "scout_signal_count": 23,
-    "pre_forge_signal_count": 9,
-    "forge_candidate_count": 9,
+    "regime_bias": 0.4097,
+    "scout_signal_count": 21,
+    "pre_forge_signal_count": 12,
+    "forge_candidate_count": 12,
     "abstain": true,
     "live_count": 0,
     "shadow_count": 3
@@ -20,10 +20,10 @@
     "prospective": {
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-08-10T14:10:20+00:00",
-      "runs": 169,
-      "picks": 1624,
-      "pending": 642,
+      "updated_at_utc": "2026-08-10T17:10:12+00:00",
+      "runs": 170,
+      "picks": 1636,
+      "pending": 654,
       "partial": 20,
       "complete": 962,
       "with_any_mark": 982,
@@ -31,58 +31,58 @@
       "missing_outcome_quotes": 0,
       "quote_coverage_pct": 1.0,
       "marks_written_last_run": 0,
-      "quotes_missing_last_run": 1615
+      "quotes_missing_last_run": 1624
     },
     "moonshot": {
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-08-10T14:10:21+00:00",
-      "runs": 127,
-      "picks": 418,
+      "updated_at_utc": "2026-08-10T17:10:13+00:00",
+      "runs": 128,
+      "picks": 422,
       "pending": 4,
-      "partial": 19,
+      "partial": 23,
       "complete": 395,
-      "with_any_mark": 414,
+      "with_any_mark": 418,
       "with_all_fixed_marks": 395,
       "missing_outcome_quotes": 0,
       "quote_coverage_pct": 1.0,
       "marks_written_last_run": 0,
       "quotes_missing_last_run": 354
     },
-    "marked_picks": 1396,
+    "marked_picks": 1400,
     "missing_outcome_quotes": 0,
     "quote_coverage_pct": 1.0
   },
   "research": {
     "audit_status": "passed",
     "audit_summary": {
-      "archived_rows": 42634,
+      "archived_rows": 41821,
       "archived_symbols": 60,
-      "prospective_ledger_pick_rows": 1624,
-      "moonshot_ledger_pick_rows": 418,
-      "recommendation_dataset_rows": 1624,
-      "moonshot_dataset_rows": 418,
-      "combined_dataset_rows": 2042,
-      "event_observation_rows": 2011,
-      "event_enriched_dataset_rows": 2042,
-      "rows_with_prior_events": 433,
+      "prospective_ledger_pick_rows": 1636,
+      "moonshot_ledger_pick_rows": 422,
+      "recommendation_dataset_rows": 1636,
+      "moonshot_dataset_rows": 422,
+      "combined_dataset_rows": 2058,
+      "event_observation_rows": 2038,
+      "event_enriched_dataset_rows": 2058,
+      "rows_with_prior_events": 449,
       "complete_outcome_event_coverage_pct": 0.0685,
       "event_feed_status": "rate_limit_cooldown",
       "event_feed_new_rows": 0,
       "event_feed_mapped_symbols": 31,
       "event_feed_http_429_responses": 0,
-      "event_feed_elapsed_seconds": 0.07
+      "event_feed_elapsed_seconds": 0.052
     },
-    "archive_rows": 42634,
+    "archive_rows": 41821,
     "archive_symbols": 60,
-    "recommendation_dataset_rows": 1624,
-    "moonshot_dataset_rows": 418,
-    "combined_dataset_rows": 2042
+    "recommendation_dataset_rows": 1636,
+    "moonshot_dataset_rows": 422,
+    "combined_dataset_rows": 2058
   },
   "publishing": {
     "dashboard_push_status": "success",
     "dashboard_deploy_status": "success",
-    "r2_status": "failure"
+    "r2_status": "success"
   },
   "checks": [
     {
@@ -93,13 +93,13 @@
     {
       "name": "snapshot_is_fresh",
       "passed": true,
-      "actual_age_minutes": 4.99,
+      "actual_age_minutes": 8.96,
       "max_age_minutes": 240
     },
     {
       "name": "scan_emitted_scout_signals",
       "passed": true,
-      "actual": 23
+      "actual": 21
     },
     {
       "name": "prospective_ledger_exists",
@@ -114,7 +114,7 @@
     {
       "name": "labeled_outcomes_exist",
       "passed": true,
-      "actual_marked_picks": 1396
+      "actual_marked_picks": 1400
     },
     {
       "name": "quote_coverage",
@@ -130,7 +130,7 @@
     {
       "name": "archive_rows_captured",
       "passed": true,
-      "actual": 42634
+      "actual": 41821
     },
     {
       "name": "research_audit_passed",
@@ -140,14 +140,14 @@
     {
       "name": "recommendation_dataset_rows",
       "passed": true,
-      "actual": 1624,
+      "actual": 1636,
       "required_min": 1
     },
     {
       "name": "combined_dataset_consistency",
       "passed": true,
-      "actual": 2042,
-      "expected": 2042
+      "actual": 2058,
+      "expected": 2058
     },
     {
       "name": "dashboard_push_completed",
@@ -161,15 +161,9 @@
     },
     {
       "name": "r2_archival_completed",
-      "passed": false,
-      "actual": "failure"
+      "passed": true,
+      "actual": "success"
     }
   ],
-  "failed_checks": [
-    {
-      "name": "r2_archival_completed",
-      "passed": false,
-      "actual": "failure"
-    }
-  ]
+  "failed_checks": []
 }
