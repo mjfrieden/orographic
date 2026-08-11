@@ -1,7 +1,7 @@
 {
   "artifact": "payoff_challenger_prospective_evidence",
-  "schema_version": 1,
-  "generated_at_utc": "2026-08-11T15:36:38+00:00",
+  "schema_version": 2,
+  "generated_at_utc": "2026-08-11T15:40:00+00:00",
   "decision": "collecting_evidence",
   "execution_effect": "none_observation_only",
   "policy": {
@@ -97,10 +97,76 @@
       "regime_stability": false
     }
   },
+  "readiness": {
+    "sample_ready": false,
+    "blocking_sample_gates": [
+      "resolved_recommendations",
+      "resolved_runs",
+      "decision_disagreements",
+      "side_coverage",
+      "regime_coverage",
+      "complete_rank_replay_runs",
+      "friday_capture_integrity"
+    ],
+    "progress": {
+      "resolved_recommendations": {
+        "current": 0,
+        "required": 100,
+        "remaining": 100,
+        "progress_pct": 0.0
+      },
+      "resolved_runs": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "decision_disagreements": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "call_rows": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "put_rows": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "qualified_regimes": {
+        "current": 0,
+        "required": 2,
+        "remaining": 2,
+        "progress_pct": 0.0
+      },
+      "complete_rank_replay_runs": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      }
+    },
+    "capture_integrity": {
+      "valid": 0,
+      "missed": 0,
+      "quote_missing_retryable": 0,
+      "observed_windows": 0,
+      "actual_pct": null,
+      "required_pct": 0.95,
+      "passed": false
+    },
+    "next_action": "Collect post-friction recommendations scored by both active and challenger models."
+  },
   "source": {
     "artifact": "prospective_pick_ledger",
     "schema_version": 3,
-    "updated_at_utc": "2026-08-11T14:09:40+00:00"
+    "updated_at_utc": "2026-08-11T15:39:58+00:00"
   },
   "model_cohort": {
     "artifact_sha256": null,

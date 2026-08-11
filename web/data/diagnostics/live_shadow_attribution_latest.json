@@ -1,7 +1,7 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-11T14:09:40+00:00",
+  "generated_at_utc": "2026-08-11T15:39:58+00:00",
   "trading_day": "2026-08-11",
   "timezone": "America/Chicago",
   "scan_settings": {
@@ -128,15 +128,15 @@
     "live_avg_path_holding_quality_score": null,
     "shadow_avg_path_holding_quality_score": null,
     "side_aware_directional_disagreements": 20,
-    "side_aware_no_trade_disagreements": 80,
+    "side_aware_no_trade_disagreements": 79,
     "shadow_side_veto_rejections": 67,
     "abstain_primary_reason": "no_forge_candidates"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 1,
-        "put": 99
+        "call": 2,
+        "put": 98
       },
       "final_direction_counts": {
         "call": 0,
@@ -144,7 +144,7 @@
       },
       "counter_regime_survivors": 0,
       "side_aware_directional_disagreements": 20,
-      "side_aware_no_trade_disagreements": 80,
+      "side_aware_no_trade_disagreements": 79,
       "shadow_side_veto_rejections": 67
     },
     "forge": {
@@ -245,10 +245,10 @@
   "friction_vetoes": [],
   "pre_forge_rejections": [],
   "profitability_evidence": {
-    "shadow_window_runs": 229,
-    "disagreement_observations": 7504,
-    "directional_disagreements": 2449,
-    "tracked_recommendation_runs": 174,
+    "shadow_window_runs": 230,
+    "disagreement_observations": 7603,
+    "directional_disagreements": 2469,
+    "tracked_recommendation_runs": 175,
     "tracked_recommendations": 1648,
     "tracked_live_recommendations": 18,
     "tracked_shadow_recommendations": 459,
@@ -273,10 +273,10 @@
     "shadow_friday_close_avg_pnl_pct": 0.2016,
     "holdout_friday_close_avg_pnl_pct": 0.0636,
     "friction_veto_friday_close_avg_pnl_pct": 0.28,
-    "research_runs": 174,
-    "research_abstain_runs": 156,
-    "board_runs": 223,
-    "board_abstain_runs": 188,
+    "research_runs": 175,
+    "research_abstain_runs": 157,
+    "board_runs": 224,
+    "board_abstain_runs": 189,
     "moonshot_tracked_candidates": 426,
     "moonshot_friday_close_avg_pnl_pct": -0.026,
     "canonical_baseline": {
@@ -298,7 +298,7 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-11T14:09:41+00:00",
+      "generated_at_utc": "2026-08-11T15:40:00+00:00",
       "as_of_utc": "2026-07-10T21:16:24+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
@@ -327,11 +327,11 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-11T14:09:40+00:00",
+        "prospective_ledger_updated_at_utc": "2026-08-11T15:39:58+00:00",
         "eligible_marked_recommendations": 286,
-        "shadow_ledger_updated_at_utc": "2026-08-11T14:09:40+00:00",
-        "shadow_runs": 229,
-        "shadow_disagreements": 7504
+        "shadow_ledger_updated_at_utc": "2026-08-11T15:39:58+00:00",
+        "shadow_runs": 230,
+        "shadow_disagreements": 7603
       },
       "windows": [
         {
@@ -653,8 +653,8 @@
     },
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
-      "schema_version": 1,
-      "generated_at_utc": "2026-08-11T14:09:41+00:00",
+      "schema_version": 2,
+      "generated_at_utc": "2026-08-11T15:40:00+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -750,10 +750,76 @@
           "regime_stability": false
         }
       },
+      "readiness": {
+        "sample_ready": false,
+        "blocking_sample_gates": [
+          "resolved_recommendations",
+          "resolved_runs",
+          "decision_disagreements",
+          "side_coverage",
+          "regime_coverage",
+          "complete_rank_replay_runs",
+          "friday_capture_integrity"
+        ],
+        "progress": {
+          "resolved_recommendations": {
+            "current": 0,
+            "required": 100,
+            "remaining": 100,
+            "progress_pct": 0.0
+          },
+          "resolved_runs": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "decision_disagreements": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "call_rows": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "put_rows": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "qualified_regimes": {
+            "current": 0,
+            "required": 2,
+            "remaining": 2,
+            "progress_pct": 0.0
+          },
+          "complete_rank_replay_runs": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          }
+        },
+        "capture_integrity": {
+          "valid": 0,
+          "missed": 0,
+          "quote_missing_retryable": 0,
+          "observed_windows": 0,
+          "actual_pct": null,
+          "required_pct": 0.95,
+          "passed": false
+        },
+        "next_action": "Collect post-friction recommendations scored by both active and challenger models."
+      },
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 3,
-        "updated_at_utc": "2026-08-11T14:09:40+00:00"
+        "updated_at_utc": "2026-08-11T15:39:58+00:00"
       },
       "model_cohort": {
         "artifact_sha256": null,
