@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Orographic — Backtest Lab</title>
+    <meta name="description" content="A reproducible research environment for Orographic strategy validation." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/orographic-mark-32.png" />
+    <link rel="stylesheet" href="/backtest/backtest.css?v=20260811a" />
+  </head>
+  <body>
+    <header class="lab-topbar">
+      <a class="brand" href="/"><img src="/assets/orographic-mark.png" alt="" /><span>Orographic</span></a>
+      <nav aria-label="Primary navigation">
+        <a href="/">Live cockpit</a>
+        <a class="is-active" href="/backtest/">Backtest lab</a>
+        <a href="/admin/">Audit trail</a>
+      </nav>
+      <div class="environment"><span></span>Research environment</div>
+    </header>
+
+    <main class="lab-shell">
+      <aside class="control-rail" aria-labelledby="experiment-title">
+        <div class="rail-heading">
+          <p class="eyebrow">Experiment control</p>
+          <h1 id="experiment-title">Design a run</h1>
+          <p>Generate a reproducible engine command and manifest. Completed artifacts appear in the analysis center.</p>
+        </div>
+
+        <form id="run-form">
+          <label>Study window
+            <select id="run-months"><option value="3">3 months</option><option value="6" selected>6 months</option><option value="12">12 months</option><option value="24">24 months</option></select>
+          </label>
+          <label>Universe
+            <select id="run-universe"><option value="sample">Orographic core</option><option value="mega">Mega-cap 20</option><option value="custom">Custom symbols</option></select>
+          </label>
+          <div id="custom-symbols-wrap" hidden>
+            <label>Symbols
+              <input id="run-symbols" type="text" placeholder="AAPL, MSFT, NVDA" />
+            </label>
+          </div>
+          <div class="field-pair">
+            <label>Budget / trade<input id="run-budget" type="number" min="0" step="50" value="300" /></label>
+            <label>Hard ceiling<input id="run-ceiling" type="number" min="0" step="50" value="600" /></label>
+          </div>
+          <label>Expiry policy
+            <select id="run-expiry"><option value="target_dte" selected>Target DTE (7–14)</option><option value="same_week">Same week</option><option value="next_listed_weekly">Next listed weekly</option></select>
+          </label>
+          <div class="field-pair">
+            <label>Entry stress<input id="run-entry-slip" type="number" min="0" step="0.5" value="3" /><small>percent</small></label>
+            <label>Exit stress<input id="run-exit-slip" type="number" min="0" step="0.5" value="3" /><small>percent</small></label>
+          </div>
+          <label class="check-row"><input id="run-strict" type="checkbox" checked /><span><strong>Strict real-chain data</strong><small style="position:static">Skip observations without historical quotes</small></span></label>
+          <label>Minimum real coverage<input id="run-coverage" type="range" min="0" max="100" step="5" value="90" /><output id="run-coverage-value">90%</output></label>
+
+          <button id="prepare-run" class="primary-button" type="submit"><span class="material-symbols-outlined">terminal</span>Prepare local run</button>
+          <button id="export-manifest" class="secondary-button" type="button"><span class="material-symbols-outlined">download</span>Export manifest</button>
+        </form>
+
+        <section class="command-card" aria-labelledby="command-title">
+          <div><span id="command-title">Engine command</span><button id="copy-command" type="button">Copy</button></div>
+          <code id="run-command"></code>
+          <p id="run-status" aria-live="polite">Update controls to build a reproducible command.</p>
+        </section>
+      </aside>
+
+      <section class="analysis-center">
+        <header class="analysis-heading">
+          <div>
+            <p class="eyebrow">Strategy data center</p>
+            <h2>Performance under the microscope</h2>
+            <p id="artifact-meta">Loading validation artifacts…</p>
+          </div>
+          <div class="source-switch" role="tablist" aria-label="Result set">
+            <button class="is-active" data-source="walk" type="button">Current strategy</button>
+            <button data-source="history" type="button">Historical benchmark</button>
+          </div>
+        </header>
+
+        <section id="quality-banner" class="quality-banner" aria-live="polite"><span class="material-symbols-outlined">verified</span><div><strong>Checking research integrity</strong><p>Validating quote lineage and coverage policy.</p></div></section>
+
+        <section class="metric-grid" aria-label="Key performance indicators">
+          <article><span>Net return</span><strong id="metric-return">—</strong><small id="metric-return-note">on deployed capital</small></article>
+          <article><span>Executable P&amp;L</span><strong id="metric-pnl">—</strong><small>ask entry → bid exit</small></article>
+          <article><span>Win rate</span><strong id="metric-win">—</strong><small id="metric-win-note">—</small></article>
+          <article><span>Sharpe ratio</span><strong id="metric-sharpe">—</strong><small>weekly risk-adjusted</small></article>
+          <article class="risk"><span>Max drawdown</span><strong id="metric-drawdown">—</strong><small>peak-to-trough</small></article>
+        </section>
+
+        <section class="chart-panel panel">
+          <div class="panel-heading"><div><p class="eyebrow">Capital path</p><h3>Cumulative executable P&amp;L</h3></div><div class="chart-legend"><span></span>Selected result</div></div>
+          <div class="canvas-wrap"><canvas id="equity-chart" height="290" aria-label="Cumulative profit and loss chart"></canvas></div>
+        </section>
+
+        <div class="two-column">
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Model comparison</p><h3>Strategy variants</h3></div><small>Same validation window</small></div>
+            <div id="variant-list" class="variant-list"></div>
+          </section>
+          <section class="panel">
+            <div class="panel-heading"><div><p class="eyebrow">Data integrity</p><h3>Evidence coverage</h3></div><small id="coverage-gate">—</small></div>
+            <div id="coverage-grid" class="coverage-grid"></div>
+            <div class="friction-note"><span class="material-symbols-outlined">shield_lock</span><p><strong>Executable pricing</strong> Results use ask-side entry and bid-side exit with explicit slippage and liquidity constraints.</p></div>
+          </section>
+        </div>
+
+        <section class="panel trade-panel">
+          <div class="panel-heading trade-heading">
+            <div><p class="eyebrow">Observation ledger</p><h3>Trade-level evidence</h3></div>
+            <div class="trade-filters">
+              <input id="trade-search" type="search" placeholder="Search symbol" aria-label="Search trades by symbol" />
+              <select id="trade-side" aria-label="Filter by side"><option value="all">All sides</option><option value="call">Calls</option><option value="put">Puts</option></select>
+              <select id="trade-outcome" aria-label="Filter by outcome"><option value="all">All outcomes</option><option value="winner">Winners</option><option value="loser">Losers</option></select>
+            </div>
+          </div>
+          <div class="filtered-summary" id="filtered-summary">—</div>
+          <div class="table-wrap">
+            <table><thead><tr><th>Entry</th><th>Symbol</th><th>Contract</th><th>Entry → Exit</th><th>Coverage</th><th>P&amp;L</th><th>Return</th></tr></thead><tbody id="trade-rows"></tbody></table>
+          </div>
+          <div class="table-footer"><span id="trade-count">—</span><button id="show-more" type="button">Show more</button></div>
+        </section>
+      </section>
+    </main>
+    <script type="module" src="/backtest/backtest.js?v=20260811a"></script>
+  </body>
+</html>
