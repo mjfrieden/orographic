@@ -32,6 +32,17 @@ def _number(value: object) -> float | None:
     return parsed if math.isfinite(parsed) else None
 
 
+def _progress(current: int, required: int) -> dict[str, int | float]:
+    required = max(int(required), 1)
+    current = max(int(current), 0)
+    return {
+        "current": current,
+        "required": required,
+        "remaining": max(required - current, 0),
+        "progress_pct": round(min(current / required, 1.0), 4),
+    }
+
+
 def _auc(probabilities: list[float], outcomes: list[int]) -> float | None:
     positives = [probability for probability, outcome in zip(probabilities, outcomes) if outcome == 1]
     negatives = [probability for probability, outcome in zip(probabilities, outcomes) if outcome == 0]
@@ -247,6 +258,8 @@ def build_payoff_challenger_evidence(ledger: dict[str, Any]) -> dict[str, Any]:
         int(report["rows"] >= MIN_REGIME_ROWS)
         for report in by_regime.values()
     )
+    call_rows = int((by_side.get("call") or {}).get("rows", 0))
+    put_rows = int((by_side.get("put") or {}).get("rows", 0))
     sample_gates = {
         "resolved_recommendations": len(resolved) >= MIN_RESOLVED,
         "resolved_runs": resolved_runs >= MIN_RESOLVED_RUNS,
@@ -297,12 +310,38 @@ def build_payoff_challenger_evidence(ledger: dict[str, Any]) -> dict[str, Any]:
         ) >= MIN_QUALIFIED_REGIMES,
     }
     sample_ready = all(sample_gates.values())
+    sample_progress = {
+        "resolved_recommendations": _progress(len(resolved), MIN_RESOLVED),
+        "resolved_runs": _progress(resolved_runs, MIN_RESOLVED_RUNS),
+        "decision_disagreements": _progress(len(disagreements), MIN_DISAGREEMENTS),
+        "call_rows": _progress(call_rows, MIN_SIDE_ROWS),
+        "put_rows": _progress(put_rows, MIN_SIDE_ROWS),
+        "qualified_regimes": _progress(qualified_regimes, MIN_QUALIFIED_REGIMES),
+        "complete_rank_replay_runs": _progress(replay["eligible_complete_runs"], MIN_REPLAY_RUNS),
+    }
+    blocking_sample_gates = [name for name, passed in sample_gates.items() if not passed]
+    if not candidates:
+        next_action = "Collect post-friction recommendations scored by both active and challenger models."
+    elif not sample_gates["resolved_recommendations"]:
+        next_action = "Capture strict Friday-close executable labels for the current challenger cohort."
+    elif not sample_gates["side_coverage"]:
+        next_action = "Continue observation until both call and put cohorts meet minimum coverage."
+    elif not sample_gates["regime_coverage"]:
+        next_action = "Continue observation across additional qualified market regimes."
+    elif not sample_gates["decision_disagreements"]:
+        next_action = "Accumulate independent active-versus-challenger decision disagreements."
+    elif not sample_gates["complete_rank_replay_runs"]:
+        next_action = "Resolve complete multi-candidate runs for paired rank replay."
+    elif not sample_gates["friday_capture_integrity"]:
+        next_action = "Restore at least 95% valid Friday-close capture integrity with no retryable gaps."
+    else:
+        next_action = "Evaluate the pre-registered performance gates; keep execution authority disabled."
     decision = "eligible_for_live_shadow" if sample_ready and all(performance_gates.values()) else (
         "hold" if sample_ready else "collecting_evidence"
     )
     return {
         "artifact": "payoff_challenger_prospective_evidence",
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "decision": decision,
         "execution_effect": "none_observation_only",
@@ -344,6 +383,21 @@ def build_payoff_challenger_evidence(ledger: dict[str, Any]) -> dict[str, Any]:
         "by_side": by_side,
         "by_regime": by_regime,
         "gates": {"sample": sample_gates, "performance": performance_gates},
+        "readiness": {
+            "sample_ready": sample_ready,
+            "blocking_sample_gates": blocking_sample_gates,
+            "progress": sample_progress,
+            "capture_integrity": {
+                "valid": friday_valid,
+                "missed": friday_missed,
+                "quote_missing_retryable": friday_retryable,
+                "observed_windows": friday_capture_denominator,
+                "actual_pct": round(friday_capture_integrity, 4) if friday_capture_integrity is not None else None,
+                "required_pct": 0.95,
+                "passed": sample_gates["friday_capture_integrity"],
+            },
+            "next_action": next_action,
+        },
         "source": {
             "artifact": ledger.get("artifact"),
             "schema_version": ledger.get("schema_version"),

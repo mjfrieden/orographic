@@ -31,3 +31,9 @@ After sample readiness, the challenger must have non-worse discrimination, calib
 ## Operational integration
 
 Normal scans refresh `web/data/diagnostics/payoff_challenger_evidence_latest.json`. Promotion readiness and the workbench evidence panel display the evidence state and sample counts. The artifact explicitly records `execution_effect: none_observation_only`; it cannot modify Forge ranking, Council selection, sizing, or Tradier routing.
+
+## Readiness instrumentation — 2026-08-11
+
+Schema version 2 adds an explicit readiness contract rather than leaving operators to infer progress from Boolean gates. It reports current, required, remaining, and capped progress for resolved recommendations, resolved runs, decision disagreements, call and put coverage, qualified regimes, and complete rank-replay runs. Friday-close capture integrity is reported separately with valid, missed, retryable, observed-window, actual-rate, and required-rate fields.
+
+The artifact also records every blocking sample gate and one deterministic next action. When the current model cohort has no eligible recommendations, the next action is to collect new post-friction observations; the platform does not relax thresholds, reuse legacy labels, reconstruct missing predictions, or force trades to accelerate the experiment.

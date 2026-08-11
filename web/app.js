@@ -579,7 +579,7 @@ function renderPositionsMeta() {
   const refreshBtn = document.getElementById("positions-refresh-btn");
   if (syncEl) {
     let text = "Waiting for Tradier account data.";
-    let className = "positions-sync-status";
+    let className = "sync-line positions-sync-status";
     if (BROKER_STATE.loading) {
       text = "Refreshing live Tradier account…";
       className += " is-loading";
@@ -1199,7 +1199,7 @@ function renderBoardMeta() {
   const refreshBtn = document.getElementById("board-refresh-btn");
   if (syncEl) {
     let text = "Waiting for latest board snapshot.";
-    let className = "positions-sync-status";
+    let className = "sync-line positions-sync-status";
     if (BOARD_STATE.loading) {
       text = "Refreshing latest AI board…";
       className += " is-loading";
@@ -2449,8 +2449,9 @@ function renderPromotionReadiness(payload) {
       summaryItemHtml("3/6/12 Replay", String(profitability.promotion_comparison_decision || "not run").replaceAll("_", " ")),
       summaryItemHtml(
         "Payoff Challenger",
-        `${String(profitability.payoff_challenger_decision || "not run").replaceAll("_", " ")} · ${integer(profitability.payoff_challenger_resolved)} resolved · ${integer(profitability.payoff_challenger_replay_runs)} replay runs`,
+        `${String(profitability.payoff_challenger_decision || "not run").replaceAll("_", " ")} · ${integer(profitability.payoff_challenger_scored)} scored · ${integer(profitability.payoff_challenger_resolved)}/100 resolved · ${integer(profitability.payoff_challenger_disagreements)}/30 disagreements · ${integer(profitability.payoff_challenger_replay_runs)}/30 replay runs`,
       ),
+      summaryItemHtml("Challenger Next Step", profitability.payoff_challenger_next_action || "Collect prospective evidence."),
       summaryItemHtml(
         "Outcome Capture",
         `${integer(profitability.capture_policy_v2_picks)} strict picks · ${integer(profitability.capture_windows_valid)} valid · ${integer(profitability.capture_windows_quote_missing)} retrying · ${integer(profitability.capture_windows_stale_quote)} stale · ${integer(profitability.capture_windows_missed)} missed`,
