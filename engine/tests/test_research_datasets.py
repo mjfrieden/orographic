@@ -138,6 +138,38 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertEqual(rows[0]["underlying_spot"], 43.75)
         self.assertEqual(rows[1]["underlying_spot"], 315.2)
 
+    def test_ledger_rows_flattens_executable_label_metadata(self) -> None:
+        label = {
+            "label_contract": {"id": "orographic.executable_option_outcome.v1", "version": 1},
+            "label_available_at_utc": "2026-05-22T15:07:05Z",
+            "entry": {
+                "execution_price": 1.2,
+                "execution_price_source": "entry_ask_proxy",
+                "quote": {"age_at_decision_seconds": 5.0},
+            },
+            "exit": {
+                "execution_price": 1.4,
+                "execution_price_source": "exit_bid_proxy",
+                "quote": {"capture_delay_seconds": 5.0},
+            },
+            "total_fees_usd": 2.0,
+            "total_signed_adverse_slippage_usd": 0.0,
+            "net_executable_pnl_usd": 18.0,
+            "net_executable_return": 18.0 / 121.0,
+        }
+        ledger = {"entries": [{"picks": [{
+            "contract_symbol": "AAA1",
+            "outcomes": {"executable_labels": {"one_hour": label}},
+        }]}]}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "ledger.json"
+            path.write_text(json.dumps(ledger), encoding="utf-8")
+            rows = ledger_rows(path, source_artifact="prospective_pick_ledger")
+
+        self.assertEqual(rows[0]["one_hour_executable_label_contract_version"], 1)
+        self.assertEqual(rows[0]["one_hour_executable_entry_price"], 1.2)
+        self.assertEqual(rows[0]["one_hour_executable_net_pnl_usd"], 18.0)
+
     def test_canonical_option_outcome_rows_build_trainer_ready_labels(self) -> None:
         ledger = {
             "artifact": "prospective_pick_ledger",
@@ -234,6 +266,120 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertIsNotNone(rows[0]["scout_no_trade_prob"])
         self.assertIsNotNone(rows[0]["prob_fill_quality_ok"])
         self.assertIsNotNone(rows[0]["prob_no_trade"])
+
+    def test_canonical_rows_prefer_executable_v1_over_legacy_mid_marks(self) -> None:
+        label = {
+            "label_contract": {"id": "orographic.executable_option_outcome.v1", "version": 1},
+            "decision_at_utc": "2026-05-22T14:07:00Z",
+            "label_available_at_utc": "2026-05-29T20:00:05Z",
+            "contracts": 1,
+            "contract_multiplier": 100.0,
+            "entry": {
+                "execution_price": 1.2,
+                "execution_price_source": "entry_ask_proxy",
+                "fees_usd": 1.0,
+                "signed_adverse_slippage_usd": 0.0,
+                "quote": {
+                    "bid": 1.0,
+                    "ask": 1.2,
+                    "source": "real_chain",
+                    "observed_at_utc": "2026-05-22T14:06:56Z",
+                    "age_at_decision_seconds": 4.0,
+                },
+            },
+            "exit": {
+                "execution_price": 1.3,
+                "execution_price_source": "exit_bid_proxy",
+                "fees_usd": 1.0,
+                "signed_adverse_slippage_usd": 0.0,
+                "quote": {
+                    "bid": 1.3,
+                    "ask": 1.5,
+                    "source": "tradier",
+                    "observed_at_utc": "2026-05-29T20:00:03Z",
+                    "capture_delay_seconds": 3.0,
+                },
+            },
+            "gross_executable_pnl_usd": 10.0,
+            "total_fees_usd": 2.0,
+            "net_executable_pnl_usd": 8.0,
+            "net_executable_return": 8.0 / 121.0,
+            "cost_basis_usd": 121.0,
+            "total_signed_adverse_slippage_usd": 0.0,
+        }
+        ledger = {"entries": [{
+            "run_generated_at_utc": "2026-05-22T14:07:00Z",
+            "picks": [{
+                "symbol": "AAA",
+                "contract_symbol": "AAA1",
+                "option_type": "call",
+                "emission_quote": {"mid": 1.1, "ask": 1.2},
+                "outcomes": {
+                    "fixed_exit_marks": {"friday_close": {
+                        "mark": 1.4,
+                        "mark_source": "mid",
+                        "captured_at_utc": "2026-05-29T20:00:05Z",
+                    }},
+                    "executable_labels": {"friday_close": label},
+                },
+            }],
+        }]}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "ledger.json"
+            path.write_text(json.dumps(ledger), encoding="utf-8")
+            rows = canonical_option_outcome_rows(
+                path,
+                source_artifact="prospective_pick_ledger",
+                exit_window="friday_close",
+                require_executable_label=True,
+            )
+
+        self.assertEqual(rows[0]["executable_label_contract_version"], 1)
+        self.assertEqual(rows[0]["entry_price"], 1.2)
+        self.assertEqual(rows[0]["exit_price"], 1.3)
+        self.assertEqual(rows[0]["raw_pnl"], 10.0)
+        self.assertEqual(rows[0]["pnl"], 8.0)
+        self.assertAlmostEqual(rows[0]["pnl_pct"], 8.0 / 121.0)
+        self.assertEqual(rows[0]["total_friction_cost_usd"], 2.0)
+        self.assertEqual(rows[0]["entry_ask"], 1.2)
+        self.assertEqual(rows[0]["exit_bid"], 1.3)
+        self.assertEqual(rows[0]["entry_quote_observed_at_utc"], "2026-05-22T14:06:56Z")
+        self.assertEqual(rows[0]["exit_quote_source"], "tradier")
+        self.assertEqual(rows[0]["label_source"], "executable_quote_or_fill")
+
+    def test_strict_canonical_rows_exclude_midpoint_only_outcomes(self) -> None:
+        ledger = {"entries": [{
+            "run_generated_at_utc": "2026-05-22T14:07:00Z",
+            "regime": {"mode": "neutral", "bias": 0.0, "source_symbol": "SPY"},
+            "picks": [{
+                "symbol": "AAA",
+                "contract_symbol": "AAA1",
+                "option_type": "call",
+                "emission_quote": {"mid": 1.1, "bid": 1.0, "ask": 1.2},
+                "outcomes": {"fixed_exit_marks": {"friday_close": {
+                    "mark": 1.4,
+                    "mark_source": "mid",
+                    "captured_at_utc": "2026-05-29T20:00:05Z",
+                }}},
+            }],
+        }]}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "ledger.json"
+            path.write_text(json.dumps(ledger), encoding="utf-8")
+            research_rows = canonical_option_outcome_rows(
+                path,
+                source_artifact="prospective_pick_ledger",
+                exit_window="friday_close",
+            )
+            strict_rows = canonical_option_outcome_rows(
+                path,
+                source_artifact="prospective_pick_ledger",
+                exit_window="friday_close",
+                require_executable_label=True,
+            )
+
+        self.assertEqual(len(research_rows), 1)
+        self.assertEqual(strict_rows, [])
 
 
 if __name__ == "__main__":

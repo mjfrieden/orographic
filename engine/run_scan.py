@@ -24,6 +24,8 @@ from engine.orographic.pipeline import (
     write_snapshot,
 )
 from engine.orographic.positions import append_position_history, fetch_position_snapshot
+from engine.orographic.payoff_challenger_evidence import write_payoff_challenger_evidence
+from engine.orographic.promotion_comparison import write_promotion_comparison
 
 logging.basicConfig(
     level=logging.INFO,
@@ -298,6 +300,25 @@ def main() -> int:
         log.info("Updated side-aware Scout shadow ledger at %s.", written)
 
     if diagnostic_sources:
+        prospective_source = diagnostic_sources.get("prospective_ledger")
+        shadow_source = diagnostic_sources.get("shadow_ledger")
+        if prospective_source:
+            challenger_evidence_path = Path(args.output).parent / "diagnostics" / "payoff_challenger_evidence_latest.json"
+            challenger_evidence = write_payoff_challenger_evidence(
+                Path(prospective_source),
+                challenger_evidence_path,
+            )
+            diagnostic_sources["payoff_challenger_evidence"] = str(challenger_evidence_path)
+            log.info(
+                "Updated payoff challenger prospective evidence at %s (%s).",
+                challenger_evidence_path,
+                challenger_evidence["decision"],
+            )
+        if prospective_source and shadow_source:
+            comparison_path = Path(args.output).parent / "diagnostics" / "promotion_shadow_active_comparison_latest.json"
+            comparison = write_promotion_comparison(Path(prospective_source), Path(shadow_source), comparison_path)
+            diagnostic_sources["promotion_comparison"] = str(comparison_path)
+            log.info("Updated promotion shadow/active comparison at %s (%s).", comparison_path, comparison["decision"])
         payload["diagnostic_sources"] = diagnostic_sources
         payload["promotion_readiness"] = build_promotion_readiness(payload)
         payload["attribution"] = build_live_shadow_attribution_artifact(payload)

@@ -81,6 +81,10 @@ Each scan also appends a dedicated moonshot prospective ledger:
 
 This ledger records moonshot picks and near-miss shadow candidates with their tail-upside score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. It is intentionally separate from the all-Forge-candidate prospective ledger so moonshot research can be evaluated as its own lane.
 
+Prospective outcome capture uses policy v2. One-hour quotes must be retrieved within 15 minutes of the target; close-based quotes must be retrieved within 30 minutes. Broker quote timestamps are retained, quotes older than 15 minutes are rejected, and late windows are recorded as `missed_live_window` rather than filled with a current quote. Missing or stale quotes remain retryable inside the live window and recoverable from immutable archives afterward. Legacy pending picks are frozen so current prices cannot contaminate historical horizons.
+
+The `Orographic Outcome Capture` workflow checks eligible windows every 15 minutes during the broad US market-hours envelope. It calls Tradier only when a policy-v2 pick is inside a capture window, refreshes challenger evidence, and persists a commit only when capture state changes.
+
 Archive live option chains for future model training:
 
 ```bash
@@ -193,10 +197,10 @@ Build a leakage-safe event-coverage dataset after the canonical research dataset
 ```bash
 PYTHONPATH=. ./.venv/bin/python scripts/build_event_outcome_coverage.py \
   --observatory engine/data/event_observatory/event_observatory.parquet \
-  --outcomes output/research_datasets/all_recommendation_outcomes.parquet
+  --outcomes output/research_datasets/option_recommendation_outcomes.parquet
 ```
 
-The resulting `event_enriched_option_outcomes.parquet` preserves every recommendation row and adds
+The resulting `event_enriched_option_outcomes.parquet` preserves every prospective recommendation row and adds
 only observations whose effective timestamp was at or before that recommendation. Its companion
 `event_outcome_coverage.json` tracks activation across all recommendations and completed outcomes.
 
@@ -370,6 +374,22 @@ Recommended path-model training flow:
 `engine/train_path_model.py` reuses the canonical replay loader and strict-real quote-path reconstruction so the shadow path-quality observer can graduate from heuristics to a learned artifact.
 
 Promotion gates should stay pending until a shadow model beats the active system where they disagree, after costs, across 3/6/12-month validation windows and at least 30 live shadow trading days. Promote one layer at a time.
+
+Replay the canonical promotion comparison from the existing prospective and side-aware shadow ledgers:
+
+```bash
+python scripts/build_promotion_comparison.py
+```
+
+The replay writes `web/data/diagnostics/promotion_shadow_active_comparison_latest.json`. It compares one-contract active (`live`) and shadow recommendations at the emission ask and Friday-close bid, reports gross and after-spread P&L, calibration, annualized daily Sharpe, and drawdown for 3-, 6-, and 12-month windows. Repeated intraday scans are collapsed to daily contract exposures, and a paired-market-day bootstrap reports the challenger return-lift distribution. Promotion requires at least 30 paired days, a positive 95% lower confidence bound, at least 95% bootstrap probability of improvement, and positive cluster-adjusted challenger profitability—not merely a smaller loss than active. A window cannot pass until its full history is present. Normal scans refresh this artifact before rebuilding promotion readiness; the comparison is diagnostic-only and does not alter scoring or decision weights.
+
+Build the paired prospective evidence report for the volatility/contract payoff challenger:
+
+```bash
+python scripts/build_payoff_challenger_evidence.py
+```
+
+This writes `web/data/diagnostics/payoff_challenger_evidence_latest.json`. It compares active and challenger probabilities on the exact same recommendations using only strict executable Friday-close labels, reports discrimination and calibration by side and regime, and replays each fully resolved scan with the top active-ranked versus top challenger-ranked contract. Incomplete candidate sets fail closed and are excluded from the rank replay. Eligibility for a limited live-shadow experiment requires adequate resolved samples and disagreements, both call and put coverage, at least two qualified regimes, positive challenger profitability, and a positive paired-run bootstrap lower bound. The report is observation-only and cannot affect Tradier routing.
 
 Recommended default:
 

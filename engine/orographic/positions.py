@@ -32,6 +32,19 @@ def _as_number(value: Any) -> float | None:
     return parsed if parsed == parsed else None
 
 
+def _market_timestamp_utc(value: object) -> str | None:
+    number = _as_number(value)
+    if number is None or number <= 0:
+        return None
+    # Tradier quote timestamps are Unix epoch milliseconds.
+    if number > 10_000_000_000:
+        number /= 1000.0
+    try:
+        return datetime.fromtimestamp(number, tz=timezone.utc).isoformat()
+    except (OverflowError, OSError, ValueError):
+        return None
+
+
 def _is_option_symbol(symbol: str) -> bool:
     return bool(OPTION_SYMBOL_RE.match(str(symbol or "").strip().upper()))
 
@@ -133,6 +146,9 @@ def normalize_quotes(payload: dict[str, Any] | None) -> dict[str, dict[str, Any]
             "ask": _as_number(quote.get("ask")),
             "last": _as_number(quote.get("last")),
             "close": _as_number(quote.get("close")),
+            "bid_observed_at_utc": _market_timestamp_utc(quote.get("bid_date")),
+            "ask_observed_at_utc": _market_timestamp_utc(quote.get("ask_date")),
+            "trade_observed_at_utc": _market_timestamp_utc(quote.get("trade_date")),
         }
     return normalized
 

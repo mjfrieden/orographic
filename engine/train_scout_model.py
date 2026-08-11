@@ -28,7 +28,6 @@ import numpy as np
 import pandas as pd
 import joblib
 import yfinance as yf
-from sklearn.model_selection import TimeSeriesSplit
 from sklearn.metrics import (
     balanced_accuracy_score,
     brier_score_loss,
@@ -50,6 +49,7 @@ from engine.orographic.event_features import (
     build_event_feature_history,
     load_event_feature_frame,
 )
+from engine.orographic.validation import purged_date_splits
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(levelname)-7s  %(message)s")
 log = logging.getLogger(__name__)
@@ -640,6 +640,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
                 {
                     "symbol": str(trade.get("symbol", "")).upper(),
                     "date": pd.Timestamp(entry_date),
+                    "label_date": pd.Timestamp(exit_date),
                     "option_type": side,
                     "pnl_pct": _safe_float(trade.get("pnl_pct")),
                     "pnl": _safe_float(trade.get("pnl")),
@@ -669,6 +670,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
             {
                 "symbol": symbol,
                 "date": entry_date,
+                "label_date": pd.to_datetime(group["label_date"]).max(),
                 "side_label": label,
                 "side_label_id": SIDE_CLASS_TO_ID[label],
                 "call_avg_pnl_pct": None if call_score == float("-inf") else round(call_score, 6),
@@ -717,20 +719,36 @@ def _directional_option_training_frame(merged: pd.DataFrame) -> pd.DataFrame:
     put_pnl = pd.to_numeric(directional["put_avg_pnl_pct"], errors="coerce").fillna(0.0)
     directional["primary_label"] = (directional["side_label"] == "call_edge").astype(int)
     directional["primary_outcome_value"] = call_pnl - put_pnl
-    directional["primary_label_date"] = pd.to_datetime(directional["date"], errors="coerce")
+    directional["primary_label_date"] = pd.to_datetime(
+        directional["label_date"] if "label_date" in directional.columns else directional["date"],
+        errors="coerce",
+    )
     return directional
 
 
-def _side_cv_report(X: np.ndarray, y: np.ndarray, dates: np.ndarray) -> dict[str, Any]:
+def _side_cv_report(
+    X: np.ndarray,
+    y: np.ndarray,
+    dates: np.ndarray,
+    label_dates: np.ndarray,
+) -> dict[str, Any]:
     if len(X) < 80 or len(set(y.tolist())) < 2:
         return {"folds": 0, "reason": "insufficient_examples_or_classes"}
-    order = np.argsort(pd.to_datetime(dates).view("int64"))
+    order = np.argsort(pd.to_datetime(dates).view("int64"), kind="stable")
     X_sorted = X[order]
     y_sorted = y[order]
-    tscv = TimeSeriesSplit(n_splits=min(5, max(2, len(X_sorted) // 120)))
+    dates_sorted = np.asarray(dates)[order]
+    label_dates_sorted = np.asarray(label_dates)[order]
+    splits = list(
+        purged_date_splits(
+            dates_sorted,
+            label_dates_sorted,
+            n_splits=min(5, max(2, len(X_sorted) // 120)),
+        )
+    )
     rows: list[dict[str, Any]] = []
     balanced_scores: list[float] = []
-    for fold, (train_idx, val_idx) in enumerate(tscv.split(X_sorted), start=1):
+    for fold, (train_idx, val_idx) in enumerate(splits, start=1):
         if len(set(y_sorted[train_idx].tolist())) < 2 or len(set(y_sorted[val_idx].tolist())) < 2:
             rows.append(
                 {
@@ -768,11 +786,14 @@ def _side_cv_report(X: np.ndarray, y: np.ndarray, dates: np.ndarray) -> dict[str
                 "fold": fold,
                 "train_rows": int(len(train_idx)),
                 "validation_rows": int(len(val_idx)),
+                "validation_start": str(pd.Timestamp(dates_sorted[val_idx].min()).date()),
+                "training_label_end": str(pd.Timestamp(label_dates_sorted[train_idx].max()).date()),
                 "balanced_accuracy": round(score, 4),
             }
         )
     return {
-        "folds": int(tscv.n_splits),
+        "folds": int(len(splits)),
+        "split_policy": "date_grouped_purged_by_outcome_date",
         "mean_balanced_accuracy": round(float(np.mean(balanced_scores)), 4) if balanced_scores else None,
         "fold_reports": rows,
     }
@@ -945,15 +966,31 @@ def train(
 
     # Time-series aware cross-validation (no lookahead)
     split_count = min(5, max(2, len(X) // 40))
-    tscv = TimeSeriesSplit(n_splits=split_count)
+    primary_feature_dates = pd.to_datetime(
+        primary_training_frame["date"]
+        if "date" in primary_training_frame.columns
+        else primary_training_frame.index,
+        errors="coerce",
+    ).to_numpy()
+    primary_label_dates = pd.to_datetime(
+        primary_training_frame["primary_label_date"],
+        errors="coerce",
+    ).to_numpy()
+    primary_splits = list(
+        purged_date_splits(
+            primary_feature_dates,
+            primary_label_dates,
+            n_splits=split_count,
+        )
+    )
     auc_scores: list[float] = []
     ic_scores: list[float] = []
 
     oof_raw_probs = np.full(len(X), np.nan, dtype=float)
-    fold_reports: list[dict[str, float | int]] = []
+    fold_reports: list[dict[str, Any]] = []
 
-    log.info("Running %d-fold walk-forward cross-validation …", split_count)
-    for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
+    log.info("Running %d-fold purged walk-forward cross-validation …", len(primary_splits))
+    for fold, (train_idx, val_idx) in enumerate(primary_splits):
         X_tr, X_val = X[train_idx], X[val_idx]
         y_tr, y_val = y[train_idx], y[val_idx]
         weight_tr = primary_sample_weights[train_idx]
@@ -1017,6 +1054,8 @@ def train(
                 "ic": round(float(ic), 4),
                 "brier": round(float(fold_brier), 4),
                 "log_loss": round(float(fold_log_loss), 4),
+                "validation_start": str(pd.Timestamp(primary_feature_dates[val_idx].min()).date()),
+                "training_label_end": str(pd.Timestamp(primary_label_dates[train_idx].max()).date()),
             }
         )
         log.info(
@@ -1115,6 +1154,10 @@ def train(
     side_source_metadata: dict[str, Any] = {}
     side_training_frame = combined.copy()
     side_training_dates = pd.to_datetime(side_training_frame.index).to_numpy()
+    side_training_label_dates = pd.to_datetime(
+        side_training_frame["fwd_5d_label_date"],
+        errors="coerce",
+    ).to_numpy()
     if option_outcome_inputs:
         option_labels, side_source_metadata = _load_option_outcome_labels(option_outcome_inputs, cutoff=cutoff)
         if not option_labels.empty:
@@ -1132,6 +1175,7 @@ def train(
             if len(merged) >= 80 and merged["side_label_id"].nunique() >= 2:
                 side_training_frame = merged
                 side_training_dates = pd.to_datetime(merged["date"]).to_numpy()
+                side_training_label_dates = pd.to_datetime(merged["label_date"]).to_numpy()
                 side_y = merged["side_label_id"].to_numpy(dtype=int)
                 side_target = "strict_real_option_payoff"
             else:
@@ -1172,6 +1216,7 @@ def train(
         side_X_raw,
         side_y,
         side_training_dates,
+        side_training_label_dates,
     )
     side_training_metrics = {
         "target": side_target,
@@ -1274,6 +1319,7 @@ def train(
             for feature, importance in importances
         ],
         "cross_validation": {
+            "split_policy": "date_grouped_purged_by_outcome_date",
             "folds": fold_reports,
             "mean_auc": round(mean_auc, 4) if np.isfinite(mean_auc) else None,
             "mean_ic": round(mean_ic, 4) if np.isfinite(mean_ic) else None,

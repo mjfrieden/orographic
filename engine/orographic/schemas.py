@@ -99,6 +99,13 @@ class ContractCandidate:
     turnover_risk_penalty: float | None = None
     prior_live_board_symbol: bool | None = None
     payoff_model_score: float | None = None
+    payoff_shadow_prob_positive: float | None = None
+    payoff_shadow_rank: float | None = None
+    payoff_shadow_probability_delta: float | None = None
+    payoff_shadow_rank_delta: float | None = None
+    payoff_shadow_disagreement: bool | None = None
+    payoff_shadow_mode: str | None = None
+    payoff_shadow_artifact_sha256: str | None = None
     final_candidate_score: float | None = None
     learned_rank_score: float | None = None
     ranker_mode: str = "heuristic"

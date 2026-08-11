@@ -81,6 +81,11 @@ def _ledger_health(path: Path) -> dict[str, Any]:
         "quote_coverage_pct": quote_coverage,
         "marks_written_last_run": _int(last_mark.get("marks_written")),
         "quotes_missing_last_run": _int(last_mark.get("quotes_missing")),
+        "capture_policy_v2_picks": _int(outcome.get("capture_policy_v2_picks")),
+        "capture_windows_valid": _int(outcome.get("capture_windows_valid")),
+        "capture_windows_quote_missing": _int(outcome.get("capture_windows_quote_missing")),
+        "capture_windows_stale_quote": _int(outcome.get("capture_windows_stale_quote")),
+        "capture_windows_missed": _int(outcome.get("capture_windows_missed")),
     }
 
 
@@ -162,6 +167,27 @@ def build_scan_health_summary(
         actual=overall_quote_coverage,
         required_min=min_quote_coverage_pct,
     )
+    strict_capture_picks = prospective["capture_policy_v2_picks"] + moonshot["capture_policy_v2_picks"]
+    missed_capture_windows = prospective["capture_windows_missed"] + moonshot["capture_windows_missed"]
+    retryable_missing_windows = (
+        prospective["capture_windows_quote_missing"] + moonshot["capture_windows_quote_missing"]
+    )
+    stale_quote_windows = prospective["capture_windows_stale_quote"] + moonshot["capture_windows_stale_quote"]
+    _check(
+        checks,
+        "strict_capture_policy_active",
+        strict_capture_picks > 0,
+        actual_picks=strict_capture_picks,
+        required_min=1,
+    )
+    _check(
+        checks,
+        "outcome_capture_timing_integrity",
+        missed_capture_windows == 0 and stale_quote_windows == 0,
+        missed_windows=missed_capture_windows,
+        retryable_quote_missing_windows=retryable_missing_windows,
+        stale_quote_windows=stale_quote_windows,
+    )
     _check(checks, "archive_manifest_exists", archive_manifest.exists(), path=str(archive_manifest))
     _check(
         checks,
@@ -233,6 +259,10 @@ def build_scan_health_summary(
             "marked_picks": total_with_marks,
             "missing_outcome_quotes": total_missing_quotes,
             "quote_coverage_pct": overall_quote_coverage,
+            "capture_policy_v2_picks": strict_capture_picks,
+            "capture_windows_missed": missed_capture_windows,
+            "capture_windows_quote_missing": retryable_missing_windows,
+            "capture_windows_stale_quote": stale_quote_windows,
         },
         "research": {
             "audit_status": audit.get("status"),

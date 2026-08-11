@@ -67,6 +67,38 @@ class PayoffModelTests(unittest.TestCase):
         self.assertIsNotNone(candidate.prob_no_trade)
         self.assertIsNotNone(candidate.path_holding_quality_score)
 
+    def test_observation_only_shadow_score_never_changes_forge_order(self) -> None:
+        candidates = [_candidate("call", 0.4, 0.61), _candidate("put", -0.4, 0.52)]
+        shadow_features = ["option_type_is_call", "moneyness", "dte"]
+        X = feature_matrix(
+            candidates,
+            MarketRegime("neutral", 0.0, "SPY"),
+            as_of=date(2026, 4, 18),
+            feature_cols=shadow_features,
+        )
+        base = DummyClassifier(strategy="constant", constant=0).fit(X, np.array([0, 0]))
+        with tempfile.TemporaryDirectory() as tmpdir:
+            missing_active = Path(tmpdir) / "missing_active.pkl"
+            shadow_path = Path(tmpdir) / "shadow.pkl"
+            joblib.dump({
+                "mode": "observation_only_never_used_for_routing",
+                "feature_cols": shadow_features,
+                "base_model": base,
+                "calibrator": 0.0,
+            }, shadow_path)
+            score_candidates(
+                candidates,
+                MarketRegime("neutral", 0.0, "SPY"),
+                as_of=date(2026, 4, 18),
+                model_path=missing_active,
+                shadow_model_path=shadow_path,
+            )
+
+        self.assertEqual([candidate.forge_score for candidate in candidates], [0.61, 0.52])
+        self.assertTrue(all(candidate.payoff_shadow_mode == "observation_only" for candidate in candidates))
+        self.assertTrue(all(candidate.payoff_shadow_disagreement for candidate in candidates))
+        self.assertTrue(all(candidate.payoff_shadow_artifact_sha256 for candidate in candidates))
+
     def test_artifact_can_score_in_shadow_mode(self) -> None:
         candidates = [_candidate("call", 0.4, 0.51), _candidate("put", -0.5, 0.49)]
         X = feature_matrix(candidates, MarketRegime("neutral", 0.0, "SPY"), as_of=date(2026, 4, 18), feature_cols=FEATURE_COLS)

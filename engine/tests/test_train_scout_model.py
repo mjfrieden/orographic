@@ -72,6 +72,7 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertEqual(metadata["trade_rows"], 2)
         self.assertEqual(metadata["labeled_symbol_dates"], 1)
         self.assertEqual(labeled.iloc[0]["side_label"], "call_edge")
+        self.assertEqual(labeled.iloc[0]["label_date"], pd.Timestamp("2026-04-25"))
 
     def test_directional_option_training_frame_filters_no_trade_rows_and_builds_binary_label(self) -> None:
         merged = pd.DataFrame(

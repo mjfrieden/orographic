@@ -77,6 +77,16 @@ def _path_labels(examples: list[Any]) -> dict[str, np.ndarray]:
     }
 
 
+def _training_feature_matrix(examples: list[TradeExample]) -> np.ndarray:
+    rows: list[np.ndarray] = []
+    for example in examples:
+        mode = example.regime_bucket if example.regime_bucket in {"risk_on", "risk_off", "neutral"} else "neutral"
+        bias = 0.25 if mode == "risk_on" else (-0.25 if mode == "risk_off" else 0.0)
+        regime = MarketRegime(mode=mode, bias=bias, source_symbol="SPY")
+        rows.append(feature_matrix([example.candidate], regime, as_of=example.entry_date, feature_cols=FEATURE_COLS)[0])
+    return np.asarray(rows, dtype=float)
+
+
 def _family_cv_report(
     X: np.ndarray,
     labels: dict[str, np.ndarray],
@@ -310,8 +320,7 @@ def train(
     if len(examples) < 50:
         raise RuntimeError(f"Need at least 50 strict-real trades to train path model; found {len(examples)}")
 
-    neutral = MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY")
-    X = feature_matrix([example.candidate for example in examples], neutral, feature_cols=FEATURE_COLS)
+    X = _training_feature_matrix(examples)
     labels = _path_labels(examples)
     dates = [example.entry_date for example in examples]
     sides = np.array([example.candidate.option_type for example in examples], dtype=object)
@@ -357,10 +366,8 @@ def train(
         "side_counts": side_counts,
         "regime_counts": dict(sorted(Counter(regime_buckets.tolist()).items())),
         "exact_quote_marks_used": int(source_metadata.get("exact_quote_marks_used", 0)),
-        "option_chain_coverage_ratio": round(
-            float(source_metadata.get("exact_quote_marks_used", 0)) / max(len(examples), 1),
-            4,
-        ),
+        "examples_with_exact_quote_path": int(source_metadata.get("examples_with_exact_quote_path", 0)),
+        "option_chain_coverage_ratio": float(source_metadata.get("exact_quote_path_coverage_ratio", 0.0)),
     }
     regime_dataset_summary = source_metadata.get("regime_dataset_summary", {})
     early_baseline_brier = _baseline_brier(labels["path_early_profit_take_prob"])

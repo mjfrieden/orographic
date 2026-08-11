@@ -49,6 +49,10 @@ class ScanHealthSummaryTests(unittest.TestCase):
                         "with_any_mark": 18,
                         "with_all_fixed_marks": 15,
                         "missing_outcome_quotes": 0,
+                        "capture_policy_v2_picks": 20,
+                        "capture_windows_valid": 60,
+                        "capture_windows_quote_missing": 0,
+                        "capture_windows_missed": 0,
                     },
                     "last_mark_summary": {"marks_written": 4, "quotes_missing": 0},
                 },
@@ -66,6 +70,10 @@ class ScanHealthSummaryTests(unittest.TestCase):
                         "with_any_mark": 2,
                         "with_all_fixed_marks": 1,
                         "missing_outcome_quotes": 0,
+                        "capture_policy_v2_picks": 3,
+                        "capture_windows_valid": 5,
+                        "capture_windows_quote_missing": 0,
+                        "capture_windows_missed": 0,
                     },
                     "last_mark_summary": {"marks_written": 1, "quotes_missing": 0},
                 },
@@ -106,6 +114,7 @@ class ScanHealthSummaryTests(unittest.TestCase):
         self.assertEqual(report["status"], "passed")
         self.assertEqual(report["labels"]["marked_picks"], 20)
         self.assertEqual(report["labels"]["quote_coverage_pct"], 1.0)
+        self.assertEqual(report["labels"]["capture_policy_v2_picks"], 23)
         self.assertTrue(output_exists)
 
     def test_build_scan_health_summary_flags_stale_snapshot(self) -> None:

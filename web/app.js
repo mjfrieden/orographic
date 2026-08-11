@@ -3,8 +3,10 @@
  * No game loop. Direct AI recommendations → Tradier execution.
  */
 
-const SNAPSHOT_SOURCE = "./data/latest_run.json";
-const PROSPECTIVE_LEDGER_SOURCE = "./data/diagnostics/prospective_pick_ledger.json";
+const SNAPSHOT_SOURCE = "/data/latest_run.json";
+const PROSPECTIVE_LEDGER_SOURCE = "/data/diagnostics/prospective_pick_ledger.json";
+const PROMOTION_COMPARISON_SOURCE = "/data/diagnostics/promotion_shadow_active_comparison_latest.json";
+const RESEARCH_READINESS_SOURCE = "/data/diagnostics/research_readiness_health_latest.json";
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
 const PROSPECTIVE_RECENT_ROW_LIMIT = 24;
@@ -98,6 +100,302 @@ function escapeHtml(value) {
 
 function domSafeId(value) {
   return String(value ?? "").replace(/[^a-z0-9]/gi, "_");
+}
+
+function signedNumber(value, digits = 2, suffix = "") {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return "—";
+  return `${n > 0 ? "+" : ""}${n.toFixed(digits)}${suffix}`;
+}
+
+function evidenceStatus(value) {
+  const normalized = String(value || "").toLowerCase();
+  if (["pass", "green", "healthy"].includes(normalized)) return "pass";
+  if (["pending", "collecting_evidence", "not_ready", "insufficient_data", "amber", "hold"].includes(normalized)) return "hold";
+  return "fail";
+}
+
+function evidenceStatusLabel(value) {
+  const status = evidenceStatus(value);
+  return status === "pass" ? "Pass" : status === "hold" ? "Hold" : "Fail";
+}
+
+async function loadJsonArtifact(source) {
+  const response = await fetch(source, { cache: "no-store" });
+  if (!response.ok) throw new Error(`${source} returned ${response.status}`);
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("json")) {
+    throw new Error(`${source} returned ${contentType || "non-JSON content"}`);
+  }
+  return response.json();
+}
+
+async function readBrokerJson(response, unavailableMessage = "Tradier is unavailable in this session.") {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("json")) throw new Error(unavailableMessage);
+  return response.json();
+}
+
+let WORKBENCH_STATE = { comparison: null, readiness: null, selectedWindow: "3_month" };
+
+function workbenchMetricRow(label, active, shadow, difference, check) {
+  const status = evidenceStatus(check);
+  return `
+    <tr>
+      <th scope="row">${escapeHtml(label)}</th>
+      <td>${escapeHtml(active)}</td>
+      <td>${escapeHtml(shadow)}</td>
+      <td>${escapeHtml(difference)}</td>
+      <td><span class="evidence-pill is-${status}">${evidenceStatusLabel(status)}</span></td>
+    </tr>`;
+}
+
+function workbenchGateRow(title, summary, statusValue) {
+  const status = evidenceStatus(statusValue);
+  const icon = status === "pass" ? "check_circle" : status === "hold" ? "pause_circle" : "error";
+  return `
+    <div class="workbench-gate-row">
+      <span class="material-symbols-outlined gate-icon is-${status}" aria-hidden="true">${icon}</span>
+      <div>
+        <strong>${escapeHtml(title)}</strong>
+        <span>${escapeHtml(summary)}</span>
+      </div>
+      <span class="evidence-pill is-${status}">${evidenceStatusLabel(status)}</span>
+    </div>`;
+}
+
+function drawWorkbenchComparison(windowRow) {
+  const canvas = document.getElementById("workbench-comparison-chart");
+  if (!canvas || !windowRow) return;
+  const ctx = canvas.getContext("2d");
+  const rect = canvas.getBoundingClientRect();
+  const ratio = window.devicePixelRatio || 1;
+  const width = Math.max(rect.width, 320);
+  const height = 165;
+  canvas.width = Math.round(width * ratio);
+  canvas.height = Math.round(height * ratio);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const active = Number(windowRow.active?.net_pnl || 0);
+  const shadow = Number(windowRow.shadow?.net_pnl || 0);
+  const bound = Math.max(Math.abs(active), Math.abs(shadow), 1) * 1.18;
+  const plotLeft = 96;
+  const plotRight = width - 32;
+  const zeroX = plotLeft + ((0 + bound) / (bound * 2)) * (plotRight - plotLeft);
+  const scaleX = (value) => plotLeft + ((value + bound) / (bound * 2)) * (plotRight - plotLeft);
+
+  ctx.strokeStyle = "rgba(232, 234, 240, 0.16)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(plotLeft, 22);
+  ctx.lineTo(plotLeft, 130);
+  ctx.moveTo(zeroX, 18);
+  ctx.lineTo(zeroX, 137);
+  ctx.stroke();
+
+  const bars = [
+    { label: "Active", value: active, y: 34, color: "#68b98a" },
+    { label: "Shadow", value: shadow, y: 84, color: "#e8b44d" },
+  ];
+  ctx.font = "500 13px Inter, system-ui, sans-serif";
+  ctx.textBaseline = "middle";
+  for (const bar of bars) {
+    ctx.fillStyle = "rgba(232, 234, 240, 0.7)";
+    ctx.fillText(bar.label, 14, bar.y + 16);
+    const endX = scaleX(bar.value);
+    ctx.fillStyle = bar.color;
+    ctx.fillRect(Math.min(zeroX, endX), bar.y, Math.max(Math.abs(endX - zeroX), 2), 32);
+    ctx.fillStyle = "#e8eaf0";
+    ctx.textAlign = bar.value >= 0 ? "left" : "right";
+    ctx.fillText(signed(bar.value), bar.value >= 0 ? endX + 8 : endX - 8, bar.y + 16);
+    ctx.textAlign = "left";
+  }
+
+  ctx.fillStyle = "rgba(232, 234, 240, 0.5)";
+  ctx.font = "12px Inter, system-ui, sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText(money(-bound), plotLeft, 151);
+  ctx.textAlign = "center";
+  ctx.fillText("$0", zeroX, 151);
+  ctx.textAlign = "right";
+  ctx.fillText(money(bound), plotRight, 151);
+}
+
+function renderResearchWorkbench() {
+  const comparison = WORKBENCH_STATE.comparison || {};
+  const readiness = WORKBENCH_STATE.readiness || {};
+  const windows = Array.isArray(comparison.windows) ? comparison.windows : [];
+  const selected = windows.find((row) => row.window === WORKBENCH_STATE.selectedWindow) || windows[0];
+  const overallStatus = readiness.status || comparison.decision || "not_ready";
+  const overallTone = evidenceStatus(overallStatus);
+
+  const overall = document.getElementById("workbench-overall-status");
+  if (overall) {
+    overall.textContent = overallTone === "pass" ? "Ready" : overallTone === "hold" ? "Hold" : "Blocked";
+    overall.className = `workbench-status is-${overallTone}`;
+  }
+  setText("workbench-overall-note", readiness.headline || "Canonical promotion evidence is incomplete.");
+
+  const banner = document.getElementById("research-claims-banner");
+  if (banner) {
+    banner.className = `research-claims-banner is-${overallTone}`;
+    const icon = banner.querySelector(".material-symbols-outlined");
+    if (icon) icon.textContent = overallTone === "pass" ? "verified" : overallTone === "hold" ? "pause_circle" : "gpp_bad";
+    const title = banner.querySelector("strong");
+    if (title) title.textContent = readiness.research_claims_allowed ? "Research claims allowed" : "Research claims blocked";
+  }
+  setText("research-claims-message", readiness.headline || "Promotion comparison is not ready.");
+
+  const runStamp = comparison.generated_at_utc ? new Date(comparison.generated_at_utc) : null;
+  const runId = runStamp && !Number.isNaN(runStamp.getTime())
+    ? `PROMO-${runStamp.toISOString().slice(0, 10).replaceAll("-", "")}`
+    : "Promotion artifact unavailable";
+  setText("workbench-run-id", runId);
+  setText("workbench-dataset", `${comparison.artifact || "promotion comparison"} · schema ${comparison.schema_version || "—"}`);
+  setText("workbench-cutoff", comparison.as_of_utc ? `As of ${formatTs(comparison.as_of_utc)}` : "No reviewed cutoff");
+  setText("workbench-generated", comparison.generated_at_utc ? formatTs(comparison.generated_at_utc) : "Artifact unavailable");
+
+  const decision = document.getElementById("promotion-decision");
+  if (decision) {
+    decision.textContent = evidenceStatusLabel(comparison.decision || overallStatus);
+    decision.className = `gate-summary-status is-${evidenceStatus(comparison.decision || overallStatus)}`;
+  }
+
+  const comparisonStatus = document.getElementById("comparison-status");
+  if (comparisonStatus) {
+    comparisonStatus.className = `comparison-status is-${evidenceStatus(selected?.status || comparison.decision)}`;
+    comparisonStatus.textContent = selected
+      ? `${String(selected.window || "").replace("_", " ")} · ${String(selected.status || "not ready").replaceAll("_", " ")} · ${selected.coverage_complete ? "coverage complete" : "coverage incomplete"}`
+      : "No canonical comparison window is available.";
+  }
+
+  if (selected) {
+    drawWorkbenchComparison(selected);
+    const active = selected.active || {};
+    const shadow = selected.shadow || {};
+    const clusteredActive = selected.cluster_adjusted?.active || active;
+    const clusteredShadow = selected.cluster_adjusted?.shadow || shadow;
+    const inference = selected.paired_day_inference || {};
+    const inferenceInterval = inference.confidence_interval_95 || {};
+    const checks = selected.checks || {};
+    const summary = document.getElementById("comparison-summary");
+    if (summary) {
+      summary.innerHTML = [
+        summaryItemHtml("Active trades", integer(active.trades)),
+        summaryItemHtml("Shadow trades", integer(shadow.trades)),
+        summaryItemHtml("Net P&L lift", signed(Number(shadow.net_pnl || 0) - Number(active.net_pnl || 0))),
+        summaryItemHtml("Spread drag", signed(-Number(shadow.spread_cost || 0))),
+        summaryItemHtml("Paired market days", integer(inference.paired_days)),
+      ].join("");
+    }
+
+    const gates = document.getElementById("workbench-gates");
+    const readinessGates = Array.isArray(readiness.gates) ? readiness.gates : [];
+    const completionGate = readinessGates.find((gate) => gate.code === "label_cohort_completion");
+    const freshnessGate = readinessGates.find((gate) => gate.code === "freshness");
+    if (gates) {
+      gates.innerHTML = [
+        workbenchGateRow("Minimum independent evidence", `${integer(selected.cluster_adjusted?.active?.trades)} active / ${integer(selected.cluster_adjusted?.shadow?.trades)} shadow daily-contract exposures`, checks.minimum_evidence ? "pass" : "hold"),
+        workbenchGateRow("After-cost P&L lift", `Shadow ${signed(shadow.net_pnl)} vs active ${signed(active.net_pnl)}`, checks.after_cost_pnl_lift ? "pass" : "fail"),
+        workbenchGateRow("Positive after costs", `Cluster-adjusted shadow return ${pct(clusteredShadow.net_return_pct)}`, checks.absolute_profitability ? "pass" : "fail"),
+        workbenchGateRow("Uncertainty bound", `${integer(inference.paired_days)} paired days · 95% CI ${pct(inferenceInterval.lower)} to ${pct(inferenceInterval.upper)}`, checks.uncertainty_robustness ? "pass" : Number(inference.paired_days || 0) < 30 ? "hold" : "fail"),
+        workbenchGateRow("Calibration non-worse", `Brier ${Number(shadow.calibration?.brier_score || 0).toFixed(3)} vs ${Number(active.calibration?.brier_score || 0).toFixed(3)}`, checks.calibration_non_worse ? "pass" : "fail"),
+        workbenchGateRow("Sharpe non-worse", `${Number(shadow.sharpe_ratio || 0).toFixed(2)} vs ${Number(active.sharpe_ratio || 0).toFixed(2)}`, checks.sharpe_non_worse ? "pass" : "fail"),
+        workbenchGateRow("Drawdown non-worse", `${pct(shadow.max_drawdown)} vs ${pct(active.max_drawdown)}`, checks.drawdown_non_worse ? "pass" : "fail"),
+        workbenchGateRow("Repeated-scan robustness", "Daily contract clusters must preserve the challenger advantage.", checks.cluster_robustness ? "pass" : "fail"),
+        workbenchGateRow("Outcome cohort complete", completionGate?.summary || "Completion evidence unavailable", completionGate?.status || "fail"),
+        workbenchGateRow("Evidence fresh", freshnessGate?.summary || "Freshness evidence unavailable", freshnessGate?.status || "fail"),
+      ].join("");
+    }
+
+    const body = document.getElementById("workbench-diagnostics-body");
+    if (body) {
+      body.innerHTML = [
+        workbenchMetricRow("Net executable P&L", money(active.net_pnl), money(shadow.net_pnl), signed(Number(shadow.net_pnl || 0) - Number(active.net_pnl || 0)), checks.after_cost_pnl_lift ? "pass" : "fail"),
+        workbenchMetricRow("Net return", pct(active.net_return_pct), pct(shadow.net_return_pct), signedNumber((Number(shadow.net_return_pct || 0) - Number(active.net_return_pct || 0)) * 100, 1, " pp"), checks.after_cost_pnl_lift ? "pass" : "fail"),
+        workbenchMetricRow("Cluster-adjusted return", pct(clusteredActive.net_return_pct), pct(clusteredShadow.net_return_pct), signedNumber((Number(clusteredShadow.net_return_pct || 0) - Number(clusteredActive.net_return_pct || 0)) * 100, 1, " pp"), checks.absolute_profitability && checks.after_cost_pnl_lift ? "pass" : "fail"),
+        workbenchMetricRow("Paired-day return lift", "Same-day baseline", pct(inference.mean_return_lift), `${pct(inferenceInterval.lower)} to ${pct(inferenceInterval.upper)} CI`, checks.uncertainty_robustness ? "pass" : Number(inference.paired_days || 0) < 30 ? "hold" : "fail"),
+        workbenchMetricRow("Win rate", pct(active.win_rate), pct(shadow.win_rate), signedNumber((Number(shadow.win_rate || 0) - Number(active.win_rate || 0)) * 100, 1, " pp"), "hold"),
+        workbenchMetricRow("Sharpe", Number(active.sharpe_ratio || 0).toFixed(2), Number(shadow.sharpe_ratio || 0).toFixed(2), signedNumber(Number(shadow.sharpe_ratio || 0) - Number(active.sharpe_ratio || 0)), checks.sharpe_non_worse ? "pass" : "fail"),
+        workbenchMetricRow("Max drawdown", pct(active.max_drawdown), pct(shadow.max_drawdown), signedNumber((Number(shadow.max_drawdown || 0) - Number(active.max_drawdown || 0)) * 100, 1, " pp"), checks.drawdown_non_worse ? "pass" : "fail"),
+        workbenchMetricRow("Brier score", Number(active.calibration?.brier_score || 0).toFixed(3), Number(shadow.calibration?.brier_score || 0).toFixed(3), signedNumber(Number(shadow.calibration?.brier_score || 0) - Number(active.calibration?.brier_score || 0), 3), checks.calibration_non_worse ? "pass" : "fail"),
+        workbenchMetricRow("Calibration ECE", Number(active.calibration?.expected_calibration_error || 0).toFixed(3), Number(shadow.calibration?.expected_calibration_error || 0).toFixed(3), signedNumber(Number(shadow.calibration?.expected_calibration_error || 0) - Number(active.calibration?.expected_calibration_error || 0), 3), checks.calibration_non_worse ? "pass" : "fail"),
+        workbenchMetricRow("Observed trades", integer(active.trades), integer(shadow.trades), signedNumber(Number(shadow.trades || 0) - Number(active.trades || 0), 0), selected.coverage_complete ? "pass" : "hold"),
+      ].join("");
+    }
+
+    renderCockpitEvidence(selected);
+  }
+
+  const lineage = document.getElementById("workbench-lineage");
+  if (lineage) {
+    const artifactStatus = readiness.gates?.find((gate) => gate.code === "artifact_integrity")?.status || "fail";
+    const promotionStatus = comparison.decision || "not_ready";
+    lineage.innerHTML = [
+      { label: "Artifact integrity", detail: readiness.gates?.find((gate) => gate.code === "artifact_integrity")?.summary || "Not verified", status: artifactStatus },
+      { label: "Canonical replay", detail: comparison.generated_at_utc ? `Generated ${formatTs(comparison.generated_at_utc)}` : "Artifact missing", status: windows.length ? "pass" : "fail" },
+      { label: "Evidence cutoff", detail: comparison.as_of_utc ? formatTs(comparison.as_of_utc) : "No cutoff", status: selected?.coverage_complete ? "pass" : "hold" },
+      { label: "Current decision", detail: String(promotionStatus).replaceAll("_", " "), status: promotionStatus },
+    ].map((item) => `
+      <li class="is-${evidenceStatus(item.status)}">
+        <span class="lineage-marker material-symbols-outlined" aria-hidden="true">${evidenceStatus(item.status) === "pass" ? "check_circle" : evidenceStatus(item.status) === "hold" ? "pause_circle" : "error"}</span>
+        <div><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></div>
+      </li>`).join("");
+  }
+}
+
+function renderCockpitEvidence(windowRow) {
+  if (!windowRow) return;
+  const clustered = windowRow.cluster_adjusted || {};
+  const shadow = clustered.shadow || windowRow.shadow || {};
+  const independent = Number(clustered.independent_daily_contracts || 0);
+  setText("evidence-independent", independent ? integer(independent) : "—");
+  setText(
+    "evidence-independent-note",
+    independent
+      ? `${integer(clustered.raw_recommendations || 0)} raw scans collapsed`
+      : "Daily contract clusters",
+  );
+  setText("evidence-pnl", signed(shadow.net_pnl));
+  setText(
+    "evidence-calibration",
+    shadow.calibration?.brier_score == null
+      ? "—"
+      : Number(shadow.calibration.brier_score).toFixed(3),
+  );
+  setText("evidence-drawdown", pct(shadow.max_drawdown));
+}
+
+async function loadResearchWorkbench() {
+  const [comparisonResult, readinessResult] = await Promise.allSettled([
+    loadJsonArtifact(PROMOTION_COMPARISON_SOURCE),
+    loadJsonArtifact(RESEARCH_READINESS_SOURCE),
+  ]);
+  WORKBENCH_STATE.comparison = comparisonResult.status === "fulfilled" ? comparisonResult.value : {};
+  WORKBENCH_STATE.readiness = readinessResult.status === "fulfilled"
+    ? readinessResult.value
+    : {
+        status: "red",
+        research_claims_allowed: false,
+        headline: "Research-readiness artifact is unavailable; evidence claims are blocked.",
+        gates: [],
+      };
+  renderResearchWorkbench();
+
+  const select = document.getElementById("workbench-window-select");
+  if (select) {
+    select.value = WORKBENCH_STATE.selectedWindow;
+    select.addEventListener("change", () => {
+      WORKBENCH_STATE.selectedWindow = select.value;
+      renderResearchWorkbench();
+    });
+  }
+  window.addEventListener("resize", () => {
+    const windows = Array.isArray(WORKBENCH_STATE.comparison?.windows) ? WORKBENCH_STATE.comparison.windows : [];
+    const selected = windows.find((row) => row.window === WORKBENCH_STATE.selectedWindow) || windows[0];
+    if (selected) drawWorkbenchComparison(selected);
+  });
 }
 
 // ── Session & Auth ──────────────────────────────────────────────────────────
@@ -313,7 +611,14 @@ async function loadAccount() {
   renderPositionsMeta();
   try {
     const r = await fetch("/api/tradier/account", { cache: "no-store" });
-    const data = await r.json();
+    const contentType = r.headers.get("content-type") || "";
+    if (!contentType.includes("json")) {
+      throw new Error("Tradier account is unavailable in this session.");
+    }
+    const data = await readBrokerJson(
+      r,
+      "Tradier account is unavailable in this session.",
+    );
     if (data.ok && data.broker) {
       BROKER_STATE = {
         ...BROKER_STATE,
@@ -392,6 +697,7 @@ function renderPositions() {
   const rows = BROKER_STATE.positions || [];
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
+    renderCockpitPositions();
     return;
   }
   tbody.innerHTML = rows
@@ -467,6 +773,7 @@ function renderPositions() {
     </tr>`;
     })
     .join("");
+  renderCockpitPositions();
 }
 
 async function fetchPositionAdvice(position) {
@@ -593,6 +900,299 @@ let PROSPECTIVE_STATE = {
   updatedAt: null,
   lastError: null,
 };
+let COCKPIT_SIGNALS = [];
+let COCKPIT_SIGNAL_INDEX = 0;
+
+function cockpitCandidateThesis(candidate, payload) {
+  const notes = Array.isArray(candidate?.notes) ? candidate.notes : [];
+  const riskFlags = Array.isArray(candidate?.council_risk_flags)
+    ? candidate.council_risk_flags.map((flag) => String(flag).replaceAll("_", " "))
+    : [];
+  const primary = notes.find((note) => !String(note).toLowerCase().includes("model"));
+  const regime = String(payload?.regime?.mode || "unknown").replaceAll("_", " ");
+  return sentenceList(
+    [primary, riskFlags[0] ? `Risk flag: ${riskFlags[0]}` : null].filter(Boolean),
+    `The candidate is being evaluated against the ${regime} regime and executable-cost gates.`,
+  );
+}
+
+function renderCockpitSignalSelector() {
+  const root = document.getElementById("signal-selector");
+  if (!root) return;
+  if (COCKPIT_SIGNALS.length <= 1) {
+    root.innerHTML = "";
+    root.hidden = true;
+    return;
+  }
+  root.hidden = false;
+  root.innerHTML = COCKPIT_SIGNALS.map(({ candidate, lane }, index) => {
+    const active = index === COCKPIT_SIGNAL_INDEX;
+    const label = candidate.symbol || optionContractMeta(candidate.contract_symbol).root || `Signal ${index + 1}`;
+    return `<button class="signal-choice${active ? " is-active" : ""}" type="button" data-signal-index="${index}" aria-pressed="${active}">
+      <span>${escapeHtml(label)}</span><small>${escapeHtml(lane)}</small>
+    </button>`;
+  }).join("");
+  root.querySelectorAll(".signal-choice").forEach((button) => {
+    button.addEventListener("click", () => {
+      COCKPIT_SIGNAL_INDEX = Number(button.dataset.signalIndex) || 0;
+      renderCockpitSignal(SNAPSHOT);
+    });
+  });
+}
+
+function renderCockpitSignal(payload) {
+  const root = document.getElementById("cockpit-signal");
+  if (!root) return;
+  const live = payload?.council?.live_board || [];
+  const shadow = payload?.council?.shadow_board || [];
+  COCKPIT_SIGNALS = live.length
+    ? live.map((candidate) => ({ candidate, lane: "live" }))
+    : shadow.map((candidate) => ({ candidate, lane: "shadow" }));
+  COCKPIT_SIGNAL_INDEX = Math.min(
+    Math.max(COCKPIT_SIGNAL_INDEX, 0),
+    Math.max(COCKPIT_SIGNALS.length - 1, 0),
+  );
+
+  if (!COCKPIT_SIGNALS.length) {
+    root.innerHTML = `
+      <span class="signal-state is-hold">Hold</span>
+      <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
+      <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
+      <div class="signal-metrics">
+        <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
+        <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
+      </div>
+      <button class="preview-order-button" type="button" disabled>No order to preview</button>`;
+    setText("signal-index", "0 of 0");
+    renderCockpitSignalSelector();
+    syncCockpitSignalControls();
+    return;
+  }
+
+  const { candidate, lane } = COCKPIT_SIGNALS[COCKPIT_SIGNAL_INDEX];
+  const quote = LIVE_QUOTES.get(candidate.contract_symbol) || {};
+  const ask = Number(quote.ask || candidate.ask || candidate.premium || 0.01);
+  const confidence = Number(candidate.prob_positive_option_pnl);
+  const afterCostEdge = Number(candidate.expected_edge_after_friction_pct);
+  const maxLoss = Number(candidate.contract_cost || ask * 100);
+  const generatedAt = payload.generated_at_utc || payload.timestamp;
+  const stateLabel = lane === "live" ? "Trade ready" : "Hold · shadow only";
+  const stateClass = lane === "live" ? "is-ready" : "is-hold";
+  const previewLabel = lane === "live" ? "Preview order" : "Preview shadow order";
+  const suggestedQty = suggestedEntryQuantity(
+    ask,
+    Number(candidate.allocation_weight || 1),
+  );
+  const estimatedDebit = suggestedQty * ask * 100;
+  const riskFlags = (candidate.council_risk_flags || [])
+    .map((flag) => String(flag).replaceAll("_", " "))
+    .slice(0, 3);
+  root.innerHTML = `
+    <div class="cockpit-signal-card trade-card" data-ask="${ask}">
+      <span class="signal-state ${stateClass}">${stateLabel}</span>
+      <p class="signal-lead">${lane === "live" ? "Model edge is positive after costs and the contract cleared Council risk controls." : "The strongest observed candidate remains below the live promotion threshold."}</p>
+      <div class="signal-contract">
+        <span>Contract thesis</span>
+        <h3>${escapeHtml(candidate.contract_symbol || `${candidate.symbol} option`)}</h3>
+        <p>${escapeHtml(cockpitCandidateThesis(candidate, payload))}</p>
+      </div>
+      <div class="signal-metrics">
+        <div class="signal-metric"><span>Entry limit</span><strong>${money(ask)}</strong><small>Maximum one-contract premium ${money(maxLoss)}</small></div>
+        <div class="signal-metric"><span>After-cost edge</span><strong>${pct(afterCostEdge)}</strong><small>Model estimate after friction</small></div>
+        <div class="signal-metric"><span>Confidence</span><strong>${pct(confidence, 0)}</strong><small>Positive executable P&amp;L probability</small></div>
+        <div class="signal-metric"><span>Freshness</span><strong>${generatedAt ? timeAgo(generatedAt) : "—"}</strong><small>${generatedAt ? formatTs(generatedAt) : "No timestamp"}</small></div>
+      </div>
+      <details class="signal-evidence-details">
+        <summary>Why this signal?</summary>
+        <div class="signal-evidence-grid">
+          <div><span>Liquidity</span><strong>${pct(candidate.liquidity_score)}</strong><small>${integer(candidate.volume)} volume · ${integer(candidate.open_interest)} open interest</small></div>
+          <div><span>Spread</span><strong>${pct(candidate.spread_pct)}</strong><small>Bid ${money(candidate.bid)} · ask ${money(ask)}</small></div>
+          <div><span>Projected move</span><strong>${pct(candidate.projected_move_pct)}</strong><small>Breakeven move ${pct(candidate.breakeven_move_pct)}</small></div>
+          <div><span>Risk controls</span><strong>${riskFlags.length ? integer(riskFlags.length) : "0"}</strong><small>${escapeHtml(riskFlags.join(" · ") || "No flagged Council exceptions")}</small></div>
+        </div>
+      </details>
+      <div class="signal-order-row">
+        <div class="signal-quantity-control">
+          <span>Contracts</span>
+          <div class="quantity-stepper">
+            <button class="card-qty-step" type="button" data-step="-1" aria-label="Decrease contracts">−</button>
+            <input class="card-qty-input" type="number" min="1" max="${brokerMaxContracts()}" value="${suggestedQty}" aria-label="Order quantity" />
+            <button class="card-qty-step" type="button" data-step="1" aria-label="Increase contracts">+</button>
+          </div>
+          <small>Estimated debit <strong data-qty-cost>${money(estimatedDebit)}</strong></small>
+        </div>
+        <button class="preview-order-button card-preview-btn" type="button"
+          data-contract="${escapeHtml(candidate.contract_symbol)}"
+          data-symbol="${escapeHtml(candidate.symbol)}"
+          data-lane="${escapeHtml(lane)}"
+          data-ask="${ask}"
+          data-alloc="${Number(candidate.allocation_weight || 1)}">
+          ${previewLabel}<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+        </button>
+      </div>
+      <p class="signal-safety"><span class="material-symbols-outlined" aria-hidden="true">lock</span>Preview first. Broker execution remains permissioned and separately confirmed.</p>
+    </div>`;
+  setText("signal-index", `${COCKPIT_SIGNAL_INDEX + 1} of ${COCKPIT_SIGNALS.length}`);
+  bindCardButtons();
+  renderCockpitSignalSelector();
+  syncCockpitSignalControls();
+}
+
+function syncCockpitSignalControls() {
+  const previous = document.getElementById("signal-prev");
+  const next = document.getElementById("signal-next");
+  if (previous) previous.disabled = COCKPIT_SIGNAL_INDEX <= 0;
+  if (next) next.disabled = COCKPIT_SIGNAL_INDEX >= COCKPIT_SIGNALS.length - 1;
+}
+
+function bindCockpitControls() {
+  const previous = document.getElementById("signal-prev");
+  const next = document.getElementById("signal-next");
+  if (previous && previous.dataset.bound !== "true") {
+    previous.dataset.bound = "true";
+    previous.addEventListener("click", () => {
+      COCKPIT_SIGNAL_INDEX -= 1;
+      renderCockpitSignal(SNAPSHOT);
+    });
+  }
+  if (next && next.dataset.bound !== "true") {
+    next.dataset.bound = "true";
+    next.addEventListener("click", () => {
+      COCKPIT_SIGNAL_INDEX += 1;
+      renderCockpitSignal(SNAPSHOT);
+    });
+  }
+
+  const signalRegion = document.getElementById("signal");
+  if (signalRegion && signalRegion.dataset.keyboardBound !== "true") {
+    signalRegion.dataset.keyboardBound = "true";
+    signalRegion.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      if (event.key === "ArrowLeft" && COCKPIT_SIGNAL_INDEX > 0) {
+        COCKPIT_SIGNAL_INDEX -= 1;
+        renderCockpitSignal(SNAPSHOT);
+      }
+      if (event.key === "ArrowRight" && COCKPIT_SIGNAL_INDEX < COCKPIT_SIGNALS.length - 1) {
+        COCKPIT_SIGNAL_INDEX += 1;
+        renderCockpitSignal(SNAPSHOT);
+      }
+    });
+  }
+
+  const drawer = document.getElementById("research-drawer");
+  const toggle = document.getElementById("research-drawer-toggle");
+  const close = document.getElementById("research-drawer-close");
+  const setDrawer = (open) => {
+    if (!drawer || !toggle) return;
+    drawer.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+    if (open) {
+      const windows = WORKBENCH_STATE.comparison?.windows || [];
+      const selected = windows.find((row) => row.window === WORKBENCH_STATE.selectedWindow) || windows[0];
+      if (selected) requestAnimationFrame(() => drawWorkbenchComparison(selected));
+      drawer.scrollIntoView({ behavior: "smooth", block: "start" });
+      close?.focus({ preventScroll: true });
+    } else if (document.activeElement === close) {
+      toggle.focus({ preventScroll: true });
+    }
+  };
+  if (toggle && toggle.dataset.bound !== "true") {
+    toggle.dataset.bound = "true";
+    toggle.addEventListener("click", () => setDrawer(drawer?.hidden !== false));
+  }
+  if (close && close.dataset.bound !== "true") {
+    close.dataset.bound = "true";
+    close.addEventListener("click", () => setDrawer(false));
+  }
+  document.querySelectorAll(".evidence-metric-button").forEach((button) => {
+    if (button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => {
+      setDrawer(true);
+      const focus = button.dataset.researchFocus;
+      const target = focus === "observations"
+        ? document.getElementById("workbench-gates")
+        : document.getElementById("workbench-diagnostics-body");
+      target?.closest(".detail-table-wrap, article")?.classList.add("is-emphasized");
+      setTimeout(() => target?.closest(".detail-table-wrap, article")?.classList.remove("is-emphasized"), 1400);
+    });
+  });
+  if (drawer && drawer.dataset.escapeBound !== "true") {
+    drawer.dataset.escapeBound = "true";
+    drawer.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") setDrawer(false);
+    });
+  }
+
+  const bookTabs = [
+    { button: document.getElementById("book-tab-positions"), panel: document.getElementById("book-positions-panel") },
+    { button: document.getElementById("book-tab-orders"), panel: document.getElementById("book-orders-panel") },
+  ];
+  const selectBookTab = (selectedButton) => {
+    bookTabs.forEach(({ button, panel }) => {
+      const active = button === selectedButton;
+      button?.classList.toggle("is-active", active);
+      button?.setAttribute("aria-selected", String(active));
+      if (panel) panel.hidden = !active;
+    });
+  };
+  bookTabs.forEach(({ button }) => {
+    if (!button || button.dataset.bound === "true") return;
+    button.dataset.bound = "true";
+    button.addEventListener("click", () => selectBookTab(button));
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+      event.preventDefault();
+      const other = bookTabs.find((entry) => entry.button !== button)?.button;
+      if (other) {
+        selectBookTab(other);
+        other.focus();
+      }
+    });
+  });
+}
+
+function renderCockpitPositions() {
+  const root = document.getElementById("cockpit-positions-list");
+  if (!root) return;
+  const positions = BROKER_STATE.positions || [];
+  setText("book-positions-count", String(positions.length));
+  setText("book-orders-count", String((BROKER_STATE.orders || []).length));
+  if (!positions.length) {
+    root.innerHTML = `<div class="position-loading">No open positions. The book is clear.</div>`;
+    return;
+  }
+  root.innerHTML = positions.slice(0, 6).map((position) => {
+    const symbol = String(position.symbol || "—");
+    const value = Number(position.current_value);
+    const basis = Number(position.cost_basis);
+    const pnl = Number.isFinite(Number(position.open_pl))
+      ? Number(position.open_pl)
+      : Number.isFinite(value) && Number.isFinite(basis)
+        ? value - basis
+        : null;
+    const pnlPct = pnl != null && basis ? pnl / basis : null;
+    const advice = POSITION_ADVICE.get(symbol);
+    const action = advice?.action === "sell" ? "Reduce risk" : pnl != null && pnl > 0 ? "Monitor gain" : "Monitor";
+    const warning = advice?.action === "sell" || (pnl != null && pnl < 0);
+    return `<div class="cockpit-position-row">
+      <div class="position-name"><strong>${escapeHtml(symbol)}</strong><span>${escapeHtml(optionContractMeta(symbol).root)}</span></div>
+      <div class="position-size"><strong>${integer(position.quantity)}</strong><span>contracts</span></div>
+      <div class="position-pnl ${pnl != null && pnl < 0 ? "is-negative" : ""}">${pnl == null ? "--" : signed(pnl)}<span>${pnlPct == null ? "" : pct(pnlPct)}</span></div>
+      <div class="position-action ${warning ? "is-warning" : ""}"><strong>${action}</strong><span>${escapeHtml(positionMarkMeta(position).label)}</span></div>
+      <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+    </div>`;
+  }).join("");
+  root.querySelectorAll(".position-row-action").forEach((button) => {
+    button.addEventListener("click", () => {
+      const details = document.querySelector(".book-details");
+      if (details) {
+        details.open = true;
+        details.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  });
+}
 
 function renderBoardMeta() {
   const syncEl = document.getElementById("board-sync-status");
@@ -625,9 +1225,16 @@ function renderBoardMeta() {
   }
   if (refreshBtn) {
     refreshBtn.disabled = BOARD_STATE.loading;
-    refreshBtn.textContent = BOARD_STATE.loading
-      ? "Refreshing…"
-      : "Refresh Live Board";
+    if (refreshBtn.classList.contains("icon-button")) {
+      refreshBtn.setAttribute(
+        "aria-label",
+        BOARD_STATE.loading ? "Refreshing signal" : "Refresh signal",
+      );
+    } else {
+      refreshBtn.textContent = BOARD_STATE.loading
+        ? "Refreshing…"
+        : "Refresh Live Board";
+    }
   }
 }
 
@@ -1035,7 +1642,7 @@ function noTradePressure(candidate) {
 }
 
 function brokerMaxContracts() {
-  return Math.max(1, Number(BROKER_STATE.maxContracts) || 1);
+  return Math.max(1, Number(BROKER_STATE.maxContracts) || 3);
 }
 
 function clampQuantity(
@@ -1709,7 +2316,7 @@ function promotionStatusClass(status) {
   const normalized = String(status || "").toLowerCase();
   if (normalized.includes("production") || normalized === "pass") return "is-pass";
   if (normalized.includes("shadow")) return "is-pending";
-  if (normalized.includes("collect") || normalized.includes("pending")) return "is-pending";
+  if (normalized.includes("collect") || normalized.includes("pending") || normalized === "not_ready") return "is-pending";
   if (normalized.includes("observe")) return "is-observe";
   if (normalized.includes("fail") || normalized.includes("reject")) return "is-fail";
   return "is-neutral";
@@ -1800,7 +2407,7 @@ function renderPromotionReadiness(payload) {
 
   if (decisionEl) {
     decisionEl.textContent = readiness.decision_label || "Production-active";
-    decisionEl.className = `promotion-decision ${promotionStatusClass(readiness.decision || "pending")}`;
+    decisionEl.className = `promotion-decision ${promotionStatusClass(readiness.promotion_gate_decision || readiness.decision || "pending")}`;
   }
 
   if (modelGrid) {
@@ -1839,6 +2446,15 @@ function renderPromotionReadiness(payload) {
       summaryItemHtml("Live Friday Avg", pctOrDash(profitability.live_friday_close_avg_pnl_pct)),
       summaryItemHtml("Shadow Friday Avg", pctOrDash(profitability.shadow_friday_close_avg_pnl_pct)),
       summaryItemHtml("Holdout Friday Avg", pctOrDash(profitability.holdout_friday_close_avg_pnl_pct)),
+      summaryItemHtml("3/6/12 Replay", String(profitability.promotion_comparison_decision || "not run").replaceAll("_", " ")),
+      summaryItemHtml(
+        "Payoff Challenger",
+        `${String(profitability.payoff_challenger_decision || "not run").replaceAll("_", " ")} · ${integer(profitability.payoff_challenger_resolved)} resolved · ${integer(profitability.payoff_challenger_replay_runs)} replay runs`,
+      ),
+      summaryItemHtml(
+        "Outcome Capture",
+        `${integer(profitability.capture_policy_v2_picks)} strict picks · ${integer(profitability.capture_windows_valid)} valid · ${integer(profitability.capture_windows_quote_missing)} retrying · ${integer(profitability.capture_windows_stale_quote)} stale · ${integer(profitability.capture_windows_missed)} missed`,
+      ),
       summaryItemHtml("Rule", policy.promotion_rule || "—"),
     ].join("");
   }
@@ -2095,6 +2711,7 @@ async function renderBoard(payload) {
   for (const { candidate } of allCandidates) {
     loadCardRationale(candidate, payload.regime);
   }
+  renderCockpitSignal(payload);
 }
 
 async function loadCardRationale(candidate, regime) {
@@ -2127,6 +2744,15 @@ function selectedCardQuantity(button) {
   const qty = clampQuantity(input.value, input.value || 1);
   input.value = String(qty);
   return qty;
+}
+
+function syncTradeCardQuantity(card) {
+  const input = card?.querySelector(".card-qty-input");
+  const cost = card?.querySelector("[data-qty-cost]");
+  if (!input || !cost) return;
+  const qty = clampQuantity(input.value, input.value || 1);
+  input.value = String(qty);
+  cost.textContent = money(qty * (Number(card.dataset.ask) || 0) * 100);
 }
 
 function syncModalExecuteState() {
@@ -2301,7 +2927,10 @@ async function handlePreview(
         price,
       }),
     });
-    const data = await r.json();
+    const data = await readBrokerJson(
+      r,
+      "Tradier order preview is unavailable in this session.",
+    );
     if (!r.ok || !data.ok)
       throw new Error(data.error || `Preview failed (${r.status})`);
 
@@ -2361,7 +2990,7 @@ async function handlePreview(
   } catch (err) {
     openModal(
       "Preview Failed",
-      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
+      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${escapeHtml(err.message || err)}</p>`,
       false,
       null,
       { executeLabel: "Execute Trade" },
@@ -2421,7 +3050,10 @@ async function handleClosePosition(contractSymbol, qty) {
         price,
       }),
     });
-    const data = await r.json();
+    const data = await readBrokerJson(
+      r,
+      "Tradier order preview is unavailable in this session.",
+    );
     if (!r.ok || !data.ok)
       throw new Error(data.error || `Preview failed (${r.status})`);
 
@@ -2478,7 +3110,7 @@ async function handleClosePosition(contractSymbol, qty) {
   } catch (err) {
     openModal(
       "Preview Failed",
-      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${err.message || err}</p>`,
+      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${escapeHtml(err.message || err)}</p>`,
       false,
       null,
       { executeLabel: "Close Position" },
@@ -2505,6 +3137,7 @@ function bindCardButtons() {
       const current = Number.parseInt(String(input.value || "1"), 10) || 1;
       const step = Number(btn.dataset.step) || 0;
       input.value = String(clampQuantity(current + step, current));
+      syncTradeCardQuantity(card);
     });
   });
 
@@ -2512,6 +3145,7 @@ function bindCardButtons() {
     input.addEventListener("click", (e) => e.stopPropagation());
     input.addEventListener("change", () => {
       input.value = String(clampQuantity(input.value, input.value || 1));
+      syncTradeCardQuantity(input.closest(".trade-card"));
     });
   });
 
@@ -3035,6 +3669,11 @@ async function main() {
   bindModal();
   bindPositionsControls();
   bindBoardControls();
+  bindCockpitControls();
+
+  // Load scientific evidence independently from Tradier and the live board.
+  // Missing evidence fails closed in the workbench without blocking broker access.
+  loadResearchWorkbench().catch(() => {});
 
   // Load account (non-blocking so board renders even if Tradier is offline)
   loadAccount().catch(() => {});

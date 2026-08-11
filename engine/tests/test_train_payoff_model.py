@@ -52,6 +52,96 @@ def _trade_row(**overrides: object) -> dict[str, object]:
 
 
 class TrainPayoffModelLoaderTests(unittest.TestCase):
+    def test_family_selection_penalizes_a_weak_put_segment(self) -> None:
+        aggregate_winner_with_weak_put = {
+            "positive_pnl_brier_mean": 0.18,
+            "breakeven_brier_mean": 0.18,
+            "expected_return_mae_mean": 0.20,
+            "positive_pnl_auc_mean": 0.60,
+            "breakeven_auc_mean": 0.58,
+            "by_segment": {
+                "side": {
+                    "prob_positive_option_pnl": {
+                        "call": {"rows": 60, "brier": 0.16, "baseline_brier": 0.24, "auc": 0.62},
+                        "put": {"rows": 60, "brier": 0.34, "baseline_brier": 0.24, "auc": 0.49},
+                    }
+                }
+            },
+        }
+        balanced_family = {
+            "positive_pnl_brier_mean": 0.20,
+            "breakeven_brier_mean": 0.19,
+            "expected_return_mae_mean": 0.22,
+            "positive_pnl_auc_mean": 0.57,
+            "breakeven_auc_mean": 0.56,
+            "by_segment": {
+                "side": {
+                    "prob_positive_option_pnl": {
+                        "call": {"rows": 60, "brier": 0.19, "baseline_brier": 0.24, "auc": 0.57},
+                        "put": {"rows": 60, "brier": 0.20, "baseline_brier": 0.24, "auc": 0.55},
+                    }
+                }
+            },
+        }
+
+        self.assertLess(
+            payoff_train_module._family_sort_key(balanced_family),
+            payoff_train_module._family_sort_key(aggregate_winner_with_weak_put),
+        )
+
+    def test_promotion_gate_blocks_weak_put_and_weak_regime_quality(self) -> None:
+        cv = {
+            "positive_pnl_auc_mean": 0.58,
+            "breakeven_auc_mean": 0.57,
+            "positive_pnl_brier_mean": 0.20,
+            "breakeven_brier_mean": 0.19,
+            "by_segment": {
+                "side": {
+                    "prob_positive_option_pnl": {
+                        "call": {"rows": 50, "auc": 0.60, "brier": 0.19, "baseline_brier": 0.24},
+                        "put": {"rows": 50, "auc": 0.49, "brier": 0.28, "baseline_brier": 0.24},
+                    }
+                },
+                "regime": {
+                    "prob_positive_option_pnl": {
+                        "risk_on": {"rows": 40, "auc": 0.58, "brier": 0.20, "baseline_brier": 0.24},
+                        "risk_off": {"rows": 40, "auc": 0.50, "brier": 0.27, "baseline_brier": 0.24},
+                        "neutral": {"rows": 40, "auc": 0.52, "brier": 0.23, "baseline_brier": 0.24},
+                    }
+                },
+            },
+        }
+
+        report = payoff_train_module._promotion_gate_report(
+            training_examples=200,
+            min_side_examples=75,
+            side_counts={"call": 100, "put": 100},
+            dataset_summary={"friction_flip_count": 10},
+            regime_dataset_summary={"risk_on": {"rows": 70}, "risk_off": {"rows": 70}, "neutral": {"rows": 60}},
+            cv=cv,
+            positive_baseline_brier=0.24,
+            breakeven_baseline_brier=0.24,
+            primary_artifact="option_outcome_dataset",
+            observed_path_examples=180,
+            observed_path_coverage_ratio=0.9,
+        )
+
+        self.assertEqual(report["status"], "hold")
+        self.assertFalse(report["gates"]["side_walk_forward_quality"]["passed"])
+        self.assertFalse(report["gates"]["side_walk_forward_quality"]["segments"]["put"]["passed"])
+        self.assertFalse(report["gates"]["regime_walk_forward_quality"]["passed"])
+        self.assertEqual(report["gates"]["regime_walk_forward_quality"]["qualified_segments"], 1)
+
+    def test_segment_metrics_include_naive_brier_baseline(self) -> None:
+        y = np.array([0, 1] * 15, dtype=int)
+        probs = np.array([0.2, 0.8] * 15, dtype=float)
+        segments = np.array(["put"] * 30, dtype=object)
+
+        report = payoff_train_module._segment_metric_report(y, probs, segments)
+
+        self.assertEqual(report["put"]["baseline_brier"], 0.25)
+        self.assertLess(report["put"]["brier"], report["put"]["baseline_brier"])
+
     def test_default_input_paths_returns_existing_canonical_candidates_in_priority_order(self) -> None:
         live = Path("output/option_outcomes_live_recommendations.json")
         canonical = Path("output/option_outcomes_latest.json")
@@ -62,10 +152,28 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
         def fake_exists(path: Path) -> bool:
             return path in {live, canonical, legacy}
 
-        with mock.patch.object(Path, "exists", fake_exists):
+        with (
+            mock.patch.object(Path, "exists", fake_exists),
+            mock.patch.object(payoff_train_module, "_is_strict_executable_dataset", return_value=False),
+        ):
             resolved = default_input_paths()
 
         self.assertEqual(resolved, [live, canonical, legacy])
+
+    def test_default_input_paths_excludes_legacy_when_strict_dataset_exists(self) -> None:
+        live = Path("output/option_outcomes_live_recommendations.json")
+
+        with (
+            mock.patch.object(Path, "exists", return_value=True),
+            mock.patch.object(
+                payoff_train_module,
+                "_is_strict_executable_dataset",
+                side_effect=lambda path: path == live,
+            ),
+        ):
+            resolved = default_input_paths()
+
+        self.assertEqual(resolved, [live])
 
     def test_load_examples_accepts_canonical_option_outcome_dataset(self) -> None:
         payload = {
@@ -114,6 +222,23 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
         self.assertAlmostEqual(examples[0].candidate.vrp_gap or 0.0, 0.14, places=4)
         self.assertAlmostEqual(examples[0].candidate.sentinel_confidence or 0.0, 0.7, places=4)
         self.assertAlmostEqual(examples[0].candidate.sentinel_call_relevance or 0.0, 0.85, places=4)
+
+    def test_training_features_use_entry_date_dte_and_signal_time_regime(self) -> None:
+        payload = {"artifact": "option_outcome_dataset", "rows": [_trade_row()]}
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "outcomes.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            examples, _ = load_examples([path], options_data_dir=None)
+
+        matrix = payoff_train_module._training_feature_matrix(examples)
+        dte_idx = payoff_train_module.FEATURE_COLS.index("dte")
+        risk_on_idx = payoff_train_module.FEATURE_COLS.index("regime_is_risk_on")
+        risk_off_idx = payoff_train_module.FEATURE_COLS.index("regime_is_risk_off")
+
+        self.assertEqual(matrix.shape[0], 1)
+        self.assertEqual(matrix[0, dte_idx], 4.0)
+        self.assertEqual(matrix[0, risk_on_idx], 1.0)
+        self.assertEqual(matrix[0, risk_off_idx], 0.0)
 
     def test_load_examples_falls_back_to_legacy_backtest_results(self) -> None:
         payload = {
@@ -180,6 +305,8 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
         self.assertAlmostEqual(examples[0].max_favorable_excursion_before_expiry, 0.35, places=6)
         self.assertAlmostEqual(examples[0].adverse_excursion_risk, -0.15, places=6)
         self.assertEqual(metadata["exact_quote_marks_used"], 2)
+        self.assertEqual(metadata["examples_with_exact_quote_path"], 1)
+        self.assertEqual(metadata["exact_quote_path_coverage_ratio"], 1.0)
 
     def test_train_report_includes_dataset_observability_and_promotion_gates(self) -> None:
         examples = []

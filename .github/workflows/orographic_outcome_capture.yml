@@ -1,0 +1,61 @@
+name: Orographic Outcome Capture
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Covers US market hours across daylight/standard time. The marker itself
+    # only calls Tradier when a strict capture window is currently eligible.
+    - cron: "*/15 13-22 * * 1-5"
+
+concurrency:
+  group: orographic-research-write-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    env:
+      TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
+      OROGRAPHIC_TRADIER_ACCESS_TOKEN: ${{ secrets.OROGRAPHIC_TRADIER_ACCESS_TOKEN }}
+      TRADIER_BASE_URL: ${{ secrets.TRADIER_BASE_URL }}
+      TRADIER_SANDBOX_MODE: ${{ secrets.TRADIER_SANDBOX_MODE }}
+      PYTHONPATH: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Capture eligible outcome windows
+        if: ${{ env.TRADIER_ACCESS_TOKEN != '' || env.OROGRAPHIC_TRADIER_ACCESS_TOKEN != '' }}
+        run: |
+          python engine/mark_prospective_outcomes.py \
+            --ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --ignore-missing
+          python engine/mark_prospective_outcomes.py \
+            --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+            --ignore-missing
+          if [ -f web/data/diagnostics/prospective_pick_ledger.json ]; then
+            python scripts/build_payoff_challenger_evidence.py
+          fi
+
+      - name: Persist new research evidence
+        run: |
+          git config user.name "orographic-research-bot"
+          git config user.email "orographic-research-bot@users.noreply.github.com"
+          git add \
+            web/data/diagnostics/prospective_pick_ledger.json \
+            web/data/diagnostics/moonshot_prospective_ledger.json \
+            web/data/diagnostics/payoff_challenger_evidence_latest.json
+          if git diff --cached --quiet; then
+            echo "No capture state changed."
+          else
+            git commit -m "data: capture prospective option outcomes"
+            git push
+          fi
