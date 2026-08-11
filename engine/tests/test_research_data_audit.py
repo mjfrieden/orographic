@@ -31,7 +31,12 @@ class ResearchDataAuditTests(unittest.TestCase):
             pd.DataFrame([{"contract_symbol": "AAA1"}, {"contract_symbol": "AAA2"}]).to_parquet(
                 combined, index=False
             )
-            pd.DataFrame([{"contract_symbol": "AAA1", "event_observation_count_lookback": 1}]).to_parquet(enriched, index=False)
+            pd.DataFrame(
+                [
+                    {"contract_symbol": "AAA1", "event_observation_count_lookback": 1},
+                    {"contract_symbol": "AAA2", "event_observation_count_lookback": 0},
+                ]
+            ).to_parquet(enriched, index=False)
             quality = root / "event-quality.json"
             quality.write_text(json.dumps({"rows": 3, "status": "passed"}))
             coverage = root / "event-coverage.json"
@@ -65,8 +70,8 @@ class ResearchDataAuditTests(unittest.TestCase):
             for check in report["checks"]
             if check["name"] == "event_enriched_dataset_matches_outcomes"
         )
-        self.assertEqual(event_enrichment_check["actual"], 1)
-        self.assertEqual(event_enrichment_check["expected"], 1)
+        self.assertEqual(event_enrichment_check["actual"], 2)
+        self.assertEqual(event_enrichment_check["expected"], 2)
         self.assertEqual(report["summary"]["combined_dataset_rows"], 2)
         self.assertEqual(report["summary"]["event_observation_rows"], 3)
         self.assertEqual(report["summary"]["rows_with_prior_events"], 1)
