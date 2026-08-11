@@ -658,8 +658,13 @@ class PipelineTests(unittest.TestCase):
         challenger_evidence = {
             "artifact": "payoff_challenger_prospective_evidence",
             "decision": "collecting_evidence",
-            "coverage": {"resolved_recommendations": 12},
+            "coverage": {
+                "scored_recommendations": 18,
+                "resolved_recommendations": 12,
+                "decision_disagreements": 7,
+            },
             "rank_replay": {"eligible_complete_runs": 4},
+            "readiness": {"next_action": "Capture strict Friday-close executable labels."},
         }
 
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -707,8 +712,14 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(readiness["profitability_summary"]["tracked_recommendations"], 3)
         self.assertEqual(readiness["profitability_summary"]["quote_coverage_pct"], 1.0)
         self.assertEqual(readiness["profitability_summary"]["payoff_challenger_decision"], "collecting_evidence")
+        self.assertEqual(readiness["profitability_summary"]["payoff_challenger_scored"], 18)
         self.assertEqual(readiness["profitability_summary"]["payoff_challenger_resolved"], 12)
         self.assertEqual(readiness["profitability_summary"]["payoff_challenger_replay_runs"], 4)
+        self.assertEqual(readiness["profitability_summary"]["payoff_challenger_disagreements"], 7)
+        self.assertEqual(
+            readiness["profitability_summary"]["payoff_challenger_next_action"],
+            "Capture strict Friday-close executable labels.",
+        )
         self.assertEqual(readiness["profitability_summary"]["capture_policy_v2_picks"], 3)
         self.assertEqual(readiness["profitability_summary"]["capture_windows_valid"], 8)
         self.assertEqual(readiness["profitability_summary"]["capture_windows_missed"], 1)

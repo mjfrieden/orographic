@@ -1293,6 +1293,11 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "promotion_comparison_decision": comparison_status,
             "promotion_comparison_windows": comparison_windows,
             "payoff_challenger_decision": payoff_challenger_evidence.get("decision", "not_run"),
+            "payoff_challenger_scored": _coerce_int(
+                payoff_challenger_evidence.get("coverage", {}).get("scored_recommendations")
+                if isinstance(payoff_challenger_evidence.get("coverage"), dict)
+                else 0
+            ),
             "payoff_challenger_resolved": _coerce_int(
                 payoff_challenger_evidence.get("coverage", {}).get("resolved_recommendations")
                 if isinstance(payoff_challenger_evidence.get("coverage"), dict)
@@ -1302,6 +1307,16 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
                 payoff_challenger_evidence.get("rank_replay", {}).get("eligible_complete_runs")
                 if isinstance(payoff_challenger_evidence.get("rank_replay"), dict)
                 else 0
+            ),
+            "payoff_challenger_disagreements": _coerce_int(
+                payoff_challenger_evidence.get("coverage", {}).get("decision_disagreements")
+                if isinstance(payoff_challenger_evidence.get("coverage"), dict)
+                else 0
+            ),
+            "payoff_challenger_next_action": str(
+                payoff_challenger_evidence.get("readiness", {}).get("next_action") or "Collect prospective evidence."
+                if isinstance(payoff_challenger_evidence.get("readiness"), dict)
+                else "Collect prospective evidence."
             ),
             "capture_policy_v2_picks": _coerce_int(profitability_evidence.get("capture_policy_v2_picks")),
             "capture_windows_valid": _coerce_int(profitability_evidence.get("capture_windows_valid")),

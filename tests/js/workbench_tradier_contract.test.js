@@ -4,6 +4,7 @@ import test from "node:test";
 
 const indexPath = new URL("../../web/index.html", import.meta.url);
 const appPath = new URL("../../web/app.js", import.meta.url);
+const cockpitStylePath = new URL("../../web/cockpit.css", import.meta.url);
 
 const REQUIRED_STATIC_IDS = [
   // Session and broker ribbon.
@@ -135,4 +136,17 @@ test("Signal & Book exposes interactive sizing, candidate, book, and evidence co
   ]) {
     assert.ok(source.includes(behavior), `missing interaction behavior: ${behavior}`);
   }
+});
+
+test("Signal & Book preserves readable synchronization spacing", async () => {
+  const source = await readFile(appPath, "utf8");
+  const styles = await readFile(cockpitStylePath, "utf8");
+
+  assert.ok(
+    source.match(/let className = "sync-line positions-sync-status";/g)?.length >= 2,
+    "board and Tradier status rendering must preserve the sync-line layout class",
+  );
+  assert.match(styles, /\.signal-pane \.pane-heading > \.sync-line\s*\{[^}]*margin:\s*14px 0 0;/s);
+  assert.match(styles, /\.positions-toolbar\s*\{[^}]*flex-direction:\s*row;/s);
+  assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.positions-toolbar\s*\{[^}]*flex-direction:\s*column;/s);
 });

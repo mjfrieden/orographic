@@ -50,6 +50,9 @@ class PayoffChallengerEvidenceTests(unittest.TestCase):
         self.assertEqual(artifact["coverage"]["resolved_recommendations"], 0)
         self.assertEqual(artifact["execution_effect"], "none_observation_only")
         self.assertFalse(artifact["gates"]["sample"]["resolved_recommendations"])
+        self.assertEqual(artifact["schema_version"], 2)
+        self.assertEqual(artifact["readiness"]["progress"]["resolved_recommendations"]["remaining"], 100)
+        self.assertIn("Collect post-friction recommendations", artifact["readiness"]["next_action"])
 
     def test_strong_paired_challenger_can_become_live_shadow_eligible(self) -> None:
         entries = []
@@ -76,6 +79,10 @@ class PayoffChallengerEvidenceTests(unittest.TestCase):
         self.assertGreater(artifact["rank_replay"]["paired_inference"]["confidence_interval_95"]["lower"], 0)
         self.assertTrue(all(artifact["gates"]["sample"].values()))
         self.assertTrue(all(artifact["gates"]["performance"].values()))
+        self.assertTrue(artifact["readiness"]["sample_ready"])
+        self.assertEqual(artifact["readiness"]["blocking_sample_gates"], [])
+        self.assertEqual(artifact["readiness"]["progress"]["resolved_recommendations"]["progress_pct"], 1.0)
+        self.assertEqual(artifact["readiness"]["capture_integrity"]["actual_pct"], 1.0)
 
     def test_rank_replay_excludes_incompletely_resolved_candidate_sets(self) -> None:
         ledger = {"entries": [{
