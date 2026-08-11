@@ -150,8 +150,14 @@ def build_scan_health_summary(
     )
     scout_count = _int(summary.get("scout_signal_count"))
     forge_count = _int(summary.get("forge_candidate_count"))
-    extreme_vol_abstain = regime.get("mode") == "extreme_vol" and scout_count == 0 and forge_count == 0
-    _check(checks, "scan_emitted_scout_signals", scout_count > 0 or extreme_vol_abstain, actual=scout_count)
+    explicit_abstain = council.get("abstain") is True and scout_count == 0 and forge_count == 0
+    _check(
+        checks,
+        "scan_emitted_scout_signals",
+        scout_count > 0 or explicit_abstain,
+        actual=scout_count,
+        accepted_abstention=explicit_abstain,
+    )
     _check(checks, "prospective_ledger_exists", prospective["exists"], path=str(prospective_ledger))
     _check(checks, "moonshot_ledger_exists", moonshot["exists"], path=str(moonshot_ledger))
     _check(
@@ -176,9 +182,10 @@ def build_scan_health_summary(
     _check(
         checks,
         "strict_capture_policy_active",
-        strict_capture_picks > 0,
+        strict_capture_picks > 0 or explicit_abstain,
         actual_picks=strict_capture_picks,
         required_min=1,
+        awaiting_next_pick=explicit_abstain and strict_capture_picks == 0,
     )
     _check(
         checks,
@@ -192,7 +199,7 @@ def build_scan_health_summary(
     _check(
         checks,
         "archive_rows_captured",
-        _int(archive_summary.get("rows_archived")) > 0 or extreme_vol_abstain,
+        _int(archive_summary.get("rows_archived")) > 0 or explicit_abstain,
         actual=_int(archive_summary.get("rows_archived")),
     )
     _check(
