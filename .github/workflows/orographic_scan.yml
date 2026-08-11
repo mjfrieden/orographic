@@ -206,47 +206,15 @@ jobs:
       - name: Validate refreshed snapshot
         run: |
           python scripts/validate_model_artifacts.py
+          python scripts/validate_snapshot_smoke.py \
+            --snapshot web/data/latest_run.json \
+            --shadow-ledger web/data/diagnostics/side_aware_scout_shadow_ledger.json \
+            --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
+            --diagnostics-dir web/data/diagnostics
           python - <<'PY'
           import json
-          import sys
           from pathlib import Path
 
-          payload = json.loads(Path("web/data/latest_run.json").read_text(encoding="utf-8"))
-          if payload.get("error"):
-              raise SystemExit(f"snapshot contains pipeline error: {payload.get('error')}")
-          summary = payload.get("summary", {})
-          regime = payload.get("regime") if isinstance(payload.get("regime"), dict) else {}
-          scout_signal_count = int(summary.get("scout_signal_count", 0) or 0)
-          extreme_vol_abstain = regime.get("mode") == "extreme_vol" and scout_signal_count == 0
-          if scout_signal_count <= 0 and not extreme_vol_abstain:
-              raise SystemExit("snapshot has no Scout signals")
-          council = payload.get("council", {})
-          council_summary = council.get("summary", {})
-          if summary.get("scout_signal_count") != len(payload.get("scout_signals", [])):
-              raise SystemExit("snapshot scout signal count does not match stored rows")
-          if summary.get("forge_candidate_count") != len(payload.get("forge_candidates", [])):
-              raise SystemExit("snapshot forge candidate count does not match stored rows")
-          if council_summary.get("candidate_count") != len(payload.get("forge_candidates", [])):
-              raise SystemExit("council candidate count does not match forge candidates")
-          if council_summary.get("live_count") != len(council.get("live_board", [])):
-              raise SystemExit("council live count does not match live board")
-          if council_summary.get("shadow_count") != len(council.get("shadow_board", [])):
-              raise SystemExit("council shadow count does not match shadow board")
-          artifacts = payload.get("model_artifacts", {})
-          optional_artifacts = {"path_model", "path_model_card"}
-          missing = [
-              name
-              for name, row in artifacts.items()
-              if name not in optional_artifacts and (not row.get("present") or not row.get("sha256"))
-          ]
-          if missing:
-              raise SystemExit(f"snapshot missing model artifact status: {missing}")
-          ledger = Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json")
-          if not ledger.exists():
-              raise SystemExit("side-aware Scout shadow ledger was not written")
-          prospective_ledger = Path("web/data/diagnostics/prospective_pick_ledger.json")
-          if not prospective_ledger.exists():
-              raise SystemExit("prospective pick ledger was not written")
           moonshot_ledger = Path("web/data/diagnostics/moonshot_prospective_ledger.json")
           if not moonshot_ledger.exists():
               raise SystemExit("moonshot prospective ledger was not written")
@@ -256,15 +224,6 @@ jobs:
           research_dataset = Path("output/research_datasets/all_recommendation_outcomes.parquet")
           if not research_dataset.exists():
               raise SystemExit("research dataset artifact was not written")
-          attribution = payload.get("attribution", {})
-          if attribution.get("artifact") != "live_shadow_attribution":
-              raise SystemExit("snapshot attribution artifact missing")
-          attribution_file = Path("web/data/diagnostics/live_shadow_attribution_latest.json")
-          if not attribution_file.exists():
-              raise SystemExit("live/shadow attribution artifact was not written")
-          board_history = Path("web/data/diagnostics/board_recommendation_history.json")
-          if not board_history.exists():
-              raise SystemExit("board recommendation history was not written")
           walk_forward = Path("web/data/walk_forward_results.json")
           if not walk_forward.exists():
               raise SystemExit("walk-forward dashboard artifact was not written")
@@ -279,7 +238,7 @@ jobs:
           backtest_payload = json.loads(backtest.read_text(encoding="utf-8"))
           if int(backtest_payload.get("total_trades", 0)) <= 0:
               raise SystemExit("backtest dashboard artifact is empty")
-          print("Snapshot regression gates passed.")
+          print("Production snapshot artifacts passed.")
           PY
 
       - name: Commit refreshed snapshot
