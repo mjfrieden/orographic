@@ -117,6 +117,63 @@ class ScanHealthSummaryTests(unittest.TestCase):
         self.assertEqual(report["labels"]["capture_policy_v2_picks"], 23)
         self.assertTrue(output_exists)
 
+    def test_build_scan_health_summary_accepts_explicit_zero_signal_abstention(self) -> None:
+        now = datetime(2026, 8, 11, 14, 0, tzinfo=UTC)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            snapshot = _write_json(
+                root / "latest_run.json",
+                {
+                    "generated_at_utc": (now - timedelta(minutes=5)).isoformat(),
+                    "regime": {"mode": "risk_on"},
+                    "summary": {"scout_signal_count": 0, "forge_candidate_count": 0},
+                    "council": {
+                        "abstain": True,
+                        "summary": {"live_count": 0, "shadow_count": 0},
+                    },
+                },
+            )
+            ledger = _write_json(
+                root / "ledger.json",
+                {
+                    "aggregate": {"runs": 1},
+                    "outcome_summary": {
+                        "picks": 1,
+                        "with_any_mark": 1,
+                        "missing_outcome_quotes": 0,
+                        "capture_policy_v2_picks": 0,
+                    },
+                },
+            )
+            audit = _write_json(root / "audit.json", {"status": "passed", "summary": {}})
+            archive = _write_json(
+                root / "archive.json",
+                {"summary": {"rows_archived": 10, "symbols_archived": 1}},
+            )
+            recommendations = _write_json(root / "recommendations.json", [{}])
+            moonshots = _write_json(root / "moonshots.json", [])
+            combined = _write_json(root / "combined.json", [{}])
+
+            report = build_scan_health_summary(
+                snapshot=snapshot,
+                prospective_ledger=ledger,
+                moonshot_ledger=ledger,
+                research_audit=audit,
+                archive_manifest=archive,
+                recommendation_dataset=recommendations,
+                moonshot_dataset=moonshots,
+                combined_dataset=combined,
+                now_utc=now,
+                r2_status="success",
+                dashboard_push_status="success",
+                dashboard_deploy_status="success",
+            )
+
+        self.assertEqual(report["status"], "passed")
+        checks = {check["name"]: check for check in report["checks"]}
+        self.assertTrue(checks["scan_emitted_scout_signals"]["accepted_abstention"])
+        self.assertTrue(checks["strict_capture_policy_active"]["awaiting_next_pick"])
+
     def test_build_scan_health_summary_flags_stale_snapshot(self) -> None:
         now = datetime(2026, 6, 23, 22, 0, tzinfo=UTC)
         with tempfile.TemporaryDirectory() as tmpdir:
