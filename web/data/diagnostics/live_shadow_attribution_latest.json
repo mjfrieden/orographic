@@ -1,7 +1,7 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-11T15:39:58+00:00",
+  "generated_at_utc": "2026-08-11T17:09:33+00:00",
   "trading_day": "2026-08-11",
   "timezone": "America/Chicago",
   "scan_settings": {
@@ -93,92 +93,94 @@
     }
   },
   "summary": {
-    "scout_signal_count": 0,
-    "pre_forge_signal_count": 0,
-    "forge_candidate_count": 0,
+    "scout_signal_count": 5,
+    "pre_forge_signal_count": 2,
+    "forge_candidate_count": 2,
     "live_count": 0,
-    "shadow_count": 0,
+    "shadow_count": 2,
     "abstain": true,
     "live_side_mix": {
       "call": 0,
       "put": 0
     },
     "shadow_side_mix": {
-      "call": 0,
+      "call": 2,
       "put": 0
     },
     "forge_candidate_side_mix": {
-      "call": 0,
+      "call": 2,
       "put": 0
     },
-    "friction_veto_count": 0,
+    "friction_veto_count": 1,
     "dedupe_removed_count": 0,
-    "pre_forge_rejection_count": 0,
+    "pre_forge_rejection_count": 3,
     "council_holdout_count": 0,
     "live_avg_forge_score": null,
-    "shadow_avg_forge_score": null,
+    "shadow_avg_forge_score": 0.6039,
     "live_avg_policy_score": null,
-    "shadow_avg_policy_score": null,
+    "shadow_avg_policy_score": 0.5754,
     "live_avg_edge_after_friction_pct": null,
-    "shadow_avg_edge_after_friction_pct": null,
+    "shadow_avg_edge_after_friction_pct": -0.1358,
     "live_avg_fill_quality_ok": null,
-    "shadow_avg_fill_quality_ok": null,
+    "shadow_avg_fill_quality_ok": 1.0,
     "live_avg_no_trade_prob": null,
-    "shadow_avg_no_trade_prob": null,
+    "shadow_avg_no_trade_prob": 0.6644,
     "live_avg_path_holding_quality_score": null,
-    "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 20,
-    "side_aware_no_trade_disagreements": 79,
-    "shadow_side_veto_rejections": 67,
-    "abstain_primary_reason": "no_forge_candidates"
+    "shadow_avg_path_holding_quality_score": 0.6791,
+    "side_aware_directional_disagreements": 36,
+    "side_aware_no_trade_disagreements": 61,
+    "shadow_side_veto_rejections": 52,
+    "abstain_primary_reason": "mixed_core_filters"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 2,
-        "put": 98
+        "call": 21,
+        "put": 79
       },
       "final_direction_counts": {
-        "call": 0,
+        "call": 5,
         "put": 0
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 20,
-      "side_aware_no_trade_disagreements": 79,
-      "shadow_side_veto_rejections": 67
+      "side_aware_directional_disagreements": 36,
+      "side_aware_no_trade_disagreements": 61,
+      "shadow_side_veto_rejections": 52
     },
     "forge": {
       "waterfall": {
-        "signals_considered": 0,
-        "signals_with_expiry": 0,
-        "signals_with_chain": 0,
-        "rows_after_basic": 0,
-        "rows_positive_bid_ask": 0,
-        "rows_within_long_leg_cap": 0,
-        "rows_within_spread_cap": 0,
-        "rows_passing_liquidity": 0,
-        "rows_passing_moneyness": 0,
-        "rows_passing_delta": 0,
-        "rows_passing_net_debit": 0,
-        "final_candidates": 0,
-        "candidates_after_friction_gate": 0,
-        "candidates_after_deduplication": 0
+        "signals_considered": 2,
+        "signals_with_expiry": 2,
+        "signals_with_chain": 2,
+        "rows_after_basic": 229,
+        "rows_positive_bid_ask": 162,
+        "rows_within_long_leg_cap": 38,
+        "rows_within_spread_cap": 19,
+        "rows_passing_liquidity": 13,
+        "rows_passing_moneyness": 5,
+        "rows_passing_delta": 5,
+        "rows_passing_net_debit": 2,
+        "final_candidates": 2,
+        "candidates_after_friction_gate": 1,
+        "candidates_after_deduplication": 2
       },
       "path_model": {
-        "mode_counts": {},
-        "scored_candidates": 0,
-        "avg_holding_quality_score": null,
-        "avg_early_profit_take_prob": null,
-        "avg_decay_risk": null
+        "mode_counts": {
+          "integrated_forge": 2
+        },
+        "scored_candidates": 2,
+        "avg_holding_quality_score": 0.6791,
+        "avg_early_profit_take_prob": 0.438,
+        "avg_decay_risk": 0.2736
       },
       "pre_council_gate": {
-        "kept": 0,
-        "dropped": 0,
+        "kept": 1,
+        "dropped": 1,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
         "removed_candidates": 0,
-        "kept_candidates": 0,
+        "kept_candidates": 2,
         "max_structures_per_symbol_side": 2,
         "min_moneyness_gap": 0.01,
         "max_structures_per_symbol": 1,
@@ -189,45 +191,146 @@
       }
     },
     "council": {
-      "candidate_count": 0,
+      "candidate_count": 2,
       "live_count": 0,
-      "shadow_count": 0,
+      "shadow_count": 2,
       "avg_pairwise_correlation": null,
       "abstain_audit": {
-        "primary_reason": "no_forge_candidates",
-        "primary_reason_label": "No Forge candidates reached Council.",
+        "primary_reason": "mixed_core_filters",
+        "primary_reason_label": "Candidates were blocked by a mix of score and extrinsic gates.",
         "requested_live_size": 1,
-        "candidate_count": 0,
+        "candidate_count": 2,
         "core_filter_pass_count": 0,
         "unique_eligible_count": 0,
         "score_only_fail_count": 0,
         "extrinsic_only_fail_count": 0,
-        "score_and_extrinsic_fail_count": 0,
-        "model_no_trade_fail_count": 0,
+        "score_and_extrinsic_fail_count": 1,
+        "model_no_trade_fail_count": 1,
         "fill_quality_fail_count": 0,
         "sentinel_no_trade_pressure_fail_count": 0,
-        "mixed_policy_fail_count": 0,
+        "mixed_policy_fail_count": 1,
         "symbol_probation_fail_count": 0,
         "side_balance_rejections": 0,
         "side_balance_demotions": 0,
         "blocked_symbols": {
           "score_only": [],
           "extrinsic_only": [],
-          "score_and_extrinsic": [],
-          "model_no_trade": [],
+          "score_and_extrinsic": [
+            "BAC"
+          ],
+          "model_no_trade": [
+            "GLD"
+          ],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
-          "mixed_policy": [],
+          "mixed_policy": [
+            "GLD"
+          ],
           "symbol_probation": []
         },
         "best_rejected_candidates": {
           "score_only": [],
           "extrinsic_only": [],
-          "score_and_extrinsic": [],
-          "model_no_trade": [],
+          "score_and_extrinsic": [
+            {
+              "symbol": "BAC",
+              "contract_symbol": "BAC260821C00065000",
+              "option_type": "call",
+              "expiry": "2026-08-21",
+              "strike": 65.0,
+              "forge_score": 0.6368,
+              "effective_candidate_score": 0.853,
+              "learned_rank_score": 0.8441,
+              "final_candidate_score": 0.8441,
+              "risk_adjusted_score": 0.853,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 0.2138,
+              "friction_buffer_pct": 0.3213,
+              "prob_no_trade": 0.3626,
+              "scout_no_trade_prob": 0.325,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.0,
+              "sentinel_no_trade_relevance": 1.0,
+              "sentinel_no_trade_pressure": 0.35,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 44.0,
+              "spread_pct": 0.023,
+              "delta": 0.3352,
+              "iv_rank": 0.2915,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            }
+          ],
+          "model_no_trade": [
+            {
+              "symbol": "GLD",
+              "contract_symbol": "GLD260821C00413000",
+              "option_type": "call",
+              "expiry": "2026-08-21",
+              "strike": 413.0,
+              "forge_score": 0.5711,
+              "effective_candidate_score": 0.2978,
+              "learned_rank_score": 0.2893,
+              "final_candidate_score": 0.2893,
+              "risk_adjusted_score": 0.2978,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.4855,
+              "friction_buffer_pct": 0.3524,
+              "prob_no_trade": 0.9662,
+              "scout_no_trade_prob": 0.2287,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4348,
+              "sentinel_no_trade_relevance": 0.6706,
+              "sentinel_no_trade_pressure": 0.2916,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 305.0,
+              "spread_pct": 0.0748,
+              "delta": 0.2805,
+              "iv_rank": 0.3369,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            }
+          ],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
-          "mixed_policy": [],
+          "mixed_policy": [
+            {
+              "symbol": "GLD",
+              "contract_symbol": "GLD260821C00413000",
+              "option_type": "call",
+              "expiry": "2026-08-21",
+              "strike": 413.0,
+              "forge_score": 0.5711,
+              "effective_candidate_score": 0.2978,
+              "learned_rank_score": 0.2893,
+              "final_candidate_score": 0.2893,
+              "risk_adjusted_score": 0.2978,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.4855,
+              "friction_buffer_pct": 0.3524,
+              "prob_no_trade": 0.9662,
+              "scout_no_trade_prob": 0.2287,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4348,
+              "sentinel_no_trade_relevance": 0.6706,
+              "sentinel_no_trade_pressure": 0.2916,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 305.0,
+              "spread_pct": 0.0748,
+              "delta": 0.2805,
+              "iv_rank": 0.3369,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            }
+          ],
           "symbol_probation": []
         }
       },
@@ -240,24 +343,169 @@
     }
   },
   "top_live_board": [],
-  "top_shadow_board": [],
+  "top_shadow_board": [
+    {
+      "symbol": "BAC",
+      "contract_symbol": "BAC260821C00065000",
+      "option_type": "call",
+      "expiry": "2026-08-21",
+      "strike": 65.0,
+      "forge_score": 0.6368,
+      "policy_score": 0.853,
+      "risk_adjusted_score": 0.853,
+      "final_candidate_score": 0.8441,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.6374,
+      "expected_edge_after_friction_pct": 0.2138,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.3626,
+      "scout_no_trade_prob": 0.325,
+      "no_trade_pressure": 0.3626,
+      "sentinel_confidence": 0.0,
+      "sentinel_no_trade_relevance": 1.0,
+      "sentinel_no_trade_pressure": 0.35,
+      "path_holding_quality_score": 0.7473,
+      "path_early_profit_take_prob": 0.5651,
+      "path_decay_risk": 0.0934,
+      "path_model_mode": "integrated_forge",
+      "contract_cost": 44.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Payoff model shadow score 0.84"
+      ]
+    },
+    {
+      "symbol": "GLD",
+      "contract_symbol": "GLD260821C00413000",
+      "option_type": "call",
+      "expiry": "2026-08-21",
+      "strike": 413.0,
+      "forge_score": 0.5711,
+      "policy_score": 0.2978,
+      "risk_adjusted_score": 0.2978,
+      "final_candidate_score": 0.2893,
+      "utility_after_friction_score": 0.0,
+      "payoff_edge_score": 0.0338,
+      "expected_edge_after_friction_pct": -0.4855,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.9662,
+      "scout_no_trade_prob": 0.2287,
+      "no_trade_pressure": 0.9662,
+      "sentinel_confidence": 0.4348,
+      "sentinel_no_trade_relevance": 0.6706,
+      "sentinel_no_trade_pressure": 0.2916,
+      "path_holding_quality_score": 0.6109,
+      "path_early_profit_take_prob": 0.3108,
+      "path_decay_risk": 0.4537,
+      "path_model_mode": "integrated_forge",
+      "contract_cost": 305.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on",
+        "model_no_trade"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model shadow score 0.29"
+      ]
+    }
+  ],
   "council_holdouts": [],
-  "friction_vetoes": [],
-  "pre_forge_rejections": [],
+  "friction_vetoes": [
+    {
+      "symbol": "GLD",
+      "contract_symbol": "GLD260821C00413000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.4855,
+      "friction_buffer_pct": 0.3524,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.5711,
+      "learned_rank_score": 0.2893,
+      "contract_cost": 305.0,
+      "spread_pct": 0.0748,
+      "delta": 0.2805
+    }
+  ],
+  "pre_forge_rejections": [
+    {
+      "symbol": "MA",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-21",
+      "long_leg_cap": 4.5,
+      "spread_cap": 0.28,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-21",
+          "reason": "liquidity",
+          "rows_after_basic": 70,
+          "rows_positive_bid_ask": 54,
+          "rows_within_long_leg_cap": 8,
+          "rows_within_spread_cap": 2,
+          "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    },
+    {
+      "symbol": "ANET",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-21",
+      "long_leg_cap": 2.75,
+      "spread_cap": 0.18,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-21",
+          "reason": "moneyness",
+          "rows_after_basic": 61,
+          "rows_positive_bid_ask": 53,
+          "rows_within_long_leg_cap": 12,
+          "rows_within_spread_cap": 3,
+          "rows_passing_liquidity": 2,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    },
+    {
+      "symbol": "AMGN",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-21",
+      "long_leg_cap": 3.5,
+      "spread_cap": 0.24,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-21",
+          "reason": "spread_cap",
+          "rows_after_basic": 58,
+          "rows_positive_bid_ask": 50,
+          "rows_within_long_leg_cap": 5,
+          "rows_within_spread_cap": 0,
+          "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    }
+  ],
   "profitability_evidence": {
-    "shadow_window_runs": 230,
-    "disagreement_observations": 7603,
-    "directional_disagreements": 2469,
-    "tracked_recommendation_runs": 175,
-    "tracked_recommendations": 1648,
+    "shadow_window_runs": 231,
+    "disagreement_observations": 7700,
+    "directional_disagreements": 2505,
+    "tracked_recommendation_runs": 176,
+    "tracked_recommendations": 1650,
     "tracked_live_recommendations": 18,
-    "tracked_shadow_recommendations": 459,
+    "tracked_shadow_recommendations": 461,
     "tracked_holdouts": 248,
     "tracked_friction_vetoes": 923,
     "outcomes_complete": 962,
     "outcomes_partial": 20,
-    "outcomes_pending": 666,
-    "capture_policy_v2_picks": 0,
+    "outcomes_pending": 668,
+    "capture_policy_v2_picks": 2,
     "capture_windows_valid": 0,
     "capture_windows_quote_missing": 0,
     "capture_windows_stale_quote": 0,
@@ -273,11 +521,11 @@
     "shadow_friday_close_avg_pnl_pct": 0.2016,
     "holdout_friday_close_avg_pnl_pct": 0.0636,
     "friction_veto_friday_close_avg_pnl_pct": 0.28,
-    "research_runs": 175,
-    "research_abstain_runs": 157,
-    "board_runs": 224,
-    "board_abstain_runs": 189,
-    "moonshot_tracked_candidates": 426,
+    "research_runs": 176,
+    "research_abstain_runs": 158,
+    "board_runs": 225,
+    "board_abstain_runs": 190,
+    "moonshot_tracked_candidates": 428,
     "moonshot_friday_close_avg_pnl_pct": -0.026,
     "canonical_baseline": {
       "backtest": {
@@ -298,7 +546,7 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-11T15:40:00+00:00",
+      "generated_at_utc": "2026-08-11T17:09:35+00:00",
       "as_of_utc": "2026-07-10T21:16:24+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
@@ -327,11 +575,11 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-11T15:39:58+00:00",
+        "prospective_ledger_updated_at_utc": "2026-08-11T17:09:33+00:00",
         "eligible_marked_recommendations": 286,
-        "shadow_ledger_updated_at_utc": "2026-08-11T15:39:58+00:00",
-        "shadow_runs": 230,
-        "shadow_disagreements": 7603
+        "shadow_ledger_updated_at_utc": "2026-08-11T17:09:33+00:00",
+        "shadow_runs": 231,
+        "shadow_disagreements": 7700
       },
       "windows": [
         {
@@ -654,7 +902,7 @@
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-11T15:40:00+00:00",
+      "generated_at_utc": "2026-08-11T17:09:34+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -672,13 +920,13 @@
         }
       },
       "coverage": {
-        "scored_recommendations": 0,
+        "scored_recommendations": 2,
         "older_model_scored_recommendations_excluded": 0,
         "resolved_recommendations": 0,
         "resolved_runs": 0,
         "decision_disagreements": 0,
         "stored_broad_disagreements": 0,
-        "unresolved_scored_recommendations": 0,
+        "unresolved_scored_recommendations": 2,
         "friday_capture_valid": 0,
         "friday_capture_missed": 0,
         "friday_capture_quote_missing_retryable": 0,
@@ -712,7 +960,7 @@
       },
       "rank_replay": {
         "eligible_complete_runs": 0,
-        "incomplete_runs_excluded": 0,
+        "incomplete_runs_excluded": 1,
         "single_candidate_runs_excluded": 0,
         "selection_disagreements": 0,
         "active_top1_avg_net_return": null,
@@ -814,15 +1062,15 @@
           "required_pct": 0.95,
           "passed": false
         },
-        "next_action": "Collect post-friction recommendations scored by both active and challenger models."
+        "next_action": "Capture strict Friday-close executable labels for the current challenger cohort."
       },
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 3,
-        "updated_at_utc": "2026-08-11T15:39:58+00:00"
+        "updated_at_utc": "2026-08-11T17:09:33+00:00"
       },
       "model_cohort": {
-        "artifact_sha256": null,
+        "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
         "policy": "analyze only the latest observed challenger artifact; never pool model versions"
       },
       "replay_command": "python scripts/build_payoff_challenger_evidence.py"

@@ -1,7 +1,7 @@
 {
   "artifact": "payoff_challenger_prospective_evidence",
   "schema_version": 2,
-  "generated_at_utc": "2026-08-11T16:34:13+00:00",
+  "generated_at_utc": "2026-08-11T17:09:34+00:00",
   "decision": "collecting_evidence",
   "execution_effect": "none_observation_only",
   "policy": {
@@ -19,13 +19,13 @@
     }
   },
   "coverage": {
-    "scored_recommendations": 0,
+    "scored_recommendations": 2,
     "older_model_scored_recommendations_excluded": 0,
     "resolved_recommendations": 0,
     "resolved_runs": 0,
     "decision_disagreements": 0,
     "stored_broad_disagreements": 0,
-    "unresolved_scored_recommendations": 0,
+    "unresolved_scored_recommendations": 2,
     "friday_capture_valid": 0,
     "friday_capture_missed": 0,
     "friday_capture_quote_missing_retryable": 0,
@@ -59,7 +59,7 @@
   },
   "rank_replay": {
     "eligible_complete_runs": 0,
-    "incomplete_runs_excluded": 0,
+    "incomplete_runs_excluded": 1,
     "single_candidate_runs_excluded": 0,
     "selection_disagreements": 0,
     "active_top1_avg_net_return": null,
@@ -161,15 +161,15 @@
       "required_pct": 0.95,
       "passed": false
     },
-    "next_action": "Collect post-friction recommendations scored by both active and challenger models."
+    "next_action": "Capture strict Friday-close executable labels for the current challenger cohort."
   },
   "source": {
     "artifact": "prospective_pick_ledger",
     "schema_version": 3,
-    "updated_at_utc": "2026-08-11T15:39:58+00:00"
+    "updated_at_utc": "2026-08-11T17:09:33+00:00"
   },
   "model_cohort": {
-    "artifact_sha256": null,
+    "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
     "policy": "analyze only the latest observed challenger artifact; never pool model versions"
   },
   "replay_command": "python scripts/build_payoff_challenger_evidence.py"
