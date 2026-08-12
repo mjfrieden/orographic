@@ -23,6 +23,7 @@ log = logging.getLogger(__name__)
 
 MODEL_PATH = Path(__file__).parent / "models" / "payoff_model.pkl"
 SHADOW_MODEL_PATH = Path(__file__).parent / "models" / "payoff_volatility_shadow.pkl"
+COST_AWARE_SHADOW_MODEL_PATH = Path(__file__).parent / "models" / "payoff_cost_aware_challenger.pkl"
 RANKER_MODE_ENV = "OROGRAPHIC_PAYOFF_MODEL_MODE"
 
 FEATURE_COLS = [
@@ -41,6 +42,18 @@ FEATURE_COLS = [
     "log_volume",
     "implied_volatility",
     "iv_rank",
+    "surface_available",
+    "surface_atm_iv",
+    "surface_skew_slope",
+    "surface_curvature",
+    "surface_put_call_wing_skew",
+    "surface_term_slope_30d",
+    "surface_fit_rmse",
+    "surface_observation_count_log",
+    "iv_relative_to_atm",
+    "iv_minus_realized_vol",
+    "quote_spread_dollars",
+    "last_trade_age_log_seconds",
     "realized_vol_20d",
     "atr_pct_14d",
     "vrp_gap",
@@ -282,6 +295,18 @@ def feature_row(
         "log_volume": log1p(max(_safe_float(candidate.volume), 0.0)),
         "implied_volatility": max(_safe_float(candidate.implied_volatility, 0.35), 0.0),
         "iv_rank": _clip(_safe_float(candidate.iv_rank, 0.5)),
+        "surface_available": 1.0 if getattr(candidate, "surface_atm_iv", None) is not None else 0.0,
+        "surface_atm_iv": _safe_float(getattr(candidate, "surface_atm_iv", None)),
+        "surface_skew_slope": _safe_float(getattr(candidate, "surface_skew_slope", None)),
+        "surface_curvature": _safe_float(getattr(candidate, "surface_curvature", None)),
+        "surface_put_call_wing_skew": _safe_float(getattr(candidate, "surface_put_call_wing_skew", None)),
+        "surface_term_slope_30d": _safe_float(getattr(candidate, "surface_term_slope_30d", None)),
+        "surface_fit_rmse": _safe_float(getattr(candidate, "surface_fit_rmse", None)),
+        "surface_observation_count_log": log1p(max(_safe_float(getattr(candidate, "surface_observation_count", None)), 0.0)),
+        "iv_relative_to_atm": _safe_float(getattr(candidate, "iv_relative_to_atm", None)),
+        "iv_minus_realized_vol": _safe_float(getattr(candidate, "iv_minus_realized_vol", None)),
+        "quote_spread_dollars": max(_safe_float(getattr(candidate, "quote_spread_dollars", None)), 0.0),
+        "last_trade_age_log_seconds": log1p(max(_safe_float(getattr(candidate, "last_trade_age_seconds", None)), 0.0)),
         "realized_vol_20d": realized_vol_20d,
         "atr_pct_14d": atr_pct_14d,
         "vrp_gap": max(vrp_gap, 0.0),
@@ -397,6 +422,8 @@ def _attach_payoff_shadow_observations(
     as_of: date | None,
     shadow_model_path: Path,
 ) -> None:
+    if shadow_model_path == SHADOW_MODEL_PATH and COST_AWARE_SHADOW_MODEL_PATH.exists():
+        shadow_model_path = COST_AWARE_SHADOW_MODEL_PATH
     if not shadow_model_path.exists() or not candidates:
         return
     try:
@@ -407,10 +434,23 @@ def _attach_payoff_shadow_observations(
             return
         feature_cols = list(artifact.get("feature_cols") or [])
         base_model = artifact.get("base_model")
-        if not feature_cols or base_model is None:
+        rich_bundle = artifact.get("global") if isinstance(artifact.get("global"), dict) else None
+        if not feature_cols or (base_model is None and rich_bundle is None):
             return
         X = feature_matrix(candidates, regime, as_of=as_of, feature_cols=feature_cols)
-        raw = _predict_classifier(base_model, X, 0.5)
+        defaults = (artifact.get("metadata") or {}).get("label_means", {})
+        if rich_bundle is None:
+            raw = _predict_classifier(base_model, X, 0.5)
+        else:
+            raw = np.full(len(candidates), float(defaults.get("prob_positive_option_pnl", 0.5)))
+            for option_type in ("call", "put"):
+                idx = [i for i, candidate in enumerate(candidates) if candidate.option_type == option_type]
+                if not idx:
+                    continue
+                bundle = _model_bundle(artifact, option_type)
+                raw[idx] = _predict_classifier(
+                    bundle.get("positive_classifier"), X[idx], float(defaults.get("prob_positive_option_pnl", 0.5))
+                )
         intercept = artifact.get("calibrator")
         if intercept is None:
             shadow_probs = np.clip(raw, 1e-6, 1 - 1e-6)
@@ -425,6 +465,35 @@ def _attach_payoff_shadow_observations(
         ])
         active_ranks = _rank_percentile(active_probs)
         artifact_hash = _sha256_file(shadow_model_path)
+        rich_predictions: dict[str, np.ndarray] = {}
+        if rich_bundle is not None:
+            for name in ("q10", "q50", "q90", "fill", "target"):
+                rich_predictions[name] = np.zeros(len(candidates), dtype=float)
+            for option_type in ("call", "put"):
+                idx = [i for i, candidate in enumerate(candidates) if candidate.option_type == option_type]
+                if not idx:
+                    continue
+                bundle = _model_bundle(artifact, option_type)
+                for name, model_key in (
+                    ("q10", "return_quantile_10_regressor"),
+                    ("q50", "return_quantile_50_regressor"),
+                    ("q90", "return_quantile_90_regressor"),
+                ):
+                    rich_predictions[name][idx] = _predict_regressor(
+                        bundle.get(model_key), X[idx], float(defaults.get("expected_option_return_pct", 0.0))
+                    )
+                rich_predictions["fill"][idx] = _predict_classifier(
+                    bundle.get("fill_quality_classifier"), X[idx], float(defaults.get("prob_fill_quality_ok", 0.5))
+                )
+                rich_predictions["target"][idx] = _predict_classifier(
+                    bundle.get("path_take_profit_classifier"), X[idx], float(defaults.get("path_early_profit_take_prob", 0.5))
+                )
+            ordered = np.sort(np.column_stack([
+                rich_predictions["q10"], rich_predictions["q50"], rich_predictions["q90"]
+            ]), axis=1)
+            rich_predictions["q10"] = ordered[:, 0]
+            rich_predictions["q50"] = ordered[:, 1]
+            rich_predictions["q90"] = ordered[:, 2]
         for idx, candidate in enumerate(candidates):
             probability_delta = float(shadow_probs[idx] - active_probs[idx])
             rank_delta = float(shadow_ranks[idx] - active_ranks[idx])
@@ -436,6 +505,16 @@ def _attach_payoff_shadow_observations(
             candidate.payoff_shadow_disagreement = decision_disagreement or abs(probability_delta) >= 0.15
             candidate.payoff_shadow_mode = "observation_only"
             candidate.payoff_shadow_artifact_sha256 = artifact_hash
+            if rich_predictions:
+                candidate.payoff_shadow_return_q10 = round(float(rich_predictions["q10"][idx]), 4)
+                candidate.payoff_shadow_return_q50 = round(float(rich_predictions["q50"][idx]), 4)
+                candidate.payoff_shadow_return_q90 = round(float(rich_predictions["q90"][idx]), 4)
+                candidate.payoff_shadow_prob_fill_quality = round(_clip(float(rich_predictions["fill"][idx])), 4)
+                candidate.payoff_shadow_prob_target_before_stop = round(_clip(float(rich_predictions["target"][idx])), 4)
+                candidate.payoff_shadow_conservative_utility = round(
+                    float(rich_predictions["q10"][idx]) * _clip(float(rich_predictions["fill"][idx])),
+                    4,
+                )
     except Exception as exc:
         log.warning("Payoff shadow scoring unavailable: %s", exc)
 

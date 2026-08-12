@@ -302,6 +302,21 @@ function renderOrderLedger(events) {
       const runTime = event.run_generated_at_utc
         ? `<span class="muted">Run ${escapeHtml(formatDateTime(event.run_generated_at_utc))}</span>`
         : "";
+      const execution = event.payload?.execution || {};
+      const executionDetails = [
+        Number.isFinite(Number(execution.broker_round_trip_ms))
+          ? `${Math.round(Number(execution.broker_round_trip_ms))} ms`
+          : "",
+        Number.isFinite(Number(execution.signed_adverse_slippage_usd))
+          ? `slip ${signedMoney(Number(execution.signed_adverse_slippage_usd))}`
+          : "",
+        Number.isFinite(Number(execution.fill_delay_seconds))
+          ? `fill ${Number(execution.fill_delay_seconds).toFixed(1)}s`
+          : "",
+      ].filter(Boolean).join(" · ");
+      const executionNote = executionDetails
+        ? `<div class="order-status-note">${escapeHtml(executionDetails)}</div>`
+        : "";
       return `
         <tr>
           <td>
@@ -316,7 +331,7 @@ function renderOrderLedger(events) {
           <td>${escapeHtml(event.side || "--")}</td>
           <td class="is-num">${escapeHtml(integer(event.quantity))}</td>
           <td class="is-num">${escapeHtml(money(event.limit_price))}</td>
-          <td>${escapeHtml(event.broker_status || event.broker_order_id || "--")}</td>
+          <td>${escapeHtml(event.broker_status || event.broker_order_id || "--")}${executionNote}</td>
         </tr>
       `;
     })

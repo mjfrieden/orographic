@@ -73,6 +73,19 @@ class ContractCandidate:
     spread_cost: float | None = None
     allocation_weight: float = 1.0
     iv_rank: float = 0.5          # IV Rank percentile [0, 1]; 0=IV low, 1=IV high-cycle
+    surface_atm_iv: float | None = None
+    surface_skew_slope: float | None = None
+    surface_curvature: float | None = None
+    surface_put_call_wing_skew: float | None = None
+    surface_term_slope_30d: float | None = None
+    surface_fit_rmse: float | None = None
+    surface_observation_count: int | None = None
+    iv_relative_to_atm: float | None = None
+    iv_minus_realized_vol: float | None = None
+    quote_mid: float | None = None
+    quote_spread_dollars: float | None = None
+    chain_snapshot_at_utc: str | None = None
+    last_trade_age_seconds: float | None = None
     entry_data_source: str = "real_chain"
     entry_quote_type: str = "ask"
     realized_vol_20d: float | None = None
@@ -106,6 +119,12 @@ class ContractCandidate:
     payoff_shadow_disagreement: bool | None = None
     payoff_shadow_mode: str | None = None
     payoff_shadow_artifact_sha256: str | None = None
+    payoff_shadow_return_q10: float | None = None
+    payoff_shadow_return_q50: float | None = None
+    payoff_shadow_return_q90: float | None = None
+    payoff_shadow_prob_fill_quality: float | None = None
+    payoff_shadow_prob_target_before_stop: float | None = None
+    payoff_shadow_conservative_utility: float | None = None
     final_candidate_score: float | None = None
     learned_rank_score: float | None = None
     ranker_mode: str = "heuristic"
@@ -140,6 +159,11 @@ class ContractCandidate:
     path_holding_quality_score: float | None = None
     path_model_mode: str | None = None
     path_model_artifact_sha256: str | None = None
+    path_hazard_target_probability: float | None = None
+    path_hazard_stop_probability: float | None = None
+    path_hazard_expiry_probability: float | None = None
+    path_exit_shadow_action: str | None = None
+    path_hazard_artifact_sha256: str | None = None
     council_risk_flags: list[str] = field(default_factory=list)
     notes: list[str] = field(default_factory=list)
 

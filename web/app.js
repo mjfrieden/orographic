@@ -1009,6 +1009,12 @@ function renderCockpitSignal(payload) {
           <div><span>Spread</span><strong>${pct(candidate.spread_pct)}</strong><small>Bid ${money(candidate.bid)} · ask ${money(ask)}</small></div>
           <div><span>Projected move</span><strong>${pct(candidate.projected_move_pct)}</strong><small>Breakeven move ${pct(candidate.breakeven_move_pct)}</small></div>
           <div><span>Risk controls</span><strong>${riskFlags.length ? integer(riskFlags.length) : "0"}</strong><small>${escapeHtml(riskFlags.join(" · ") || "No flagged Council exceptions")}</small></div>
+          ${candidate.payoff_shadow_return_q10 != null ? `<div><span>Research downside</span><strong>${pct(candidate.payoff_shadow_return_q10)}</strong><small>Observation-only q10 after-cost return</small></div>` : ""}
+          ${candidate.payoff_shadow_return_q50 != null ? `<div><span>Research median</span><strong>${pct(candidate.payoff_shadow_return_q50)}</strong><small>Observation-only q50 after-cost return</small></div>` : ""}
+          ${candidate.payoff_shadow_prob_fill_quality != null ? `<div><span>Research fill quality</span><strong>${pct(candidate.payoff_shadow_prob_fill_quality, 0)}</strong><small>Challenger estimate; no execution authority</small></div>` : ""}
+          ${candidate.payoff_shadow_prob_target_before_stop != null ? `<div><span>Target before stop</span><strong>${pct(candidate.payoff_shadow_prob_target_before_stop, 0)}</strong><small>Observation-only path estimate</small></div>` : ""}
+          ${candidate.path_hazard_target_probability != null ? `<div><span>Exit target incidence</span><strong>${pct(candidate.path_hazard_target_probability, 0)}</strong><small>Competing-risk research; advice only</small></div>` : ""}
+          ${candidate.path_hazard_stop_probability != null ? `<div><span>Exit stop incidence</span><strong>${pct(candidate.path_hazard_stop_probability, 0)}</strong><small>${escapeHtml(String(candidate.path_exit_shadow_action || "hold_to_planned_exit").replaceAll("_", " "))}</small></div>` : ""}
         </div>
       </details>
       <div class="signal-order-row">
@@ -2169,6 +2175,10 @@ function renderForgeDiagnostics(payload) {
         `${integer(scoutDiag.side_aware_scores?.length)} symbols`,
       ),
       summaryItemHtml(
+        "Hierarchical Research",
+        `${integer(scoutDiag.hierarchical_challenger_observations)} observed · ${integer(scoutDiag.hierarchical_challenger_abstentions)} abstain · ${integer(scoutDiag.hierarchical_challenger_directional_disagreements)} side conflicts`,
+      ),
+      summaryItemHtml(
         "Sentinel",
         Object.entries(sentinelModes)
           .map(([mode, count]) => `${mode} ${count}`)
@@ -2353,6 +2363,30 @@ function renderPromotionModelCard(model) {
   if (model.shadow_window_runs !== undefined) {
     metricRows.push(summaryItemHtml("Shadow Runs", integer(model.shadow_window_runs)));
   }
+  if (model.shadow_would_veto_observations !== undefined) {
+    metricRows.push(summaryItemHtml("Would Veto", integer(model.shadow_would_veto_observations)));
+  }
+  if (model.counterfactual_candidates !== undefined) {
+    metricRows.push(summaryItemHtml("Research Contracts", integer(model.counterfactual_candidates)));
+  }
+  if (model.veto_evidence_decision) {
+    metricRows.push(summaryItemHtml("Veto Evidence", String(model.veto_evidence_decision).replaceAll("_", " ")));
+  }
+  if (model.veto_resolved_current_rule !== undefined) {
+    metricRows.push(summaryItemHtml("Resolved Vetoes", `${integer(model.veto_resolved_current_rule)}/100`));
+  }
+  if (model.veto_independent_trading_days !== undefined) {
+    metricRows.push(summaryItemHtml("Veto Days", `${integer(model.veto_independent_trading_days)}/30`));
+  }
+  if (model.veto_mean_avoided_net_return !== undefined && model.veto_mean_avoided_net_return !== null) {
+    metricRows.push(summaryItemHtml("Avoided Return", pctOrDash(model.veto_mean_avoided_net_return)));
+  }
+  if (model.execution_effect) {
+    metricRows.push(summaryItemHtml("Authority", String(model.execution_effect).replaceAll("_", " ")));
+  }
+  if (model.live_policy_effect) {
+    metricRows.push(summaryItemHtml("Live Policy", String(model.live_policy_effect).replaceAll("_", " ")));
+  }
   if (model.tracked_live_recommendations !== undefined) {
     metricRows.push(summaryItemHtml("Tracked Live", integer(model.tracked_live_recommendations)));
   }
@@ -2452,6 +2486,10 @@ function renderPromotionReadiness(payload) {
         `${String(profitability.payoff_challenger_decision || "not run").replaceAll("_", " ")} · ${integer(profitability.payoff_challenger_scored)} scored · ${integer(profitability.payoff_challenger_resolved)}/100 resolved · ${integer(profitability.payoff_challenger_disagreements)}/30 disagreements · ${integer(profitability.payoff_challenger_replay_runs)}/30 replay runs`,
       ),
       summaryItemHtml("Challenger Next Step", profitability.payoff_challenger_next_action || "Collect prospective evidence."),
+      summaryItemHtml(
+        "Scout Veto Evidence",
+        `${String(profitability.counterfactual_veto_decision || "not run").replaceAll("_", " ")} · ${integer(profitability.counterfactual_veto_resolved)}/100 resolved current-rule vetoes`,
+      ),
       summaryItemHtml(
         "Outcome Capture",
         `${integer(profitability.capture_policy_v2_picks)} strict picks · ${integer(profitability.capture_windows_valid)} valid · ${integer(profitability.capture_windows_quote_missing)} retrying · ${integer(profitability.capture_windows_stale_quote)} stale · ${integer(profitability.capture_windows_missed)} missed`,

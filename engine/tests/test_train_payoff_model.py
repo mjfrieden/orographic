@@ -52,6 +52,45 @@ def _trade_row(**overrides: object) -> dict[str, object]:
 
 
 class TrainPayoffModelLoaderTests(unittest.TestCase):
+    def test_quantile_heads_fit_and_promotion_uses_economic_gates(self) -> None:
+        X = np.column_stack([np.arange(40, dtype=float), np.ones(40, dtype=float)])
+        y = np.linspace(-0.4, 0.6, 40)
+        model = payoff_train_module._fit_quantile_regressor(X, y, 0.10, family="linear")
+        predictions = np.asarray(model.predict(X), dtype=float)
+        self.assertEqual(predictions.shape, (40,))
+        self.assertTrue(np.all(np.isfinite(predictions)))
+
+        cv = {
+            "positive_pnl_auc_mean": 0.60,
+            "breakeven_auc_mean": 0.60,
+            "positive_pnl_brier_mean": 0.18,
+            "breakeven_brier_mean": 0.18,
+            "return_quantiles": {
+                "central_80_interval_coverage": 0.80,
+                "conservative_q10_positive_rows": 35,
+                "conservative_q10_positive_mean_realized_return": 0.07,
+            },
+            "by_segment": {
+                "side": {"prob_positive_option_pnl": {}},
+                "regime": {"prob_positive_option_pnl": {}},
+            },
+        }
+        report = payoff_train_module._promotion_gate_report(
+            training_examples=200,
+            min_side_examples=75,
+            side_counts={"call": 100, "put": 100},
+            dataset_summary={"friction_flip_count": 10},
+            regime_dataset_summary={"risk_on": {"rows": 70}, "risk_off": {"rows": 70}},
+            cv=cv,
+            positive_baseline_brier=0.24,
+            breakeven_baseline_brier=0.24,
+            primary_artifact="option_outcome_dataset",
+            observed_path_examples=180,
+            observed_path_coverage_ratio=0.9,
+        )
+        self.assertTrue(report["gates"]["return_interval_calibration"]["passed"])
+        self.assertTrue(report["gates"]["conservative_after_cost_utility"]["passed"])
+
     def test_family_selection_penalizes_a_weak_put_segment(self) -> None:
         aggregate_winner_with_weak_put = {
             "positive_pnl_brier_mean": 0.18,

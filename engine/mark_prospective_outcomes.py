@@ -75,6 +75,13 @@ def main() -> int:
         stats["picks_partial"],
         stats["picks_pending"],
     )
+    log.info(
+        "Trajectory capture: active_picks=%d marks_written=%d missing=%d stale=%d.",
+        stats["trajectory_active_picks"],
+        stats["trajectory_marks_written"],
+        stats["trajectory_quotes_missing"],
+        stats["trajectory_quotes_stale"],
+    )
     return 0
 
 

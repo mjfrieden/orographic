@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from engine.train_scout_model import (
     _balanced_sample_weights,
@@ -13,6 +14,7 @@ from engine.train_scout_model import (
     _directional_option_training_frame,
     _event_feature_activation_report,
     _infer_regime_labels,
+    _hierarchical_threshold_report,
     _load_option_outcome_labels,
     _merge_option_outcome_labels,
     _selected_event_feature_columns,
@@ -73,6 +75,30 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertEqual(metadata["labeled_symbol_dates"], 1)
         self.assertEqual(labeled.iloc[0]["side_label"], "call_edge")
         self.assertEqual(labeled.iloc[0]["label_date"], pd.Timestamp("2026-04-25"))
+        self.assertTrue(bool(labeled.iloc[0]["both_sides_observed"]))
+
+    def test_hierarchical_threshold_optimizes_conservative_after_cost_utility(self) -> None:
+        rows = 60
+        trade_probs = np.array([0.8] * 40 + [0.5] * 20, dtype=float)
+        call_probs = np.array(([0.8, 0.2] * 30), dtype=float)
+        selected_call = call_probs >= 0.5
+        call_returns = np.where(selected_call, 0.20, -0.20)
+        put_returns = np.where(selected_call, -0.20, 0.20)
+        call_returns[40:] *= -1
+        put_returns[40:] *= -1
+        frame = pd.DataFrame({
+            "call_avg_pnl_pct": call_returns,
+            "put_avg_pnl_pct": put_returns,
+            "spy_mom_20d": [0.03] * 20 + [-0.03] * 20 + [0.0] * 20,
+        })
+
+        report = _hierarchical_threshold_report(trade_probs, call_probs, frame)
+
+        selected = report["selected"]
+        self.assertEqual(selected["selected_rows"], 40)
+        self.assertGreater(selected["mean_after_cost_return"], 0.0)
+        self.assertGreater(selected["downside_decile_after_cost_return"], 0.0)
+        self.assertGreaterEqual(min(selected["side_counts"].values()), 10)
 
     def test_directional_option_training_frame_filters_no_trade_rows_and_builds_binary_label(self) -> None:
         merged = pd.DataFrame(

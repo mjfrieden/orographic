@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.build_scan_health_summary import build_scan_health_summary
+from scripts.build_scan_health_summary import _ledger_health, build_scan_health_summary
 
 
 def _write_json(path: Path, payload: object) -> Path:
@@ -16,6 +16,29 @@ def _write_json(path: Path, payload: object) -> Path:
 
 
 class ScanHealthSummaryTests(unittest.TestCase):
+    def test_ledger_health_exposes_trajectory_capture_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = _write_json(Path(tmpdir) / "ledger.json", {
+                "outcome_summary": {
+                    "trajectory_scored_picks": 3,
+                    "trajectory_marks": 12,
+                    "trajectory_picks_with_4_marks": 2,
+                },
+                "last_mark_summary": {
+                    "trajectory_active_picks": 3,
+                    "trajectory_marks_written": 3,
+                    "trajectory_quotes_missing": 0,
+                    "trajectory_quotes_stale": 0,
+                },
+            })
+            health = _ledger_health(ledger)
+
+        self.assertEqual(health["trajectory_scored_picks"], 3)
+        self.assertEqual(health["trajectory_marks"], 12)
+        self.assertEqual(health["trajectory_picks_with_4_marks"], 2)
+        self.assertEqual(health["trajectory_active_picks_last_run"], 3)
+        self.assertEqual(health["trajectory_marks_written_last_run"], 3)
+
     def test_build_scan_health_summary_passes_for_fresh_labeled_run(self) -> None:
         now = datetime(2026, 6, 23, 22, 0, tzinfo=UTC)
         with tempfile.TemporaryDirectory() as tmpdir:

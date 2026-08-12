@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 import json
 from pathlib import Path
 from typing import Any
@@ -119,7 +119,53 @@ def archived_marks_for_pick(
                 }
             )
     marks.sort(key=lambda row: row.get("captured_at_utc") or "")
-    return marks[: max(max_marks, 1)]
+    terminal_dt: datetime | None = None
+    try:
+        terminal_dt = datetime.combine(
+            date.fromisoformat(str(pick.get("exit_date") or pick.get("expiry"))),
+            time.max,
+            tzinfo=timezone.utc,
+        )
+    except (TypeError, ValueError):
+        terminal_dt = None
+    bounded = [
+        row for row in marks
+        if (captured := _parse_dt(row.get("captured_at_utc"))) is not None
+        and captured >= run_dt
+        and (terminal_dt is None or captured <= terminal_dt)
+    ]
+    return bounded[: max(max_marks, 1)]
+
+
+def prospective_trajectory_marks_for_pick(pick: dict[str, Any]) -> list[dict[str, Any]]:
+    outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    stored = outcomes.get("trajectory_marks") if isinstance(outcomes.get("trajectory_marks"), list) else []
+    run_dt = _parse_dt(pick.get("run_generated_at_utc"))
+    if run_dt is None:
+        return []
+    try:
+        terminal_dt = datetime.combine(
+            date.fromisoformat(str(pick.get("exit_date") or pick.get("expiry"))),
+            time.max,
+            tzinfo=timezone.utc,
+        )
+    except (TypeError, ValueError):
+        terminal_dt = None
+    marks: list[dict[str, Any]] = []
+    for row in stored:
+        if not isinstance(row, dict):
+            continue
+        captured = _parse_dt(row.get("captured_at_utc"))
+        mark = _safe_float(row.get("mark"))
+        if captured is None or mark is None or mark <= 0 or captured < run_dt:
+            continue
+        if terminal_dt is not None and captured > terminal_dt:
+            continue
+        rendered = dict(row)
+        rendered["source_path"] = "prospective_trajectory_marks"
+        marks.append(rendered)
+    marks.sort(key=lambda row: row.get("captured_at_utc") or "")
+    return marks
 
 
 def build_archived_quote_path_label(
@@ -130,7 +176,14 @@ def build_archived_quote_path_label(
     stop_threshold: float = -0.50,
 ) -> dict[str, Any]:
     entry_mark = _entry_mark(pick)
-    marks = archived_marks_for_pick(pick, archive_dir=archive_dir)
+    marks = prospective_trajectory_marks_for_pick(pick)
+    archived = archived_marks_for_pick(pick, archive_dir=archive_dir)
+    seen_minutes = {str(mark.get("captured_at_utc") or "")[:16] for mark in marks}
+    marks.extend(
+        mark for mark in archived
+        if str(mark.get("captured_at_utc") or "")[:16] not in seen_minutes
+    )
+    marks.sort(key=lambda row: row.get("captured_at_utc") or "")
     label: dict[str, Any] = {
         "status": "missing",
         "entry_mark": entry_mark,

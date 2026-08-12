@@ -245,6 +245,7 @@ export async function onRequestPost(context) {
     } catch {
       liveQuote = null;
     }
+    const quoteCapturedAtUtc = liveQuote ? new Date().toISOString() : null;
 
     const envelope = buildOrderEnvelope(
       candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
@@ -254,8 +255,10 @@ export async function onRequestPost(context) {
       side
     );
 
+    const brokerRequestedAtUtc = new Date().toISOString();
     try {
       const result = await previewOrPlaceOrder(context.env, envelope, { preview: true });
+      const brokerResponseAtUtc = new Date().toISOString();
       const provenance = await safeRecordOrderProvenance(
         context.env,
         buildOrderProvenanceEvent({
@@ -270,6 +273,11 @@ export async function onRequestPost(context) {
           envelope,
           result,
           exitPolicyAction: requestedExitPolicyAction,
+          executionTiming: {
+            quote_captured_at_utc: quoteCapturedAtUtc,
+            broker_requested_at_utc: brokerRequestedAtUtc,
+            broker_response_at_utc: brokerResponseAtUtc,
+          },
         }),
       );
       return jsonResponse({
@@ -283,8 +291,30 @@ export async function onRequestPost(context) {
         rate_limits: result.rateLimits,
       });
     } catch (error) {
+      const provenance = await safeRecordOrderProvenance(
+        context.env,
+        buildOrderProvenanceEvent({
+          eventType: "preview_error",
+          config,
+          session,
+          snapshot,
+          snapshotInfo,
+          lane,
+          candidate,
+          quote: liveQuote,
+          envelope,
+          result: null,
+          exitPolicyAction: requestedExitPolicyAction,
+          error: String(error.message || error),
+          executionTiming: {
+            quote_captured_at_utc: quoteCapturedAtUtc,
+            broker_requested_at_utc: brokerRequestedAtUtc,
+            broker_response_at_utc: new Date().toISOString(),
+          },
+        }),
+      );
       return jsonResponse(
-        { ok: false, error: String(error.message || error), eligibility },
+        { ok: false, error: String(error.message || error), eligibility, provenance },
         502,
       );
     }
@@ -397,6 +427,7 @@ export async function onRequestPost(context) {
   } catch {
     liveQuote = null;
   }
+  const quoteCapturedAtUtc = liveQuote ? new Date().toISOString() : null;
 
   const envelope = buildOrderEnvelope(
     candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
@@ -406,8 +437,10 @@ export async function onRequestPost(context) {
     side
   );
 
+  const brokerRequestedAtUtc = new Date().toISOString();
   try {
     const result = await previewOrPlaceOrder(context.env, envelope, { preview: false });
+    const brokerResponseAtUtc = new Date().toISOString();
     const provenance = await safeRecordOrderProvenance(
       context.env,
       buildOrderProvenanceEvent({
@@ -422,6 +455,11 @@ export async function onRequestPost(context) {
         envelope,
         result,
         exitPolicyAction: requestedExitPolicyAction,
+        executionTiming: {
+          quote_captured_at_utc: quoteCapturedAtUtc,
+          broker_requested_at_utc: brokerRequestedAtUtc,
+          broker_response_at_utc: brokerResponseAtUtc,
+        },
       }),
     );
     return jsonResponse({
@@ -436,8 +474,30 @@ export async function onRequestPost(context) {
       rate_limits: result.rateLimits,
     });
   } catch (error) {
+    const provenance = await safeRecordOrderProvenance(
+      context.env,
+      buildOrderProvenanceEvent({
+        eventType: "submit_error",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        quote: liveQuote,
+        envelope,
+        result: null,
+        exitPolicyAction: requestedExitPolicyAction,
+        error: String(error.message || error),
+        executionTiming: {
+          quote_captured_at_utc: quoteCapturedAtUtc,
+          broker_requested_at_utc: brokerRequestedAtUtc,
+          broker_response_at_utc: new Date().toISOString(),
+        },
+      }),
+    );
     return jsonResponse(
-      { ok: false, error: String(error.message || error), eligibility },
+      { ok: false, error: String(error.message || error), eligibility, provenance },
       502,
     );
   }

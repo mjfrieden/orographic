@@ -116,6 +116,61 @@ class ProspectiveLedgerTests(unittest.TestCase):
         self.assertEqual(stats["capture_windows_missed"], 1)
         self.assertEqual(pick["outcomes"]["capture_attempts"]["one_hour"]["status"], "missed_live_window")
 
+    def test_mark_prospective_ledger_captures_fresh_intraday_trajectory_marks(self) -> None:
+        ledger = {
+            "entries": [{
+                "run_generated_at_utc": "2026-05-11T15:00:00+00:00",
+                "picks": [{
+                    "contract_symbol": "AAA260515C00100000",
+                    "emission_quote": {"mid": 1.0, "bid": 0.95, "ask": 1.05},
+                    "outcomes": {
+                        "quote_verification": {"capture_policy_version": 2},
+                        "fixed_exit_marks": {},
+                    },
+                }],
+            }],
+        }
+        quote = {
+            "bid": 1.10,
+            "ask": 1.20,
+            "bid_observed_at_utc": "2026-05-11T15:14:55+00:00",
+        }
+        first, stats = mark_prospective_ledger(
+            ledger,
+            {"AAA260515C00100000": quote},
+            now_utc=datetime(2026, 5, 11, 15, 15, tzinfo=timezone.utc),
+        )
+        repeated, repeated_stats = mark_prospective_ledger(
+            first,
+            {"AAA260515C00100000": quote},
+            now_utc=datetime(2026, 5, 11, 15, 15, 30, tzinfo=timezone.utc),
+        )
+
+        marks = repeated["entries"][0]["picks"][0]["outcomes"]["trajectory_marks"]
+        self.assertEqual(stats["trajectory_marks_written"], 1)
+        self.assertEqual(repeated_stats["trajectory_marks_written"], 0)
+        self.assertEqual(len(marks), 1)
+        self.assertEqual(marks[0]["pnl_pct_from_emission"], 0.15)
+
+    def test_trajectory_capture_stops_after_friday_close(self) -> None:
+        ledger = {"entries": [{
+            "run_generated_at_utc": "2026-05-11T15:00:00+00:00",
+            "picks": [{
+                "contract_symbol": "AAA260515C00100000",
+                "emission_quote": {"mid": 1.0},
+                "outcomes": {"quote_verification": {"capture_policy_version": 2}, "fixed_exit_marks": {}},
+            }],
+        }]}
+
+        updated, stats = mark_prospective_ledger(
+            ledger,
+            {"AAA260515C00100000": {"bid": 2.0, "ask": 2.1}},
+            now_utc=datetime(2026, 5, 15, 21, 1, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(stats["trajectory_active_picks"], 0)
+        self.assertNotIn("trajectory_marks", updated["entries"][0]["picks"][0]["outcomes"])
+
     def test_mark_prospective_ledger_counts_missing_due_quotes(self) -> None:
         ledger = {
             "entries": [

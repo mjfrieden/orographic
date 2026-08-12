@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildExecutionTelemetry,
   buildOrderProvenanceEvent,
   listOrderProvenance,
   recordOrderProvenance,
@@ -177,6 +178,8 @@ function withMockTradier(run) {
           side: "buy_to_open",
           quantity: 1,
           price: 1.23,
+          avg_fill_price: 1.25,
+          transaction_date: new Date().toISOString(),
         },
       });
     }
@@ -252,6 +255,41 @@ test("recordOrderProvenance and listOrderProvenance round trip event payloads", 
   assert.equal(rows[0].payload.candidate.forge_score, 0.91);
 });
 
+test("execution telemetry measures quote age, latency, fill delay, and adverse slippage", () => {
+  const telemetry = buildExecutionTelemetry({
+    envelope: {
+      side: "buy_to_open",
+      quantity: 2,
+      price: "1.22",
+    },
+    quote: {
+      bid: 1.1,
+      ask: 1.2,
+      askdate: "2026-05-15T13:59:58Z",
+    },
+    result: {
+      confirmation: {
+        avg_fill_price: 1.25,
+        commission: 0.5,
+        fees: 0.15,
+        raw: { transaction_date: "2026-05-15T14:00:02Z" },
+      },
+    },
+    timing: {
+      quote_captured_at_utc: "2026-05-15T13:59:59Z",
+      broker_requested_at_utc: "2026-05-15T14:00:00Z",
+      broker_response_at_utc: "2026-05-15T14:00:00.250Z",
+    },
+  });
+
+  assert.equal(telemetry.quote_age_seconds, 1);
+  assert.equal(telemetry.broker_round_trip_ms, 250);
+  assert.equal(telemetry.fill_delay_seconds, 2);
+  assert.ok(Math.abs(telemetry.signed_adverse_slippage_per_contract - 0.05) < 1e-9);
+  assert.ok(Math.abs(telemetry.signed_adverse_slippage_usd - 10) < 1e-9);
+  assert.equal(telemetry.fill_telemetry_complete, true);
+});
+
 test("preview order records provenance", async () => {
   await withMockTradier(async () => {
     const context = await makeContext({
@@ -267,6 +305,8 @@ test("preview order records provenance", async () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].event_type, "preview");
     assert.equal(rows[0].user_role, "viewer");
+    assert.equal(rows[0].payload.execution.quote_ask, 1.23);
+    assert.ok(rows[0].payload.execution.broker_round_trip_ms >= 0);
   });
 });
 
@@ -282,6 +322,8 @@ test("submitted order records provenance", async () => {
     assert.equal(rows.length, 1);
     assert.equal(rows[0].event_type, "submit");
     assert.equal(rows[0].broker_order_id, "ORDER1");
+    assert.equal(rows[0].payload.execution.broker_avg_fill_price, 1.25);
+    assert.ok(rows[0].payload.execution.signed_adverse_slippage_usd > 0);
   });
 });
 

@@ -25,6 +25,7 @@ from engine.orographic.pipeline import (
 )
 from engine.orographic.positions import append_position_history, fetch_position_snapshot
 from engine.orographic.payoff_challenger_evidence import write_payoff_challenger_evidence
+from engine.orographic.counterfactual_veto_evidence import write_counterfactual_veto_evidence
 from engine.orographic.promotion_comparison import write_promotion_comparison
 
 logging.basicConfig(
@@ -201,6 +202,12 @@ def parse_args() -> argparse.Namespace:
         help="Maximum premium cost basis for moonshot satellite eligibility.",
     )
     parser.add_argument(
+        "--counterfactual-observation-size",
+        type=int,
+        default=3,
+        help="Maximum shadow-veto signals per scan sent through the research-only Forge lane.",
+    )
+    parser.add_argument(
         "--enforce-pre-council-friction-gate",
         action="store_true",
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
@@ -221,6 +228,7 @@ def main() -> int:
             live_size=max(int(args.live_size), 1),
             shadow_size=max(int(args.shadow_size), 1),
             forge_intake=max(int(args.forge_intake), 1),
+            counterfactual_observation_size=max(int(args.counterfactual_observation_size), 0),
             minimum_days_to_expiry=max(int(args.minimum_days_to_expiry), 0),
             maximum_days_to_expiry=max(int(args.maximum_days_to_expiry), 0),
             minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
@@ -313,6 +321,17 @@ def main() -> int:
                 "Updated payoff challenger prospective evidence at %s (%s).",
                 challenger_evidence_path,
                 challenger_evidence["decision"],
+            )
+            veto_evidence_path = Path(args.output).parent / "diagnostics" / "counterfactual_veto_evidence_latest.json"
+            veto_evidence = write_counterfactual_veto_evidence(
+                Path(prospective_source),
+                veto_evidence_path,
+            )
+            diagnostic_sources["counterfactual_veto_evidence"] = str(veto_evidence_path)
+            log.info(
+                "Updated advisory Scout veto evidence at %s (%s).",
+                veto_evidence_path,
+                veto_evidence["decision"],
             )
         if prospective_source and shadow_source:
             comparison_path = Path(args.output).parent / "diagnostics" / "promotion_shadow_active_comparison_latest.json"

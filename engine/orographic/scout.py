@@ -36,6 +36,7 @@ _MODEL_DIR = Path(__file__).parent / "models"
 _MODEL_PATH = _MODEL_DIR / "scout_model.pkl"
 _SCALER_PATH = _MODEL_DIR / "scout_scaler.pkl"
 _SIDE_MODEL_PATH = _MODEL_DIR / "scout_side_model.pkl"
+_HIERARCHICAL_SIDE_MODEL_PATH = _MODEL_DIR / "scout_hierarchical_challenger.pkl"
 SIDE_MODEL_MODE_ENV = "OROGRAPHIC_SIDE_MODEL_MODE"
 REGIME_SAME_SIDE_BONUS = 0.08
 REGIME_COUNTERTREND_PENALTY = 0.18
@@ -97,6 +98,26 @@ def _load_side_model() -> dict[str, object] | None:
         return artifact if isinstance(artifact, dict) and "model" in artifact else None
     except Exception as exc:
         log.warning("Failed to load Scout side model (%s) — using derived side probabilities.", exc)
+        return None
+
+
+@lru_cache(maxsize=1)
+def _load_hierarchical_side_model() -> dict[str, object] | None:
+    if not _HIERARCHICAL_SIDE_MODEL_PATH.exists():
+        return None
+    try:
+        import joblib
+
+        artifact = joblib.load(_HIERARCHICAL_SIDE_MODEL_PATH)
+        if not isinstance(artifact, dict):
+            return None
+        if artifact.get("mode") != "observation_only_never_used_for_routing":
+            log.warning("Ignoring hierarchical Scout artifact without observation-only mode.")
+            return None
+        required = {"scaler", "feature_cols", "trade_model", "direction_model"}
+        return artifact if required.issubset(artifact) else None
+    except Exception as exc:
+        log.warning("Failed to load hierarchical Scout challenger (%s).", exc)
         return None
 
 
@@ -175,6 +196,8 @@ def _apply_shadow_side_guard(
     diagnostics = {
         "applied": False,
         "passed": True,
+        "would_veto": False,
+        "execution_effect": "none_observation_only",
         "preferred_side": preferred,
         "preferred_probability": preferred_prob,
         "direction_probability": direction_prob,
@@ -190,13 +213,14 @@ def _apply_shadow_side_guard(
 
     diagnostics["applied"] = True
     if preferred == "no_trade":
-        diagnostics["passed"] = False
+        diagnostics["would_veto"] = True
         diagnostics["reason"] = "shadow_no_trade_veto"
         diagnostics["note"] = (
-            "side-aware shadow model vetoed the setup as no-trade dominant "
+            "side-aware shadow model would veto the setup as no-trade dominant; "
+            "observation-only mode left production eligibility unchanged "
             f"({preferred_prob:.2%}, margin {margin:.2%})"
         )
-        return False, diagnostics
+        return True, diagnostics
 
     if preferred != direction:
         diagnostics["reason"] = "shadow_direction_conflict"
@@ -286,6 +310,60 @@ def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tu
     except Exception as exc:
         log.warning("Scout side model inference failed (%s) — using derived side probabilities.", exc)
         return _side_aware_probabilities(fallback_score), "derived_three_class"
+
+
+def _binary_probability(model: object, X: np.ndarray) -> float:
+    probs = np.asarray(model.predict_proba(X), dtype=float)
+    classes = [int(value) for value in getattr(model, "classes_", [])]
+    if probs.ndim == 2 and probs.shape[1] > 1 and 1 in classes:
+        return float(probs[0, classes.index(1)])
+    prediction = np.asarray(model.predict(X), dtype=float)
+    return float(prediction[0])
+
+
+def _hierarchical_side_observation(feats: dict[str, float]) -> dict[str, object] | None:
+    artifact = _load_hierarchical_side_model()
+    if artifact is None:
+        return None
+    try:
+        scaler = artifact["scaler"]
+        feature_cols = list(artifact["feature_cols"])
+        row = np.array([[feats.get(col, 0.0) for col in feature_cols]], dtype=float)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            transformed = scaler.transform(row)
+            trade_prob = float(_binary_probability(artifact["trade_model"], transformed))
+            call_conditional = float(_binary_probability(artifact["direction_model"], transformed))
+        trade_prob = _clip(trade_prob, 0.0, 1.0)
+        call_conditional = _clip(call_conditional, 0.0, 1.0)
+        call_edge = trade_prob * call_conditional
+        put_edge = trade_prob * (1.0 - call_conditional)
+        no_trade = 1.0 - trade_prob
+        thresholds = artifact.get("thresholds") if isinstance(artifact.get("thresholds"), dict) else {}
+        trade_threshold = float(thresholds.get("trade_probability", 0.70))
+        direction_threshold = float(thresholds.get("direction_confidence", 0.55))
+        direction_confidence = max(call_conditional, 1.0 - call_conditional)
+        preferred = (
+            "no_trade"
+            if trade_prob < trade_threshold or direction_confidence < direction_threshold
+            else ("call" if call_conditional >= 0.5 else "put")
+        )
+        return {
+            "mode": "observation_only",
+            "execution_effect": "none_observation_only",
+            "trade_probability": round(trade_prob, 4),
+            "conditional_call_probability": round(call_conditional, 4),
+            "call_edge": round(call_edge, 4),
+            "put_edge": round(put_edge, 4),
+            "no_trade": round(no_trade, 4),
+            "preferred_side": preferred,
+            "would_abstain": preferred == "no_trade",
+            "trade_threshold": round(trade_threshold, 4),
+            "direction_confidence_threshold": round(direction_threshold, 4),
+        }
+    except Exception as exc:
+        log.warning("Hierarchical Scout challenger inference failed (%s).", exc)
+        return None
 
 
 def _apply_regime_alignment(
@@ -619,6 +697,11 @@ def build_signal(
         "activation_mode": side_activation_mode,
         **side_probs,
     }
+    hierarchical_observation = _hierarchical_side_observation(feats)
+    diagnostics["hierarchical_side_challenger"] = hierarchical_observation or {
+        "mode": "unavailable",
+        "execution_effect": "none_observation_only",
+    }
     if side_model_mode == "trained_option_payoff_three_class":
         option_payoff_score = _clip(side_probs["call_edge"] - side_probs["put_edge"])
         diagnostics["side_model_override"] = {
@@ -818,7 +901,11 @@ def scan_symbols_with_diagnostics(
         "side_aware_directional_disagreements": 0,
         "side_aware_no_trade_disagreements": 0,
         "shadow_side_veto_rejections": 0,
+        "shadow_side_veto_observations": 0,
         "active_side_model_no_trade_rejections": 0,
+        "hierarchical_challenger_observations": 0,
+        "hierarchical_challenger_abstentions": 0,
+        "hierarchical_challenger_directional_disagreements": 0,
         "side_aware_scores": [],
         "sentinel_scores": [],
         "rejections": [],
@@ -907,6 +994,15 @@ def scan_symbols_with_diagnostics(
         if isinstance(side_aware, dict):
             active_direction = signal.direction if signal is not None else signal_diagnostics.get("pre_veto_direction")
             preferred_side = _preferred_side_from_probabilities(side_aware)
+            hierarchical = signal_diagnostics.get("hierarchical_side_challenger")
+            hierarchical = hierarchical if isinstance(hierarchical, dict) else {}
+            hierarchical_preferred = str(hierarchical.get("preferred_side") or "")
+            if hierarchical.get("mode") == "observation_only":
+                scout_diagnostics["hierarchical_challenger_observations"] += 1
+                if hierarchical_preferred == "no_trade":
+                    scout_diagnostics["hierarchical_challenger_abstentions"] += 1
+                elif active_direction in {"call", "put"} and hierarchical_preferred != active_direction:
+                    scout_diagnostics["hierarchical_challenger_directional_disagreements"] += 1
             if side_aware.get("model_mode") == "trained_option_payoff_three_class":
                 comparison_direction = active_direction if active_direction in {"call", "put"} else pre_direction
                 if preferred_side == "no_trade":
@@ -915,10 +1011,9 @@ def scan_symbols_with_diagnostics(
                     scout_diagnostics["side_aware_directional_disagreements"] += 1
             shadow_guard = side_aware.get("shadow_guard") if isinstance(side_aware.get("shadow_guard"), dict) else {}
             active_policy = side_aware.get("active_policy") if isinstance(side_aware.get("active_policy"), dict) else {}
-            if shadow_guard.get("reason") == "shadow_no_trade_veto" or signal_diagnostics.get("reason") in {
-                "shadow_no_trade_veto",
-                "shadow_direction_conflict",
-            }:
+            if shadow_guard.get("would_veto"):
+                scout_diagnostics["shadow_side_veto_observations"] += 1
+            if signal_diagnostics.get("reason") in {"shadow_no_trade_veto", "shadow_direction_conflict"}:
                 scout_diagnostics["shadow_side_veto_rejections"] += 1
             if active_policy.get("reason") == "scout_model_no_trade" or signal_diagnostics.get("reason") == "scout_model_no_trade":
                 scout_diagnostics["active_side_model_no_trade_rejections"] += 1
@@ -937,7 +1032,20 @@ def scan_symbols_with_diagnostics(
                     "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
                     "shadow_preferred_side": shadow_guard.get("preferred_side", preferred_side),
                     "shadow_guard_applied": bool(shadow_guard.get("applied")),
+                    "shadow_guard_would_veto": bool(shadow_guard.get("would_veto")),
+                    "shadow_guard_execution_effect": shadow_guard.get("execution_effect"),
                     "shadow_guard_reason": shadow_guard.get("reason"),
+                    "hierarchical_mode": hierarchical.get("mode"),
+                    "hierarchical_execution_effect": hierarchical.get("execution_effect"),
+                    "hierarchical_trade_probability": hierarchical.get("trade_probability"),
+                    "hierarchical_conditional_call_probability": hierarchical.get("conditional_call_probability"),
+                    "hierarchical_call_edge": hierarchical.get("call_edge"),
+                    "hierarchical_put_edge": hierarchical.get("put_edge"),
+                    "hierarchical_no_trade": hierarchical.get("no_trade"),
+                    "hierarchical_preferred_side": hierarchical.get("preferred_side"),
+                    "hierarchical_would_abstain": hierarchical.get("would_abstain"),
+                    "hierarchical_trade_threshold": hierarchical.get("trade_threshold"),
+                    "hierarchical_direction_confidence_threshold": hierarchical.get("direction_confidence_threshold"),
                     "passed": bool(signal is not None),
                     "reason": signal_diagnostics.get("reason"),
                 }

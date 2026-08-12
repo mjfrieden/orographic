@@ -42,6 +42,14 @@ function compactCandidate(candidate) {
     path_early_profit_take_prob: candidate.path_early_profit_take_prob ?? null,
     contract_cost: candidate.contract_cost ?? null,
     spread_pct: candidate.spread_pct ?? null,
+    quote_spread_dollars: candidate.quote_spread_dollars ?? null,
+    surface_atm_iv: candidate.surface_atm_iv ?? null,
+    surface_skew_slope: candidate.surface_skew_slope ?? null,
+    surface_curvature: candidate.surface_curvature ?? null,
+    surface_put_call_wing_skew: candidate.surface_put_call_wing_skew ?? null,
+    surface_term_slope_30d: candidate.surface_term_slope_30d ?? null,
+    iv_relative_to_atm: candidate.iv_relative_to_atm ?? null,
+    iv_minus_realized_vol: candidate.iv_minus_realized_vol ?? null,
     extrinsic_ratio: candidate.extrinsic_ratio ?? null,
     council_risk_flags: Array.isArray(candidate.council_risk_flags)
       ? candidate.council_risk_flags
@@ -59,6 +67,99 @@ function recommendationId({ runGeneratedAtUtc, optionSymbol, lane }) {
   const contract = cleanText(optionSymbol).toUpperCase();
   const sourceLane = cleanText(lane, "unknown");
   return run && contract ? `${run}|${contract}|${sourceLane}` : "";
+}
+
+function timestampMs(value) {
+  if (value === undefined || value === null || value === "") return null;
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    if (numeric > 1e12) return numeric;
+    if (numeric > 1e9) return numeric * 1000;
+  }
+  const parsed = Date.parse(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function quoteTimestampMs(quote) {
+  const values = [
+    quote?.askdate,
+    quote?.biddate,
+    quote?.trade_date,
+    quote?.trade_timestamp,
+    quote?.last_trade_date,
+  ]
+    .map(timestampMs)
+    .filter((value) => value !== null);
+  return values.length ? Math.max(...values) : null;
+}
+
+export function buildExecutionTelemetry({
+  envelope,
+  quote,
+  result,
+  timing = {},
+}) {
+  const requestedAtMs = timestampMs(timing.broker_requested_at_utc);
+  const receivedAtMs = timestampMs(timing.broker_response_at_utc);
+  const quoteCapturedAtMs = timestampMs(timing.quote_captured_at_utc);
+  const quoteObservedAtMs = quoteTimestampMs(quote);
+  const confirmation = result?.confirmation || result?.order || {};
+  const raw = confirmation?.raw || confirmation || {};
+  const fillAtMs = [
+    raw?.transaction_date,
+    raw?.last_fill_date,
+    raw?.fill_date,
+    raw?.update_date,
+  ]
+    .map(timestampMs)
+    .find((value) => value !== null) ?? null;
+  const side = cleanText(envelope?.side).toLowerCase();
+  const bid = asNumber(quote?.bid, null);
+  const ask = asNumber(quote?.ask, null);
+  const quoteMid = bid !== null && ask !== null ? (bid + ask) / 2 : null;
+  const fillPrice = asNumber(confirmation?.avg_fill_price, null);
+  const referencePrice = side === "sell_to_close" ? bid : ask;
+  const adversePerContract =
+    fillPrice !== null && referencePrice !== null
+      ? side === "sell_to_close"
+        ? referencePrice - fillPrice
+        : fillPrice - referencePrice
+      : null;
+  const quantity = Math.max(0, Number.parseInt(String(envelope?.quantity || 0), 10));
+  return {
+    quote_captured_at_utc: timing.quote_captured_at_utc || null,
+    quote_observed_at_utc:
+      quoteObservedAtMs !== null ? new Date(quoteObservedAtMs).toISOString() : null,
+    quote_age_seconds:
+      quoteCapturedAtMs !== null && quoteObservedAtMs !== null
+        ? Math.max((quoteCapturedAtMs - quoteObservedAtMs) / 1000, 0)
+        : null,
+    quote_bid: bid,
+    quote_ask: ask,
+    quote_mid: quoteMid,
+    quote_spread_dollars: bid !== null && ask !== null ? ask - bid : null,
+    quote_spread_pct:
+      quoteMid && bid !== null && ask !== null ? (ask - bid) / quoteMid : null,
+    broker_requested_at_utc: timing.broker_requested_at_utc || null,
+    broker_response_at_utc: timing.broker_response_at_utc || null,
+    broker_round_trip_ms:
+      requestedAtMs !== null && receivedAtMs !== null
+        ? Math.max(receivedAtMs - requestedAtMs, 0)
+        : null,
+    requested_limit_price: asNumber(envelope?.price, null),
+    broker_avg_fill_price: fillPrice,
+    broker_commission_usd: asNumber(confirmation?.commission, null),
+    broker_fees_usd: asNumber(confirmation?.fees, null),
+    signed_adverse_slippage_per_contract: adversePerContract,
+    signed_adverse_slippage_usd:
+      adversePerContract !== null ? adversePerContract * 100 * quantity : null,
+    fill_observed_at_utc: fillAtMs !== null ? new Date(fillAtMs).toISOString() : null,
+    fill_delay_seconds:
+      requestedAtMs !== null && fillAtMs !== null
+        ? Math.max((fillAtMs - requestedAtMs) / 1000, 0)
+        : null,
+    fill_telemetry_complete: fillPrice !== null && fillAtMs !== null,
+  };
 }
 
 async function ensureSchema(env) {
@@ -118,6 +219,7 @@ export function buildOrderProvenanceEvent({
   blockReason,
   httpStatus,
   error,
+  executionTiming,
 }) {
   const order = result?.confirmation || result?.order || null;
   const mode = cleanText(config?.mode, "disabled");
@@ -167,6 +269,12 @@ export function buildOrderProvenanceEvent({
     quote: quote || null,
     order: order || result?.order || null,
     confirmation: result?.confirmation || null,
+    execution: buildExecutionTelemetry({
+      envelope,
+      quote,
+      result,
+      timing: executionTiming,
+    }),
   };
   return event;
 }

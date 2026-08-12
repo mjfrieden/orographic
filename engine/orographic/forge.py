@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 import logging
 from typing import Iterable
 
@@ -15,6 +15,7 @@ from .market_data import (
     option_expiries,
 )
 from .schemas import ContractCandidate, MarketRegime, ScoutSignal
+from .volatility_surface import compute_expiry_surface, compute_term_structure_slope
 
 log = logging.getLogger(__name__)
 
@@ -50,6 +51,28 @@ def _candidate_moneyness(option_type: str, spot: float, strike: float) -> float:
     if option_type == "call":
         return strike / spot - 1.0
     return 1.0 - strike / spot
+
+
+def _last_trade_age_seconds(value: object, captured_at: datetime) -> float | None:
+    try:
+        numeric = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        numeric = None
+    try:
+        parsed = (
+            pd.to_datetime(numeric, unit="ms" if numeric > 1e12 else "s", utc=True)
+            if numeric is not None
+            else pd.Timestamp(value)
+        )
+    except (TypeError, ValueError, OverflowError):
+        return None
+    if pd.isna(parsed):
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.tz_localize("UTC")
+    else:
+        parsed = parsed.tz_convert("UTC")
+    return round(max((captured_at - parsed.to_pydatetime()).total_seconds(), 0.0), 3)
 
 
 def _net_debit_cap(spot: float, base_cap: float) -> float:
@@ -606,11 +629,22 @@ def rank_contracts_with_diagnostics(
         best_candidate_key: tuple[int, float, int] | None = None
         saw_non_empty_chain = False
         expiry_attempts: list[dict[str, object]] = []
+        expiry_surfaces: dict[str, dict[str, object]] = {}
 
         for expiry in expiries:
             current_diag = dict(symbol_diag)
             current_diag["expiry"] = expiry
+            chain_snapshot_at = datetime.now(timezone.utc)
             calls, puts = option_chain(signal.symbol, expiry)
+            surface = compute_expiry_surface(
+                calls,
+                puts,
+                spot=signal.spot,
+                expiry=expiry,
+                as_of=today,
+            )
+            expiry_surfaces[expiry] = surface
+            current_diag["volatility_surface"] = surface
             frame = calls if signal.direction == "call" else puts
             if frame.empty:
                 current_diag["rejection_reason"] = "empty_chain"
@@ -683,132 +717,149 @@ def rank_contracts_with_diagnostics(
                 premium = float(ask)
                 strike = float(row["strike"])
                 option_type = signal.direction
-            delta = float(row["delta"])
-            spread_pct = float(row["spread_pct"])
-            open_interest = int(float(row["openInterest"]))
-            volume = int(float(row["volume"]))
-            iv = max(float(row["impliedVolatility"]), 0.10)
+                delta = float(row["delta"])
+                spread_pct = float(row["spread_pct"])
+                open_interest = int(float(row["openInterest"]))
+                volume = int(float(row["volume"]))
+                iv = max(float(row["impliedVolatility"]), 0.10)
 
-            actual_premium = premium
-            if premium > net_debit_cap:
-                continue
+                actual_premium = premium
+                if premium > net_debit_cap:
+                    continue
 
-            rows_passing_net_debit += 1
-            projected_value = _intrinsic(option_type, projected_spot, strike)
-            intrinsic_now = _intrinsic(option_type, signal.spot, strike)
+                rows_passing_net_debit += 1
+                projected_value = _intrinsic(option_type, projected_spot, strike)
+                intrinsic_now = _intrinsic(option_type, signal.spot, strike)
 
-            expected_return_pct = projected_value / actual_premium - 1.0
-            breakeven_move_pct = _breakeven_move_pct(option_type, signal.spot, strike, actual_premium)
-            extrinsic_ratio = max(actual_premium - intrinsic_now, 0.0) / actual_premium if actual_premium > 0 else 1.0
-            allocation_weight = round(min(max(0.35 / iv, 0.25), 3.0), 4)
+                expected_return_pct = projected_value / actual_premium - 1.0
+                breakeven_move_pct = _breakeven_move_pct(option_type, signal.spot, strike, actual_premium)
+                extrinsic_ratio = max(actual_premium - intrinsic_now, 0.0) / actual_premium if actual_premium > 0 else 1.0
+                allocation_weight = round(min(max(0.35 / iv, 0.25), 3.0), 4)
 
-            ivr = compute_iv_rank(signal.symbol, iv)
-            ivr_penalty = max(ivr - ivr_gate, 0.0) * 0.4
-            vrp_gap = max(iv - signal.realized_vol_20d, 0.0)
-            vrp_penalty = max(vrp_gap - 0.10, 0.0) * 2.0
-            premium_pct_of_spot = actual_premium / signal.spot if signal.spot > 0 else 0.0
-            sentinel_confidence = _clip(float(sentinel_event.get("confidence") or 0.0))
-            sentinel_call_relevance = _clip(float(sentinel_event.get("call_relevance") or 0.0))
-            sentinel_put_relevance = _clip(float(sentinel_event.get("put_relevance") or 0.0))
-            sentinel_no_trade_relevance = _clip(float(sentinel_event.get("no_trade_relevance") or 0.0))
-            sentinel_spot_effect, sentinel_iv_effect = _sentinel_effect_flags(
-                sentinel_event.get("spot_vs_iv_effect")
-            )
-            liquidity_score = _clip(
-                0.45
-                + 0.18 * min(open_interest / 800.0, 1.0)
-                + 0.18 * min(volume / 300.0, 1.0)
-                - 0.35 * min(spread_pct / effective_spread_cap, 1.0)
-            )
-            economics_score = _clip(
-                0.50
-                + 0.25 * min(expected_return_pct / 1.5, 1.0)
-                + 0.15 * min((projected_move_pct - breakeven_move_pct) / 0.05, 1.0)
-                + 0.10 * (1.0 - min(extrinsic_ratio, 1.0))
-                - 0.15 * max(extrinsic_ratio - 0.90, 0.0) / 0.10
-                - vrp_penalty
-                - ivr_penalty
-            )
-            forge_score = _clip(
-                0.45 * ((signal.scout_score + 1.0) / 2.0)
-                + 0.30 * liquidity_score
-                + 0.25 * economics_score
-            )
-
-            notes: list[str] = []
-            if expected_return_pct > 1.0:
-                notes.append("projected payoff is asymmetric")
-            if extrinsic_ratio < 0.8:
-                notes.append("time-value burden is acceptable")
-            if vrp_penalty > 0.05:
-                notes.append("VRP penalty applied: IV is highly elevated over RV")
-            if ivr_penalty > 0.0:
-                notes.append(f"IVR penalty applied: IV rank {ivr:.0%} above gate")
-            if 0.20 <= abs(delta) <= 0.45:
-                notes.append("delta sits in the preferred weekly range")
-            if holding_window_label == "mismatch":
-                notes.append(
-                    f"Sentinel shadow mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
+                ivr = compute_iv_rank(signal.symbol, iv)
+                ivr_penalty = max(ivr - ivr_gate, 0.0) * 0.4
+                vrp_gap = max(iv - signal.realized_vol_20d, 0.0)
+                vrp_penalty = max(vrp_gap - 0.10, 0.0) * 2.0
+                premium_pct_of_spot = actual_premium / signal.spot if signal.spot > 0 else 0.0
+                sentinel_confidence = _clip(float(sentinel_event.get("confidence") or 0.0))
+                sentinel_call_relevance = _clip(float(sentinel_event.get("call_relevance") or 0.0))
+                sentinel_put_relevance = _clip(float(sentinel_event.get("put_relevance") or 0.0))
+                sentinel_no_trade_relevance = _clip(float(sentinel_event.get("no_trade_relevance") or 0.0))
+                sentinel_spot_effect, sentinel_iv_effect = _sentinel_effect_flags(
+                    sentinel_event.get("spot_vs_iv_effect")
                 )
-            elif holding_window_label == "well_matched":
-                notes.append(
-                    f"Sentinel shadow fit: {sentinel_event.get('time_horizon', 'unknown')} catalyst aligns with {days_to_expiry} DTE"
+                liquidity_score = _clip(
+                    0.45
+                    + 0.18 * min(open_interest / 800.0, 1.0)
+                    + 0.18 * min(volume / 300.0, 1.0)
+                    - 0.35 * min(spread_pct / effective_spread_cap, 1.0)
+                )
+                economics_score = _clip(
+                    0.50
+                    + 0.25 * min(expected_return_pct / 1.5, 1.0)
+                    + 0.15 * min((projected_move_pct - breakeven_move_pct) / 0.05, 1.0)
+                    + 0.10 * (1.0 - min(extrinsic_ratio, 1.0))
+                    - 0.15 * max(extrinsic_ratio - 0.90, 0.0) / 0.10
+                    - vrp_penalty
+                    - ivr_penalty
+                )
+                forge_score = _clip(
+                    0.45 * ((signal.scout_score + 1.0) / 2.0)
+                    + 0.30 * liquidity_score
+                    + 0.25 * economics_score
                 )
 
-            local_candidates.append(
-                ContractCandidate(
-                    symbol=signal.symbol,
-                    contract_symbol=str(row.get("contractSymbol", "")),
-                    option_type=option_type,
-                    expiry=expiry,
-                    strike=round(strike, 4),
-                    bid=round(bid, 4),
-                    ask=round(ask, 4),
-                    last=round(float(row.get("lastPrice", 0.0) or 0.0), 4),
-                    premium=round(premium, 4),
-                    contract_cost=round(actual_premium * 100.0, 2),
-                    spread_pct=round(spread_pct, 4),
-                    open_interest=open_interest,
-                    volume=volume,
-                    implied_volatility=round(float(row["impliedVolatility"]), 4),
-                    delta=round(delta, 4),
-                    moneyness=round(float(row["moneyness"]), 4),
-                    projected_move_pct=round(projected_move_pct, 4),
-                    breakeven_move_pct=round(breakeven_move_pct, 4),
-                    expected_return_pct=round(expected_return_pct, 4),
-                    extrinsic_ratio=round(extrinsic_ratio, 4),
-                    scout_score=signal.scout_score,
-                    forge_score=round(forge_score, 4),
-                    scout_call_edge_prob=round(float(getattr(signal, "call_edge_prob", 0.0) or 0.0), 4),
-                    scout_put_edge_prob=round(float(getattr(signal, "put_edge_prob", 0.0) or 0.0), 4),
-                    scout_no_trade_prob=round(float(getattr(signal, "no_trade_prob", 0.0) or 0.0), 4),
-                    short_strike=None,
-                    short_ask=None,
-                    short_bid=None,
-                    is_spread=False,
-                    spread_cost=round(actual_premium, 4),
-                    allocation_weight=allocation_weight,
-                    iv_rank=round(ivr, 4),
-                    realized_vol_20d=round(signal.realized_vol_20d, 4),
-                    atr_pct_14d=round(signal.atr_pct_14d, 4),
-                    premium_pct_of_spot=round(premium_pct_of_spot, 4),
-                    vrp_gap=round(vrp_gap, 4),
-                    sentinel_holding_window_fit=holding_window_fit,
-                    sentinel_holding_window_label=holding_window_label,
-                    sentinel_event_type=sentinel_event.get("event_type"),
-                    sentinel_decay_half_life=sentinel_event.get("decay_half_life"),
-                    sentinel_time_horizon=sentinel_event.get("time_horizon"),
-                    sentinel_confidence=round(sentinel_confidence, 4),
-                    sentinel_source_reliability=sentinel_event.get("source_reliability"),
-                    sentinel_novelty=sentinel_event.get("novelty"),
-                    sentinel_call_relevance=round(sentinel_call_relevance, 4),
-                    sentinel_put_relevance=round(sentinel_put_relevance, 4),
-                    sentinel_no_trade_relevance=round(sentinel_no_trade_relevance, 4),
-                    sentinel_spot_effect=round(sentinel_spot_effect, 4),
-                    sentinel_iv_effect=round(sentinel_iv_effect, 4),
-                    notes=notes,
+                notes: list[str] = []
+                if expected_return_pct > 1.0:
+                    notes.append("projected payoff is asymmetric")
+                if extrinsic_ratio < 0.8:
+                    notes.append("time-value burden is acceptable")
+                if vrp_penalty > 0.05:
+                    notes.append("VRP penalty applied: IV is highly elevated over RV")
+                if ivr_penalty > 0.0:
+                    notes.append(f"IVR penalty applied: IV rank {ivr:.0%} above gate")
+                if 0.20 <= abs(delta) <= 0.45:
+                    notes.append("delta sits in the preferred weekly range")
+                if holding_window_label == "mismatch":
+                    notes.append(
+                        f"Sentinel shadow mismatch: {sentinel_event.get('time_horizon', 'unknown')} catalyst vs {days_to_expiry} DTE"
+                    )
+                elif holding_window_label == "well_matched":
+                    notes.append(
+                        f"Sentinel shadow fit: {sentinel_event.get('time_horizon', 'unknown')} catalyst aligns with {days_to_expiry} DTE"
+                    )
+
+                local_candidates.append(
+                    ContractCandidate(
+                        symbol=signal.symbol,
+                        contract_symbol=str(row.get("contractSymbol", "")),
+                        option_type=option_type,
+                        expiry=expiry,
+                        strike=round(strike, 4),
+                        bid=round(bid, 4),
+                        ask=round(ask, 4),
+                        last=round(float(row.get("lastPrice", 0.0) or 0.0), 4),
+                        premium=round(premium, 4),
+                        contract_cost=round(actual_premium * 100.0, 2),
+                        spread_pct=round(spread_pct, 4),
+                        open_interest=open_interest,
+                        volume=volume,
+                        implied_volatility=round(float(row["impliedVolatility"]), 4),
+                        delta=round(delta, 4),
+                        moneyness=round(float(row["moneyness"]), 4),
+                        projected_move_pct=round(projected_move_pct, 4),
+                        breakeven_move_pct=round(breakeven_move_pct, 4),
+                        expected_return_pct=round(expected_return_pct, 4),
+                        extrinsic_ratio=round(extrinsic_ratio, 4),
+                        scout_score=signal.scout_score,
+                        forge_score=round(forge_score, 4),
+                        scout_call_edge_prob=round(float(getattr(signal, "call_edge_prob", 0.0) or 0.0), 4),
+                        scout_put_edge_prob=round(float(getattr(signal, "put_edge_prob", 0.0) or 0.0), 4),
+                        scout_no_trade_prob=round(float(getattr(signal, "no_trade_prob", 0.0) or 0.0), 4),
+                        short_strike=None,
+                        short_ask=None,
+                        short_bid=None,
+                        is_spread=False,
+                        spread_cost=round(actual_premium, 4),
+                        allocation_weight=allocation_weight,
+                        iv_rank=round(ivr, 4),
+                        entry_data_source=str(row.get("dataSource") or "market_adapter"),
+                        surface_atm_iv=surface.get("atm_iv"),
+                        surface_skew_slope=surface.get("skew_slope"),
+                        surface_curvature=surface.get("curvature"),
+                        surface_put_call_wing_skew=surface.get("put_call_wing_skew"),
+                        surface_fit_rmse=surface.get("fit_rmse"),
+                        surface_observation_count=int(surface.get("observation_count") or 0),
+                        iv_relative_to_atm=(
+                            round(iv - float(surface["atm_iv"]), 6)
+                            if surface.get("atm_iv") is not None
+                            else None
+                        ),
+                        iv_minus_realized_vol=round(iv - signal.realized_vol_20d, 6),
+                        quote_mid=round((bid + ask) / 2.0, 4),
+                        quote_spread_dollars=round(ask - bid, 4),
+                        chain_snapshot_at_utc=chain_snapshot_at.replace(microsecond=0).isoformat(),
+                        last_trade_age_seconds=_last_trade_age_seconds(row.get("lastTradeDate"), chain_snapshot_at),
+                        realized_vol_20d=round(signal.realized_vol_20d, 4),
+                        atr_pct_14d=round(signal.atr_pct_14d, 4),
+                        premium_pct_of_spot=round(premium_pct_of_spot, 4),
+                        vrp_gap=round(vrp_gap, 4),
+                        sentinel_holding_window_fit=holding_window_fit,
+                        sentinel_holding_window_label=holding_window_label,
+                        sentinel_event_type=sentinel_event.get("event_type"),
+                        sentinel_decay_half_life=sentinel_event.get("decay_half_life"),
+                        sentinel_time_horizon=sentinel_event.get("time_horizon"),
+                        sentinel_confidence=round(sentinel_confidence, 4),
+                        sentinel_source_reliability=sentinel_event.get("source_reliability"),
+                        sentinel_novelty=sentinel_event.get("novelty"),
+                        sentinel_call_relevance=round(sentinel_call_relevance, 4),
+                        sentinel_put_relevance=round(sentinel_put_relevance, 4),
+                        sentinel_no_trade_relevance=round(sentinel_no_trade_relevance, 4),
+                        sentinel_spot_effect=round(sentinel_spot_effect, 4),
+                        sentinel_iv_effect=round(sentinel_iv_effect, 4),
+                        notes=notes,
+                    )
                 )
-            )
 
             current_diag["rows_passing_net_debit"] = rows_passing_net_debit
             current_diag["final_candidates"] = len(local_candidates)
@@ -858,6 +909,13 @@ def rank_contracts_with_diagnostics(
         if best_symbol_diag is None:
             per_symbol.append(symbol_diag)
             continue
+
+        selected_expiry = str(best_symbol_diag.get("expiry") or "")
+        term_slope = compute_term_structure_slope(expiry_surfaces, selected_expiry)
+        for candidate in best_candidates_for_symbol:
+            candidate.surface_term_slope_30d = term_slope
+        best_symbol_diag["volatility_surface_term_slope_30d"] = term_slope
+        best_symbol_diag["volatility_surface_expiries_observed"] = len(expiry_surfaces)
 
         best_symbol_diag["expiry_attempts"] = expiry_attempts
         stage_totals["rows_after_basic"] += int(best_symbol_diag.get("rows_after_basic", 0))

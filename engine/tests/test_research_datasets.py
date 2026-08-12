@@ -195,6 +195,10 @@ class ResearchDatasetTests(unittest.TestCase):
                                 "volume": 120,
                                 "entry_quote_type": "ask",
                                 "entry_data_source": "real_chain",
+                                "quote_mid": 1.1,
+                                "quote_spread_dollars": 0.2,
+                                "chain_snapshot_at_utc": "2026-05-22T14:07:00+00:00",
+                                "last_trade_age_seconds": 42.0,
                             },
                             "scores": {
                                 "forge_score": 0.8,
@@ -217,6 +221,15 @@ class ResearchDatasetTests(unittest.TestCase):
                                 "premium_pct_of_spot": 0.011,
                                 "realized_vol_20d": 0.21,
                                 "atr_pct_14d": 0.024,
+                                "surface_atm_iv": 0.30,
+                                "surface_skew_slope": -0.12,
+                                "surface_curvature": 0.8,
+                                "surface_put_call_wing_skew": 0.04,
+                                "surface_term_slope_30d": 0.02,
+                                "surface_fit_rmse": 0.01,
+                                "surface_observation_count": 18,
+                                "iv_relative_to_atm": 0.02,
+                                "iv_minus_realized_vol": 0.11,
                             },
                             "context": {"model_modes": {"path_model": "shadow"}},
                             "outcomes": {
@@ -266,6 +279,10 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertIsNotNone(rows[0]["scout_no_trade_prob"])
         self.assertIsNotNone(rows[0]["prob_fill_quality_ok"])
         self.assertIsNotNone(rows[0]["prob_no_trade"])
+        self.assertEqual(rows[0]["surface_atm_iv"], 0.30)
+        self.assertEqual(rows[0]["surface_observation_count"], 18)
+        self.assertEqual(rows[0]["last_trade_age_seconds"], 42.0)
+        self.assertEqual(rows[0]["quote_spread_dollars"], 0.2)
 
     def test_canonical_rows_prefer_executable_v1_over_legacy_mid_marks(self) -> None:
         label = {

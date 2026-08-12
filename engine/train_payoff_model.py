@@ -25,8 +25,8 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import HistGradientBoostingClassifier, HistGradientBoostingRegressor
 from sklearn.dummy import DummyClassifier, DummyRegressor
-from sklearn.linear_model import LogisticRegression, Ridge
-from sklearn.metrics import brier_score_loss, log_loss, mean_absolute_error, roc_auc_score
+from sklearn.linear_model import LogisticRegression, QuantileRegressor, Ridge
+from sklearn.metrics import brier_score_loss, log_loss, mean_absolute_error, mean_pinball_loss, roc_auc_score
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import RobustScaler
 
@@ -202,6 +202,19 @@ def _candidate_from_trade(trade: dict[str, Any]) -> ContractCandidate:
         spread_cost=entry_price,
         allocation_weight=_safe_float(trade.get("allocation_weight"), 1.0),
         iv_rank=_safe_float(trade.get("iv_rank"), 0.5),
+        surface_atm_iv=trade.get("surface_atm_iv"),
+        surface_skew_slope=trade.get("surface_skew_slope"),
+        surface_curvature=trade.get("surface_curvature"),
+        surface_put_call_wing_skew=trade.get("surface_put_call_wing_skew"),
+        surface_term_slope_30d=trade.get("surface_term_slope_30d"),
+        surface_fit_rmse=trade.get("surface_fit_rmse"),
+        surface_observation_count=trade.get("surface_observation_count"),
+        iv_relative_to_atm=trade.get("iv_relative_to_atm"),
+        iv_minus_realized_vol=trade.get("iv_minus_realized_vol"),
+        quote_mid=trade.get("quote_mid"),
+        quote_spread_dollars=trade.get("quote_spread_dollars"),
+        chain_snapshot_at_utc=trade.get("chain_snapshot_at_utc"),
+        last_trade_age_seconds=trade.get("last_trade_age_seconds"),
         entry_data_source=str(trade.get("entry_data_source", "real_chain")),
         entry_quote_type=str(trade.get("entry_quote_type", "ask")),
         realized_vol_20d=trade.get("realized_vol_20d"),
@@ -576,6 +589,54 @@ def _linear_regressor(random_state: int = 42) -> Any:
     return Ridge(alpha=1.0, random_state=random_state)
 
 
+def _tree_quantile_regressor(quantile: float, random_state: int = 42) -> Any:
+    if lgb is None:
+        return HistGradientBoostingRegressor(
+            loss="quantile",
+            quantile=quantile,
+            learning_rate=0.05,
+            max_depth=4,
+            max_iter=220,
+            min_samples_leaf=20,
+            random_state=random_state,
+        )
+    return lgb.LGBMRegressor(
+        objective="quantile",
+        alpha=quantile,
+        n_estimators=260,
+        learning_rate=0.04,
+        max_depth=4,
+        num_leaves=15,
+        min_child_samples=20,
+        random_state=random_state,
+        verbose=-1,
+    )
+
+
+def _fit_quantile_regressor(
+    X: np.ndarray,
+    y: np.ndarray,
+    quantile: float,
+    sample_weight: np.ndarray | None = None,
+    *,
+    family: str = "tree",
+) -> Any:
+    if family == "ensemble":
+        return AveragedRegressor([
+            _fit_quantile_regressor(X, y, quantile, sample_weight, family="linear"),
+            _fit_quantile_regressor(X, y, quantile, sample_weight, family="tree"),
+        ])
+    estimator = (
+        QuantileRegressor(quantile=quantile, alpha=0.01, solver="highs")
+        if family == "linear"
+        else _tree_quantile_regressor(quantile)
+    )
+    model = Pipeline([("scaler", RobustScaler()), ("model", estimator)])
+    fit_kwargs = {"model__sample_weight": sample_weight} if sample_weight is not None else {}
+    model.fit(X, y, **fit_kwargs)
+    return model
+
+
 def _fit_classifier(
     X: np.ndarray,
     y: np.ndarray,
@@ -721,6 +782,10 @@ def _family_cv_report(
     positive_log_loss: list[float] = []
     breakeven_log_loss: list[float] = []
     return_mae: list[float] = []
+    quantile_pinball: dict[float, list[float]] = {0.10: [], 0.50: [], 0.90: []}
+    interval_coverage: list[float] = []
+    conservative_returns: list[float] = []
+    conservative_counts: list[int] = []
     oof_positive = np.full(len(X_sorted), np.nan, dtype=float)
     oof_breakeven = np.full(len(X_sorted), np.nan, dtype=float)
 
@@ -736,6 +801,10 @@ def _family_cv_report(
         pos_model = _fit_classifier(X_train, pos_train, _balanced_sample_weight(train_sides, pos_train), family=family)
         be_model = _fit_classifier(X_train, be_train, _balanced_sample_weight(train_sides, be_train), family=family)
         ret_model = _fit_regressor(X_train, ret_train, side_weights, family=family)
+        quantile_models = {
+            quantile: _fit_quantile_regressor(X_train, ret_train, quantile, side_weights, family=family)
+            for quantile in (0.10, 0.50, 0.90)
+        }
         pos_probs = np.clip(_positive_proba(pos_model, X_val), 1e-6, 1 - 1e-6)
         be_probs = np.clip(_positive_proba(be_model, X_val), 1e-6, 1 - 1e-6)
         oof_positive[val_idx] = pos_probs
@@ -750,6 +819,25 @@ def _family_cv_report(
         positive_brier.append(float(brier_score_loss(pos_val, pos_probs)))
         breakeven_brier.append(float(brier_score_loss(be_val, be_probs)))
         return_mae.append(float(mean_absolute_error(ret_val, ret_model.predict(X_val))))
+        quantile_predictions = {
+            quantile: np.asarray(model.predict(X_val), dtype=float)
+            for quantile, model in quantile_models.items()
+        }
+        # Monotonic projection prevents independently fit heads from emitting
+        # internally inconsistent intervals at inference time.
+        stacked = np.sort(np.column_stack([
+            quantile_predictions[0.10],
+            quantile_predictions[0.50],
+            quantile_predictions[0.90],
+        ]), axis=1)
+        q10, q50, q90 = stacked[:, 0], stacked[:, 1], stacked[:, 2]
+        for quantile, prediction in ((0.10, q10), (0.50, q50), (0.90, q90)):
+            quantile_pinball[quantile].append(float(mean_pinball_loss(ret_val, prediction, alpha=quantile)))
+        interval_coverage.append(float(np.mean((ret_val >= q10) & (ret_val <= q90))))
+        conservative = q10 > 0.0
+        conservative_counts.append(int(conservative.sum()))
+        if conservative.any():
+            conservative_returns.extend(ret_val[conservative].astype(float).tolist())
         fold_reports.append(
             {
                 "fold": fold,
@@ -774,6 +862,17 @@ def _family_cv_report(
         "positive_pnl_log_loss_mean": round(float(np.mean(positive_log_loss)), 4) if positive_log_loss else None,
         "breakeven_log_loss_mean": round(float(np.mean(breakeven_log_loss)), 4) if breakeven_log_loss else None,
         "expected_return_mae_mean": round(float(np.mean(return_mae)), 4) if return_mae else None,
+        "return_quantiles": {
+            "q10_pinball_mean": round(float(np.mean(quantile_pinball[0.10])), 4) if quantile_pinball[0.10] else None,
+            "q50_pinball_mean": round(float(np.mean(quantile_pinball[0.50])), 4) if quantile_pinball[0.50] else None,
+            "q90_pinball_mean": round(float(np.mean(quantile_pinball[0.90])), 4) if quantile_pinball[0.90] else None,
+            "central_80_interval_coverage": round(float(np.mean(interval_coverage)), 4) if interval_coverage else None,
+            "conservative_q10_positive_rows": int(sum(conservative_counts)),
+            "conservative_q10_positive_mean_realized_return": (
+                round(float(np.mean(conservative_returns)), 4) if conservative_returns else None
+            ),
+            "policy": "independent quantile heads monotonically projected; q10 > 0 is the pre-registered conservative economic selector",
+        },
         "probability_buckets": {
             "prob_positive_option_pnl": _probability_buckets(oof_positive[valid_positive], y_positive[valid_positive]),
             "prob_exceeds_breakeven": _probability_buckets(oof_breakeven[valid_breakeven], y_breakeven[valid_breakeven]),
@@ -847,6 +946,8 @@ def _family_sort_key(report: dict[str, Any]) -> tuple[float, ...]:
         (float(row.get("auc") or 0.0) for row in required_side_rows),
         default=0.0,
     )
+    quantile_metrics = report.get("return_quantiles") if isinstance(report.get("return_quantiles"), dict) else {}
+    q50_pinball = quantile_metrics.get("q50_pinball_mean")
 
     return (
         float(missing_side_penalty),
@@ -855,6 +956,7 @@ def _family_sort_key(report: dict[str, Any]) -> tuple[float, ...]:
         val("positive_pnl_brier_mean"),
         val("breakeven_brier_mean"),
         val("expected_return_mae_mean"),
+        float(q50_pinball) if q50_pinball is not None else float("inf"),
         -float(report.get("positive_pnl_auc_mean") or 0.0),
         -float(report.get("breakeven_auc_mean") or 0.0),
     )
@@ -901,6 +1003,9 @@ def _fit_bundle(
         "fill_quality_classifier": _fit_classifier(X, labels["prob_fill_quality_ok"], sample_weight, family=family),
         "breakeven_classifier": _fit_classifier(X, labels["prob_exceeds_breakeven"], sample_weight, family=family),
         "expected_return_regressor": _fit_regressor(X, labels["expected_option_return_pct"], sample_weight, family=family),
+        "return_quantile_10_regressor": _fit_quantile_regressor(X, labels["expected_option_return_pct"], 0.10, sample_weight, family=family),
+        "return_quantile_50_regressor": _fit_quantile_regressor(X, labels["expected_option_return_pct"], 0.50, sample_weight, family=family),
+        "return_quantile_90_regressor": _fit_quantile_regressor(X, labels["expected_option_return_pct"], 0.90, sample_weight, family=family),
         "mfe_regressor": _fit_regressor(X, labels["max_favorable_excursion_before_expiry"], sample_weight, family=family),
         "adverse_regressor": _fit_regressor(X, labels["adverse_excursion_risk"], sample_weight, family=family),
         "path_take_profit_classifier": _fit_classifier(X, labels["path_early_profit_take_prob"], sample_weight, family=family),
@@ -1057,6 +1162,10 @@ def _promotion_gate_report(
         required_qualified=2,
     )
     friction_flip_count = int(dataset_summary.get("friction_flip_count", 0))
+    quantile_metrics = cv.get("return_quantiles") if isinstance(cv.get("return_quantiles"), dict) else {}
+    interval_coverage = quantile_metrics.get("central_80_interval_coverage")
+    conservative_rows = int(quantile_metrics.get("conservative_q10_positive_rows") or 0)
+    conservative_return = quantile_metrics.get("conservative_q10_positive_mean_realized_return")
     gates = {
         "canonical_dataset_source": {
             "passed": primary_artifact == "option_outcome_dataset",
@@ -1113,6 +1222,18 @@ def _promotion_gate_report(
             "actual": breakeven_brier,
             "baseline": round(breakeven_baseline_brier, 4),
         },
+        "return_interval_calibration": {
+            "passed": interval_coverage is not None and 0.70 <= float(interval_coverage) <= 0.90,
+            "actual_central_80_coverage": interval_coverage,
+            "required_range": [0.70, 0.90],
+        },
+        "conservative_after_cost_utility": {
+            "passed": conservative_rows >= 30 and conservative_return is not None and float(conservative_return) > 0,
+            "selected_rows": conservative_rows,
+            "mean_realized_after_cost_return": conservative_return,
+            "required_min_rows": 30,
+            "required_mean_return_gt": 0.0,
+        },
     }
     all_passed = all(bool(gate.get("passed")) for gate in gates.values())
     return {
@@ -1137,6 +1258,7 @@ def train(
     output_model_card: Path = DEFAULT_MODEL_CARD_PATH,
     options_data_dir: Path | None = DEFAULT_OPTIONS_DATA_DIR,
     min_side_examples: int = 75,
+    artifact_mode: str = "active_ranker",
 ) -> dict[str, Any]:
     examples, source_metadata = load_examples(input_paths, options_data_dir=options_data_dir)
     if len(examples) < 50:
@@ -1147,6 +1269,9 @@ def train(
         "prob_positive_option_pnl",
         "prob_exceeds_breakeven",
         "expected_option_return_pct",
+        "return_quantile_10",
+        "return_quantile_50",
+        "return_quantile_90",
         "prob_no_trade",
         "prob_fill_quality_ok",
         "path_early_profit_take_prob",
@@ -1177,7 +1302,9 @@ def train(
     selected_family = str(cv.get("selected_family") or "tree")
 
     artifact: dict[str, Any] = {
-        "version": 6,
+        "artifact": "cost_aware_multi_task_payoff_model",
+        "version": 7,
+        "mode": artifact_mode,
         "feature_cols": FEATURE_COLS,
         "selected_family": selected_family,
         "global": _fit_bundle(X, labels, _balanced_sample_weight(sides), family=selected_family),
@@ -1191,7 +1318,11 @@ def train(
             "selected_family": selected_family,
             "model_selection_objective": "minimize worst-side out-of-fold Brier excess before aggregate metrics",
             "family_bakeoff": cv.get("family_bakeoff", {}),
-            "activation_policy": "active_by_default_for_existing payoff ranker; set OROGRAPHIC_PAYOFF_MODEL_MODE=shadow for observation-only scoring",
+            "activation_policy": (
+                "observation_only_never_used_for_routing"
+                if artifact_mode == "observation_only_never_used_for_routing"
+                else "active_by_default_for_existing payoff ranker; set OROGRAPHIC_PAYOFF_MODEL_MODE=shadow for observation-only scoring"
+            ),
             "integrated_heads": integrated_heads,
         },
     }
@@ -1238,7 +1369,7 @@ def train(
         observed_path_coverage_ratio=float(source_metadata.get("exact_quote_path_coverage_ratio", 0.0)),
     )
     report = {
-        "artifact": "payoff_model",
+        "artifact": "cost_aware_payoff_challenger" if artifact_mode == "observation_only_never_used_for_routing" else "payoff_model",
         "version": artifact["version"],
         "model_card_schema_version": 2,
         "trained_at": trained_at,
@@ -1276,9 +1407,13 @@ def train(
             "coverage": coverage,
         },
         "activation_policy": {
-            "default": "active",
+            "default": "observation_only" if artifact_mode == "observation_only_never_used_for_routing" else "active",
             "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow",
-            "reason": "The payoff ranker remains active and now operates alongside production-active Scout and Sentinel gating.",
+            "reason": (
+                "Cost-aware multi-task challenger cannot affect Forge order, Council eligibility, sizing, or Tradier routing."
+                if artifact_mode == "observation_only_never_used_for_routing"
+                else "The payoff ranker remains active and now operates alongside production-active Scout and Sentinel gating."
+            ),
         },
         "training_data": {
             "primary_artifact": source_metadata.get("primary_training_source_artifact"),
@@ -1297,6 +1432,8 @@ def train(
             "selected_family": selected_family,
             "evaluated_families": list(MODEL_FAMILIES),
             "model_selection_objective": "worst-side Brier skill and AUC, then aggregate Brier, MAE, and AUC",
+            "economic_selection_policy": "q10 after-cost return above zero; prospective replay remains mandatory",
+            "quantile_consistency": "independent q10/q50/q90 heads are monotonically projected at evaluation and inference",
         },
     }
 
@@ -1308,6 +1445,9 @@ def train(
         "prob_positive_option_pnl": "1 when realized option PnL pct is positive",
         "prob_exceeds_breakeven": "1 when exit underlying price exceeds the long option breakeven",
         "expected_option_return_pct": "realized option PnL pct clipped to the configured cap",
+        "return_quantile_10": "conditional 10th percentile of strict after-cost executable return",
+        "return_quantile_50": "conditional median of strict after-cost executable return",
+        "return_quantile_90": "conditional 90th percentile of strict after-cost executable return",
         "prob_no_trade": "1 when the realized contract should have been skipped because it failed friction or ended non-positive after friction",
         "prob_fill_quality_ok": "1 when entry spread, depth, volume, and quote coverage indicate live-tradable fill quality",
         "path_early_profit_take_prob": "1 when observed max favorable excursion reaches the early-take-profit threshold",
@@ -1345,6 +1485,11 @@ def main() -> None:
     parser.add_argument("--output-model-card", type=Path, default=DEFAULT_MODEL_CARD_PATH)
     parser.add_argument("--options-data-dir", type=Path, default=DEFAULT_OPTIONS_DATA_DIR)
     parser.add_argument("--min-side-examples", type=int, default=75)
+    parser.add_argument(
+        "--artifact-mode",
+        choices=["active_ranker", "observation_only_never_used_for_routing"],
+        default="active_ranker",
+    )
     args = parser.parse_args()
 
     input_paths = args.input or default_input_paths()
@@ -1361,6 +1506,7 @@ def main() -> None:
         output_model_card=args.output_model_card,
         options_data_dir=args.options_data_dir,
         min_side_examples=args.min_side_examples,
+        artifact_mode=args.artifact_mode,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
 

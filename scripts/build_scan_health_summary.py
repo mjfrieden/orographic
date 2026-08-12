@@ -86,6 +86,13 @@ def _ledger_health(path: Path) -> dict[str, Any]:
         "capture_windows_quote_missing": _int(outcome.get("capture_windows_quote_missing")),
         "capture_windows_stale_quote": _int(outcome.get("capture_windows_stale_quote")),
         "capture_windows_missed": _int(outcome.get("capture_windows_missed")),
+        "trajectory_scored_picks": _int(outcome.get("trajectory_scored_picks")),
+        "trajectory_marks": _int(outcome.get("trajectory_marks")),
+        "trajectory_picks_with_4_marks": _int(outcome.get("trajectory_picks_with_4_marks")),
+        "trajectory_active_picks_last_run": _int(last_mark.get("trajectory_active_picks")),
+        "trajectory_marks_written_last_run": _int(last_mark.get("trajectory_marks_written")),
+        "trajectory_quotes_missing_last_run": _int(last_mark.get("trajectory_quotes_missing")),
+        "trajectory_quotes_stale_last_run": _int(last_mark.get("trajectory_quotes_stale")),
     }
 
 
@@ -179,6 +186,10 @@ def build_scan_health_summary(
         prospective["capture_windows_quote_missing"] + moonshot["capture_windows_quote_missing"]
     )
     stale_quote_windows = prospective["capture_windows_stale_quote"] + moonshot["capture_windows_stale_quote"]
+    trajectory_active = prospective["trajectory_active_picks_last_run"] + moonshot["trajectory_active_picks_last_run"]
+    trajectory_written = prospective["trajectory_marks_written_last_run"] + moonshot["trajectory_marks_written_last_run"]
+    trajectory_missing = prospective["trajectory_quotes_missing_last_run"] + moonshot["trajectory_quotes_missing_last_run"]
+    trajectory_stale = prospective["trajectory_quotes_stale_last_run"] + moonshot["trajectory_quotes_stale_last_run"]
     _check(
         checks,
         "strict_capture_policy_active",
@@ -194,6 +205,16 @@ def build_scan_health_summary(
         missed_windows=missed_capture_windows,
         retryable_quote_missing_windows=retryable_missing_windows,
         stale_quote_windows=stale_quote_windows,
+    )
+    _check(
+        checks,
+        "trajectory_capture_health",
+        trajectory_active == 0 or (trajectory_written > 0 and trajectory_missing == 0 and trajectory_stale == 0),
+        active_picks=trajectory_active,
+        marks_written=trajectory_written,
+        missing_quotes=trajectory_missing,
+        stale_quotes=trajectory_stale,
+        note="No active picks is valid; otherwise every scheduled run must add fresh trajectory evidence.",
     )
     _check(checks, "archive_manifest_exists", archive_manifest.exists(), path=str(archive_manifest))
     _check(
@@ -270,6 +291,13 @@ def build_scan_health_summary(
             "capture_windows_missed": missed_capture_windows,
             "capture_windows_quote_missing": retryable_missing_windows,
             "capture_windows_stale_quote": stale_quote_windows,
+            "trajectory_active_picks_last_run": trajectory_active,
+            "trajectory_marks_written_last_run": trajectory_written,
+            "trajectory_quotes_missing_last_run": trajectory_missing,
+            "trajectory_quotes_stale_last_run": trajectory_stale,
+            "trajectory_scored_picks": prospective["trajectory_scored_picks"] + moonshot["trajectory_scored_picks"],
+            "trajectory_marks": prospective["trajectory_marks"] + moonshot["trajectory_marks"],
+            "trajectory_picks_with_4_marks": prospective["trajectory_picks_with_4_marks"] + moonshot["trajectory_picks_with_4_marks"],
         },
         "research": {
             "audit_status": audit.get("status"),

@@ -10,8 +10,8 @@ The resulting probability p(label=1) replaces the hardcoded linear
 scout_score at inference time.
 
 Usage:
-    cd /Users/mjfrieden/Desktop/2026/Orographic/engine
-    python train_scout_model.py [--years 2] [--symbols AAPL,MSFT,...]
+    cd /Users/mjfrieden/Desktop/2026/Orographic
+    python -m engine.train_scout_model [--years 2] [--symbols AAPL,MSFT,...]
 """
 from __future__ import annotations
 
@@ -58,6 +58,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 MODEL_DIR = Path(__file__).parent / "orographic" / "models"
 MODEL_PATH = MODEL_DIR / "scout_model.pkl"
 SIDE_MODEL_PATH = MODEL_DIR / "scout_side_model.pkl"
+HIERARCHICAL_SIDE_MODEL_PATH = MODEL_DIR / "scout_hierarchical_challenger.pkl"
+HIERARCHICAL_SIDE_CARD_PATH = MODEL_DIR / "scout_hierarchical_challenger_card.json"
 SCALER_PATH = MODEL_DIR / "scout_scaler.pkl"
 MODEL_CARD_PATH = MODEL_DIR / "scout_model_card.json"
 TRAINING_UNIVERSE_FILE = Path(__file__).with_name("sample_universe.txt")
@@ -676,6 +678,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
                 "call_avg_pnl_pct": None if call_score == float("-inf") else round(call_score, 6),
                 "put_avg_pnl_pct": None if put_score == float("-inf") else round(put_score, 6),
                 "trade_count": int(len(group)),
+                "both_sides_observed": bool(not call_returns.empty and not put_returns.empty),
             }
         )
 
@@ -799,6 +802,182 @@ def _side_cv_report(
     }
 
 
+def _fit_hierarchical_binary_head(X: np.ndarray, y: np.ndarray, *, random_state: int) -> Any:
+    if len(y) == 0:
+        # A neutral, observation-only fallback keeps artifact construction
+        # deterministic while the evidence gates record that direction labels
+        # are unavailable.
+        model = LogisticRegression(random_state=random_state)
+        width = int(X.shape[1]) if X.ndim == 2 and X.shape[1] else 1
+        model.fit(np.zeros((2, width), dtype=float), np.array([0, 1], dtype=int))
+    elif len(set(y.tolist())) < 2:
+        from sklearn.dummy import DummyClassifier
+
+        model = DummyClassifier(strategy="constant", constant=int(y[0]))
+        model.fit(X, y)
+    else:
+        model = lgb.LGBMClassifier(
+            objective="binary",
+            n_estimators=300,
+            learning_rate=0.04,
+            max_depth=4,
+            num_leaves=15,
+            min_child_samples=15,
+            class_weight="balanced",
+            random_state=random_state,
+            verbose=-1,
+        )
+        model.fit(X, y)
+    return model
+
+
+def _binary_positive_probability(model: Any, X: np.ndarray) -> np.ndarray:
+    probs = np.asarray(model.predict_proba(X), dtype=float)
+    if probs.ndim == 2 and probs.shape[1] > 1:
+        classes = [int(value) for value in model.classes_]
+        return probs[:, classes.index(1)] if 1 in classes else np.zeros(len(X), dtype=float)
+    return np.asarray(model.predict(X), dtype=float)
+
+
+def _hierarchical_threshold_report(
+    trade_probs: np.ndarray,
+    call_probs: np.ndarray,
+    frame: pd.DataFrame,
+) -> dict[str, Any]:
+    call_returns = pd.to_numeric(frame["call_avg_pnl_pct"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+    put_returns = pd.to_numeric(frame["put_avg_pnl_pct"], errors="coerce").fillna(0.0).to_numpy(dtype=float)
+    regimes = _infer_regime_labels(frame)
+    candidates: list[dict[str, Any]] = []
+    for trade_threshold in (0.50, 0.60, 0.70, 0.80):
+        for direction_threshold in (0.50, 0.55, 0.60, 0.65):
+            confidence = np.maximum(call_probs, 1.0 - call_probs)
+            selected = (trade_probs >= trade_threshold) & (confidence >= direction_threshold)
+            realized = np.where(call_probs >= 0.5, call_returns, put_returns)
+            selected_returns = realized[selected]
+            side_counts = {
+                "call": int(np.sum(selected & (call_probs >= 0.5))),
+                "put": int(np.sum(selected & (call_probs < 0.5))),
+            }
+            regime_counts = {
+                str(regime): int(np.sum(selected & (regimes == regime)))
+                for regime in sorted(set(regimes.tolist()))
+            }
+            candidates.append({
+                "trade_threshold": trade_threshold,
+                "direction_confidence_threshold": direction_threshold,
+                "selected_rows": int(selected.sum()),
+                "coverage": round(float(selected.mean()), 4) if len(selected) else 0.0,
+                "mean_after_cost_return": round(float(selected_returns.mean()), 4) if len(selected_returns) else None,
+                "downside_decile_after_cost_return": round(float(np.quantile(selected_returns, 0.10)), 4) if len(selected_returns) else None,
+                "positive_rate": round(float(np.mean(selected_returns > 0)), 4) if len(selected_returns) else None,
+                "side_counts": side_counts,
+                "regime_counts": regime_counts,
+            })
+    eligible = [
+        row for row in candidates
+        if row["selected_rows"] >= 30
+        and min(row["side_counts"].values()) >= 10
+        and sum(count >= 10 for count in row["regime_counts"].values()) >= 2
+    ]
+    ranked = sorted(
+        eligible or candidates,
+        key=lambda row: (
+            -(float(row["downside_decile_after_cost_return"]) if row["downside_decile_after_cost_return"] is not None else -999.0),
+            -(float(row["mean_after_cost_return"]) if row["mean_after_cost_return"] is not None else -999.0),
+            -int(row["selected_rows"]),
+        ),
+    )
+    selected = ranked[0] if ranked else {
+        "trade_threshold": 0.70,
+        "direction_confidence_threshold": 0.55,
+        "selected_rows": 0,
+    }
+    return {
+        "objective": "maximize the downside-decile strict after-cost return subject to side, regime, and sample-depth constraints",
+        "selected": selected,
+        "eligible_rules": len(eligible),
+        "grid": candidates,
+    }
+
+
+def _hierarchical_cv_report(
+    X: np.ndarray,
+    frame: pd.DataFrame,
+    dates: np.ndarray,
+    label_dates: np.ndarray,
+) -> dict[str, Any]:
+    if len(X) < 80:
+        return {"folds": 0, "reason": "insufficient_examples"}
+    trade_y = (frame["side_label"].to_numpy(dtype=object) != "no_trade").astype(int)
+    direction_y = (frame["side_label"].to_numpy(dtype=object) == "call_edge").astype(int)
+    paired = frame.get("both_sides_observed", pd.Series(False, index=frame.index)).fillna(False).to_numpy(dtype=bool)
+    order = np.argsort(pd.to_datetime(dates).view("int64"), kind="stable")
+    X_sorted, frame_sorted = X[order], frame.iloc[order].reset_index(drop=True)
+    trade_sorted, direction_sorted, paired_sorted = trade_y[order], direction_y[order], paired[order]
+    dates_sorted, label_dates_sorted = np.asarray(dates)[order], np.asarray(label_dates)[order]
+    oof_trade = np.full(len(X_sorted), np.nan)
+    oof_call = np.full(len(X_sorted), np.nan)
+    splits = list(purged_date_splits(dates_sorted, label_dates_sorted, n_splits=min(5, max(2, len(X_sorted) // 120))))
+    folds: list[dict[str, Any]] = []
+    for fold, (train_idx, val_idx) in enumerate(splits, start=1):
+        scaler = RobustScaler()
+        X_train, X_val = scaler.fit_transform(X_sorted[train_idx]), scaler.transform(X_sorted[val_idx])
+        trade_model = _fit_hierarchical_binary_head(X_train, trade_sorted[train_idx], random_state=100 + fold)
+        oof_trade[val_idx] = _binary_positive_probability(trade_model, X_val)
+        directional_train = train_idx[(trade_sorted[train_idx] == 1) & paired_sorted[train_idx]]
+        if len(directional_train) < 20:
+            folds.append({
+                "fold": fold,
+                "train_rows": int(len(train_idx)),
+                "validation_rows": int(len(val_idx)),
+                "direction_head_skipped": True,
+                "reason": "fewer_than_20_paired_direction_rows",
+            })
+            continue
+        direction_model = _fit_hierarchical_binary_head(
+            scaler.transform(X_sorted[directional_train]),
+            direction_sorted[directional_train],
+            random_state=200 + fold,
+        )
+        oof_call[val_idx] = _binary_positive_probability(direction_model, X_val)
+        folds.append({
+            "fold": fold,
+            "train_rows": int(len(train_idx)),
+            "validation_rows": int(len(val_idx)),
+            "validation_start": str(pd.Timestamp(dates_sorted[val_idx].min()).date()),
+            "training_label_end": str(pd.Timestamp(label_dates_sorted[train_idx].max()).date()),
+        })
+    valid_trade = np.isfinite(oof_trade)
+    if not valid_trade.any():
+        return {"folds": len(splits), "reason": "no_valid_trade_oof_predictions"}
+    valid_direction = np.isfinite(oof_call)
+    trade_labels = trade_sorted[valid_trade]
+    direction_mask = valid_direction & (trade_sorted == 1) & paired_sorted
+    economic_mask = valid_trade & valid_direction & paired_sorted
+    threshold_report = (
+        _hierarchical_threshold_report(
+            oof_trade[economic_mask],
+            oof_call[economic_mask],
+            frame_sorted.loc[economic_mask],
+        )
+        if economic_mask.any()
+        else {"reason": "paired_direction_oof_predictions_unavailable", "selected": {}}
+    )
+    return {
+        "folds": len(splits),
+        "split_policy": "date_grouped_purged_by_outcome_date",
+        "fold_reports": folds,
+        "oof_rows": int(valid_trade.sum()),
+        "direction_oof_rows": int(direction_mask.sum()),
+        "trade_brier": round(float(brier_score_loss(trade_labels, oof_trade[valid_trade])), 4),
+        "trade_baseline_brier": round(float(brier_score_loss(trade_labels, np.full(valid_trade.sum(), trade_labels.mean()))), 4),
+        "trade_auc": round(float(roc_auc_score(trade_labels, oof_trade[valid_trade])), 4) if len(set(trade_labels.tolist())) > 1 else None,
+        "direction_brier": round(float(brier_score_loss(direction_sorted[direction_mask], oof_call[direction_mask])), 4) if direction_mask.any() else None,
+        "direction_auc": round(float(roc_auc_score(direction_sorted[direction_mask], oof_call[direction_mask])), 4) if direction_mask.any() and len(set(direction_sorted[direction_mask].tolist())) > 1 else None,
+        "threshold_selection": threshold_report,
+    }
+
+
 def train(
     symbols: list[str],
     years: int,
@@ -808,6 +987,7 @@ def train(
     option_outcome_inputs: list[Path] | None = None,
     primary_target: str = PRIMARY_TARGET_UNDERLYING,
     event_features_path: Path | None = None,
+    write_active_artifacts: bool = True,
 ) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -1232,36 +1412,133 @@ def train(
         "source_metadata": side_source_metadata,
     }
 
-    # Save artifacts
-    joblib.dump(final_model, MODEL_PATH)
-    joblib.dump(
-        {
-            "model": side_model,
-            "scaler": side_scaler,
+    hierarchical_report: dict[str, Any] = {
+        "artifact": "scout_hierarchical_challenger",
+        "status": "unavailable",
+        "reason": "strict_real_option_payoff_labels_required",
+        "execution_effect": "none_observation_only",
+    }
+    if side_target == "strict_real_option_payoff":
+        hierarchical_frame = side_training_frame.reset_index(drop=True)
+        hierarchical_X_raw = hierarchical_frame[available].to_numpy(dtype=float)
+        hierarchical_scaler = RobustScaler()
+        hierarchical_X = hierarchical_scaler.fit_transform(hierarchical_X_raw)
+        trade_y = (hierarchical_frame["side_label"].to_numpy(dtype=object) != "no_trade").astype(int)
+        paired_direction = hierarchical_frame.get(
+            "both_sides_observed",
+            pd.Series(False, index=hierarchical_frame.index),
+        ).fillna(False).to_numpy(dtype=bool)
+        direction_idx = np.where((trade_y == 1) & paired_direction)[0]
+        direction_y = (hierarchical_frame.iloc[direction_idx]["side_label"].to_numpy(dtype=object) == "call_edge").astype(int)
+        trade_model = _fit_hierarchical_binary_head(hierarchical_X, trade_y, random_state=143)
+        direction_model = _fit_hierarchical_binary_head(hierarchical_X[direction_idx], direction_y, random_state=243)
+        hierarchical_cv = _hierarchical_cv_report(
+            hierarchical_X_raw,
+            hierarchical_frame,
+            side_training_dates,
+            side_training_label_dates,
+        )
+        threshold_selection = hierarchical_cv.get("threshold_selection", {})
+        selected_rule = threshold_selection.get("selected", {}) if isinstance(threshold_selection, dict) else {}
+        label_counts = {
+            label: int((hierarchical_frame["side_label"] == label).sum())
+            for label in ("call_edge", "put_edge", "no_trade")
+        }
+        paired_direction_counts = {
+            "call": int(np.sum(direction_y == 1)),
+            "put": int(np.sum(direction_y == 0)),
+        }
+        regime_labels = _infer_regime_labels(hierarchical_frame)
+        regime_counts = {str(name): int(count) for name, count in pd.Series(regime_labels).value_counts().to_dict().items()}
+        gates = {
+            "minimum_independent_rows": {"passed": len(hierarchical_frame) >= 150, "actual": int(len(hierarchical_frame)), "required_min": 150},
+            "minimum_call_put_rows": {"passed": bool(paired_direction_counts) and min(paired_direction_counts.values()) >= 50, "actual_paired_direction_rows": paired_direction_counts, "all_label_counts": label_counts, "required_min_each_direction": 50},
+            "regime_coverage": {"passed": sum(count >= 25 for count in regime_counts.values()) >= 2, "actual": regime_counts, "required_segments_with_25_rows": 2},
+            "trade_probability_skill": {
+                "passed": hierarchical_cv.get("trade_brier") is not None and hierarchical_cv.get("trade_baseline_brier") is not None and float(hierarchical_cv["trade_brier"]) < float(hierarchical_cv["trade_baseline_brier"]),
+                "brier": hierarchical_cv.get("trade_brier"),
+                "baseline_brier": hierarchical_cv.get("trade_baseline_brier"),
+            },
+            "direction_discrimination": {"passed": hierarchical_cv.get("direction_auc") is not None and float(hierarchical_cv["direction_auc"]) >= 0.53, "auc": hierarchical_cv.get("direction_auc"), "required_min": 0.53},
+            "conservative_after_cost_utility": {
+                "passed": int(selected_rule.get("selected_rows") or 0) >= 30 and selected_rule.get("mean_after_cost_return") is not None and float(selected_rule["mean_after_cost_return"]) > 0 and selected_rule.get("downside_decile_after_cost_return") is not None and float(selected_rule["downside_decile_after_cost_return"]) > 0,
+                "selected_rule": selected_rule,
+                "requirements": {"minimum_rows": 30, "mean_return_gt": 0.0, "downside_decile_gt": 0.0},
+            },
+        }
+        gate_status = "pending_prospective_validation" if all(bool(gate["passed"]) for gate in gates.values()) else "hold"
+        hierarchical_artifact = {
+            "artifact": "scout_hierarchical_challenger",
+            "version": 1,
+            "mode": "observation_only_never_used_for_routing",
             "feature_cols": available,
-            "class_map": SIDE_CLASS_MAP,
-            "target": side_target,
-            "label_threshold_abs_fwd_5d_return": side_threshold if side_target == "underlying_forward_return" else None,
+            "scaler": hierarchical_scaler,
+            "trade_model": trade_model,
+            "direction_model": direction_model,
+            "thresholds": {
+                "trade_probability": float(selected_rule.get("trade_threshold", 0.70)),
+                "direction_confidence": float(selected_rule.get("direction_confidence_threshold", 0.55)),
+            },
+            "target_contract": {
+                "stage_1": "probability that at least one observed option side has positive strict after-cost P&L",
+                "stage_2": "probability call has the better strict after-cost P&L conditional on trade",
+            },
+            "execution_effect": "none_observation_only",
             "source_metadata": side_source_metadata,
-        },
-        SIDE_MODEL_PATH,
-    )
-    joblib.dump(
-        {
-            "scaler": final_scaler,
-            "feature_cols": available,
-            "calibrator": calibrator,
-            "calibration_method": calibration_method,
-            "decision_threshold": decision_threshold,
-            "primary_target": primary_target_effective,
-            "target_description": target_description,
-            "positive_class_name": positive_class_name,
-        },
-        SCALER_PATH,
-    )
-    log.info("✅  Model saved  → %s", MODEL_PATH)
-    log.info("✅  Side model saved → %s", SIDE_MODEL_PATH)
-    log.info("✅  Scaler saved → %s", SCALER_PATH)
+        }
+        joblib.dump(hierarchical_artifact, HIERARCHICAL_SIDE_MODEL_PATH)
+        hierarchical_report = {
+            "artifact": "scout_hierarchical_challenger",
+            "version": 1,
+            "status": gate_status,
+            "execution_effect": "none_observation_only",
+            "rows": int(len(hierarchical_frame)),
+            "label_counts": label_counts,
+            "paired_direction_counts": paired_direction_counts,
+            "regime_counts": regime_counts,
+            "cross_validation": hierarchical_cv,
+            "promotion_gates": gates,
+            "artifacts": {
+                "model_path": _artifact_path_for_card(HIERARCHICAL_SIDE_MODEL_PATH),
+                "model_sha256": _sha256_file(HIERARCHICAL_SIDE_MODEL_PATH),
+                "model_card_path": _artifact_path_for_card(HIERARCHICAL_SIDE_CARD_PATH),
+            },
+        }
+        HIERARCHICAL_SIDE_CARD_PATH.write_text(json.dumps(hierarchical_report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    # Save artifacts
+    if write_active_artifacts:
+        joblib.dump(final_model, MODEL_PATH)
+        joblib.dump(
+            {
+                "model": side_model,
+                "scaler": side_scaler,
+                "feature_cols": available,
+                "class_map": SIDE_CLASS_MAP,
+                "target": side_target,
+                "label_threshold_abs_fwd_5d_return": side_threshold if side_target == "underlying_forward_return" else None,
+                "source_metadata": side_source_metadata,
+            },
+            SIDE_MODEL_PATH,
+        )
+        joblib.dump(
+            {
+                "scaler": final_scaler,
+                "feature_cols": available,
+                "calibrator": calibrator,
+                "calibration_method": calibration_method,
+                "decision_threshold": decision_threshold,
+                "primary_target": primary_target_effective,
+                "target_description": target_description,
+                "positive_class_name": positive_class_name,
+            },
+            SCALER_PATH,
+        )
+        log.info("✅  Model saved  → %s", MODEL_PATH)
+        log.info("✅  Side model saved → %s", SIDE_MODEL_PATH)
+        log.info("✅  Scaler saved → %s", SCALER_PATH)
+    else:
+        log.info("Active Scout artifacts preserved; hierarchical-only training requested.")
 
     importances = sorted(
         zip(available, final_model.feature_importances_),
@@ -1307,6 +1584,7 @@ def train(
             ),
             "training_metrics": side_training_metrics,
         },
+        "hierarchical_side_challenger": hierarchical_report,
         "activation_policy": {
             "default": "active",
             "active_env": "OROGRAPHIC_SIDE_MODEL_MODE=active",
@@ -1343,8 +1621,9 @@ def train(
             "Payoff-aware contract ranking is handled by the second-stage payoff model when available.",
         ],
     }
-    MODEL_CARD_PATH.write_text(json.dumps(model_card, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    log.info("✅  Model card saved → %s", MODEL_CARD_PATH)
+    if write_active_artifacts:
+        MODEL_CARD_PATH.write_text(json.dumps(model_card, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        log.info("✅  Model card saved → %s", MODEL_CARD_PATH)
 
     # Final classification report on training data (sanity check, not a backtest)
     preds = final_model.predict(X_final)
@@ -1403,6 +1682,11 @@ def main() -> None:
         default=None,
         help="Optional canonical event-feature store (.parquet/.csv/.json/.jsonl).",
     )
+    parser.add_argument(
+        "--hierarchical-only",
+        action="store_true",
+        help="Train only the observation-only hierarchical challenger; preserve all active Scout artifacts and cards.",
+    )
     args = parser.parse_args()
 
     cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
@@ -1425,6 +1709,7 @@ def main() -> None:
         option_outcome_inputs=option_inputs,
         primary_target=primary_target,
         event_features_path=args.event_features_path,
+        write_active_artifacts=not args.hierarchical_only,
     )
 
 

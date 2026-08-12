@@ -1,0 +1,105 @@
+{
+  "artifact": "scout_hierarchical_challenger",
+  "artifacts": {
+    "model_card_path": "engine/orographic/models/scout_hierarchical_challenger_card.json",
+    "model_path": "engine/orographic/models/scout_hierarchical_challenger.pkl",
+    "model_sha256": "5114acbcd0f7a12ddec17e97d2b4e3c8cf9d58b12812eb0131970e68db13c15a"
+  },
+  "cross_validation": {
+    "direction_auc": null,
+    "direction_brier": null,
+    "direction_oof_rows": 0,
+    "fold_reports": [
+      {
+        "direction_head_skipped": true,
+        "fold": 1,
+        "reason": "fewer_than_20_paired_direction_rows",
+        "train_rows": 128,
+        "validation_rows": 101
+      },
+      {
+        "direction_head_skipped": true,
+        "fold": 2,
+        "reason": "fewer_than_20_paired_direction_rows",
+        "train_rows": 190,
+        "validation_rows": 51
+      }
+    ],
+    "folds": 2,
+    "oof_rows": 152,
+    "split_policy": "date_grouped_purged_by_outcome_date",
+    "threshold_selection": {
+      "reason": "paired_direction_oof_predictions_unavailable",
+      "selected": {}
+    },
+    "trade_auc": 0.4825,
+    "trade_baseline_brier": 0.2344,
+    "trade_brier": 0.3312
+  },
+  "execution_effect": "none_observation_only",
+  "label_counts": {
+    "call_edge": 87,
+    "no_trade": 179,
+    "put_edge": 17
+  },
+  "paired_direction_counts": {
+    "call": 1,
+    "put": 0
+  },
+  "promotion_gates": {
+    "conservative_after_cost_utility": {
+      "passed": false,
+      "requirements": {
+        "downside_decile_gt": 0.0,
+        "mean_return_gt": 0.0,
+        "minimum_rows": 30
+      },
+      "selected_rule": {}
+    },
+    "direction_discrimination": {
+      "auc": null,
+      "passed": false,
+      "required_min": 0.53
+    },
+    "minimum_call_put_rows": {
+      "actual_paired_direction_rows": {
+        "call": 1,
+        "put": 0
+      },
+      "all_label_counts": {
+        "call_edge": 87,
+        "no_trade": 179,
+        "put_edge": 17
+      },
+      "passed": false,
+      "required_min_each_direction": 50
+    },
+    "minimum_independent_rows": {
+      "actual": 283,
+      "passed": true,
+      "required_min": 150
+    },
+    "regime_coverage": {
+      "actual": {
+        "neutral": 204,
+        "risk_off": 64,
+        "risk_on": 15
+      },
+      "passed": true,
+      "required_segments_with_25_rows": 2
+    },
+    "trade_probability_skill": {
+      "baseline_brier": 0.2344,
+      "brier": 0.3312,
+      "passed": false
+    }
+  },
+  "regime_counts": {
+    "neutral": 204,
+    "risk_off": 64,
+    "risk_on": 15
+  },
+  "rows": 283,
+  "status": "hold",
+  "version": 1
+}

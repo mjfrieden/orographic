@@ -1,0 +1,1744 @@
+{
+  "activation_policy": {
+    "default": "observation_only",
+    "reason": "Cost-aware multi-task challenger cannot affect Forge order, Council eligibility, sizing, or Tradier routing.",
+    "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
+  },
+  "artifact": "cost_aware_payoff_challenger",
+  "artifacts": {
+    "model_card_path": "engine/orographic/models/payoff_cost_aware_challenger_card.json",
+    "model_path": "engine/orographic/models/payoff_cost_aware_challenger.pkl",
+    "model_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
+    "report_path": "output/payoff_cost_aware_challenger_report.json"
+  },
+  "avg_adverse_excursion_risk": -0.3379,
+  "avg_expected_option_return_pct": -0.0339,
+  "avg_mfe_before_expiry": 0.2961,
+  "breakeven_rate": 0.3619,
+  "calibration": {
+    "brier": {
+      "baseline_prob_exceeds_breakeven": 0.2309,
+      "baseline_prob_positive_option_pnl": 0.2302,
+      "prob_exceeds_breakeven": 0.3634,
+      "prob_positive_option_pnl": 0.368
+    },
+    "method": "walk_forward_probability_buckets",
+    "probability_buckets": {
+      "prob_exceeds_breakeven": [
+        {
+          "bucket": "(0.00471, 0.078]",
+          "mean_pred_prob": 0.0466,
+          "realized_rate": 0.5263,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.078, 0.167]",
+          "mean_pred_prob": 0.1191,
+          "realized_rate": 0.5946,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.167, 0.286]",
+          "mean_pred_prob": 0.223,
+          "realized_rate": 0.2973,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.286, 0.369]",
+          "mean_pred_prob": 0.3285,
+          "realized_rate": 0.4211,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.369, 0.465]",
+          "mean_pred_prob": 0.4101,
+          "realized_rate": 0.2432,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.465, 0.564]",
+          "mean_pred_prob": 0.5181,
+          "realized_rate": 0.2432,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.564, 0.735]",
+          "mean_pred_prob": 0.6564,
+          "realized_rate": 0.3243,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.735, 0.953]",
+          "mean_pred_prob": 0.8322,
+          "realized_rate": 0.1842,
+          "rows": 38
+        }
+      ],
+      "prob_positive_option_pnl": [
+        {
+          "bucket": "(0.00471, 0.078]",
+          "mean_pred_prob": 0.0466,
+          "realized_rate": 0.5263,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.078, 0.167]",
+          "mean_pred_prob": 0.1191,
+          "realized_rate": 0.5946,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.167, 0.286]",
+          "mean_pred_prob": 0.2234,
+          "realized_rate": 0.2973,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.286, 0.368]",
+          "mean_pred_prob": 0.3279,
+          "realized_rate": 0.3947,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.368, 0.466]",
+          "mean_pred_prob": 0.4106,
+          "realized_rate": 0.2432,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.466, 0.57]",
+          "mean_pred_prob": 0.5208,
+          "realized_rate": 0.2703,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.57, 0.737]",
+          "mean_pred_prob": 0.6456,
+          "realized_rate": 0.3243,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.737, 0.954]",
+          "mean_pred_prob": 0.8399,
+          "realized_rate": 0.1579,
+          "rows": 38
+        }
+      ]
+    }
+  },
+  "coverage": {
+    "entry_date_end": "2026-07-17",
+    "entry_date_start": "2026-05-27",
+    "exact_quote_marks_used": 44,
+    "examples_with_exact_quote_path": 44,
+    "months": {
+      "2026-05": 12,
+      "2026-06": 216,
+      "2026-07": 181
+    },
+    "option_chain_coverage_ratio": 0.1076,
+    "regime_counts": {
+      "neutral": 118,
+      "risk_off": 106,
+      "risk_on": 185
+    },
+    "side_counts": {
+      "call": 346,
+      "put": 63
+    }
+  },
+  "cross_validation": {
+    "breakeven_auc_mean": 0.4585,
+    "breakeven_brier_mean": 0.3634,
+    "breakeven_log_loss_mean": 1.0376,
+    "by_segment": {
+      "regime": {
+        "prob_exceeds_breakeven": {
+          "neutral": {
+            "auc": 0.2727,
+            "baseline_brier": 0.2189,
+            "brier": 0.4132,
+            "positive_rate": 0.3235,
+            "rows": 68
+          },
+          "risk_off": {
+            "auc": 0.3991,
+            "baseline_brier": 0.2291,
+            "brier": 0.3255,
+            "positive_rate": 0.3553,
+            "rows": 76
+          },
+          "risk_on": {
+            "auc": 0.3681,
+            "baseline_brier": 0.2325,
+            "brier": 0.3362,
+            "positive_rate": 0.3677,
+            "rows": 155
+          }
+        },
+        "prob_positive_option_pnl": {
+          "neutral": {
+            "auc": 0.2668,
+            "baseline_brier": 0.2189,
+            "brier": 0.422,
+            "positive_rate": 0.3235,
+            "rows": 68
+          },
+          "risk_off": {
+            "auc": 0.3976,
+            "baseline_brier": 0.2291,
+            "brier": 0.3272,
+            "positive_rate": 0.3553,
+            "rows": 76
+          },
+          "risk_on": {
+            "auc": 0.3586,
+            "baseline_brier": 0.2308,
+            "brier": 0.3383,
+            "positive_rate": 0.3613,
+            "rows": 155
+          }
+        }
+      },
+      "side": {
+        "prob_exceeds_breakeven": {
+          "call": {
+            "auc": 0.3423,
+            "baseline_brier": 0.2285,
+            "brier": 0.3555,
+            "positive_rate": 0.3534,
+            "rows": 266
+          },
+          "put": {
+            "auc": 0.4405,
+            "baseline_brier": 0.2314,
+            "brier": 0.3149,
+            "positive_rate": 0.3636,
+            "rows": 33
+          }
+        },
+        "prob_positive_option_pnl": {
+          "call": {
+            "auc": 0.334,
+            "baseline_brier": 0.2274,
+            "brier": 0.3594,
+            "positive_rate": 0.3496,
+            "rows": 266
+          },
+          "put": {
+            "auc": 0.4405,
+            "baseline_brier": 0.2314,
+            "brier": 0.3149,
+            "positive_rate": 0.3636,
+            "rows": 33
+          }
+        }
+      }
+    },
+    "by_side": {
+      "prob_exceeds_breakeven": {
+        "call": {
+          "auc": 0.3423,
+          "baseline_brier": 0.2285,
+          "brier": 0.3555,
+          "positive_rate": 0.3534,
+          "rows": 266
+        },
+        "put": {
+          "auc": 0.4405,
+          "baseline_brier": 0.2314,
+          "brier": 0.3149,
+          "positive_rate": 0.3636,
+          "rows": 33
+        }
+      },
+      "prob_positive_option_pnl": {
+        "call": {
+          "auc": 0.334,
+          "baseline_brier": 0.2274,
+          "brier": 0.3594,
+          "positive_rate": 0.3496,
+          "rows": 266
+        },
+        "put": {
+          "auc": 0.4405,
+          "baseline_brier": 0.2314,
+          "brier": 0.3149,
+          "positive_rate": 0.3636,
+          "rows": 33
+        }
+      }
+    },
+    "expected_return_mae_mean": 0.8312,
+    "family": "ensemble",
+    "family_bakeoff": {
+      "ensemble": {
+        "breakeven_auc_mean": 0.4585,
+        "breakeven_brier_mean": 0.3634,
+        "breakeven_log_loss_mean": 1.0376,
+        "by_segment": {
+          "regime": {
+            "prob_exceeds_breakeven": {
+              "neutral": {
+                "auc": 0.2727,
+                "baseline_brier": 0.2189,
+                "brier": 0.4132,
+                "positive_rate": 0.3235,
+                "rows": 68
+              },
+              "risk_off": {
+                "auc": 0.3991,
+                "baseline_brier": 0.2291,
+                "brier": 0.3255,
+                "positive_rate": 0.3553,
+                "rows": 76
+              },
+              "risk_on": {
+                "auc": 0.3681,
+                "baseline_brier": 0.2325,
+                "brier": 0.3362,
+                "positive_rate": 0.3677,
+                "rows": 155
+              }
+            },
+            "prob_positive_option_pnl": {
+              "neutral": {
+                "auc": 0.2668,
+                "baseline_brier": 0.2189,
+                "brier": 0.422,
+                "positive_rate": 0.3235,
+                "rows": 68
+              },
+              "risk_off": {
+                "auc": 0.3976,
+                "baseline_brier": 0.2291,
+                "brier": 0.3272,
+                "positive_rate": 0.3553,
+                "rows": 76
+              },
+              "risk_on": {
+                "auc": 0.3586,
+                "baseline_brier": 0.2308,
+                "brier": 0.3383,
+                "positive_rate": 0.3613,
+                "rows": 155
+              }
+            }
+          },
+          "side": {
+            "prob_exceeds_breakeven": {
+              "call": {
+                "auc": 0.3423,
+                "baseline_brier": 0.2285,
+                "brier": 0.3555,
+                "positive_rate": 0.3534,
+                "rows": 266
+              },
+              "put": {
+                "auc": 0.4405,
+                "baseline_brier": 0.2314,
+                "brier": 0.3149,
+                "positive_rate": 0.3636,
+                "rows": 33
+              }
+            },
+            "prob_positive_option_pnl": {
+              "call": {
+                "auc": 0.334,
+                "baseline_brier": 0.2274,
+                "brier": 0.3594,
+                "positive_rate": 0.3496,
+                "rows": 266
+              },
+              "put": {
+                "auc": 0.4405,
+                "baseline_brier": 0.2314,
+                "brier": 0.3149,
+                "positive_rate": 0.3636,
+                "rows": 33
+              }
+            }
+          }
+        },
+        "by_side": {
+          "prob_exceeds_breakeven": {
+            "call": {
+              "auc": 0.3423,
+              "baseline_brier": 0.2285,
+              "brier": 0.3555,
+              "positive_rate": 0.3534,
+              "rows": 266
+            },
+            "put": {
+              "auc": 0.4405,
+              "baseline_brier": 0.2314,
+              "brier": 0.3149,
+              "positive_rate": 0.3636,
+              "rows": 33
+            }
+          },
+          "prob_positive_option_pnl": {
+            "call": {
+              "auc": 0.334,
+              "baseline_brier": 0.2274,
+              "brier": 0.3594,
+              "positive_rate": 0.3496,
+              "rows": 266
+            },
+            "put": {
+              "auc": 0.4405,
+              "baseline_brier": 0.2314,
+              "brier": 0.3149,
+              "positive_rate": 0.3636,
+              "rows": 33
+            }
+          }
+        },
+        "expected_return_mae_mean": 0.8312,
+        "family": "ensemble",
+        "fold_reports": [
+          {
+            "fold": 1,
+            "train_rows": 89,
+            "training_label_end": "2026-06-23",
+            "validation_rows": 137,
+            "validation_start": "2026-06-24"
+          },
+          {
+            "fold": 2,
+            "train_rows": 173,
+            "training_label_end": "2026-06-26",
+            "validation_rows": 101,
+            "validation_start": "2026-07-02"
+          },
+          {
+            "fold": 3,
+            "train_rows": 275,
+            "training_label_end": "2026-07-03",
+            "validation_rows": 61,
+            "validation_start": "2026-07-10"
+          }
+        ],
+        "folds": 3,
+        "positive_pnl_auc_mean": 0.4403,
+        "positive_pnl_brier_mean": 0.368,
+        "positive_pnl_log_loss_mean": 1.054,
+        "probability_buckets": {
+          "prob_exceeds_breakeven": [
+            {
+              "bucket": "(0.00471, 0.078]",
+              "mean_pred_prob": 0.0466,
+              "realized_rate": 0.5263,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.078, 0.167]",
+              "mean_pred_prob": 0.1191,
+              "realized_rate": 0.5946,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.167, 0.286]",
+              "mean_pred_prob": 0.223,
+              "realized_rate": 0.2973,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.286, 0.369]",
+              "mean_pred_prob": 0.3285,
+              "realized_rate": 0.4211,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.369, 0.465]",
+              "mean_pred_prob": 0.4101,
+              "realized_rate": 0.2432,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.465, 0.564]",
+              "mean_pred_prob": 0.5181,
+              "realized_rate": 0.2432,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.564, 0.735]",
+              "mean_pred_prob": 0.6564,
+              "realized_rate": 0.3243,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.735, 0.953]",
+              "mean_pred_prob": 0.8322,
+              "realized_rate": 0.1842,
+              "rows": 38
+            }
+          ],
+          "prob_positive_option_pnl": [
+            {
+              "bucket": "(0.00471, 0.078]",
+              "mean_pred_prob": 0.0466,
+              "realized_rate": 0.5263,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.078, 0.167]",
+              "mean_pred_prob": 0.1191,
+              "realized_rate": 0.5946,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.167, 0.286]",
+              "mean_pred_prob": 0.2234,
+              "realized_rate": 0.2973,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.286, 0.368]",
+              "mean_pred_prob": 0.3279,
+              "realized_rate": 0.3947,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.368, 0.466]",
+              "mean_pred_prob": 0.4106,
+              "realized_rate": 0.2432,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.466, 0.57]",
+              "mean_pred_prob": 0.5208,
+              "realized_rate": 0.2703,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.57, 0.737]",
+              "mean_pred_prob": 0.6456,
+              "realized_rate": 0.3243,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.737, 0.954]",
+              "mean_pred_prob": 0.8399,
+              "realized_rate": 0.1579,
+              "rows": 38
+            }
+          ]
+        },
+        "return_quantiles": {
+          "central_80_interval_coverage": 0.5475,
+          "conservative_q10_positive_mean_realized_return": null,
+          "conservative_q10_positive_rows": 0,
+          "policy": "independent quantile heads monotonically projected; q10 > 0 is the pre-registered conservative economic selector",
+          "q10_pinball_mean": 0.1284,
+          "q50_pinball_mean": 0.3396,
+          "q90_pinball_mean": 0.2359
+        },
+        "split_policy": "date_grouped_purged_by_outcome_date"
+      },
+      "linear": {
+        "breakeven_auc_mean": 0.473,
+        "breakeven_brier_mean": 0.396,
+        "breakeven_log_loss_mean": 1.0992,
+        "by_segment": {
+          "regime": {
+            "prob_exceeds_breakeven": {
+              "neutral": {
+                "auc": 0.3083,
+                "baseline_brier": 0.2189,
+                "brier": 0.4364,
+                "positive_rate": 0.3235,
+                "rows": 68
+              },
+              "risk_off": {
+                "auc": 0.4082,
+                "baseline_brier": 0.2291,
+                "brier": 0.3266,
+                "positive_rate": 0.3553,
+                "rows": 76
+              },
+              "risk_on": {
+                "auc": 0.3892,
+                "baseline_brier": 0.2325,
+                "brier": 0.3775,
+                "positive_rate": 0.3677,
+                "rows": 155
+              }
+            },
+            "prob_positive_option_pnl": {
+              "neutral": {
+                "auc": 0.3053,
+                "baseline_brier": 0.2189,
+                "brier": 0.4366,
+                "positive_rate": 0.3235,
+                "rows": 68
+              },
+              "risk_off": {
+                "auc": 0.4082,
+                "baseline_brier": 0.2291,
+                "brier": 0.3264,
+                "positive_rate": 0.3553,
+                "rows": 76
+              },
+              "risk_on": {
+                "auc": 0.3797,
+                "baseline_brier": 0.2308,
+                "brier": 0.3807,
+                "positive_rate": 0.3613,
+                "rows": 155
+              }
+            }
+          },
+          "side": {
+            "prob_exceeds_breakeven": {
+              "call": {
+                "auc": 0.3738,
+                "baseline_brier": 0.2285,
+                "brier": 0.3887,
+                "positive_rate": 0.3534,
+                "rows": 266
+              },
+              "put": {
+                "auc": 0.4841,
+                "baseline_brier": 0.2314,
+                "brier": 0.2912,
+                "positive_rate": 0.3636,
+                "rows": 33
+              }
+            },
+            "prob_positive_option_pnl": {
+              "call": {
+                "auc": 0.3664,
+                "baseline_brier": 0.2274,
+                "brier": 0.3906,
+                "positive_rate": 0.3496,
+                "rows": 266
+              },
+              "put": {
+                "auc": 0.4841,
+                "baseline_brier": 0.2314,
+                "brier": 0.2912,
+                "positive_rate": 0.3636,
+                "rows": 33
+              }
+            }
+          }
+        },
+        "by_side": {
+          "prob_exceeds_breakeven": {
+            "call": {
+              "auc": 0.3738,
+              "baseline_brier": 0.2285,
+              "brier": 0.3887,
+              "positive_rate": 0.3534,
+              "rows": 266
+            },
+            "put": {
+              "auc": 0.4841,
+              "baseline_brier": 0.2314,
+              "brier": 0.2912,
+              "positive_rate": 0.3636,
+              "rows": 33
+            }
+          },
+          "prob_positive_option_pnl": {
+            "call": {
+              "auc": 0.3664,
+              "baseline_brier": 0.2274,
+              "brier": 0.3906,
+              "positive_rate": 0.3496,
+              "rows": 266
+            },
+            "put": {
+              "auc": 0.4841,
+              "baseline_brier": 0.2314,
+              "brier": 0.2912,
+              "positive_rate": 0.3636,
+              "rows": 33
+            }
+          }
+        },
+        "expected_return_mae_mean": 0.8796,
+        "family": "linear",
+        "fold_reports": [
+          {
+            "fold": 1,
+            "train_rows": 89,
+            "training_label_end": "2026-06-23",
+            "validation_rows": 137,
+            "validation_start": "2026-06-24"
+          },
+          {
+            "fold": 2,
+            "train_rows": 173,
+            "training_label_end": "2026-06-26",
+            "validation_rows": 101,
+            "validation_start": "2026-07-02"
+          },
+          {
+            "fold": 3,
+            "train_rows": 275,
+            "training_label_end": "2026-07-03",
+            "validation_rows": 61,
+            "validation_start": "2026-07-10"
+          }
+        ],
+        "folds": 3,
+        "positive_pnl_auc_mean": 0.4626,
+        "positive_pnl_brier_mean": 0.3966,
+        "positive_pnl_log_loss_mean": 1.0997,
+        "probability_buckets": {
+          "prob_exceeds_breakeven": [
+            {
+              "bucket": "(-0.0008600000000000001, 0.119]",
+              "mean_pred_prob": 0.0682,
+              "realized_rate": 0.6053,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.119, 0.226]",
+              "mean_pred_prob": 0.1698,
+              "realized_rate": 0.4595,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.226, 0.421]",
+              "mean_pred_prob": 0.3256,
+              "realized_rate": 0.3243,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.421, 0.541]",
+              "mean_pred_prob": 0.4993,
+              "realized_rate": 0.2895,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.541, 0.625]",
+              "mean_pred_prob": 0.592,
+              "realized_rate": 0.2973,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.625, 0.733]",
+              "mean_pred_prob": 0.6804,
+              "realized_rate": 0.2973,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.733, 0.833]",
+              "mean_pred_prob": 0.7852,
+              "realized_rate": 0.2973,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.833, 0.955]",
+              "mean_pred_prob": 0.8783,
+              "realized_rate": 0.2632,
+              "rows": 38
+            }
+          ],
+          "prob_positive_option_pnl": [
+            {
+              "bucket": "(-0.0008600000000000001, 0.119]",
+              "mean_pred_prob": 0.0682,
+              "realized_rate": 0.6053,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.119, 0.226]",
+              "mean_pred_prob": 0.1698,
+              "realized_rate": 0.4595,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.226, 0.421]",
+              "mean_pred_prob": 0.3258,
+              "realized_rate": 0.3243,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.421, 0.542]",
+              "mean_pred_prob": 0.4992,
+              "realized_rate": 0.2895,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.542, 0.626]",
+              "mean_pred_prob": 0.5909,
+              "realized_rate": 0.3243,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.626, 0.729]",
+              "mean_pred_prob": 0.6777,
+              "realized_rate": 0.2703,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.729, 0.833]",
+              "mean_pred_prob": 0.7829,
+              "realized_rate": 0.2973,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.833, 0.954]",
+              "mean_pred_prob": 0.877,
+              "realized_rate": 0.2368,
+              "rows": 38
+            }
+          ]
+        },
+        "return_quantiles": {
+          "central_80_interval_coverage": 0.6616,
+          "conservative_q10_positive_mean_realized_return": null,
+          "conservative_q10_positive_rows": 0,
+          "policy": "independent quantile heads monotonically projected; q10 > 0 is the pre-registered conservative economic selector",
+          "q10_pinball_mean": 0.1059,
+          "q50_pinball_mean": 0.3316,
+          "q90_pinball_mean": 0.2388
+        },
+        "split_policy": "date_grouped_purged_by_outcome_date"
+      },
+      "tree": {
+        "breakeven_auc_mean": 0.4319,
+        "breakeven_brier_mean": 0.3832,
+        "breakeven_log_loss_mean": 1.2411,
+        "by_segment": {
+          "regime": {
+            "prob_exceeds_breakeven": {
+              "neutral": {
+                "auc": 0.2846,
+                "baseline_brier": 0.2189,
+                "brier": 0.4221,
+                "positive_rate": 0.3235,
+                "rows": 68
+              },
+              "risk_off": {
+                "auc": 0.3726,
+                "baseline_brier": 0.2291,
+                "brier": 0.3473,
+                "positive_rate": 0.3553,
+                "rows": 76
+              },
+              "risk_on": {
+                "auc": 0.3711,
+                "baseline_brier": 0.2325,
+                "brier": 0.3735,
+                "positive_rate": 0.3677,
+                "rows": 155
+              }
+            },
+            "prob_positive_option_pnl": {
+              "neutral": {
+                "auc": 0.2737,
+                "baseline_brier": 0.2189,
+                "brier": 0.4398,
+                "positive_rate": 0.3235,
+                "rows": 68
+              },
+              "risk_off": {
+                "auc": 0.3681,
+                "baseline_brier": 0.2291,
+                "brier": 0.3511,
+                "positive_rate": 0.3553,
+                "rows": 76
+              },
+              "risk_on": {
+                "auc": 0.3645,
+                "baseline_brier": 0.2308,
+                "brier": 0.375,
+                "positive_rate": 0.3613,
+                "rows": 155
+              }
+            }
+          },
+          "side": {
+            "prob_exceeds_breakeven": {
+              "call": {
+                "auc": 0.3449,
+                "baseline_brier": 0.2285,
+                "brier": 0.3813,
+                "positive_rate": 0.3534,
+                "rows": 266
+              },
+              "put": {
+                "auc": 0.381,
+                "baseline_brier": 0.2314,
+                "brier": 0.3505,
+                "positive_rate": 0.3636,
+                "rows": 33
+              }
+            },
+            "prob_positive_option_pnl": {
+              "call": {
+                "auc": 0.3359,
+                "baseline_brier": 0.2274,
+                "brier": 0.3878,
+                "positive_rate": 0.3496,
+                "rows": 266
+              },
+              "put": {
+                "auc": 0.381,
+                "baseline_brier": 0.2314,
+                "brier": 0.3505,
+                "positive_rate": 0.3636,
+                "rows": 33
+              }
+            }
+          }
+        },
+        "by_side": {
+          "prob_exceeds_breakeven": {
+            "call": {
+              "auc": 0.3449,
+              "baseline_brier": 0.2285,
+              "brier": 0.3813,
+              "positive_rate": 0.3534,
+              "rows": 266
+            },
+            "put": {
+              "auc": 0.381,
+              "baseline_brier": 0.2314,
+              "brier": 0.3505,
+              "positive_rate": 0.3636,
+              "rows": 33
+            }
+          },
+          "prob_positive_option_pnl": {
+            "call": {
+              "auc": 0.3359,
+              "baseline_brier": 0.2274,
+              "brier": 0.3878,
+              "positive_rate": 0.3496,
+              "rows": 266
+            },
+            "put": {
+              "auc": 0.381,
+              "baseline_brier": 0.2314,
+              "brier": 0.3505,
+              "positive_rate": 0.3636,
+              "rows": 33
+            }
+          }
+        },
+        "expected_return_mae_mean": 0.8352,
+        "family": "tree",
+        "fold_reports": [
+          {
+            "fold": 1,
+            "train_rows": 89,
+            "training_label_end": "2026-06-23",
+            "validation_rows": 137,
+            "validation_start": "2026-06-24"
+          },
+          {
+            "fold": 2,
+            "train_rows": 173,
+            "training_label_end": "2026-06-26",
+            "validation_rows": 101,
+            "validation_start": "2026-07-02"
+          },
+          {
+            "fold": 3,
+            "train_rows": 275,
+            "training_label_end": "2026-07-03",
+            "validation_rows": 61,
+            "validation_start": "2026-07-10"
+          }
+        ],
+        "folds": 3,
+        "positive_pnl_auc_mean": 0.4076,
+        "positive_pnl_brier_mean": 0.3924,
+        "positive_pnl_log_loss_mean": 1.2766,
+        "probability_buckets": {
+          "prob_exceeds_breakeven": [
+            {
+              "bucket": "(0.00266, 0.0219]",
+              "mean_pred_prob": 0.0134,
+              "realized_rate": 0.5789,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.0219, 0.0458]",
+              "mean_pred_prob": 0.0332,
+              "realized_rate": 0.4865,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.0458, 0.0859]",
+              "mean_pred_prob": 0.064,
+              "realized_rate": 0.3243,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.0859, 0.143]",
+              "mean_pred_prob": 0.112,
+              "realized_rate": 0.3947,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.143, 0.259]",
+              "mean_pred_prob": 0.1933,
+              "realized_rate": 0.3514,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.259, 0.514]",
+              "mean_pred_prob": 0.3961,
+              "realized_rate": 0.2105,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.514, 0.713]",
+              "mean_pred_prob": 0.618,
+              "realized_rate": 0.3333,
+              "rows": 36
+            },
+            {
+              "bucket": "(0.713, 0.974]",
+              "mean_pred_prob": 0.8452,
+              "realized_rate": 0.1579,
+              "rows": 38
+            }
+          ],
+          "prob_positive_option_pnl": [
+            {
+              "bucket": "(0.00266, 0.0219]",
+              "mean_pred_prob": 0.0134,
+              "realized_rate": 0.5789,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.0219, 0.0459]",
+              "mean_pred_prob": 0.0337,
+              "realized_rate": 0.4595,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.0459, 0.0881]",
+              "mean_pred_prob": 0.0648,
+              "realized_rate": 0.3784,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.0881, 0.142]",
+              "mean_pred_prob": 0.1126,
+              "realized_rate": 0.3947,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.142, 0.252]",
+              "mean_pred_prob": 0.1926,
+              "realized_rate": 0.3158,
+              "rows": 38
+            },
+            {
+              "bucket": "(0.252, 0.514]",
+              "mean_pred_prob": 0.3955,
+              "realized_rate": 0.2432,
+              "rows": 37
+            },
+            {
+              "bucket": "(0.514, 0.733]",
+              "mean_pred_prob": 0.613,
+              "realized_rate": 0.3056,
+              "rows": 36
+            },
+            {
+              "bucket": "(0.733, 0.979]",
+              "mean_pred_prob": 0.8616,
+              "realized_rate": 0.1316,
+              "rows": 38
+            }
+          ]
+        },
+        "return_quantiles": {
+          "central_80_interval_coverage": 0.4474,
+          "conservative_q10_positive_mean_realized_return": null,
+          "conservative_q10_positive_rows": 0,
+          "policy": "independent quantile heads monotonically projected; q10 > 0 is the pre-registered conservative economic selector",
+          "q10_pinball_mean": 0.1594,
+          "q50_pinball_mean": 0.355,
+          "q90_pinball_mean": 0.2606
+        },
+        "split_policy": "date_grouped_purged_by_outcome_date"
+      }
+    },
+    "fold_reports": [
+      {
+        "fold": 1,
+        "train_rows": 89,
+        "training_label_end": "2026-06-23",
+        "validation_rows": 137,
+        "validation_start": "2026-06-24"
+      },
+      {
+        "fold": 2,
+        "train_rows": 173,
+        "training_label_end": "2026-06-26",
+        "validation_rows": 101,
+        "validation_start": "2026-07-02"
+      },
+      {
+        "fold": 3,
+        "train_rows": 275,
+        "training_label_end": "2026-07-03",
+        "validation_rows": 61,
+        "validation_start": "2026-07-10"
+      }
+    ],
+    "folds": 3,
+    "positive_pnl_auc_mean": 0.4403,
+    "positive_pnl_brier_mean": 0.368,
+    "positive_pnl_log_loss_mean": 1.054,
+    "probability_buckets": {
+      "prob_exceeds_breakeven": [
+        {
+          "bucket": "(0.00471, 0.078]",
+          "mean_pred_prob": 0.0466,
+          "realized_rate": 0.5263,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.078, 0.167]",
+          "mean_pred_prob": 0.1191,
+          "realized_rate": 0.5946,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.167, 0.286]",
+          "mean_pred_prob": 0.223,
+          "realized_rate": 0.2973,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.286, 0.369]",
+          "mean_pred_prob": 0.3285,
+          "realized_rate": 0.4211,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.369, 0.465]",
+          "mean_pred_prob": 0.4101,
+          "realized_rate": 0.2432,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.465, 0.564]",
+          "mean_pred_prob": 0.5181,
+          "realized_rate": 0.2432,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.564, 0.735]",
+          "mean_pred_prob": 0.6564,
+          "realized_rate": 0.3243,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.735, 0.953]",
+          "mean_pred_prob": 0.8322,
+          "realized_rate": 0.1842,
+          "rows": 38
+        }
+      ],
+      "prob_positive_option_pnl": [
+        {
+          "bucket": "(0.00471, 0.078]",
+          "mean_pred_prob": 0.0466,
+          "realized_rate": 0.5263,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.078, 0.167]",
+          "mean_pred_prob": 0.1191,
+          "realized_rate": 0.5946,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.167, 0.286]",
+          "mean_pred_prob": 0.2234,
+          "realized_rate": 0.2973,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.286, 0.368]",
+          "mean_pred_prob": 0.3279,
+          "realized_rate": 0.3947,
+          "rows": 38
+        },
+        {
+          "bucket": "(0.368, 0.466]",
+          "mean_pred_prob": 0.4106,
+          "realized_rate": 0.2432,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.466, 0.57]",
+          "mean_pred_prob": 0.5208,
+          "realized_rate": 0.2703,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.57, 0.737]",
+          "mean_pred_prob": 0.6456,
+          "realized_rate": 0.3243,
+          "rows": 37
+        },
+        {
+          "bucket": "(0.737, 0.954]",
+          "mean_pred_prob": 0.8399,
+          "realized_rate": 0.1579,
+          "rows": 38
+        }
+      ]
+    },
+    "return_quantiles": {
+      "central_80_interval_coverage": 0.5475,
+      "conservative_q10_positive_mean_realized_return": null,
+      "conservative_q10_positive_rows": 0,
+      "policy": "independent quantile heads monotonically projected; q10 > 0 is the pre-registered conservative economic selector",
+      "q10_pinball_mean": 0.1284,
+      "q50_pinball_mean": 0.3396,
+      "q90_pinball_mean": 0.2359
+    },
+    "selected_family": "ensemble",
+    "split_policy": "date_grouped_purged_by_outcome_date"
+  },
+  "feature_cols": [
+    "option_type_is_call",
+    "side_aligned_directional_edge",
+    "scout_call_edge_prob",
+    "scout_put_edge_prob",
+    "scout_no_trade_prob",
+    "heuristic_forge_score",
+    "moneyness",
+    "abs_delta",
+    "premium",
+    "premium_pct_of_spot",
+    "spread_pct",
+    "log_open_interest",
+    "log_volume",
+    "implied_volatility",
+    "iv_rank",
+    "surface_available",
+    "surface_atm_iv",
+    "surface_skew_slope",
+    "surface_curvature",
+    "surface_put_call_wing_skew",
+    "surface_term_slope_30d",
+    "surface_fit_rmse",
+    "surface_observation_count_log",
+    "iv_relative_to_atm",
+    "iv_minus_realized_vol",
+    "quote_spread_dollars",
+    "last_trade_age_log_seconds",
+    "realized_vol_20d",
+    "atr_pct_14d",
+    "vrp_gap",
+    "projected_move_pct",
+    "breakeven_move_pct",
+    "expected_return_pct",
+    "heuristic_edge_after_friction_pct",
+    "extrinsic_ratio",
+    "allocation_weight",
+    "dte",
+    "liquidity_score",
+    "fill_quality_score",
+    "regime_bias",
+    "regime_is_risk_on",
+    "regime_is_risk_off",
+    "regime_alignment_score",
+    "sentinel_holding_window_fit",
+    "sentinel_confidence",
+    "sentinel_side_relevance",
+    "sentinel_no_trade_relevance",
+    "sentinel_spot_effect",
+    "sentinel_iv_effect",
+    "sentinel_event_present",
+    "sentinel_time_horizon_score",
+    "sentinel_decay_half_life_score",
+    "sentinel_source_reliability_score",
+    "sentinel_novelty_score"
+  ],
+  "fill_quality_rate": 0.9609,
+  "integrated_heads": [
+    "prob_positive_option_pnl",
+    "prob_exceeds_breakeven",
+    "expected_option_return_pct",
+    "return_quantile_10",
+    "return_quantile_50",
+    "return_quantile_90",
+    "prob_no_trade",
+    "prob_fill_quality_ok",
+    "path_early_profit_take_prob",
+    "path_expected_mfe_pct",
+    "path_decay_risk"
+  ],
+  "model_card_schema_version": 2,
+  "no_trade_rate": 0.6406,
+  "observability": {
+    "by_regime": {
+      "neutral": {
+        "avg_expected_option_return_pct": -0.0957,
+        "breakeven_rate": 0.3305,
+        "positive_pnl_rate": 0.3305,
+        "rows": 118
+      },
+      "risk_off": {
+        "avg_expected_option_return_pct": 0.0064,
+        "breakeven_rate": 0.4057,
+        "positive_pnl_rate": 0.4057,
+        "rows": 106
+      },
+      "risk_on": {
+        "avg_expected_option_return_pct": -0.0176,
+        "breakeven_rate": 0.3568,
+        "positive_pnl_rate": 0.3514,
+        "rows": 185
+      }
+    },
+    "by_regime_dataset": {
+      "neutral": {
+        "avg_friction_drag_pct": 0.1453,
+        "avg_return_after_friction_pct": -0.0957,
+        "avg_return_before_friction_pct": 0.0496,
+        "breakeven_after_friction_rate": 0.3305,
+        "friction_flip_count": 11,
+        "friction_flip_rate": 0.0932,
+        "positive_pnl_after_friction_rate": 0.3305,
+        "rows": 118
+      },
+      "risk_off": {
+        "avg_friction_drag_pct": 0.172,
+        "avg_return_after_friction_pct": 0.0064,
+        "avg_return_before_friction_pct": 0.1784,
+        "breakeven_after_friction_rate": 0.4057,
+        "friction_flip_count": 4,
+        "friction_flip_rate": 0.0377,
+        "positive_pnl_after_friction_rate": 0.4057,
+        "rows": 106
+      },
+      "risk_on": {
+        "avg_friction_drag_pct": 0.1722,
+        "avg_return_after_friction_pct": -0.0167,
+        "avg_return_before_friction_pct": 0.1555,
+        "breakeven_after_friction_rate": 0.3568,
+        "friction_flip_count": 16,
+        "friction_flip_rate": 0.0865,
+        "positive_pnl_after_friction_rate": 0.3514,
+        "rows": 185
+      }
+    },
+    "by_side": {
+      "call": {
+        "avg_expected_option_return_pct": -0.0354,
+        "breakeven_rate": 0.3613,
+        "positive_pnl_rate": 0.3584,
+        "rows": 346
+      },
+      "put": {
+        "avg_expected_option_return_pct": -0.0257,
+        "breakeven_rate": 0.3651,
+        "positive_pnl_rate": 0.3651,
+        "rows": 63
+      }
+    },
+    "by_side_dataset": {
+      "call": {
+        "avg_friction_drag_pct": 0.1614,
+        "avg_return_after_friction_pct": -0.0349,
+        "avg_return_before_friction_pct": 0.1265,
+        "breakeven_after_friction_rate": 0.3613,
+        "friction_flip_count": 26,
+        "friction_flip_rate": 0.0751,
+        "positive_pnl_after_friction_rate": 0.3584,
+        "rows": 346
+      },
+      "put": {
+        "avg_friction_drag_pct": 0.1808,
+        "avg_return_after_friction_pct": -0.0257,
+        "avg_return_before_friction_pct": 0.1551,
+        "breakeven_after_friction_rate": 0.3651,
+        "friction_flip_count": 5,
+        "friction_flip_rate": 0.0794,
+        "positive_pnl_after_friction_rate": 0.3651,
+        "rows": 63
+      }
+    },
+    "coverage": {
+      "entry_date_end": "2026-07-17",
+      "entry_date_start": "2026-05-27",
+      "exact_quote_marks_used": 44,
+      "examples_with_exact_quote_path": 44,
+      "months": {
+        "2026-05": 12,
+        "2026-06": 216,
+        "2026-07": 181
+      },
+      "option_chain_coverage_ratio": 0.1076,
+      "regime_counts": {
+        "neutral": 118,
+        "risk_off": 106,
+        "risk_on": 185
+      },
+      "side_counts": {
+        "call": 346,
+        "put": 63
+      }
+    },
+    "dataset_summary": {
+      "avg_friction_drag_pct": 0.1644,
+      "avg_total_friction_cost_usd": 20.69,
+      "breakeven_after_friction_rate": 0.3619,
+      "breakeven_before_friction_rate": 0.4743,
+      "friction_flip_count": 31,
+      "positive_pnl_after_friction_rate": 0.3594,
+      "positive_pnl_before_friction_rate": 0.4352,
+      "rows": 409
+    }
+  },
+  "positive_pnl_rate": 0.3594,
+  "promotion_gates": {
+    "gates": {
+      "breakeven_auc": {
+        "actual": 0.4585,
+        "passed": false,
+        "required_min": 0.53
+      },
+      "breakeven_brier_vs_baseline": {
+        "actual": 0.3634,
+        "baseline": 0.2309,
+        "passed": false
+      },
+      "canonical_dataset_source": {
+        "actual": "option_outcome_dataset",
+        "passed": true,
+        "required": "option_outcome_dataset"
+      },
+      "conservative_after_cost_utility": {
+        "mean_realized_after_cost_return": null,
+        "passed": false,
+        "required_mean_return_gt": 0.0,
+        "required_min_rows": 30,
+        "selected_rows": 0
+      },
+      "friction_flip_observability": {
+        "actual": 31,
+        "passed": true,
+        "required_min": 5
+      },
+      "minimum_training_examples": {
+        "actual": 409,
+        "passed": true,
+        "required_min": 150
+      },
+      "observed_quote_path_coverage": {
+        "actual_examples": 44,
+        "actual_ratio": 0.1076,
+        "passed": false,
+        "required_min_examples": 150,
+        "required_min_ratio": 0.25
+      },
+      "positive_pnl_auc": {
+        "actual": 0.4403,
+        "passed": false,
+        "required_min": 0.53
+      },
+      "positive_pnl_brier_vs_baseline": {
+        "actual": 0.368,
+        "baseline": 0.2302,
+        "passed": false
+      },
+      "regime_segment_coverage": {
+        "actual_segments_with_min_rows": 3,
+        "passed": true,
+        "required_min_segments": 2,
+        "segment_rows": {
+          "neutral": {
+            "avg_friction_drag_pct": 0.1453,
+            "avg_return_after_friction_pct": -0.0957,
+            "avg_return_before_friction_pct": 0.0496,
+            "breakeven_after_friction_rate": 0.3305,
+            "friction_flip_count": 11,
+            "friction_flip_rate": 0.0932,
+            "positive_pnl_after_friction_rate": 0.3305,
+            "rows": 118
+          },
+          "risk_off": {
+            "avg_friction_drag_pct": 0.172,
+            "avg_return_after_friction_pct": 0.0064,
+            "avg_return_before_friction_pct": 0.1784,
+            "breakeven_after_friction_rate": 0.4057,
+            "friction_flip_count": 4,
+            "friction_flip_rate": 0.0377,
+            "positive_pnl_after_friction_rate": 0.4057,
+            "rows": 106
+          },
+          "risk_on": {
+            "avg_friction_drag_pct": 0.1722,
+            "avg_return_after_friction_pct": -0.0167,
+            "avg_return_before_friction_pct": 0.1555,
+            "breakeven_after_friction_rate": 0.3568,
+            "friction_flip_count": 16,
+            "friction_flip_rate": 0.0865,
+            "positive_pnl_after_friction_rate": 0.3514,
+            "rows": 185
+          }
+        }
+      },
+      "regime_walk_forward_quality": {
+        "passed": false,
+        "qualified_segments": 0,
+        "required_min_auc": 0.53,
+        "required_min_rows": 25,
+        "required_qualified_segments": 2,
+        "segments": {
+          "neutral": {
+            "auc": 0.2668,
+            "baseline_brier": 0.2189,
+            "brier": 0.422,
+            "checks": {
+              "brier_better_than_baseline": false,
+              "minimum_auc": false,
+              "minimum_rows": true
+            },
+            "passed": false,
+            "rows": 68
+          },
+          "risk_off": {
+            "auc": 0.3976,
+            "baseline_brier": 0.2291,
+            "brier": 0.3272,
+            "checks": {
+              "brier_better_than_baseline": false,
+              "minimum_auc": false,
+              "minimum_rows": true
+            },
+            "passed": false,
+            "rows": 76
+          },
+          "risk_on": {
+            "auc": 0.3586,
+            "baseline_brier": 0.2308,
+            "brier": 0.3383,
+            "checks": {
+              "brier_better_than_baseline": false,
+              "minimum_auc": false,
+              "minimum_rows": true
+            },
+            "passed": false,
+            "rows": 155
+          }
+        }
+      },
+      "return_interval_calibration": {
+        "actual_central_80_coverage": 0.5475,
+        "passed": false,
+        "required_range": [
+          0.7,
+          0.9
+        ]
+      },
+      "side_coverage": {
+        "actual": {
+          "call": 346,
+          "put": 63
+        },
+        "passed": false,
+        "required_min_per_side": 75
+      },
+      "side_walk_forward_quality": {
+        "passed": false,
+        "qualified_segments": 0,
+        "required_min_auc": 0.53,
+        "required_min_rows": 30,
+        "required_qualified_segments": 2,
+        "segments": {
+          "call": {
+            "auc": 0.334,
+            "baseline_brier": 0.2274,
+            "brier": 0.3594,
+            "checks": {
+              "brier_better_than_baseline": false,
+              "minimum_auc": false,
+              "minimum_rows": true
+            },
+            "passed": false,
+            "rows": 266
+          },
+          "put": {
+            "auc": 0.4405,
+            "baseline_brier": 0.2314,
+            "brier": 0.3149,
+            "checks": {
+              "brier_better_than_baseline": false,
+              "minimum_auc": false,
+              "minimum_rows": true
+            },
+            "passed": false,
+            "rows": 33
+          }
+        }
+      }
+    },
+    "required_next_step": "Run shadow disagreement evaluation across 3/6/12-month windows and at least 30 live shadow trading days.",
+    "status": "hold",
+    "summary": "One or more dataset-coverage or walk-forward gates remain below threshold; hold promotion and keep gathering evidence."
+  },
+  "selected_family": "ensemble",
+  "side_counts": {
+    "call": 346,
+    "put": 63
+  },
+  "side_models_trained": [
+    "call"
+  ],
+  "source_metadata": {
+    "canonical_dataset_files": [
+      "output/option_outcomes_live_recommendations.json"
+    ],
+    "dataset_summary": {
+      "avg_friction_drag_pct": 0.1644,
+      "avg_total_friction_cost_usd": 20.69,
+      "breakeven_after_friction_rate": 0.3619,
+      "breakeven_before_friction_rate": 0.4743,
+      "friction_flip_count": 31,
+      "positive_pnl_after_friction_rate": 0.3594,
+      "positive_pnl_before_friction_rate": 0.4352,
+      "rows": 409
+    },
+    "deduplicated_examples": 409,
+    "exact_quote_marks_used": 44,
+    "exact_quote_path_coverage_ratio": 0.1076,
+    "examples_with_exact_quote_path": 44,
+    "input_artifact_by_file": {
+      "output/option_outcomes_live_recommendations.json": "option_outcome_dataset"
+    },
+    "input_artifacts": {
+      "option_outcome_dataset": 1
+    },
+    "input_files": [
+      "output/option_outcomes_live_recommendations.json"
+    ],
+    "input_rows_by_file": {
+      "output/option_outcomes_live_recommendations.json": 740
+    },
+    "legacy_result_files": [],
+    "options_data_dir": "engine/data/options/blended",
+    "primary_training_source_artifact": "option_outcome_dataset",
+    "primary_training_source_files": [
+      "output/option_outcomes_live_recommendations.json"
+    ],
+    "regime_dataset_summary": {
+      "neutral": {
+        "avg_friction_drag_pct": 0.1453,
+        "avg_return_after_friction_pct": -0.0957,
+        "avg_return_before_friction_pct": 0.0496,
+        "breakeven_after_friction_rate": 0.3305,
+        "friction_flip_count": 11,
+        "friction_flip_rate": 0.0932,
+        "positive_pnl_after_friction_rate": 0.3305,
+        "rows": 118
+      },
+      "risk_off": {
+        "avg_friction_drag_pct": 0.172,
+        "avg_return_after_friction_pct": 0.0064,
+        "avg_return_before_friction_pct": 0.1784,
+        "breakeven_after_friction_rate": 0.4057,
+        "friction_flip_count": 4,
+        "friction_flip_rate": 0.0377,
+        "positive_pnl_after_friction_rate": 0.4057,
+        "rows": 106
+      },
+      "risk_on": {
+        "avg_friction_drag_pct": 0.1722,
+        "avg_return_after_friction_pct": -0.0167,
+        "avg_return_before_friction_pct": 0.1555,
+        "breakeven_after_friction_rate": 0.3568,
+        "friction_flip_count": 16,
+        "friction_flip_rate": 0.0865,
+        "positive_pnl_after_friction_rate": 0.3514,
+        "rows": 185
+      }
+    },
+    "side_dataset_summary": {
+      "call": {
+        "avg_friction_drag_pct": 0.1614,
+        "avg_return_after_friction_pct": -0.0349,
+        "avg_return_before_friction_pct": 0.1265,
+        "breakeven_after_friction_rate": 0.3613,
+        "friction_flip_count": 26,
+        "friction_flip_rate": 0.0751,
+        "positive_pnl_after_friction_rate": 0.3584,
+        "rows": 346
+      },
+      "put": {
+        "avg_friction_drag_pct": 0.1808,
+        "avg_return_after_friction_pct": -0.0257,
+        "avg_return_before_friction_pct": 0.1551,
+        "breakeven_after_friction_rate": 0.3651,
+        "friction_flip_count": 5,
+        "friction_flip_rate": 0.0794,
+        "positive_pnl_after_friction_rate": 0.3651,
+        "rows": 63
+      }
+    }
+  },
+  "target_definitions": {
+    "adverse_excursion_risk": "worst observed bid-mark return before expiry when real marks exist, otherwise realized return fallback",
+    "expected_option_return_pct": "realized option PnL pct clipped to the configured cap",
+    "max_favorable_excursion_before_expiry": "best observed bid-mark return before expiry when real marks exist, otherwise realized return fallback",
+    "path_decay_risk": "non-negative decay or adverse-excursion pressure derived from the worst observed path return",
+    "path_early_profit_take_prob": "1 when observed max favorable excursion reaches the early-take-profit threshold",
+    "path_expected_mfe_pct": "observed max favorable excursion before expiry",
+    "prob_exceeds_breakeven": "1 when exit underlying price exceeds the long option breakeven",
+    "prob_fill_quality_ok": "1 when entry spread, depth, volume, and quote coverage indicate live-tradable fill quality",
+    "prob_no_trade": "1 when the realized contract should have been skipped because it failed friction or ended non-positive after friction",
+    "prob_positive_option_pnl": "1 when realized option PnL pct is positive",
+    "return_quantile_10": "conditional 10th percentile of strict after-cost executable return",
+    "return_quantile_50": "conditional median of strict after-cost executable return",
+    "return_quantile_90": "conditional 90th percentile of strict after-cost executable return"
+  },
+  "trained_at": "2026-08-11",
+  "training_data": {
+    "canonical_dataset_files": [
+      "output/option_outcomes_live_recommendations.json"
+    ],
+    "dataset_summary": {
+      "avg_friction_drag_pct": 0.1644,
+      "avg_total_friction_cost_usd": 20.69,
+      "breakeven_after_friction_rate": 0.3619,
+      "breakeven_before_friction_rate": 0.4743,
+      "friction_flip_count": 31,
+      "positive_pnl_after_friction_rate": 0.3594,
+      "positive_pnl_before_friction_rate": 0.4352,
+      "rows": 409
+    },
+    "input_artifact_by_file": {
+      "output/option_outcomes_live_recommendations.json": "option_outcome_dataset"
+    },
+    "legacy_result_files": [],
+    "primary_artifact": "option_outcome_dataset",
+    "primary_source_files": [
+      "output/option_outcomes_live_recommendations.json"
+    ]
+  },
+  "training_examples": 409,
+  "training_policy": {
+    "economic_selection_policy": "q10 after-cost return above zero; prospective replay remains mandatory",
+    "evaluated_families": [
+      "linear",
+      "tree",
+      "ensemble"
+    ],
+    "global_fit": "side-balanced sample weights",
+    "min_side_examples": 75,
+    "model_selection_objective": "worst-side Brier skill and AUC, then aggregate Brier, MAE, and AUC",
+    "quantile_consistency": "independent q10/q50/q90 heads are monotonically projected at evaluation and inference",
+    "selected_family": "ensemble",
+    "side_fit": "separate call and put bundles when side has enough examples"
+  },
+  "version": 7
+}

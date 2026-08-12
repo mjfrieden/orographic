@@ -69,6 +69,8 @@ Each scan also appends a side-aware Scout shadow disagreement ledger beside the 
 
 This ledger records where the shadow side-aware Scout preferred call, put, or no-trade differently from active Scout, plus whether the symbol reached Forge, live board, or shadow board.
 
+Shadow no-trade decisions are now recorded as observation-only Scout telemetry. To avoid silently broadening the existing live policy, would-veto symbols are separated into a bounded `counterfactual_observation_lane` before live Forge intake. That lane may generate research contracts and strict prospective outcomes, but it is explicitly ineligible for Council and Tradier routing. `PipelineConfig.preserve_shadow_veto_live_policy` defaults to `True`; changing it requires a deliberate policy decision backed by the counterfactual evidence milestone.
+
 Each scan also appends a rolling board history ledger beside the diagnostics:
 
 - `web/data/diagnostics/board_recommendation_history.json`
@@ -96,6 +98,12 @@ Archive live option chains for future model training:
 
 The archive writes partitioned parquet chains plus a manifest under `engine/data/live_options_archive/`. Use `--snapshot-symbols-only` for a lighter scheduled capture, or omit it to archive the full configured universe.
 
+Archive schema v2 retains the chain-capture timestamp, last-trade timestamp and age, quote mid, dollar and percentage spread, IV validity, and two-sided-quote validity. Its manifest reports quality coverage instead of treating every downloaded row as equally usable.
+
+When `TRADIER_ACCESS_TOKEN` (or `OROGRAPHIC_TRADIER_ACCESS_TOKEN`) is configured, production expiration discovery and Greeks-enabled option-chain retrieval use Tradier’s market-data endpoints. Candidate and archive rows retain `tradier` source provenance. If Tradier market data is temporarily unavailable, the adapter falls back to yfinance and labels those rows `yfinance_fallback` so research can segment or exclude them.
+
+Forge derives point-in-time volatility-surface telemetry from the complete call/put chain: ATM IV, quadratic smile slope and curvature, 3–8% OTM put-minus-call wing skew, 30-day-normalized ATM term slope, fit RMSE, observation count, contract IV relative to ATM, and signed IV-minus-realized volatility. These fields are persisted into prospective ledgers and canonical training rows. Existing model artifacts continue using their stored feature contract; the new fields affect ranking only after a retrained model passes the standard purged and prospective gates.
+
 Build canonical research datasets from prospective ledgers:
 
 ```bash
@@ -106,6 +114,8 @@ Build canonical research datasets from prospective ledgers:
 ```
 
 This produces option-recommendation and moonshot outcome tables suitable for future payoff, path, side-aware, and moonshot model training.
+
+Tradier order provenance also records model-ready execution telemetry for previews and submissions: quote age and spread, broker round-trip latency, requested limit, observed average fill, fees, fill delay, and signed adverse slippage. Preview/submission failures are retained as events so fill-quality research is not biased toward successful requests only.
 
 Before building datasets, enrich ledgers with dense path labels from archived option chains:
 
@@ -337,6 +347,15 @@ python scripts/validate_model_artifacts.py
 
 Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. That side model remains shadow-only unless `OROGRAPHIC_SIDE_MODEL_MODE=active` is explicitly set.
 
+The same training run now builds `scout_hierarchical_challenger.pkl` when strict option outcomes are available. Its first head predicts trade versus abstain; its second head predicts call versus put using only dates where both sides were observed. Purged out-of-fold predictions select trade and direction-confidence thresholds against downside-decile after-cost utility with side/regime depth constraints. This challenger is hard-coded observation-only regardless of `OROGRAPHIC_SIDE_MODEL_MODE`, and its predictions flow into the Scout shadow ledger for prospective evaluation.
+
+Use `--hierarchical-only` to train that challenger while preserving every active Scout model, scaler, side model, and model card:
+
+```bash
+python -m engine.train_scout_model --cutoff 2026-08-11 --hierarchical-only \
+  --option-outcome-input output/option_outcomes_live_recommendations.json
+```
+
 Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the active-by-default activation policy for the recovered payoff ranker.
 
 Path-model training writes both the requested report and `engine/orographic/models/path_model_card.json` with hold-window path targets, quote-path coverage, walk-forward early-take-profit calibration, and a shadow-only activation policy.
@@ -364,6 +383,15 @@ Recommended payoff-model training flow:
 
 `engine/train_payoff_model.py` now prefers canonical `option_outcome_dataset` artifacts first, records those paths as the primary training source in the report/model card, and still accepts legacy backtest results JSON as a fallback. The report/model card now also includes canonical dataset summaries, friction-flip counts, side and regime segmentation, promotion-gate status derived from both dataset coverage and walk-forward metrics, plus a walk-forward family bakeoff across linear, tree, and ensemble model families with an explicit selected family.
 
+Train the cost-aware multi-task challenger without granting it any live authority:
+
+```bash
+./.venv/bin/python scripts/train_cost_aware_payoff_challenger.py \
+  --input output/option_outcomes_12mo.json
+```
+
+The challenger adds q10/q50/q90 strict after-cost return estimates, fill quality, positive-P&L and breakeven probabilities, favorable/adverse path heads, and target-before-stop probability. Quantiles are projected into monotone order, while promotion gates check central-interval coverage and realized performance for the conservative `q10 > 0` selector. Its scores are persisted for prospective replay but cannot alter Forge order, Council eligibility, sizing, or Tradier routing.
+
 Recommended path-model training flow:
 
 ```bash
@@ -372,6 +400,17 @@ Recommended path-model training flow:
 ```
 
 `engine/train_path_model.py` reuses the canonical replay loader and strict-real quote-path reconstruction so the shadow path-quality observer can graduate from heuristics to a learned artifact.
+
+Build the stricter competing-risk exit challenger and its data-quality report with:
+
+```bash
+python scripts/train_path_hazard_challenger.py \
+  --input output/option_outcomes_live_recommendations.json
+```
+
+This evaluator models +25% target, -50% stop, and expiry hazards only when timestamp-valid pre-exit marks exist. It excludes and reports post-exit marks, compares fixed and shadow exits on identical entries with purged folds, and writes `web/data/diagnostics/path_hazard_challenger_latest.json`. If evidence is inadequate it emits a HOLD card and deliberately writes no model artifact.
+
+Prospective path collection is performed by the same 15-minute Tradier outcome workflow that captures fixed exits. For every active policy-v2 contract, it now appends one fresh, minute-deduplicated `trajectory_mark` per run from emission through Friday close. These contract-specific marks take priority over the rotating full-chain archive when path labels are rebuilt. The scan-health report fails `trajectory_capture_health` whenever active picks exist but the scheduled run writes no fresh marks or receives missing/stale quotes.
 
 Promotion gates should stay pending until a shadow model beats the active system where they disagree, after costs, across 3/6/12-month validation windows and at least 30 live shadow trading days. Promote one layer at a time.
 
@@ -390,6 +429,14 @@ python scripts/build_payoff_challenger_evidence.py
 ```
 
 This writes `web/data/diagnostics/payoff_challenger_evidence_latest.json`. It compares active and challenger probabilities on the exact same recommendations using only strict executable Friday-close labels, reports discrimination and calibration by side and regime, and replays each fully resolved scan with the top active-ranked versus top challenger-ranked contract. Incomplete candidate sets fail closed and are excluded from the rank replay. Eligibility for a limited live-shadow experiment requires adequate resolved samples and disagreements, both call and put coverage, at least two qualified regimes, positive challenger profitability, and a positive paired-run bootstrap lower bound. The report is observation-only and cannot affect Tradier routing.
+
+Build the Scout no-trade veto value and threshold-frontier report:
+
+```bash
+python scripts/build_counterfactual_veto_evidence.py
+```
+
+This writes `web/data/diagnostics/counterfactual_veto_evidence_latest.json`. It uses only strict policy-v2 Friday-close executable outcomes, isolates the latest Scout side-model version, and collapses repeated scans to the first recommendation for each Central trading date, symbol, and contract. It reports retained and vetoed after-cost outcomes across a probability/margin grid, segments the current rule by side and regime, and performs market-day clustered inference. Threshold selection is evaluated with expanding walk-forward blocks and a one-trading-day embargo, so test dates never choose their own cutoff. The artifact is advisory-only: even `eligible_for_policy_review` cannot change Council or Tradier behavior.
 
 Recommended default:
 
