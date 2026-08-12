@@ -1,7 +1,7 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-12T14:09:11+00:00",
+  "generated_at_utc": "2026-08-12T17:09:11+00:00",
   "trading_day": "2026-08-12",
   "timezone": "America/Chicago",
   "scan_settings": {
@@ -93,7 +93,7 @@
     }
   },
   "summary": {
-    "scout_signal_count": 0,
+    "scout_signal_count": 1,
     "pre_forge_signal_count": 0,
     "forge_candidate_count": 0,
     "live_count": 0,
@@ -113,7 +113,7 @@
     },
     "friction_veto_count": 0,
     "dedupe_removed_count": 0,
-    "pre_forge_rejection_count": 0,
+    "pre_forge_rejection_count": 1,
     "council_holdout_count": 0,
     "live_avg_forge_score": null,
     "shadow_avg_forge_score": null,
@@ -127,25 +127,25 @@
     "shadow_avg_no_trade_prob": null,
     "live_avg_path_holding_quality_score": null,
     "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 21,
-    "side_aware_no_trade_disagreements": 79,
-    "shadow_side_veto_rejections": 70,
+    "side_aware_directional_disagreements": 23,
+    "side_aware_no_trade_disagreements": 77,
+    "shadow_side_veto_rejections": 66,
     "abstain_primary_reason": "no_forge_candidates"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 2,
-        "put": 98
+        "call": 3,
+        "put": 97
       },
       "final_direction_counts": {
-        "call": 0,
+        "call": 1,
         "put": 0
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 21,
-      "side_aware_no_trade_disagreements": 79,
-      "shadow_side_veto_rejections": 70
+      "side_aware_directional_disagreements": 23,
+      "side_aware_no_trade_disagreements": 77,
+      "shadow_side_veto_rejections": 66
     },
     "forge": {
       "waterfall": {
@@ -243,12 +243,42 @@
   "top_shadow_board": [],
   "council_holdouts": [],
   "friction_vetoes": [],
-  "pre_forge_rejections": [],
+  "pre_forge_rejections": [
+    {
+      "symbol": "TSLA",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-21",
+      "long_leg_cap": 3.5,
+      "spread_cap": 0.24,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-19",
+          "reason": "moneyness",
+          "rows_after_basic": 77,
+          "rows_positive_bid_ask": 58,
+          "rows_within_long_leg_cap": 42,
+          "rows_within_spread_cap": 27,
+          "rows_passing_liquidity": 9,
+          "rows_passing_moneyness": 0
+        },
+        {
+          "expiry": "2026-08-21",
+          "reason": "moneyness",
+          "rows_after_basic": 181,
+          "rows_positive_bid_ask": 130,
+          "rows_within_long_leg_cap": 57,
+          "rows_within_spread_cap": 39,
+          "rows_passing_liquidity": 35,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    }
+  ],
   "profitability_evidence": {
-    "shadow_window_runs": 233,
-    "disagreement_observations": 7892,
-    "directional_disagreements": 2556,
-    "tracked_recommendation_runs": 178,
+    "shadow_window_runs": 234,
+    "disagreement_observations": 7992,
+    "directional_disagreements": 2579,
+    "tracked_recommendation_runs": 179,
     "tracked_recommendations": 1656,
     "tracked_live_recommendations": 18,
     "tracked_shadow_recommendations": 464,
@@ -273,10 +303,10 @@
     "shadow_friday_close_avg_pnl_pct": 0.2016,
     "holdout_friday_close_avg_pnl_pct": 0.0636,
     "friction_veto_friday_close_avg_pnl_pct": 0.28,
-    "research_runs": 178,
-    "research_abstain_runs": 160,
-    "board_runs": 227,
-    "board_abstain_runs": 192,
+    "research_runs": 179,
+    "research_abstain_runs": 161,
+    "board_runs": 228,
+    "board_abstain_runs": 193,
     "moonshot_tracked_candidates": 431,
     "moonshot_friday_close_avg_pnl_pct": -0.026,
     "canonical_baseline": {
@@ -298,7 +328,7 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-12T14:09:13+00:00",
+      "generated_at_utc": "2026-08-12T17:09:12+00:00",
       "as_of_utc": "2026-07-10T21:16:24+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
@@ -327,11 +357,11 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-12T14:09:11+00:00",
+        "prospective_ledger_updated_at_utc": "2026-08-12T17:09:11+00:00",
         "eligible_marked_recommendations": 286,
-        "shadow_ledger_updated_at_utc": "2026-08-12T14:09:11+00:00",
-        "shadow_runs": 233,
-        "shadow_disagreements": 7892
+        "shadow_ledger_updated_at_utc": "2026-08-12T17:09:11+00:00",
+        "shadow_runs": 234,
+        "shadow_disagreements": 7992
       },
       "windows": [
         {
@@ -654,7 +684,7 @@
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-12T14:09:12+00:00",
+      "generated_at_utc": "2026-08-12T17:09:12+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -819,7 +849,7 @@
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 3,
-        "updated_at_utc": "2026-08-12T14:09:11+00:00"
+        "updated_at_utc": "2026-08-12T17:09:11+00:00"
       },
       "model_cohort": {
         "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
