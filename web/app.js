@@ -7,6 +7,7 @@ const SNAPSHOT_SOURCE = "/data/latest_run.json";
 const PROSPECTIVE_LEDGER_SOURCE = "/data/diagnostics/prospective_pick_ledger.json";
 const PROMOTION_COMPARISON_SOURCE = "/data/diagnostics/promotion_shadow_active_comparison_latest.json";
 const RESEARCH_READINESS_SOURCE = "/data/diagnostics/research_readiness_health_latest.json";
+const MODEL_GOVERNANCE_SOURCE = "/data/diagnostics/model_governance_summary_latest.json";
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
 const PROSPECTIVE_RECENT_ROW_LIMIT = 24;
@@ -136,7 +137,127 @@ async function readBrokerJson(response, unavailableMessage = "Tradier is unavail
   return response.json();
 }
 
-let WORKBENCH_STATE = { comparison: null, readiness: null, selectedWindow: "3_month" };
+let WORKBENCH_STATE = {
+  comparison: null,
+  readiness: null,
+  governance: null,
+  selectedWindow: "3_month",
+  selectedChallenger: "scout",
+};
+
+function governanceMetricValue(metric) {
+  const value = metric?.value;
+  if (value === null || value === undefined) return "—";
+  if (metric?.format === "integer") return integer(value);
+  if (metric?.format === "decimal") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toFixed(3) : "—";
+  }
+  return String(value);
+}
+
+function renderModelGovernance() {
+  const governance = WORKBENCH_STATE.governance || {};
+  const capture = governance.data_capture || {};
+  const summary = governance.summary || {};
+  const authority = governance.live_authority || {};
+  const challengers = Array.isArray(governance.challengers) ? governance.challengers : [];
+
+  const captureTone = evidenceStatus(capture.status || "hold");
+  const captureCard = document.getElementById("governance-capture-card");
+  if (captureCard) captureCard.className = `governance-overview-card is-${captureTone}`;
+  setText("governance-capture-status", captureTone === "pass" ? "Healthy" : captureTone === "fail" ? "Action needed" : "Awaiting capture");
+  setText("governance-capture-note", capture.headline || "Trajectory health has not been published yet.");
+
+  const held = Number(summary.held || challengers.filter((item) => evidenceStatus(item.status) !== "pass").length);
+  const challengerTone = held ? "hold" : "pass";
+  const challengerCard = document.getElementById("governance-challenger-card");
+  if (challengerCard) challengerCard.className = `governance-overview-card is-${challengerTone}`;
+  setText("governance-challenger-status", held ? `${integer(held)} held` : "All gates passed");
+  setText("governance-challenger-note", held ? "No challenger has earned production authority." : "All binding research gates report pass.");
+
+  const authorityCard = document.getElementById("governance-authority-card");
+  if (authorityCard) authorityCard.className = "governance-overview-card is-pass";
+  setText("governance-authority-status", authority.challenger_order_routing === false ? "Protected" : "Review required");
+  setText("governance-authority-note", authority.summary || "Only active production models can influence Tradier execution.");
+  setText("governance-generated", governance.generated_at_utc ? `Updated ${formatTs(governance.generated_at_utc)}` : "Governance artifact unavailable");
+
+  const tabs = document.getElementById("challenger-tabs");
+  const detail = document.getElementById("challenger-detail");
+  if (!tabs || !detail) return;
+  if (!challengers.length) {
+    tabs.innerHTML = "";
+    detail.innerHTML = `<p class="drawer-note">Model-governance evidence is unavailable. All challenger authority remains disabled.</p>`;
+    return;
+  }
+
+  if (!challengers.some((item) => item.id === WORKBENCH_STATE.selectedChallenger)) {
+    WORKBENCH_STATE.selectedChallenger = challengers[0].id;
+  }
+  tabs.innerHTML = challengers.map((item) => {
+    const selected = item.id === WORKBENCH_STATE.selectedChallenger;
+    const tone = evidenceStatus(item.status);
+    return `
+      <button class="challenger-tab${selected ? " is-active" : ""}" type="button" role="tab"
+        id="challenger-tab-${escapeHtml(item.id)}" aria-selected="${selected}" aria-controls="challenger-detail"
+        data-challenger-id="${escapeHtml(item.id)}">
+        <span>${escapeHtml(item.layer)}</span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small class="is-${tone}">${evidenceStatusLabel(tone)}</small>
+      </button>`;
+  }).join("");
+
+  tabs.querySelectorAll("[data-challenger-id]").forEach((button, index, buttons) => {
+    button.addEventListener("click", () => {
+      WORKBENCH_STATE.selectedChallenger = button.dataset.challengerId;
+      renderModelGovernance();
+      document.getElementById("challenger-detail")?.focus({ preventScroll: true });
+    });
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? buttons.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[nextIndex].click();
+      buttons[nextIndex].focus();
+    });
+  });
+
+  const selected = challengers.find((item) => item.id === WORKBENCH_STATE.selectedChallenger) || challengers[0];
+  const tone = evidenceStatus(selected.status);
+  const progress = selected.progress || {};
+  const progressPct = Math.max(0, Math.min(Number(progress.progress_pct || 0), 1));
+  const blockers = Array.isArray(selected.blockers) ? selected.blockers : [];
+  const metrics = Array.isArray(selected.metrics) ? selected.metrics : [];
+  detail.tabIndex = -1;
+  detail.innerHTML = `
+    <div class="challenger-detail-head">
+      <div>
+        <span>${escapeHtml(selected.layer || "Research model")}</span>
+        <h4>${escapeHtml(selected.title || "Challenger")}</h4>
+      </div>
+      <div class="challenger-authority">
+        <span class="evidence-pill is-${tone}">${evidenceStatusLabel(tone)}</span>
+        <span class="authority-pill"><span class="material-symbols-outlined" aria-hidden="true">lock</span>${escapeHtml(String(selected.authority || "observation_only").replaceAll("_", " "))}</span>
+      </div>
+    </div>
+    <p class="challenger-summary">${escapeHtml(selected.summary || "No summary available.")}</p>
+    <div class="evidence-progress" aria-label="${escapeHtml(progress.label || "Evidence progress")}: ${integer(progress.current)} of ${integer(progress.required)}">
+      <div><span>${escapeHtml(progress.label || "Evidence progress")}</span><strong>${integer(progress.current)} / ${integer(progress.required)}</strong></div>
+      <div class="evidence-progress-track"><span style="width:${(progressPct * 100).toFixed(1)}%"></span></div>
+      <small>${integer(progress.remaining)} remaining before this sample gate is satisfied</small>
+    </div>
+    <div class="challenger-metrics">
+      ${metrics.map((metric) => `<div><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(governanceMetricValue(metric))}</strong></div>`).join("")}
+    </div>
+    <div class="challenger-action-grid">
+      <div><span>Blocking gates</span><ul>${blockers.length ? blockers.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>No blocking gates reported</li>"}</ul></div>
+      <div class="next-evidence-action"><span>Next valid action</span><p>${escapeHtml(selected.next_action || "Continue prospective observation without changing live policy.")}</p></div>
+    </div>`;
+}
 
 function workbenchMetricRow(label, active, shadow, difference, check) {
   const status = evidenceStatus(check);
@@ -343,6 +464,7 @@ function renderResearchWorkbench() {
         <div><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></div>
       </li>`).join("");
   }
+  renderModelGovernance();
 }
 
 function renderCockpitEvidence(windowRow) {
@@ -368,9 +490,10 @@ function renderCockpitEvidence(windowRow) {
 }
 
 async function loadResearchWorkbench() {
-  const [comparisonResult, readinessResult] = await Promise.allSettled([
+  const [comparisonResult, readinessResult, governanceResult] = await Promise.allSettled([
     loadJsonArtifact(PROMOTION_COMPARISON_SOURCE),
     loadJsonArtifact(RESEARCH_READINESS_SOURCE),
+    loadJsonArtifact(MODEL_GOVERNANCE_SOURCE),
   ]);
   WORKBENCH_STATE.comparison = comparisonResult.status === "fulfilled" ? comparisonResult.value : {};
   WORKBENCH_STATE.readiness = readinessResult.status === "fulfilled"
@@ -380,6 +503,17 @@ async function loadResearchWorkbench() {
         research_claims_allowed: false,
         headline: "Research-readiness artifact is unavailable; evidence claims are blocked.",
         gates: [],
+      };
+  WORKBENCH_STATE.governance = governanceResult.status === "fulfilled"
+    ? governanceResult.value
+    : {
+        status: "hold",
+        headline: "Model-governance artifact is unavailable; challenger authority remains disabled.",
+        challengers: [],
+        live_authority: {
+          challenger_order_routing: false,
+          summary: "No research challenger can route a Tradier order.",
+        },
       };
   renderResearchWorkbench();
 
@@ -940,6 +1074,34 @@ function renderCockpitSignalSelector() {
   });
 }
 
+function noTradeFunnelHtml(payload) {
+  const summary = payload?.summary || {};
+  const councilSummary = payload?.council?.summary || {};
+  const audit = councilSummary.abstain_audit || {};
+  const researchObservations = Number(
+    summary.counterfactual_signal_count
+    || summary.scout_side_aware_no_trade_disagreements
+    || 0,
+  );
+  const stages = [
+    { label: "Universe", value: Number(summary.universe_size || 0), note: "symbols reviewed" },
+    { label: "Scout", value: Number(summary.scout_signal_count || 0), note: "live-policy signals" },
+    { label: "Forge", value: Number(summary.forge_candidate_count || 0), note: "executable contracts" },
+    { label: "Council", value: Number(councilSummary.live_count || 0), note: "live approvals" },
+  ];
+  return `
+    <details class="no-trade-funnel" open>
+      <summary><span>Why no trade?</span><strong>${escapeHtml(audit.primary_reason_label || "No contract cleared every live gate.")}</strong></summary>
+      <div class="no-trade-stages">
+        ${stages.map((stage, index) => `
+          <div class="no-trade-stage${index > 0 && stage.value === 0 ? " is-stop" : ""}">
+            <span>${escapeHtml(stage.label)}</span><strong>${integer(stage.value)}</strong><small>${escapeHtml(stage.note)}</small>
+          </div>`).join("")}
+      </div>
+      <p><span class="material-symbols-outlined" aria-hidden="true">visibility</span>${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
+    </details>`;
+}
+
 function renderCockpitSignal(payload) {
   const root = document.getElementById("cockpit-signal");
   if (!root) return;
@@ -958,6 +1120,7 @@ function renderCockpitSignal(payload) {
       <span class="signal-state is-hold">Hold</span>
       <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
       <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
+      ${noTradeFunnelHtml(payload)}
       <div class="signal-metrics">
         <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
         <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>

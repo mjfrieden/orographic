@@ -48,6 +48,7 @@ jobs:
               --archive-dir engine/data/live_options_archive \
               --ledger web/data/diagnostics/prospective_pick_ledger.json \
               --ledger web/data/diagnostics/moonshot_prospective_ledger.json
+            python scripts/build_model_governance_summary.py
           fi
 
       - name: Persist new research evidence
@@ -58,7 +59,8 @@ jobs:
             web/data/diagnostics/prospective_pick_ledger.json \
             web/data/diagnostics/moonshot_prospective_ledger.json \
             web/data/diagnostics/payoff_challenger_evidence_latest.json \
-            web/data/diagnostics/counterfactual_veto_evidence_latest.json
+            web/data/diagnostics/counterfactual_veto_evidence_latest.json \
+            web/data/diagnostics/model_governance_summary_latest.json
           if git diff --cached --quiet; then
             echo "No capture state changed."
           else

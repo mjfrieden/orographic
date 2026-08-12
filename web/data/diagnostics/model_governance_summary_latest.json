@@ -1,0 +1,192 @@
+{
+  "artifact": "model_governance_summary",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-12T21:58:36.260093Z",
+  "status": "hold",
+  "headline": "Production policy is unchanged while challengers collect binding evidence.",
+  "live_authority": {
+    "policy": "active_production_models_only",
+    "challenger_order_routing": false,
+    "challenger_sizing_effect": false,
+    "challenger_council_eligibility": false,
+    "summary": "No research challenger can size, select, or transmit a Tradier order."
+  },
+  "data_capture": {
+    "status": "hold",
+    "headline": "Awaiting the first scheduled trajectory-health report.",
+    "active_contracts_last_run": 0,
+    "marks_written_last_run": 0,
+    "trajectory_contracts": 0,
+    "trajectory_marks": 0,
+    "missing_quotes_last_run": 0,
+    "stale_quotes_last_run": 0
+  },
+  "challengers": [
+    {
+      "id": "scout",
+      "title": "Scout abstention + direction",
+      "layer": "Signal selection",
+      "status": "hold",
+      "authority": "observation_only",
+      "execution_effect": "none",
+      "summary": "Two-stage challenger learns trade-versus-abstain before call-versus-put.",
+      "progress": {
+        "current": 1,
+        "required": 100,
+        "remaining": 99,
+        "progress_pct": 0.01,
+        "label": "paired call + put rows"
+      },
+      "metrics": [
+        {
+          "label": "Independent rows",
+          "value": 283,
+          "format": "integer"
+        },
+        {
+          "label": "Trade AUC",
+          "value": 0.4825,
+          "format": "decimal"
+        },
+        {
+          "label": "Paired calls / puts",
+          "value": "1 / 0",
+          "format": "text"
+        }
+      ],
+      "blockers": [
+        "conservative after cost utility",
+        "direction discrimination",
+        "minimum call put rows",
+        "trade probability skill"
+      ],
+      "next_action": "Collect paired, strict after-cost call and put outcomes before selecting direction thresholds."
+    },
+    {
+      "id": "payoff",
+      "title": "Cost-aware payoff ranker",
+      "layer": "Contract ranking",
+      "status": "collecting_evidence",
+      "authority": "observation_only",
+      "execution_effect": "none",
+      "summary": "Predicts after-cost return quantiles, breakeven probability, and fill quality.",
+      "progress": {
+        "current": 0,
+        "required": 100,
+        "remaining": 100,
+        "progress_pct": 0.0,
+        "label": "resolved prospective recommendations"
+      },
+      "metrics": [
+        {
+          "label": "Training examples",
+          "value": 409,
+          "format": "integer"
+        },
+        {
+          "label": "Positive-P&L AUC",
+          "value": 0.4403,
+          "format": "decimal"
+        },
+        {
+          "label": "Exact paths",
+          "value": 44,
+          "format": "integer"
+        }
+      ],
+      "blockers": [
+        "breakeven auc",
+        "breakeven brier vs baseline",
+        "conservative after cost utility",
+        "observed quote path coverage"
+      ],
+      "next_action": "Run shadow disagreement evaluation across 3/6/12-month windows and at least 30 live shadow trading days."
+    },
+    {
+      "id": "veto",
+      "title": "Counterfactual no-trade veto",
+      "layer": "Risk filtering",
+      "status": "collecting_evidence",
+      "authority": "advisory_only",
+      "execution_effect": "none",
+      "summary": "Measures whether Scout's no-trade preference avoids losses without suppressing profitable trades.",
+      "progress": {
+        "current": 0,
+        "required": 100,
+        "remaining": 100,
+        "progress_pct": 0.0,
+        "label": "resolved independent vetoes"
+      },
+      "metrics": [
+        {
+          "label": "Independent scored",
+          "value": 260,
+          "format": "integer"
+        },
+        {
+          "label": "Resolved vetoes",
+          "value": 0,
+          "format": "integer"
+        },
+        {
+          "label": "Trading days",
+          "value": 0,
+          "format": "integer"
+        }
+      ],
+      "blockers": [
+        "resolved current rule vetoes",
+        "independent trading days",
+        "call coverage",
+        "put coverage"
+      ],
+      "next_action": "Capture more strict Friday-close outcomes for independent current-rule veto observations."
+    },
+    {
+      "id": "exit",
+      "title": "Competing-risk exit model",
+      "layer": "Exit advice",
+      "status": "hold",
+      "authority": "advice_only",
+      "execution_effect": "none",
+      "summary": "Separately estimates target, stop, and expiry hazards from timestamp-valid option paths.",
+      "progress": {
+        "current": 0,
+        "required": 150,
+        "remaining": 150,
+        "progress_pct": 0.0,
+        "label": "exact pre-exit paths"
+      },
+      "metrics": [
+        {
+          "label": "Valid path records",
+          "value": 0,
+          "format": "integer"
+        },
+        {
+          "label": "Target / stop events",
+          "value": "0 / 0",
+          "format": "text"
+        },
+        {
+          "label": "Rejected post-exit marks",
+          "value": 61,
+          "format": "integer"
+        }
+      ],
+      "blockers": [
+        "minimum exact paths",
+        "minimum stop events",
+        "minimum target events",
+        "no post exit leakage"
+      ],
+      "next_action": "Collect dense 15-minute Tradier marks until target and stop hazards are estimable without leakage."
+    }
+  ],
+  "summary": {
+    "challengers": 4,
+    "ready": 0,
+    "held": 4,
+    "observation_only": 4
+  }
+}

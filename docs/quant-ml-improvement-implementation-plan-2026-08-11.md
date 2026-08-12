@@ -83,7 +83,11 @@ Status: **competing-risk framework implemented; training blocked by invalid traj
 
 ## Milestone 7 — Operator UI and governance
 
-- Add a Why No Trade funnel with live rejections and research observations separated.
-- Add model-authority badges: observation, ranking, veto, sizing, and execution.
-- Add a counterfactual inspector and evidence clock.
-- Display calibration, after-cost return, sample independence, and promotion gates together.
+Status: **core governance cockpit implemented; prospective metrics refresh automatically**
+
+- The no-trade signal state now renders a Universe → Scout → Forge → Council funnel and reports research-only no-trade observations separately from the live policy.
+- A unified, tested `model_governance_summary` artifact combines trajectory health, model cards, counterfactual evidence, and path-hazard evidence without granting execution authority.
+- The Research drawer displays data-capture health, challenger queue depth, and live authority before detailed statistics.
+- Keyboard-accessible tabs inspect Scout, payoff, veto, and exit challengers with authority badges, evidence clocks, blockers, and next valid actions.
+- Calibration, after-cost return, sample independence, canonical promotion gates, and execution locks remain visible in one progressive-disclosure workflow.
+- Scheduled scan and outcome-capture workflows refresh the governance artifact automatically.

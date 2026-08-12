@@ -130,6 +130,7 @@ test("Signal & Book exposes interactive sizing, candidate, book, and evidence co
 
   for (const behavior of [
     "renderCockpitSignalSelector",
+    "noTradeFunnelHtml",
     "syncTradeCardQuantity",
     "selectedCardQuantity(btn)",
     "event.key === \"Escape\"",
@@ -149,4 +150,30 @@ test("Signal & Book preserves readable synchronization spacing", async () => {
   assert.match(styles, /\.signal-pane \.pane-heading > \.sync-line\s*\{[^}]*margin:\s*14px 0 0;/s);
   assert.match(styles, /\.positions-toolbar\s*\{[^}]*flex-direction:\s*row;/s);
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.positions-toolbar\s*\{[^}]*flex-direction:\s*column;/s);
+});
+
+test("Research drawer exposes interactive model governance without live authority", async () => {
+  const html = await readFile(indexPath, "utf8");
+  const source = await readFile(appPath, "utf8");
+
+  for (const contract of [
+    "governance-capture-status",
+    "governance-challenger-status",
+    "governance-authority-status",
+    "challenger-tabs",
+    "challenger-detail",
+    'role="tablist"',
+    'role="tabpanel"',
+  ]) {
+    assert.ok(html.includes(contract), `missing model-governance UI contract: ${contract}`);
+  }
+  for (const behavior of [
+    "MODEL_GOVERNANCE_SOURCE",
+    "renderModelGovernance",
+    "selectedChallenger",
+    'event.key === "ArrowRight"',
+    "challenger_order_routing === false",
+  ]) {
+    assert.ok(source.includes(behavior), `missing model-governance behavior: ${behavior}`);
+  }
 });

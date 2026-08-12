@@ -85,7 +85,9 @@ This ledger records moonshot picks and near-miss shadow candidates with their ta
 
 Prospective outcome capture uses policy v2. One-hour quotes must be retrieved within 15 minutes of the target; close-based quotes must be retrieved within 30 minutes. Broker quote timestamps are retained, quotes older than 15 minutes are rejected, and late windows are recorded as `missed_live_window` rather than filled with a current quote. Missing or stale quotes remain retryable inside the live window and recoverable from immutable archives afterward. Legacy pending picks are frozen so current prices cannot contaminate historical horizons.
 
-The `Orographic Outcome Capture` workflow checks eligible windows every 15 minutes during the broad US market-hours envelope. It calls Tradier only when a policy-v2 pick is inside a capture window, refreshes challenger evidence, and persists a commit only when capture state changes.
+The `Orographic Outcome Capture` workflow checks eligible windows every 15 minutes during the broad US market-hours envelope. It calls Tradier while a policy-v2 contract is active for trajectory evidence or inside a fixed capture window, refreshes challenger evidence, and persists a commit only when capture state changes.
+
+The post-login Research drawer reads `web/data/diagnostics/model_governance_summary_latest.json`, a stable UI contract generated from scan health, challenger cards, and prospective evidence. It separates data-capture health, research status, and live authority; provides keyboard-accessible Scout, payoff, veto, and exit tabs; and keeps every challenger explicitly locked out of Council, sizing, and Tradier routing. When Council abstains, the primary signal card also shows a compact Universe → Scout → Forge → Council funnel with research-only no-trade observations reported separately.
 
 Archive live option chains for future model training:
 
