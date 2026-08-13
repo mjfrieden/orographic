@@ -1,7 +1,7 @@
 {
   "artifact": "moonshot_prospective_ledger",
   "schema_version": 2,
-  "updated_at_utc": "2026-08-11T14:09:40+00:00",
+  "updated_at_utc": "2026-08-13T02:32:34+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -17,22 +17,22 @@
     "purpose": "Judge every dedicated moonshot pick and near-miss shadow candidate."
   },
   "aggregate": {
-    "runs": 132,
-    "candidate_rows": 426,
+    "runs": 133,
+    "candidate_rows": 427,
     "moonshot_pick": 98,
-    "moonshot_shadow": 328,
+    "moonshot_shadow": 329,
     "eligible": 98
   },
   "outcome_summary": {
-    "picks": 426,
-    "pending": 4,
+    "picks": 427,
+    "pending": 5,
     "partial": 19,
     "complete": 403,
     "with_any_mark": 422,
     "with_all_fixed_marks": 403,
     "missing_outcome_quotes": 0,
-    "payoff_shadow_scored": 0,
-    "payoff_shadow_disagreements": 0,
+    "payoff_shadow_scored": 1,
+    "payoff_shadow_disagreements": 1,
     "payoff_shadow_resolved_friday": 0,
     "payoff_shadow_disagreement_net_return_sum": 0.0,
     "capture_windows_valid": 0,
@@ -40,7 +40,10 @@
     "capture_windows_stale_quote": 0,
     "capture_windows_missed": 0,
     "legacy_capture_policy_picks": 426,
-    "capture_policy_v2_picks": 0,
+    "capture_policy_v2_picks": 1,
+    "trajectory_scored_picks": 0,
+    "trajectory_marks": 0,
+    "trajectory_picks_with_4_marks": 0,
     "payoff_shadow_disagreement_avg_net_return": null
   },
   "entries": [
@@ -103561,15 +103564,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.395,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9114,
+              "max_adverse_excursion_pct": -0.9114,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9114
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.035,
+                  "mark_source": "mid",
+                  "bid": 0.03,
+                  "ask": 0.04,
+                  "last": 0.04,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9114
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -104036,31 +104055,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 0.47,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.2872,
-              "max_adverse_excursion_pct": 0.2872,
-              "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.2872
-              },
-              "take_profit_25_pct_before_stop_50_pct": true,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 0.605,
-                  "mark_source": "mid",
-                  "bid": 0.59,
-                  "ask": 0.62,
-                  "last": 0.57,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=WFC/chain.parquet",
-                  "pnl_pct_from_emission": 0.2872
-                }
-              ]
+              "marks": []
             },
             "executable_labels": {
               "end_of_day": {
@@ -104526,15 +104529,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.74,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.2155,
+              "max_adverse_excursion_pct": 0.2155,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.115,
+                  "mark_source": "mid",
+                  "bid": 2.02,
+                  "ask": 2.21,
+                  "last": 2.29,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=DIA/chain.parquet",
+                  "pnl_pct_from_emission": 0.2155
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -105526,15 +105541,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.395,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9114,
+              "max_adverse_excursion_pct": -0.9114,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9114
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.035,
+                  "mark_source": "mid",
+                  "bid": 0.03,
+                  "ask": 0.04,
+                  "last": 0.04,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9114
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -106002,26 +106033,26 @@
               "status": "observed",
               "entry_mark": 0.46,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 2.0109,
-              "max_adverse_excursion_pct": 2.0109,
+              "max_favorable_excursion_pct": 3.0326,
+              "max_adverse_excursion_pct": 3.0326,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 2.0109
+                "pnl_pct_from_emission": 3.0326
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.385,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.855,
                   "mark_source": "mid",
-                  "bid": 1.34,
-                  "ask": 1.43,
-                  "last": 1.35,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 2.0109
+                  "bid": 1.77,
+                  "ask": 1.94,
+                  "last": 1.9,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": 3.0326
                 }
               ]
             },
@@ -106491,26 +106522,26 @@
               "status": "observed",
               "entry_mark": 3.575,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.6154,
-              "max_adverse_excursion_pct": 0.6154,
+              "max_favorable_excursion_pct": -0.9231,
+              "max_adverse_excursion_pct": -0.9231,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.6154
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9231
               },
-              "take_profit_25_pct_before_stop_50_pct": true,
-              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 5.775,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.275,
                   "mark_source": "mid",
-                  "bid": 4.95,
-                  "ask": 6.6,
-                  "last": 6.2,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BRK-B/chain.parquet",
-                  "pnl_pct_from_emission": 0.6154
+                  "bid": 0.2,
+                  "ask": 0.35,
+                  "last": 0.31,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BRK-B/chain.parquet",
+                  "pnl_pct_from_emission": -0.9231
                 }
               ]
             },
@@ -106978,31 +107009,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 2.17,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 10.9009,
-              "max_adverse_excursion_pct": 10.9009,
-              "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 10.9009
-              },
-              "take_profit_25_pct_before_stop_50_pct": true,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 25.825,
-                  "mark_source": "mid",
-                  "bid": 25.35,
-                  "ask": 26.3,
-                  "last": 23.35,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=GLD/chain.parquet",
-                  "pnl_pct_from_emission": 10.9009
-                }
-              ]
+              "marks": []
             },
             "executable_labels": {
               "end_of_day": {
@@ -107519,15 +107534,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.575,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 1.0957,
+              "max_adverse_excursion_pct": 1.0957,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 1.0957
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.205,
+                  "mark_source": "mid",
+                  "bid": 1.03,
+                  "ask": 1.38,
+                  "last": 1.15,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLE/chain.parquet",
+                  "pnl_pct_from_emission": 1.0957
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -108469,26 +108500,22 @@
               "status": "observed",
               "entry_mark": 2.49,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.5964,
-              "max_adverse_excursion_pct": 0.5964,
-              "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.5964
-              },
-              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": 0.1285,
+              "max_adverse_excursion_pct": 0.1285,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.975,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.81,
                   "mark_source": "mid",
-                  "bid": 3.8,
-                  "ask": 4.15,
-                  "last": 3.64,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=XOM/chain.parquet",
-                  "pnl_pct_from_emission": 0.5964
+                  "bid": 2.52,
+                  "ask": 3.1,
+                  "last": 2.74,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XOM/chain.parquet",
+                  "pnl_pct_from_emission": 0.1285
                 }
               ]
             },
@@ -108955,15 +108982,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.805,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.3712,
+              "max_adverse_excursion_pct": -0.3712,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.135,
+                  "mark_source": "mid",
+                  "bid": 1.06,
+                  "ask": 1.21,
+                  "last": 1.17,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=DIA/chain.parquet",
+                  "pnl_pct_from_emission": -0.3712
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -109480,15 +109519,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.34,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.0441,
+              "max_adverse_excursion_pct": -0.0441,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.325,
+                  "mark_source": "mid",
+                  "bid": 0.15,
+                  "ask": 0.5,
+                  "last": 0.15,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLF/chain.parquet",
+                  "pnl_pct_from_emission": -0.0441
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -109955,26 +110006,26 @@
               "status": "observed",
               "entry_mark": 0.775,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.7871,
-              "max_adverse_excursion_pct": 0.7871,
+              "max_favorable_excursion_pct": 1.3935,
+              "max_adverse_excursion_pct": 1.3935,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.7871
+                "pnl_pct_from_emission": 1.3935
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.385,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.855,
                   "mark_source": "mid",
-                  "bid": 1.34,
-                  "ask": 1.43,
-                  "last": 1.35,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.7871
+                  "bid": 1.77,
+                  "ask": 1.94,
+                  "last": 1.9,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": 1.3935
                 }
               ]
             },
@@ -111439,15 +111490,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.395,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 3.1772,
+              "max_adverse_excursion_pct": 3.1772,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 3.1772
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.65,
+                  "mark_source": "mid",
+                  "bid": 1.46,
+                  "ask": 1.84,
+                  "last": 1.59,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLE/chain.parquet",
+                  "pnl_pct_from_emission": 3.1772
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -112387,26 +112454,26 @@
               "status": "observed",
               "entry_mark": 0.77,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.7987,
-              "max_adverse_excursion_pct": 0.7987,
+              "max_favorable_excursion_pct": 1.4091,
+              "max_adverse_excursion_pct": 1.4091,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.7987
+                "pnl_pct_from_emission": 1.4091
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.385,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.855,
                   "mark_source": "mid",
-                  "bid": 1.34,
-                  "ask": 1.43,
-                  "last": 1.35,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BAC/chain.parquet",
-                  "pnl_pct_from_emission": 0.7987
+                  "bid": 1.77,
+                  "ask": 1.94,
+                  "last": 1.9,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BAC/chain.parquet",
+                  "pnl_pct_from_emission": 1.4091
                 }
               ]
             },
@@ -112872,15 +112939,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.735,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.4286,
+              "max_adverse_excursion_pct": 0.4286,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.4286
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.05,
+                  "mark_source": "mid",
+                  "bid": 0.84,
+                  "ask": 1.26,
+                  "last": 0.86,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLF/chain.parquet",
+                  "pnl_pct_from_emission": 0.4286
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -113395,15 +113478,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.305,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9508,
+              "max_adverse_excursion_pct": -0.9508,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9508
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.015,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.02,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9508
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -113872,22 +113971,22 @@
               "status": "observed",
               "entry_mark": 2.19,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.1256,
-              "max_adverse_excursion_pct": 0.1256,
+              "max_favorable_excursion_pct": 0.1416,
+              "max_adverse_excursion_pct": 0.1416,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 2.465,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.5,
                   "mark_source": "mid",
-                  "bid": 2.33,
-                  "ask": 2.6,
-                  "last": 2.5,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=CVX/chain.parquet",
-                  "pnl_pct_from_emission": 0.1256
+                  "bid": 2.25,
+                  "ask": 2.75,
+                  "last": 2.53,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=CVX/chain.parquet",
+                  "pnl_pct_from_emission": 0.1416
                 }
               ]
             },
@@ -114820,27 +114919,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.665,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": 0.1562,
-              "max_adverse_excursion_pct": 0.1562,
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.925,
-                  "mark_source": "mid",
-                  "bid": 1.52,
-                  "ask": 2.33,
-                  "last": 1.2,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=NKE/chain.parquet",
-                  "pnl_pct_from_emission": 0.1562
-                }
-              ]
+              "marks": []
             },
             "executable_labels": {
               "end_of_day": {
@@ -115358,15 +115445,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.315,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9524,
+              "max_adverse_excursion_pct": -0.9524,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9524
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.015,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.02,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9524
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -115833,22 +115936,22 @@
               "status": "observed",
               "entry_mark": 2.73,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.2473,
-              "max_adverse_excursion_pct": -0.2473,
+              "max_favorable_excursion_pct": -0.0971,
+              "max_adverse_excursion_pct": -0.0971,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 2.055,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.465,
                   "mark_source": "mid",
-                  "bid": 1.96,
-                  "ask": 2.15,
-                  "last": 2.1,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=JPM/chain.parquet",
-                  "pnl_pct_from_emission": -0.2473
+                  "bid": 2.26,
+                  "ask": 2.67,
+                  "last": 2.6,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=JPM/chain.parquet",
+                  "pnl_pct_from_emission": -0.0971
                 }
               ]
             },
@@ -116789,22 +116892,26 @@
               "status": "observed",
               "entry_mark": 3.325,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.0301,
-              "max_adverse_excursion_pct": 0.0301,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": -0.9654,
+              "max_adverse_excursion_pct": -0.9654,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9654
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.425,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.115,
                   "mark_source": "mid",
-                  "bid": 3.0,
-                  "ask": 3.85,
-                  "last": 3.0,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BRK-B/chain.parquet",
-                  "pnl_pct_from_emission": 0.0301
+                  "bid": 0.06,
+                  "ask": 0.17,
+                  "last": 0.09,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BRK-B/chain.parquet",
+                  "pnl_pct_from_emission": -0.9654
                 }
               ]
             },
@@ -117323,15 +117430,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.59,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 2.5508,
+              "max_adverse_excursion_pct": 2.5508,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 2.5508
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.095,
+                  "mark_source": "mid",
+                  "bid": 1.93,
+                  "ask": 2.26,
+                  "last": 2.02,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLE/chain.parquet",
+                  "pnl_pct_from_emission": 2.5508
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -118266,15 +118389,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.565,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9381,
+              "max_adverse_excursion_pct": -0.9381,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9381
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.035,
+                  "mark_source": "mid",
+                  "bid": 0.03,
+                  "ask": 0.04,
+                  "last": 0.04,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9381
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -119263,26 +119402,26 @@
               "status": "observed",
               "entry_mark": 1.07,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.757,
-              "max_adverse_excursion_pct": -0.757,
+              "max_favorable_excursion_pct": -0.9065,
+              "max_adverse_excursion_pct": -0.9065,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.757
+                "pnl_pct_from_emission": -0.9065
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 0.26,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.1,
                   "mark_source": "mid",
-                  "bid": 0.22,
-                  "ask": 0.3,
-                  "last": 0.28,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=PEP/chain.parquet",
-                  "pnl_pct_from_emission": -0.757
+                  "bid": 0.05,
+                  "ask": 0.15,
+                  "last": 0.1,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=PEP/chain.parquet",
+                  "pnl_pct_from_emission": -0.9065
                 }
               ]
             },
@@ -119752,26 +119891,26 @@
               "status": "observed",
               "entry_mark": 2.635,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.2998,
-              "max_adverse_excursion_pct": 0.2998,
+              "max_favorable_excursion_pct": -0.9564,
+              "max_adverse_excursion_pct": -0.9564,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.2998
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9564
               },
-              "take_profit_25_pct_before_stop_50_pct": true,
-              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.425,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.115,
                   "mark_source": "mid",
-                  "bid": 3.0,
-                  "ask": 3.85,
-                  "last": 3.0,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BRK-B/chain.parquet",
-                  "pnl_pct_from_emission": 0.2998
+                  "bid": 0.06,
+                  "ask": 0.17,
+                  "last": 0.09,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BRK-B/chain.parquet",
+                  "pnl_pct_from_emission": -0.9564
                 }
               ]
             },
@@ -120237,31 +120376,15 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "observed",
+              "status": "missing",
               "entry_mark": 1.975,
-              "observation_count": 1,
-              "max_favorable_excursion_pct": -0.7215,
-              "max_adverse_excursion_pct": -0.7215,
-              "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.7215
-              },
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "marks": [
-                {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 0.55,
-                  "mark_source": "mid",
-                  "bid": 0.44,
-                  "ask": 0.66,
-                  "last": 0.5,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=MCD/chain.parquet",
-                  "pnl_pct_from_emission": -0.7215
-                }
-              ]
+              "observation_count": 0,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": []
             },
             "executable_labels": {
               "end_of_day": {
@@ -120727,22 +120850,22 @@
               "status": "observed",
               "entry_mark": 2.65,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.4113,
-              "max_adverse_excursion_pct": -0.4113,
+              "max_favorable_excursion_pct": -0.0962,
+              "max_adverse_excursion_pct": -0.0962,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.56,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.395,
                   "mark_source": "mid",
-                  "bid": 1.53,
-                  "ask": 1.59,
-                  "last": 1.53,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=AAPL/chain.parquet",
-                  "pnl_pct_from_emission": -0.4113
+                  "bid": 2.31,
+                  "ask": 2.48,
+                  "last": 2.39,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=AAPL/chain.parquet",
+                  "pnl_pct_from_emission": -0.0962
                 }
               ]
             },
@@ -121264,26 +121387,26 @@
               "status": "observed",
               "entry_mark": 1.075,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.8837,
-              "max_adverse_excursion_pct": -0.8837,
+              "max_favorable_excursion_pct": -0.9721,
+              "max_adverse_excursion_pct": -0.9721,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.8837
+                "pnl_pct_from_emission": -0.9721
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 0.125,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.03,
                   "mark_source": "mid",
-                  "bid": 0.06,
-                  "ask": 0.19,
-                  "last": 0.1,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=PG/chain.parquet",
-                  "pnl_pct_from_emission": -0.8837
+                  "bid": 0.02,
+                  "ask": 0.04,
+                  "last": 0.03,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=PG/chain.parquet",
+                  "pnl_pct_from_emission": -0.9721
                 }
               ]
             },
@@ -121749,26 +121872,26 @@
               "status": "observed",
               "entry_mark": 2.02,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.7673,
-              "max_adverse_excursion_pct": -0.7673,
+              "max_favorable_excursion_pct": -0.9109,
+              "max_adverse_excursion_pct": -0.9109,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "stop_50_pct",
-                "pnl_pct_from_emission": -0.7673
+                "pnl_pct_from_emission": -0.9109
               },
               "take_profit_25_pct_before_stop_50_pct": false,
               "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 0.47,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.18,
                   "mark_source": "mid",
-                  "bid": 0.45,
-                  "ask": 0.49,
-                  "last": 0.47,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=SLV/chain.parquet",
-                  "pnl_pct_from_emission": -0.7673
+                  "bid": 0.17,
+                  "ask": 0.19,
+                  "last": 0.19,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=SLV/chain.parquet",
+                  "pnl_pct_from_emission": -0.9109
                 }
               ]
             },
@@ -122236,22 +122359,26 @@
               "status": "observed",
               "entry_mark": 2.865,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.1361,
-              "max_adverse_excursion_pct": -0.1361,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": 0.3962,
+              "max_adverse_excursion_pct": 0.3962,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.3962
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 2.475,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 4.0,
                   "mark_source": "mid",
-                  "bid": 2.45,
-                  "ask": 2.5,
-                  "last": 2.47,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=AAPL/chain.parquet",
-                  "pnl_pct_from_emission": -0.1361
+                  "bid": 3.75,
+                  "ask": 4.25,
+                  "last": 4.0,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=AAPL/chain.parquet",
+                  "pnl_pct_from_emission": 0.3962
                 }
               ]
             },
@@ -123294,15 +123421,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.29,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9483,
+              "max_adverse_excursion_pct": -0.9483,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9483
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.015,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.02,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9483
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -123766,22 +123909,26 @@
               "status": "observed",
               "entry_mark": 1.96,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.4796,
-              "max_adverse_excursion_pct": -0.4796,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": -0.5765,
+              "max_adverse_excursion_pct": -0.5765,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.5765
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.02,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.83,
                   "mark_source": "mid",
-                  "bid": 0.88,
-                  "ask": 1.16,
-                  "last": 0.97,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=PEP/chain.parquet",
-                  "pnl_pct_from_emission": -0.4796
+                  "bid": 0.7,
+                  "ask": 0.96,
+                  "last": 0.71,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=PEP/chain.parquet",
+                  "pnl_pct_from_emission": -0.5765
                 }
               ]
             },
@@ -124245,15 +124392,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.065,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.4789,
+              "max_adverse_excursion_pct": -0.4789,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.555,
+                  "mark_source": "mid",
+                  "bid": 0.53,
+                  "ask": 0.58,
+                  "last": 0.53,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=IWM/chain.parquet",
+                  "pnl_pct_from_emission": -0.4789
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -125239,15 +125398,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.2,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.925,
+              "max_adverse_excursion_pct": -0.925,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.925
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.015,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.02,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.925
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -126189,26 +126364,26 @@
               "status": "observed",
               "entry_mark": 1.59,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 1.5,
-              "max_adverse_excursion_pct": 1.5,
+              "max_favorable_excursion_pct": 0.7673,
+              "max_adverse_excursion_pct": 0.7673,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 1.5
+                "pnl_pct_from_emission": 0.7673
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.975,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.81,
                   "mark_source": "mid",
-                  "bid": 3.8,
-                  "ask": 4.15,
-                  "last": 3.64,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=XOM/chain.parquet",
-                  "pnl_pct_from_emission": 1.5
+                  "bid": 2.52,
+                  "ask": 3.1,
+                  "last": 2.74,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XOM/chain.parquet",
+                  "pnl_pct_from_emission": 0.7673
                 }
               ]
             },
@@ -126675,26 +126850,26 @@
               "status": "observed",
               "entry_mark": 1.905,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.6929,
-              "max_adverse_excursion_pct": 0.6929,
+              "max_favorable_excursion_pct": 1.126,
+              "max_adverse_excursion_pct": 1.126,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.6929
+                "pnl_pct_from_emission": 1.126
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.225,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 4.05,
                   "mark_source": "mid",
-                  "bid": 3.15,
-                  "ask": 3.3,
-                  "last": 3.3,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=JPM/chain.parquet",
-                  "pnl_pct_from_emission": 0.6929
+                  "bid": 3.8,
+                  "ask": 4.3,
+                  "last": 4.05,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=JPM/chain.parquet",
+                  "pnl_pct_from_emission": 1.126
                 }
               ]
             },
@@ -127213,15 +127388,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.205,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9268,
+              "max_adverse_excursion_pct": -0.9268,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9268
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.015,
+                  "mark_source": "mid",
+                  "bid": 0.01,
+                  "ask": 0.02,
+                  "last": 0.01,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.9268
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -128158,15 +128349,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.02,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.7005,
+              "max_adverse_excursion_pct": -0.7005,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.7005
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.605,
+                  "mark_source": "mid",
+                  "bid": 0.54,
+                  "ask": 0.67,
+                  "last": 0.66,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=DIA/chain.parquet",
+                  "pnl_pct_from_emission": -0.7005
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -129152,15 +129359,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.315,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.7619,
+              "max_adverse_excursion_pct": -0.7619,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.7619
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.075,
+                  "mark_source": "mid",
+                  "bid": 0.07,
+                  "ask": 0.08,
+                  "last": 0.09,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.7619
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -129622,15 +129845,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.905,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.3867,
+              "max_adverse_excursion_pct": -0.3867,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.555,
+                  "mark_source": "mid",
+                  "bid": 0.53,
+                  "ask": 0.58,
+                  "last": 0.53,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=IWM/chain.parquet",
+                  "pnl_pct_from_emission": -0.3867
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -130095,26 +130330,26 @@
               "status": "observed",
               "entry_mark": 1.98,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.6288,
-              "max_adverse_excursion_pct": 0.6288,
+              "max_favorable_excursion_pct": 1.0455,
+              "max_adverse_excursion_pct": 1.0455,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.6288
+                "pnl_pct_from_emission": 1.0455
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.225,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 4.05,
                   "mark_source": "mid",
-                  "bid": 3.15,
-                  "ask": 3.3,
-                  "last": 3.3,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=JPM/chain.parquet",
-                  "pnl_pct_from_emission": 0.6288
+                  "bid": 3.8,
+                  "ask": 4.3,
+                  "last": 4.05,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=JPM/chain.parquet",
+                  "pnl_pct_from_emission": 1.0455
                 }
               ]
             },
@@ -131089,15 +131324,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.26,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.9206,
+              "max_adverse_excursion_pct": -0.9206,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9206
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.1,
+                  "mark_source": "mid",
+                  "bid": 0.07,
+                  "ask": 0.13,
+                  "last": 0.13,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=DIA/chain.parquet",
+                  "pnl_pct_from_emission": -0.9206
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -131490,22 +131741,26 @@
               "status": "observed",
               "entry_mark": 2.585,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.4352,
-              "max_adverse_excursion_pct": -0.4352,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": -0.9865,
+              "max_adverse_excursion_pct": -0.9865,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.9865
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.46,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.035,
                   "mark_source": "mid",
-                  "bid": 1.35,
-                  "ask": 1.57,
-                  "last": 1.6,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=BRK-B/chain.parquet",
-                  "pnl_pct_from_emission": -0.4352
+                  "bid": 0.03,
+                  "ask": 0.04,
+                  "last": 0.05,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=BRK-B/chain.parquet",
+                  "pnl_pct_from_emission": -0.9865
                 }
               ]
             },
@@ -132292,26 +132547,26 @@
               "status": "observed",
               "entry_mark": 1.89,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.7063,
-              "max_adverse_excursion_pct": 0.7063,
+              "max_favorable_excursion_pct": 1.1429,
+              "max_adverse_excursion_pct": 1.1429,
               "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
                 "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.7063
+                "pnl_pct_from_emission": 1.1429
               },
               "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 3.225,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 4.05,
                   "mark_source": "mid",
-                  "bid": 3.15,
-                  "ask": 3.3,
-                  "last": 3.3,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=JPM/chain.parquet",
-                  "pnl_pct_from_emission": 0.7063
+                  "bid": 3.8,
+                  "ask": 4.3,
+                  "last": 4.05,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=JPM/chain.parquet",
+                  "pnl_pct_from_emission": 1.1429
                 }
               ]
             },
@@ -132745,15 +133000,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.335,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.5075,
+              "max_adverse_excursion_pct": -0.5075,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "stop_50_pct",
+                "pnl_pct_from_emission": -0.5075
+              },
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.165,
+                  "mark_source": "mid",
+                  "bid": 0.16,
+                  "ask": 0.17,
+                  "last": 0.16,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.5075
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -133395,22 +133666,22 @@
               "status": "observed",
               "entry_mark": 1.01,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.0099,
-              "max_adverse_excursion_pct": -0.0099,
+              "max_favorable_excursion_pct": -0.1881,
+              "max_adverse_excursion_pct": -0.1881,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.0,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.82,
                   "mark_source": "mid",
-                  "bid": 0.97,
-                  "ask": 1.03,
-                  "last": 1.04,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=KO/chain.parquet",
-                  "pnl_pct_from_emission": -0.0099
+                  "bid": 0.78,
+                  "ask": 0.86,
+                  "last": 0.84,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=KO/chain.parquet",
+                  "pnl_pct_from_emission": -0.1881
                 }
               ]
             },
@@ -133724,15 +133995,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.515,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.1153,
+              "max_adverse_excursion_pct": 0.1153,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.805,
+                  "mark_source": "mid",
+                  "bid": 2.51,
+                  "ask": 3.1,
+                  "last": 2.86,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLI/chain.parquet",
+                  "pnl_pct_from_emission": 0.1153
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -134099,15 +134382,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.305,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.459,
+              "max_adverse_excursion_pct": -0.459,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.165,
+                  "mark_source": "mid",
+                  "bid": 0.16,
+                  "ask": 0.17,
+                  "last": 0.16,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.459
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -134425,26 +134720,22 @@
               "status": "observed",
               "entry_mark": 1.48,
               "observation_count": 1,
-              "max_favorable_excursion_pct": 0.3716,
-              "max_adverse_excursion_pct": 0.3716,
-              "first_hit": {
-                "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                "rule": "take_profit_25_pct",
-                "pnl_pct_from_emission": 0.3716
-              },
-              "take_profit_25_pct_before_stop_50_pct": true,
+              "max_favorable_excursion_pct": -0.1014,
+              "max_adverse_excursion_pct": -0.1014,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 2.03,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.33,
                   "mark_source": "mid",
-                  "bid": 1.84,
-                  "ask": 2.22,
-                  "last": 2.02,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=XOM/chain.parquet",
-                  "pnl_pct_from_emission": 0.3716
+                  "bid": 1.23,
+                  "ask": 1.43,
+                  "last": 1.31,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XOM/chain.parquet",
+                  "pnl_pct_from_emission": -0.1014
                 }
               ]
             },
@@ -134761,22 +135052,22 @@
               "status": "observed",
               "entry_mark": 1.985,
               "observation_count": 1,
-              "max_favorable_excursion_pct": -0.1159,
-              "max_adverse_excursion_pct": -0.1159,
+              "max_favorable_excursion_pct": -0.4836,
+              "max_adverse_excursion_pct": -0.4836,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
               "marks": [
                 {
-                  "captured_at_utc": "2026-08-11T14:09:42+00:00",
-                  "quote_date": "2026-08-11",
-                  "mark": 1.755,
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.025,
                   "mark_source": "mid",
-                  "bid": 1.35,
-                  "ask": 2.16,
-                  "last": 1.95,
-                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-11/run_time_utc=140942/underlying_symbol=ARKK/chain.parquet",
-                  "pnl_pct_from_emission": -0.1159
+                  "bid": 0.76,
+                  "ask": 1.29,
+                  "last": 1.15,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=ARKK/chain.parquet",
+                  "pnl_pct_from_emission": -0.4836
                 }
               ]
             },
@@ -135091,15 +135382,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.21,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.491,
+              "max_adverse_excursion_pct": -0.491,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.125,
+                  "mark_source": "mid",
+                  "bid": 1.05,
+                  "ask": 1.2,
+                  "last": 1.29,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=DIA/chain.parquet",
+                  "pnl_pct_from_emission": -0.491
+                }
+              ]
             },
             "executable_labels": {
               "end_of_day": {
@@ -135448,15 +135751,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 0.285,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.4211,
+              "max_adverse_excursion_pct": -0.4211,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 0.165,
+                  "mark_source": "mid",
+                  "bid": 0.16,
+                  "ask": 0.17,
+                  "last": 0.16,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=TLT/chain.parquet",
+                  "pnl_pct_from_emission": -0.4211
+                }
+              ]
             },
             "executable_labels": {}
           },
@@ -135687,15 +136002,27 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 2.13,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": -0.4718,
+              "max_adverse_excursion_pct": -0.4718,
               "first_hit": null,
               "take_profit_25_pct_before_stop_50_pct": null,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 1.125,
+                  "mark_source": "mid",
+                  "bid": 1.05,
+                  "ask": 1.2,
+                  "last": 1.29,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=DIA/chain.parquet",
+                  "pnl_pct_from_emission": -0.4718
+                }
+              ]
             },
             "executable_labels": {}
           },
@@ -136163,15 +136490,31 @@
               "pnl_pct": null
             },
             "archived_quote_path": {
-              "status": "missing",
+              "status": "observed",
               "entry_mark": 1.64,
-              "observation_count": 0,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.4543,
+              "max_adverse_excursion_pct": 0.4543,
+              "first_hit": {
+                "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                "rule": "take_profit_25_pct",
+                "pnl_pct_from_emission": 0.4543
+              },
+              "take_profit_25_pct_before_stop_50_pct": true,
               "take_profit_40_pct_before_stop_50_pct": null,
-              "marks": []
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 2.385,
+                  "mark_source": "mid",
+                  "bid": 1.62,
+                  "ask": 3.15,
+                  "last": 2.27,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=XLI/chain.parquet",
+                  "pnl_pct_from_emission": 0.4543
+                }
+              ]
             },
             "executable_labels": {}
           },
@@ -136356,13 +136699,390 @@
         "eligible": 0
       },
       "picks": []
+    },
+    {
+      "run_generated_at_utc": "2026-08-13T02:32:34+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3342,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "live_size": 1,
+        "shadow_size": 3,
+        "forge_intake": 12,
+        "counterfactual_observation_size": 3,
+        "preserve_shadow_veto_live_policy": true,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.86,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "market_shock_control_mode": "active"
+      },
+      "model_modes": {
+        "directional_scout": "artifact",
+        "side_aware_scout": "shadow",
+        "sentinel": "shadow",
+        "payoff_ranker": "shadow",
+        "payoff_volatility_challenger": "observation_only",
+        "path_model": "shadow",
+        "side_model_source": "artifact",
+        "path_model_source": "heuristic"
+      },
+      "moonshot_policy": {
+        "name": "nimrod_inspired_moonshot_satellite",
+        "slot_count": 1,
+        "threshold": 0.68,
+        "max_cost_basis": 225.0,
+        "capital_mode": "satellite_shadow_then_canary",
+        "notes": [
+          "Dedicated tail-upside lane; does not replace Council live-board picks.",
+          "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+        ]
+      },
+      "summary": {
+        "candidate_rows": 1,
+        "moonshot_pick": 0,
+        "moonshot_shadow": 1,
+        "eligible": 0
+      },
+      "picks": [
+        {
+          "recommendation_id": "2026-08-13T02:32:34+00:00|IWM260821C00302500|moonshot_shadow",
+          "run_generated_at_utc": "2026-08-13T02:32:34+00:00",
+          "lane": "moonshot_shadow",
+          "lane_reason": "moonshot_shadow_observation",
+          "symbol": "IWM",
+          "contract_symbol": "IWM260821C00302500",
+          "option_type": "call",
+          "expiry": "2026-08-21",
+          "strike": 302.5,
+          "days_to_expiry": 8,
+          "underlying": {
+            "symbol": "IWM",
+            "spot": 302.71,
+            "quote_captured_at_utc": "2026-08-13T02:32:34+00:00"
+          },
+          "emission_quote": {
+            "captured_at_utc": "2026-08-13T02:32:34+00:00",
+            "bid": 2.98,
+            "ask": 3.1,
+            "mid": 3.04,
+            "last": 2.92,
+            "spread": 0.12,
+            "spread_pct": 0.0395,
+            "open_interest": 397,
+            "volume": 1761,
+            "contract_cost": 310.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 3.04,
+            "quote_spread_dollars": 0.12,
+            "chain_snapshot_at_utc": "2026-08-13T02:32:18+00:00",
+            "last_trade_age_seconds": 23477.569
+          },
+          "scores": {
+            "forge_score": 0.6416,
+            "learned_rank_score": 0.7473,
+            "payoff_model_score": 0.7473,
+            "payoff_shadow_prob_positive": 0.1164,
+            "payoff_shadow_rank": 0.1667,
+            "payoff_shadow_probability_delta": -0.4368,
+            "payoff_shadow_rank_delta": -0.8333,
+            "payoff_shadow_disagreement": true,
+            "payoff_shadow_mode": "observation_only",
+            "payoff_shadow_artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
+            "payoff_shadow_return_q10": null,
+            "payoff_shadow_return_q50": null,
+            "payoff_shadow_return_q90": null,
+            "payoff_shadow_prob_fill_quality": null,
+            "payoff_shadow_prob_target_before_stop": null,
+            "payoff_shadow_conservative_utility": null,
+            "final_candidate_score": 0.7473,
+            "prob_positive_option_pnl": 0.5532,
+            "prob_no_trade": 0.4468,
+            "prob_fill_quality_ok": 1.0,
+            "prob_exceeds_breakeven": 0.5532,
+            "expected_option_return_pct_model": 0.338,
+            "expected_edge_after_friction_pct": 0.0373,
+            "friction_buffer_pct": 0.3007,
+            "path_holding_quality_score": 0.7067,
+            "path_early_profit_take_prob": 0.4735,
+            "path_decay_risk": 0.3309,
+            "path_hazard_target_probability": null,
+            "path_hazard_stop_probability": null,
+            "path_hazard_expiry_probability": null,
+            "path_exit_shadow_action": null,
+            "path_hazard_artifact_sha256": null
+          },
+          "risk_features": {
+            "delta": 0.5327,
+            "implied_volatility": 0.142,
+            "iv_rank": 0.2299,
+            "surface_atm_iv": 0.140025,
+            "surface_skew_slope": -0.307304,
+            "surface_curvature": 17.79966,
+            "surface_put_call_wing_skew": 0.0642,
+            "surface_term_slope_30d": -0.0725,
+            "surface_fit_rmse": 0.019264,
+            "surface_observation_count": 88,
+            "iv_relative_to_atm": 0.001975,
+            "iv_minus_realized_vol": -0.0124,
+            "extrinsic_ratio": 0.9323,
+            "moneyness": -0.0007,
+            "premium_pct_of_spot": 0.0102,
+            "breakeven_move_pct": 0.0095,
+            "projected_move_pct": 0.034,
+            "realized_vol_20d": 0.1544,
+            "atr_pct_14d": 0.0132,
+            "scout_call_edge_prob": 0.6829,
+            "scout_put_edge_prob": 0.0,
+            "scout_no_trade_prob": 0.3171,
+            "sentinel_event_type": "macro",
+            "sentinel_source_reliability": "medium",
+            "sentinel_novelty": "unknown",
+            "sentinel_holding_window_fit": 0.3722,
+            "sentinel_holding_window_label": "mismatch",
+            "sentinel_time_horizon": "one_week",
+            "sentinel_decay_half_life": "one_week",
+            "sentinel_confidence": 0.4342,
+            "sentinel_call_relevance": 0.3022,
+            "sentinel_put_relevance": 0.301,
+            "sentinel_no_trade_relevance": 0.671,
+            "sentinel_spot_effect": 0.0,
+            "sentinel_iv_effect": 0.0,
+            "council_risk_flags": [
+              "market_shock:constructive_risk_on",
+              "sector_cluster"
+            ],
+            "friction_gate_passed": false
+          },
+          "context": {
+            "regime": {
+              "mode": "risk_on",
+              "bias": 0.3342,
+              "source_symbol": "SPY",
+              "notes": []
+            },
+            "scan_settings": {
+              "live_size": 1,
+              "shadow_size": 3,
+              "forge_intake": 12,
+              "counterfactual_observation_size": 3,
+              "preserve_shadow_veto_live_policy": true,
+              "universe_size": 100,
+              "minimum_days_to_expiry": 7,
+              "maximum_days_to_expiry": 14,
+              "minimum_live_score": 0.86,
+              "minimum_put_live_score": 0.84,
+              "max_live_extrinsic_ratio": 0.9,
+              "moonshot_size": 1,
+              "moonshot_threshold": 0.68,
+              "moonshot_max_cost_basis": 225.0,
+              "enforce_pre_council_friction_gate": false,
+              "market_shock_control_mode": "active"
+            },
+            "model_modes": {
+              "directional_scout": "artifact",
+              "side_aware_scout": "shadow",
+              "sentinel": "shadow",
+              "payoff_ranker": "shadow",
+              "payoff_volatility_challenger": "observation_only",
+              "path_model": "shadow",
+              "side_model_source": "artifact",
+              "path_model_source": "heuristic"
+            },
+            "model_artifacts": {
+              "scout_model": {
+                "present": true,
+                "sha256": "d38cc7c392fca619a19c38d57c040bfa4ea6e972cb714e0d4d6ee8bd055483ca",
+                "required": true
+              },
+              "scout_scaler": {
+                "present": true,
+                "sha256": "f867df30e5cadf84b8fd844a53abff4255b82b54ddd6d7e68e9e529e667afaba",
+                "required": true
+              },
+              "scout_side_model": {
+                "present": true,
+                "sha256": "bb097b2db11d5de3b124a98cc9dbb8537910cb9a2589f9d8ef815f6802ed53f8",
+                "required": true
+              },
+              "sentinel_model": {
+                "present": true,
+                "sha256": "8cbeb8e6dc964a1181561930e27fc7cc2255e1ff13916a8f658a8103baa23002",
+                "required": true
+              },
+              "payoff_model": {
+                "present": true,
+                "sha256": "634d618da76663e31a4958cf90c9bbecda9eac545435cd7dde2a2544f94ecaa4",
+                "required": true
+              },
+              "payoff_volatility_shadow": {
+                "present": true,
+                "sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
+                "required": false
+              },
+              "path_model": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              },
+              "scout_model_card": {
+                "present": true,
+                "sha256": "3eed480ef3296e74e1aa7b77a4902d3227d500aef7ea900dacae17265fb71fc8",
+                "required": true
+              },
+              "sentinel_model_card": {
+                "present": true,
+                "sha256": "22d0f40d90d9f9456d23c3f51f0bd64132891f96827a2fc3d42ffdc879f72a79",
+                "required": true
+              },
+              "payoff_model_card": {
+                "present": true,
+                "sha256": "752f769fb352610b34ce77cb636e65ea43c4b4608053167013c17cc9a52e20cb",
+                "required": true
+              },
+              "payoff_volatility_shadow_card": {
+                "present": true,
+                "sha256": "14b683c31bd212de1ac3dba389ea5c5be7f46d6d2a593a516a75cc7ef39baf05",
+                "required": false
+              },
+              "path_model_card": {
+                "present": false,
+                "sha256": null,
+                "required": false
+              }
+            },
+            "ranker_mode": "shadow",
+            "ranker_artifact_sha256": "634d618da76663e31a4958cf90c9bbecda9eac545435cd7dde2a2544f94ecaa4",
+            "path_model_mode": "integrated_forge",
+            "path_model_artifact_sha256": "634d618da76663e31a4958cf90c9bbecda9eac545435cd7dde2a2544f94ecaa4"
+          },
+          "notes": [
+            "projected payoff is asymmetric",
+            "Sentinel shadow mismatch: one_week catalyst vs 8 DTE",
+            "Payoff model shadow score 0.75"
+          ],
+          "outcomes": {
+            "status": "pending",
+            "quote_verification": {
+              "emission_quote_captured": true,
+              "outcome_quotes_captured": false,
+              "capture_policy_version": 2,
+              "capture_integrity_passed": null
+            },
+            "capture_attempts": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "fixed_exit_marks": {
+              "one_hour": null,
+              "end_of_day": null,
+              "next_day_close": null,
+              "friday_close": null
+            },
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "realized_if_traded": {
+              "entry_fill": null,
+              "exit_fill": null,
+              "contracts": null,
+              "pnl": null,
+              "pnl_pct": null
+            },
+            "executable_labels": {},
+            "archived_quote_path": {
+              "status": "observed",
+              "entry_mark": 3.04,
+              "observation_count": 1,
+              "max_favorable_excursion_pct": 0.0,
+              "max_adverse_excursion_pct": 0.0,
+              "first_hit": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "marks": [
+                {
+                  "captured_at_utc": "2026-08-13T02:32:36+00:00",
+                  "quote_date": "2026-08-13",
+                  "mark": 3.04,
+                  "mark_source": "mid",
+                  "bid": 2.98,
+                  "ask": 3.1,
+                  "last": 2.92,
+                  "source_path": "engine/data/live_options_archive/partitioned/quote_date=2026-08-13/run_time_utc=023236/underlying_symbol=IWM/chain.parquet",
+                  "pnl_pct_from_emission": 0.0
+                }
+              ]
+            }
+          },
+          "moonshot": {
+            "tail_upside_score": 0.5055,
+            "eligible": false,
+            "reasons": [
+              "Nimrod prior: calls dominated the observed extreme-upside sample",
+              "Nimrod call contract selector applied inside moonshot lane only",
+              "fails moonshot satellite slot gate"
+            ],
+            "policy": {
+              "name": "nimrod_inspired_moonshot_satellite",
+              "slot_count": 1,
+              "threshold": 0.68,
+              "max_cost_basis": 225.0,
+              "capital_mode": "satellite_shadow_then_canary",
+              "notes": [
+                "Dedicated tail-upside lane; does not replace Council live-board picks.",
+                "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior."
+              ]
+            }
+          }
+        }
+      ]
     }
   ],
+  "last_capture_attempt_at_utc": "2026-08-13T02:35:29+00:00",
+  "last_mark_summary": {
+    "entries_seen": 133,
+    "picks_seen": 427,
+    "marks_written": 0,
+    "executable_labels_written": 0,
+    "executable_labels_skipped": 1423,
+    "quotes_missing": 0,
+    "picks_completed": 403,
+    "picks_partial": 19,
+    "picks_pending": 5,
+    "capture_windows_due": 0,
+    "capture_windows_valid": 0,
+    "capture_windows_quote_missing": 0,
+    "capture_windows_stale_quote": 0,
+    "capture_windows_missed": 0,
+    "capture_windows_newly_missed": 0,
+    "legacy_capture_policy_picks_skipped": 426,
+    "trajectory_marks_written": 0,
+    "trajectory_quotes_missing": 0,
+    "trajectory_quotes_stale": 1,
+    "trajectory_active_picks": 1,
+    "ledger_changed": 0
+  },
   "archived_quote_path_summary": {
-    "entries_seen": 132,
-    "picks_seen": 426,
-    "labels_observed": 27,
-    "labels_missing": 399,
+    "entries_seen": 133,
+    "picks_seen": 427,
+    "labels_observed": 51,
+    "labels_missing": 376,
     "labels_missing_entry_mark": 0
   }
 }
