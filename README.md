@@ -401,6 +401,19 @@ matched-pair identifier qualify as paired direction evidence. Merely finding an
 unrelated call and put for the same symbol/date is reported but cannot satisfy
 the paired-evidence promotion gate.
 
+Build the fail-closed matched-pair readiness report with:
+
+```bash
+python scripts/build_scout_pair_readiness.py --warn-only
+```
+
+The report requires at least 150 complete strict-executable pairs, 50 call-edge
+and 50 put-edge outcomes, 30 independent decision dates, two regimes with 25
+pairs each, and three usable purged walk-forward folds. Each fold must train and
+freeze its own model/scaler/calibrator bundle before validation. Passing these
+collection gates permits an offline evaluation only; it cannot replace active
+artifacts, affect Council, size an order, or route through Tradier.
+
 The same training run now builds `scout_hierarchical_challenger.pkl` when strict option outcomes are available. Its first head predicts trade versus abstain; its second head predicts call versus put using only dates where both sides were observed. The unified stack blends this challenger into the side ensemble at a bounded 20% weight; `current_gated` keeps its legacy observation-only treatment.
 
 Use `--hierarchical-only` to train that challenger while preserving every active Scout model, scaler, side model, and model card:

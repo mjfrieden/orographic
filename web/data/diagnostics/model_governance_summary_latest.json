@@ -1,7 +1,7 @@
 {
   "artifact": "model_governance_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-13T02:42:29.372525Z",
+  "generated_at_utc": "2026-08-13T17:08:56.071057Z",
   "status": "hold",
   "headline": "Production policy is unchanged while challengers collect binding evidence.",
   "live_authority": {
@@ -31,16 +31,16 @@
       "execution_effect": "none",
       "summary": "Two-stage challenger learns trade-versus-abstain before call-versus-put.",
       "progress": {
-        "current": 1,
-        "required": 100,
-        "remaining": 99,
-        "progress_pct": 0.01,
-        "label": "paired call + put rows"
+        "current": 0,
+        "required": 150,
+        "remaining": 150,
+        "progress_pct": 0.0,
+        "label": "complete matched call/put pairs"
       },
       "metrics": [
         {
-          "label": "Independent rows",
-          "value": 283,
+          "label": "Complete matched pairs",
+          "value": 0,
           "format": "integer"
         },
         {
@@ -49,18 +49,23 @@
           "format": "decimal"
         },
         {
-          "label": "Paired calls / puts",
-          "value": "1 / 0",
+          "label": "Call-edge / put-edge",
+          "value": "0 / 0",
           "format": "text"
+        },
+        {
+          "label": "Ready frozen folds",
+          "value": 0,
+          "format": "integer"
         }
       ],
       "blockers": [
-        "conservative after cost utility",
-        "direction discrimination",
-        "minimum call put rows",
-        "trade probability skill"
+        "minimum complete pairs",
+        "minimum call put edges",
+        "independent decision dates",
+        "regime coverage"
       ],
-      "next_action": "Collect paired, strict after-cost call and put outcomes before selecting direction thresholds."
+      "next_action": "Continue prospective matched-pair outcome capture; historical archive coverage is insufficient for a credible backfill."
     },
     {
       "id": "payoff",
@@ -100,7 +105,7 @@
         "conservative after cost utility",
         "observed quote path coverage"
       ],
-      "next_action": "Run shadow disagreement evaluation across 3/6/12-month windows and at least 30 live shadow trading days."
+      "next_action": "Run leakage-safe zero-weight, inverted-rank, and retrained challenger comparisons across 3/6/12-month windows."
     },
     {
       "id": "veto",

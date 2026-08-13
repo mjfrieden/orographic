@@ -150,6 +150,27 @@ This milestone is data infrastructure, not a model promotion. No performance
 uplift is claimed until enough pairs have resolved and a purged, fold-frozen
 retrain beats the current Scout and production-core Council policy.
 
+## Scout matched-pair readiness gate added 2026-08-13
+
+The repository now emits
+`web/data/diagnostics/scout_pair_readiness_latest.json` from both the normal
+scan and the 15-minute outcome-capture workflow. The gate requires 150 complete
+strict-executable pairs, at least 50 call-edge and 50 put-edge labels, 30
+independent decision dates, two regimes containing 25 pairs each, and three
+usable purged walk-forward folds. Every evaluation fold must train and freeze
+its own artifacts before scoring later dates.
+
+The historical chain audit cannot responsibly accelerate this gate: the local
+OptionsDX manifest has 299,617 rows but only one symbol and three quote dates.
+That is inadequate breadth for call-versus-put backfill, so the report directs
+the system to continue prospective collection instead of synthesizing pairs.
+
+Readiness is deliberately narrower than promotion. Even after all collection
+gates pass, the report only permits a pre-registered offline evaluation and
+keeps `active_model_change_allowed=false`. Model governance also continues to
+show Scout as held. No active model, ensemble weight, Council rule, position
+size, Moonshot selection, or Tradier route changes as a result of this gate.
+
 ## Release posture
 
 The architecture is suitable for one production lane, but the evidence does

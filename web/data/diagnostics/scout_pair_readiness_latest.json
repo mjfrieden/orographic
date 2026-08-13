@@ -1,0 +1,80 @@
+{
+  "artifact": "scout_pair_readiness",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-13T17:08:55.988747Z",
+  "status": "hold_collecting_pairs",
+  "execution_effect": "none_research_only",
+  "active_model_change_allowed": false,
+  "source": {
+    "artifact": "option_outcome_dataset",
+    "generated_at": null,
+    "label_policy": "strict_executable_quote_or_fill_v2"
+  },
+  "coverage": {
+    "input_rows": 0,
+    "explicit_pair_rows": 0,
+    "strict_executable_pair_rows": 0,
+    "pair_ids_with_strict_rows": 0,
+    "rejected_pair_ids": 0,
+    "complete_explicit_pairs": 0,
+    "decision_dates": 0,
+    "first_decision_date": null,
+    "last_decision_date": null,
+    "label_counts": {},
+    "regime_counts": {},
+    "evidence_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+  },
+  "historical_archive": {
+    "symbols": 1,
+    "quote_dates": 3,
+    "rows": 299617,
+    "adequate_for_historical_pair_backfill": false,
+    "requirements": {
+      "minimum_symbols": 20,
+      "minimum_quote_dates": 60
+    }
+  },
+  "promotion_gates": {
+    "strict_executable_labels": {
+      "passed": true,
+      "explicit_rows": 0,
+      "strict_v2_rows": 0
+    },
+    "minimum_complete_pairs": {
+      "passed": false,
+      "actual": 0,
+      "required": 150
+    },
+    "minimum_call_put_edges": {
+      "passed": false,
+      "actual": {
+        "call_edge": 0,
+        "put_edge": 0
+      },
+      "required_each": 50
+    },
+    "independent_decision_dates": {
+      "passed": false,
+      "actual": 0,
+      "required": 30
+    },
+    "regime_coverage": {
+      "passed": false,
+      "actual": {},
+      "required_regimes": 2,
+      "required_pairs_per_regime": 25
+    },
+    "fold_frozen_plan": {
+      "passed": false,
+      "actual_ready_folds": 0,
+      "required_ready_folds": 3
+    }
+  },
+  "fold_frozen_evaluation_plan": {
+    "method": "expanding walk-forward grouped by decision date; labels purged by availability date",
+    "folds": [],
+    "ready_folds": 0,
+    "required_ready_folds": 3
+  },
+  "next_action": "Continue prospective matched-pair outcome capture; historical archive coverage is insufficient for a credible backfill."
+}

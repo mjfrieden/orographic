@@ -67,6 +67,7 @@ def build_model_governance_summary(
     payoff_evidence: dict[str, Any],
     veto_evidence: dict[str, Any],
     path_evidence: dict[str, Any],
+    scout_pair_readiness: dict[str, Any] | None = None,
     capture_health: dict[str, Any] | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
@@ -103,11 +104,35 @@ def build_model_governance_summary(
         capture_status = "fail"
         capture_headline = "Active contracts are missing fresh, timestamp-valid path evidence."
 
+    pair_readiness = _dict(scout_pair_readiness)
+    pair_coverage = _dict(pair_readiness.get("coverage"))
+    pair_label_counts = _dict(pair_coverage.get("label_counts"))
     scout_counts = _dict(scout_card.get("paired_direction_counts"))
-    scout_call = _int(scout_counts.get("call"))
-    scout_put = _int(scout_counts.get("put"))
-    scout_gates = _dict(scout_card.get("promotion_gates"))
-    scout_status = str(scout_card.get("status") or "hold")
+    scout_call = _int(
+        pair_label_counts.get("call_edge")
+        if pair_readiness
+        else scout_counts.get("call")
+    )
+    scout_put = _int(
+        pair_label_counts.get("put_edge")
+        if pair_readiness
+        else scout_counts.get("put")
+    )
+    scout_pairs = (
+        _int(pair_coverage.get("complete_explicit_pairs"))
+        if pair_readiness
+        else _int(scout_card.get("rows"))
+    )
+    scout_gates = _dict(
+        pair_readiness.get("promotion_gates") or scout_card.get("promotion_gates")
+    )
+    fold_plan = _dict(pair_readiness.get("fold_frozen_evaluation_plan"))
+    scout_status = "hold" if pair_readiness else str(scout_card.get("status") or "hold")
+    scout_progress = (
+        _progress(scout_pairs, 150, "complete matched call/put pairs")
+        if pair_readiness
+        else _progress(min(scout_call, 50) + min(scout_put, 50), 100, "paired call + put rows")
+    )
     scout = {
         "id": "scout",
         "title": "Scout abstention + direction",
@@ -116,14 +141,22 @@ def build_model_governance_summary(
         "authority": "observation_only",
         "execution_effect": "none",
         "summary": "Two-stage challenger learns trade-versus-abstain before call-versus-put.",
-        "progress": _progress(min(scout_call, 50) + min(scout_put, 50), 100, "paired call + put rows"),
+        "progress": scout_progress,
         "metrics": [
-            {"label": "Independent rows", "value": _int(scout_card.get("rows")), "format": "integer"},
+            {
+                "label": "Complete matched pairs" if pair_readiness else "Independent rows",
+                "value": scout_pairs,
+                "format": "integer",
+            },
             {"label": "Trade AUC", "value": _float(_dict(scout_card.get("cross_validation")).get("trade_auc")), "format": "decimal"},
-            {"label": "Paired calls / puts", "value": f"{scout_call} / {scout_put}", "format": "text"},
+            {"label": "Call-edge / put-edge", "value": f"{scout_call} / {scout_put}", "format": "text"},
+            {"label": "Ready frozen folds", "value": _int(fold_plan.get("ready_folds")), "format": "integer"},
         ],
         "blockers": _failed_gate_names(scout_gates),
-        "next_action": "Collect paired, strict after-cost call and put outcomes before selecting direction thresholds.",
+        "next_action": str(
+            pair_readiness.get("next_action")
+            or "Collect paired, strict after-cost call and put outcomes before selecting direction thresholds."
+        ),
     }
 
     payoff_coverage = _dict(payoff_evidence.get("coverage"))

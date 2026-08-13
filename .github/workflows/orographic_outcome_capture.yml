@@ -77,6 +77,7 @@ jobs:
         continue-on-error: true
         run: |
           if [ -f web/data/diagnostics/prospective_pick_ledger.json ]; then
+            python scripts/build_scout_pair_readiness.py --warn-only
             python scripts/build_payoff_challenger_evidence.py
             python scripts/build_counterfactual_veto_evidence.py
             python scripts/mark_path_outcomes_from_archive.py \
@@ -106,6 +107,7 @@ jobs:
           git add \
             web/data/diagnostics/prospective_pick_ledger.json \
             web/data/diagnostics/moonshot_prospective_ledger.json \
+            web/data/diagnostics/scout_pair_readiness_latest.json \
             web/data/diagnostics/payoff_challenger_evidence_latest.json \
             web/data/diagnostics/counterfactual_veto_evidence_latest.json \
             web/data/diagnostics/outcome_capture_health_latest.json \

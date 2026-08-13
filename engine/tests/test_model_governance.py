@@ -44,6 +44,29 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertEqual(report["data_capture"]["status"], "hold")
         self.assertEqual(report["status"], "hold")
 
+    def test_scout_readiness_overrides_stale_model_card_pair_counts(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={},
+            scout_card={"status": "pass", "paired_direction_counts": {"call": 99, "put": 99}},
+            scout_pair_readiness={
+                "status": "hold_collecting_pairs",
+                "coverage": {
+                    "complete_explicit_pairs": 12,
+                    "label_counts": {"call_edge": 4, "put_edge": 3, "no_trade": 5},
+                },
+                "promotion_gates": {"minimum_complete_pairs": {"passed": False}},
+                "fold_frozen_evaluation_plan": {"ready_folds": 0},
+                "next_action": "Keep collecting strict matched pairs.",
+            },
+            payoff_card={}, payoff_evidence={}, veto_evidence={}, path_evidence={},
+        )
+
+        scout = report["challengers"][0]
+        self.assertEqual(scout["status"], "hold")
+        self.assertEqual(scout["progress"]["current"], 12)
+        self.assertEqual(scout["metrics"][2]["value"], "4 / 3")
+        self.assertIn("minimum complete pairs", scout["blockers"])
+
     def test_failed_active_capture_blocks_overall_readiness(self) -> None:
         report = build_model_governance_summary(
             scan_health={

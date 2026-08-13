@@ -160,6 +160,10 @@ jobs:
             --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
             --output-dir output/research_datasets
 
+      - name: Build matched Scout pair readiness
+        run: |
+          python scripts/build_scout_pair_readiness.py --warn-only
+
       - name: Build point-in-time event outcome coverage
         run: |
           python scripts/build_event_outcome_coverage.py \
