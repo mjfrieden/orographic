@@ -4,6 +4,7 @@ const DEFAULT_LIVE_BASE_URL = "https://api.tradier.com/v1";
 const DEFAULT_SANDBOX_BASE_URL = "https://sandbox.tradier.com/v1";
 const DEFAULT_MAX_SIGNAL_AGE_MINUTES = 240;
 const DEFAULT_PREVIEW_TTL_SECONDS = 300;
+const DEFAULT_MAX_ENTRY_COST_BASIS_USD = 600;
 const TRUE_VALUES = new Set(["1", "true", "yes", "on"]);
 
 function boolFromEnv(value) {
@@ -16,6 +17,14 @@ function boolFromEnv(value) {
 
 function parsePositiveInt(value, fallback, minimum = 1, maximum = 20) {
   const parsed = Number.parseInt(String(value ?? ""), 10);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(Math.max(parsed, minimum), maximum);
+}
+
+function parsePositiveNumber(value, fallback, minimum = 1, maximum = 100_000) {
+  const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     return fallback;
   }
@@ -425,6 +434,10 @@ export function getTradierSettings(env) {
       1,
       10,
     ),
+    maxEntryCostBasisUsd: parsePositiveNumber(
+      env.OROGRAPHIC_MAX_ENTRY_COST_BASIS_USD || env.TRADIER_MAX_ENTRY_COST_BASIS_USD,
+      DEFAULT_MAX_ENTRY_COST_BASIS_USD,
+    ),
     maxSignalAgeMinutes: parsePositiveInt(
       env.OROGRAPHIC_MAX_SIGNAL_AGE_MINUTES,
       DEFAULT_MAX_SIGNAL_AGE_MINUTES,
@@ -449,6 +462,7 @@ export function publicTradierConfig(settings) {
     liveTradingEnabled: settings.liveTradingEnabled,
     accountIdMasked: settings.accountIdMasked,
     maxContracts: settings.maxContracts,
+    maxEntryCostBasisUsd: settings.maxEntryCostBasisUsd,
     maxSignalAgeMinutes: settings.maxSignalAgeMinutes,
     previewTtlSeconds: settings.previewTtlSeconds,
   };
@@ -926,6 +940,7 @@ export function buildSubmissionPreview({
     status: validation.ok ? (allowed ? 200 : 412) : validation.status,
     requires_admin: true,
     max_contracts: config.maxContracts,
+    max_entry_cost_basis_usd: config.maxEntryCostBasisUsd,
     mode: config.mode,
     side,
     requires_manual_override_confirmation: false,
@@ -953,11 +968,12 @@ export function validateSubmission({
   lane,
   snapshotInfo,
   side = "buy_to_open",
+  requireAdmin = true,
 }) {
   if (!session) {
     return { ok: false, status: 401, error: "Authenticated session required." };
   }
-  if (session.role !== "admin") {
+  if (requireAdmin && session.role !== "admin") {
     return {
       ok: false,
       status: 403,
@@ -990,6 +1006,33 @@ export function validateSubmission({
     }
   }
   return { ok: true };
+}
+
+export function validateEntryRiskBudget({ config, envelope, side = "buy_to_open" }) {
+  if (side !== "buy_to_open") {
+    return { ok: true, estimated_cost_basis_usd: 0.0 };
+  }
+  const quantity = parsePositiveInt(envelope?.quantity, 1, 1, config?.maxContracts || 10);
+  const price = asNumber(envelope?.price, 0.0) || 0.0;
+  const estimatedCost = Number((quantity * price * 100).toFixed(2));
+  const maximum = parsePositiveNumber(
+    config?.maxEntryCostBasisUsd,
+    DEFAULT_MAX_ENTRY_COST_BASIS_USD,
+  );
+  if (estimatedCost > maximum) {
+    return {
+      ok: false,
+      status: 409,
+      error: `Entry blocked: estimated cost basis $${estimatedCost.toFixed(2)} exceeds the $${maximum.toFixed(2)} Council risk limit.`,
+      estimated_cost_basis_usd: estimatedCost,
+      max_entry_cost_basis_usd: maximum,
+    };
+  }
+  return {
+    ok: true,
+    estimated_cost_basis_usd: estimatedCost,
+    max_entry_cost_basis_usd: maximum,
+  };
 }
 
 export function formatTradierError(

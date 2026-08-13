@@ -135,6 +135,10 @@ class ResultsTests(unittest.TestCase):
         )
 
         self.assertEqual(results["max_drawdown"], -1.0)
+        self.assertEqual(results["capital_at_risk_max_drawdown"], -1.0)
+        self.assertEqual(results["account_max_drawdown"], -0.0198)
+        self.assertEqual(results["account_return_pct"], -0.01)
+        self.assertEqual(results["account_equity_curve"][-1]["account_equity"], 9900.0)
 
     def test_build_results_reports_put_side_breakdown(self) -> None:
         put_trade = _trade("HEDGE", "real_chain", "real_chain", 1.0, pnl=30.0, pnl_pct=0.3)

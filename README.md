@@ -304,6 +304,20 @@ excluded because it is a separate side experiment):
   --target-dte-max 14
 ```
 
+Compare the historical three-pick research policy with the one-pick production
+core Council gates and account-level drawdown. This diagnostic does not replay
+live market-shock or prior-board turnover state:
+
+```bash
+./.venv/bin/python -m engine.backtest.alpha_experiment \
+  --council-risk-ablation-only \
+  --initial-account-equity-usd 10000 \
+  --strict-options-data \
+  --expiry-policy target_dte \
+  --target-dte-min 7 \
+  --target-dte-max 14
+```
+
 Current production decision as of May 6, 2026:
 
 - keep `council_cost_cap` as the production default validation and deployment variant
@@ -352,6 +366,7 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_SANDBOX_MODE`: `true` for paper trading, `false` for production base URLs
 - `TRADIER_LIVE_TRADING_ENABLED`: `true` only when you explicitly want production order submission enabled
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
+- `OROGRAPHIC_MAX_ENTRY_COST_BASIS_USD`: server-enforced buy-to-open cost-basis ceiling, default `$600`; applied to preview and submission after the live quote is loaded
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
 - `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
 - `OROGRAPHIC_MODEL_STACK`: optional; defaults to `unified_rnd`. This activates the integrated side, Sentinel, payoff, path, and cost-aware stack in one R&D lane. Set it to `current_gated` to reproduce the former promotion-gated baseline.

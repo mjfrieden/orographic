@@ -15,6 +15,7 @@ import {
   loadLatestSnapshot,
   previewOrPlaceOrder,
   requireSession,
+  validateEntryRiskBudget,
   validateSubmission,
 } from "../../_lib/tradier.js";
 
@@ -34,11 +35,9 @@ import {
  *   price (number)               – limit price
  *   confirm_live (bool)          – must be true for live (non-sandbox) order placement
  *
- * Preview: any authenticated session, no snapshot freshness gate.
- * Placement: admin-only. New entries require a fresh snapshot, whether the
- * contract came from the live board or the single daily manual-override pick.
- * Held picks require explicit acknowledgement; manual exits stay available
- * even if the snapshot has gone stale.
+ * Preview: authenticated session; new entries must still be on a fresh Council
+ * live board. Placement: admin-only. Position-closing previews and submissions
+ * remain available even when today's recommendation has changed.
  */
 
 function buildRequestEnvelope({
@@ -238,6 +237,41 @@ export async function onRequestPost(context) {
 
   // ----- PREVIEW path (any authenticated user) -----
   if (isPreview) {
+    const previewValidation = validateSubmission({
+      config,
+      session,
+      lane,
+      snapshotInfo,
+      side,
+      requireAdmin: false,
+    });
+    if (!previewValidation.ok) {
+      const provenance = await recordBlockedAttempt({
+        context,
+        eventType: "blocked_preview_validation",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        optionSymbol,
+        underlyingSymbol,
+        side,
+        quantity,
+        orderType,
+        duration,
+        price,
+        requestedExitPolicyAction,
+        blockReason: previewValidation.error,
+        httpStatus: previewValidation.status,
+        error: previewValidation.error,
+      });
+      return jsonResponse(
+        { ok: false, error: previewValidation.error, eligibility, submission, provenance },
+        previewValidation.status,
+      );
+    }
     // Fetch a live quote so the preview price is fresh
     let liveQuote = null;
     try {
@@ -255,6 +289,34 @@ export async function onRequestPost(context) {
       liveQuote,
       side
     );
+    const riskBudget = validateEntryRiskBudget({ config, envelope, side });
+    if (!riskBudget.ok) {
+      const provenance = await recordBlockedAttempt({
+        context,
+        eventType: "blocked_risk_budget",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        optionSymbol,
+        underlyingSymbol,
+        side,
+        quantity: envelope.quantity,
+        orderType,
+        duration,
+        price: envelope.price,
+        requestedExitPolicyAction,
+        blockReason: "entry_cost_basis_limit",
+        httpStatus: riskBudget.status,
+        error: riskBudget.error,
+      });
+      return jsonResponse(
+        { ok: false, error: riskBudget.error, risk_budget: riskBudget, eligibility, submission, provenance },
+        riskBudget.status,
+      );
+    }
 
     const brokerRequestedAtUtc = new Date().toISOString();
     try {
@@ -443,6 +505,34 @@ export async function onRequestPost(context) {
     liveQuote,
     side
   );
+  const riskBudget = validateEntryRiskBudget({ config, envelope, side });
+  if (!riskBudget.ok) {
+    const provenance = await recordBlockedAttempt({
+      context,
+      eventType: "blocked_risk_budget",
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      optionSymbol,
+      underlyingSymbol,
+      side,
+      quantity: envelope.quantity,
+      orderType,
+      duration,
+      price: envelope.price,
+      requestedExitPolicyAction,
+      blockReason: "entry_cost_basis_limit",
+      httpStatus: riskBudget.status,
+      error: riskBudget.error,
+    });
+    return jsonResponse(
+      { ok: false, error: riskBudget.error, risk_budget: riskBudget, eligibility, submission, provenance },
+      riskBudget.status,
+    );
+  }
 
   const brokerRequestedAtUtc = new Date().toISOString();
   try {

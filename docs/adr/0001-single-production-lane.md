@@ -53,7 +53,10 @@ do not break. Production scans force their candidate allocations to zero.
 - Moonshot has no input edge into the primary ensemble or Council;
 - research and Moonshot cards have no preview or execute authority;
 - the broker candidate lookup searches only `council.live_board`;
-- buy-to-open validation rejects every non-Council contract;
+- buy-to-open preview and submission reject every non-Council contract;
+- the broker boundary enforces the configured entry cost-basis ceiling after
+  refreshing the option quote; client quantity controls are not trusted as the
+  risk boundary;
 - tests verify that a legacy manual override cannot bypass the rule.
 
 ## Consequences

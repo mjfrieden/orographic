@@ -579,6 +579,7 @@ let BROKER_STATE = {
   loading: false,
   lastLoadedAt: null,
   lastError: null,
+  maxEntryCostBasisUsd: HARD_COST_CEILING_USD,
 };
 
 let POSITION_ADVICE = new Map();
@@ -765,6 +766,8 @@ async function loadAccount() {
         positions: data.positions || data.broker.positions || [],
         orders: data.orders || data.broker.orders || [],
         maxContracts: data.broker.maxContracts || 3,
+        maxEntryCostBasisUsd:
+          Number(data.broker.maxEntryCostBasisUsd) || HARD_COST_CEILING_USD,
         loading: false,
         lastLoadedAt: new Date().toISOString(),
         lastError: null,
@@ -1890,7 +1893,7 @@ function suggestedEntryQuantity(price, allocWeight) {
   const weight = Number(allocWeight) || 1.0;
   const scaledBudget = Math.min(
     BASE_BUDGET_USD * weight,
-    HARD_COST_CEILING_USD,
+    Number(BROKER_STATE.maxEntryCostBasisUsd) || HARD_COST_CEILING_USD,
   );
   const rawQty = Math.floor(scaledBudget / (contractPrice * 100.0));
   return clampQuantity(rawQty || 1, 1);
@@ -3568,7 +3571,7 @@ function renderPerformanceExplanation(bt) {
   const netReturn = Number(bt.net_return_pct || 0);
   const winRate = Number(bt.win_rate || 0);
   const sharpe = Number(bt.sharpe_ratio || 0);
-  const maxDD = Number(bt.max_drawdown || 0);
+  const maxDD = Number(bt.account_max_drawdown ?? bt.max_drawdown ?? 0);
   const avgWin = Number(bt.avg_winner_pct || 0);
   const avgLoss = Number(bt.avg_loser_pct || 0);
   const trades = Number(bt.total_trades || 0);
@@ -3654,7 +3657,7 @@ function renderBacktest(bt) {
   const totalPnl = Number(bt.total_pnl || 0);
   const netReturn = Number(bt.net_return_pct || 0);
   const sharpe = Number(bt.sharpe_ratio || 0);
-  const maxDD = Number(bt.max_drawdown || 0);
+  const maxDD = Number(bt.account_max_drawdown ?? bt.max_drawdown ?? 0);
   const winRate = Number(bt.win_rate || 0);
   const avgWin = Number(bt.avg_winner_pct || 0);
   const avgLoss = Number(bt.avg_loser_pct || 0);
@@ -3763,7 +3766,10 @@ function renderBacktest(bt) {
         "Sharpe",
         Number.isFinite(sharpe) ? sharpe.toFixed(2) : "—",
       ),
-      summaryItemHtml("Drawdown", pctOrDash(bt.max_drawdown)),
+      summaryItemHtml(
+        bt.account_max_drawdown != null ? "Account Drawdown" : "Drawdown",
+        pctOrDash(bt.account_max_drawdown ?? bt.max_drawdown),
+      ),
       summaryItemHtml(
         "Coverage Gate",
         coveragePolicy.coverage_failed ? "Failed" : "Passed",

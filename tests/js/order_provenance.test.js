@@ -310,6 +310,45 @@ test("preview order records provenance", async () => {
   });
 });
 
+test("preview rejects non-Council contracts before contacting Tradier", async () => {
+  await withMockTradier(async () => {
+    const context = await makeContext({
+      role: "viewer",
+      body: {
+        ...buyLiveBody,
+        preview: true,
+        option_symbol: "MSFT260522C00200000",
+        symbol: "MSFT",
+      },
+    });
+    const response = await orderPost(context);
+    const payload = await response.json();
+    const rows = await listOrderProvenance({ POSITIONS_DB: context.db });
+
+    assert.equal(response.status, 409);
+    assert.match(payload.error, /single production board/i);
+    assert.equal(rows[0].event_type, "blocked_preview_validation");
+  });
+});
+
+test("preview enforces the server-side entry cost-basis ceiling", async () => {
+  await withMockTradier(async () => {
+    const context = await makeContext({
+      body: { ...buyLiveBody, preview: true },
+      envOverrides: { OROGRAPHIC_MAX_ENTRY_COST_BASIS_USD: "100" },
+    });
+    const response = await orderPost(context);
+    const payload = await response.json();
+    const rows = await listOrderProvenance({ POSITIONS_DB: context.db });
+
+    assert.equal(response.status, 409);
+    assert.match(payload.error, /cost basis/i);
+    assert.equal(payload.risk_budget.estimated_cost_basis_usd, 123);
+    assert.equal(payload.risk_budget.max_entry_cost_basis_usd, 100);
+    assert.equal(rows[0].event_type, "blocked_risk_budget");
+  });
+});
+
 test("submitted order records provenance", async () => {
   await withMockTradier(async () => {
     const context = await makeContext({ body: buyLiveBody });
@@ -324,6 +363,22 @@ test("submitted order records provenance", async () => {
     assert.equal(rows[0].broker_order_id, "ORDER1");
     assert.equal(rows[0].payload.execution.broker_avg_fill_price, 1.25);
     assert.ok(rows[0].payload.execution.signed_adverse_slippage_usd > 0);
+  });
+});
+
+test("submission enforces the server-side entry cost-basis ceiling", async () => {
+  await withMockTradier(async () => {
+    const context = await makeContext({
+      body: buyLiveBody,
+      envOverrides: { OROGRAPHIC_MAX_ENTRY_COST_BASIS_USD: "100" },
+    });
+    const response = await orderPost(context);
+    const payload = await response.json();
+    const rows = await listOrderProvenance({ POSITIONS_DB: context.db });
+
+    assert.equal(response.status, 409);
+    assert.equal(payload.risk_budget.estimated_cost_basis_usd, 123);
+    assert.equal(rows[0].event_type, "blocked_risk_budget");
   });
 });
 

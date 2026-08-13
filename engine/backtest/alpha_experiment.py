@@ -65,6 +65,9 @@ class VariantConfig:
     live_size: int = 3
     shadow_size: int = 3
     model_stack: str = "current_gated"
+    minimum_live_score: float = 0.57
+    minimum_put_live_score: float | None = None
+    max_live_extrinsic_ratio: float = 0.96
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,7 @@ def build_variants(
     *,
     unified_comparison_only: bool = False,
     unified_ablation_only: bool = False,
+    council_risk_ablation_only: bool = False,
 ) -> list[VariantConfig]:
     current = VariantConfig(
         name="council_cost_cap",
@@ -112,6 +116,43 @@ def build_variants(
             UNIFIED_PRIMARY_ONLY,
         )
     ]
+    risk_ablations = [
+        VariantConfig(
+            name="unified_research_reference_live3_score57",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            live_size=3,
+            shadow_size=0,
+            model_stack=UNIFIED_RND,
+        ),
+        *[
+            VariantConfig(
+                name=f"unified_live1_score{int(score * 100):02d}",
+                council_only=True,
+                max_estimated_cost_basis=cost_cap_usd,
+                live_size=1,
+                shadow_size=0,
+                model_stack=UNIFIED_RND,
+                minimum_live_score=score,
+                minimum_put_live_score=max(score - 0.02, 0.0),
+                max_live_extrinsic_ratio=0.90,
+            )
+            for score in (0.64, 0.68, 0.72, 0.76, 0.80)
+        ],
+        VariantConfig(
+            name="unified_production_core_policy",
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            live_size=1,
+            shadow_size=0,
+            model_stack=UNIFIED_RND,
+            minimum_live_score=0.86,
+            minimum_put_live_score=0.84,
+            max_live_extrinsic_ratio=0.90,
+        ),
+    ]
+    if council_risk_ablation_only:
+        return risk_ablations
     if unified_ablation_only:
         return [current, unified, *ablations]
     if unified_comparison_only:
@@ -541,6 +582,8 @@ def run_experiment(
     event_features_path: Path | None = None,
     unified_comparison_only: bool = False,
     unified_ablation_only: bool = False,
+    council_risk_ablation_only: bool = False,
+    initial_account_equity_usd: float = 10_000.0,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -576,6 +619,7 @@ def run_experiment(
         cost_cap_usd,
         unified_comparison_only=unified_comparison_only,
         unified_ablation_only=unified_ablation_only,
+        council_risk_ablation_only=council_risk_ablation_only,
     )
     event_feature_store = load_event_feature_frame(event_features_path)
     variant_trades: dict[str, list[TradeLeg]] = {variant.name: [] for variant in variants}
@@ -603,7 +647,7 @@ def run_experiment(
             )
             for model_stack in {variant.model_stack for variant in variants}
         }
-        week = week_by_stack["current_gated"]
+        week = week_by_stack.get(CURRENT_GATED) or week_by_stack[variants[0].model_stack]
         log.info(
             "Week %s → %d signal(s), %d candidate(s), regime=%s",
             monday,
@@ -660,6 +704,9 @@ def run_experiment(
                     week.regime,
                     live_size=variant.live_size,
                     shadow_size=variant.shadow_size,
+                    minimum_live_score=variant.minimum_live_score,
+                    minimum_put_live_score=variant.minimum_put_live_score,
+                    max_live_extrinsic_ratio=variant.max_live_extrinsic_ratio,
                     corr_matrix=corr,
                     fetch_live_corr=False,
                 )
@@ -735,6 +782,12 @@ def run_experiment(
             weekly_diagnostics[variant.name].append({
                 "monday": week.monday.isoformat(),
                 "model_stack": variant.model_stack,
+                "council_policy": {
+                    "live_size": variant.live_size,
+                    "minimum_live_score": variant.minimum_live_score,
+                    "minimum_put_live_score": variant.minimum_put_live_score,
+                    "max_live_extrinsic_ratio": variant.max_live_extrinsic_ratio,
+                },
                 "regime": week.regime.mode,
                 "regime_bias": round(float(week.regime.bias), 4),
                 "regime_source_symbol": week.regime.source_symbol,
@@ -795,6 +848,7 @@ def run_experiment(
                 end_date,
                 budget_per_trade_usd=base_budget_usd,
                 hard_cost_ceiling_usd=hard_cost_ceiling_usd,
+                initial_account_equity_usd=initial_account_equity_usd,
             ),
             strict_options_data=strict_options_data,
             min_real_coverage_pct=min_real_coverage_pct,
@@ -809,6 +863,9 @@ def run_experiment(
             "net_return_pct": result["net_return_pct"],
             "sharpe_ratio": result["sharpe_ratio"],
             "max_drawdown": result["max_drawdown"],
+            "capital_at_risk_max_drawdown": result["capital_at_risk_max_drawdown"],
+            "account_max_drawdown": result["account_max_drawdown"],
+            "account_return_pct": result["account_return_pct"],
             "path_shadow_disagreement_weeks": sum(
                 1 for row in weekly_diagnostics[name]
                 if bool((row.get("path_shadow") or {}).get("disagreement"))
@@ -865,21 +922,41 @@ def run_experiment(
         "backtest_end": end_date.isoformat(),
         "months": months,
         "symbols": symbols,
-        "recommended_default_variant": "council_cost_cap",
-        "recommended_default_variant_label": "Council + Cost Cap",
-        "research_default_variant": "unified_council_cost_cap",
-        "research_default_variant_label": "Unified R&D + Council + Cost Cap",
+        "recommended_default_variant": (
+            "unified_production_core_policy"
+            if council_risk_ablation_only
+            else "council_cost_cap"
+        ),
+        "recommended_default_variant_label": (
+            "Unified Production Core Council Policy"
+            if council_risk_ablation_only
+            else "Council + Cost Cap"
+        ),
+        "research_default_variant": (
+            "unified_research_reference_live3_score57"
+            if council_risk_ablation_only
+            else "unified_council_cost_cap"
+        ),
+        "research_default_variant_label": (
+            "Unified Three-Pick Research Reference"
+            if council_risk_ablation_only
+            else "Unified R&D + Council + Cost Cap"
+        ),
         "promotion_decision": "hold_pending_leakage_safe_out_of_sample_validation",
-        "experimental_variants": [
-            "unified_council_cost_cap",
-            UNIFIED_NO_HIERARCHICAL,
-            UNIFIED_NO_PATH,
-            UNIFIED_NO_COST_AWARE,
-            UNIFIED_PRIMARY_ONLY,
-            "council_cost_cap_symbol_priors",
-            "council_cost_cap_path_tiebreaker",
-            "council_cost_cap_path_tiebreaker_loose",
-        ],
+        "experimental_variants": (
+            [variant.name for variant in variants]
+            if council_risk_ablation_only
+            else [
+                "unified_council_cost_cap",
+                UNIFIED_NO_HIERARCHICAL,
+                UNIFIED_NO_PATH,
+                UNIFIED_NO_COST_AWARE,
+                UNIFIED_PRIMARY_ONLY,
+                "council_cost_cap_symbol_priors",
+                "council_cost_cap_path_tiebreaker",
+                "council_cost_cap_path_tiebreaker_loose",
+            ]
+        ),
         "config": {
             "budget_per_trade_usd": base_budget_usd,
             "hard_cost_ceiling_usd": hard_cost_ceiling_usd,
@@ -908,6 +985,8 @@ def run_experiment(
             "event_feature_rows": len(event_feature_store),
             "unified_comparison_only": unified_comparison_only,
             "unified_ablation_only": unified_ablation_only,
+            "council_risk_ablation_only": council_risk_ablation_only,
+            "initial_account_equity_usd": initial_account_equity_usd,
         },
         "variant_summaries": summaries,
         "option_outcome_datasets": {
@@ -940,6 +1019,7 @@ def print_experiment_summary(payload: dict[str, Any]) -> None:
         print(f"    net return {summary['net_return_pct']:.1%}")
         print(f"    sharpe     {summary['sharpe_ratio']:.2f}")
         print(f"    drawdown   {summary['max_drawdown']:.1%}")
+        print(f"    acct dd    {summary['account_max_drawdown']:.1%}")
         print()
     print("═" * 68)
 
@@ -1037,6 +1117,17 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run the current baseline, full unified stack, and exact unified component ablations.",
     )
+    parser.add_argument(
+        "--council-risk-ablation-only",
+        action="store_true",
+        help="Run one-pick Council score-gate variants plus the prior three-pick research reference.",
+    )
+    parser.add_argument(
+        "--initial-account-equity-usd",
+        type=float,
+        default=10_000.0,
+        help="Initial account equity used for account-level return and drawdown reporting.",
+    )
     return parser.parse_args()
 
 
@@ -1077,6 +1168,8 @@ def main() -> None:
         event_features_path=args.event_features_path,
         unified_comparison_only=bool(args.unified_comparison_only),
         unified_ablation_only=bool(args.unified_ablation_only),
+        council_risk_ablation_only=bool(args.council_risk_ablation_only),
+        initial_account_equity_usd=max(float(args.initial_account_equity_usd), 0.0),
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

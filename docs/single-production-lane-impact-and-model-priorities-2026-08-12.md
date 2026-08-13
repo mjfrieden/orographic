@@ -40,7 +40,7 @@ ablation, not adding another lane.
 | Cost-aware payoff challenger | Adds downside quantiles, fill quality, and target-before-stop | Positive-P&L AUC 0.4403 and breakeven AUC 0.4585—worse than chance | Highest risk-reduction priority: diagnose label/score orientation, retrain, and run zero-weight/inverted-rank ablations before keeping its 14% contribution |
 | Volatility payoff observer | Tests volatility-surface features | Superseded at runtime by the cost-aware artifact when present | Fold useful surface features into the primary payoff retrain; retire the duplicate artifact after parity tests |
 | Path hazard challenger | Chooses target/stop/expiry behavior | Zero valid pre-exit paths and zero target/stop events | Do not fit yet; repair timestamped path capture first |
-| Council | Applies thresholds, diversification, turnover, shock, and sizing policy | Unified backtest still has -68.89% six-month and -95.03% twelve-month max drawdown | Treat drawdown as the main objective: add portfolio loss budget, exposure clustering, and walk-forward threshold optimization |
+| Council | Applies thresholds, diversification, turnover, shock, and sizing policy | The production core-policy replay improved P&L and account drawdown versus the old three-pick research reference in all tested windows | Keep one-pick 0.86/0.84 gates; enforce the $600 entry ceiling server-side and validate next with fold-frozen Cirrus runs |
 | Position exit model | Advises harvest/hold/risk exit for open positions | Harvest validation AUC 0.432; several production features were constant in training | Retrain from real trajectories and fills; keep exits mechanically bounded until validation beats simple stop/target rules |
 | Moonshot experiment | Surfaces one cheap, convex tail-upside side pick | Dedicated prospective ledger and fixed outcome windows exist; it is not yet a validated production model | Keep it separate and visible, grow independently labeled outcomes, and evaluate tail hit rate/payoff distribution without contaminating the primary ensemble |
 
@@ -57,8 +57,10 @@ ablation, not adding another lane.
    strongest learned ranker today and has the clearest path to incremental gain.
 4. **Rebuild path and exit datasets from timestamped intraday quotes.** Do not
    optimize exit intelligence against terminal-only observations.
-5. **Optimize Council for drawdown, not just rank quality.** The unified stack's
-   12-month drawdown remains unacceptable even though P&L and Sharpe improved.
+5. **Validate Council against account risk, not premium-return drawdown.** Add
+   aggregate open-risk and correlation budgets after fold-frozen replication;
+   the corrected 12-month account drawdown was -2.43%, while the earlier -95%
+   figure measured compounded return on weekly premium deployed.
 6. **Run Cirrus expanding-window retraining and ablations.** Freeze every fold's
    artifacts before scoring its validation dates; the current fixed-artifact
    replay is diagnostic rather than a clean promotion test.
@@ -80,11 +82,37 @@ the change versus the full unified stack.
 
 This is evidence to retain, not promotion evidence. The run uses fixed artifacts
 across historical dates rather than fold-frozen expanding-window retraining, the
-trade counts are small (11–40 for unified variants), and the full stack still
-records unacceptable maximum drawdown: -47.56%, -68.89%, and -95.03% across the
-three windows. The next implementation target is therefore Council exposure and
-loss budgeting, followed by Cirrus fold-frozen replication—not another rank
-weight change.
+trade counts are small (11–40 for unified variants), and its legacy drawdown
+metric compounds return on premium deployed rather than measuring an account
+equity curve. That metric is now retained as `capital_at_risk_max_drawdown`; new
+experiments also report `account_max_drawdown` against an explicit initial
+account value.
+
+## Council production-parity and loss-budget result
+
+The earlier component comparison used the historical research defaults: three
+Council picks and a 0.57 score gate. Production actually uses one pick, call/put
+gates of 0.86/0.84, and a 0.90 extrinsic ceiling. A strict-real parity sweep
+tested those production core gates against the research reference and lower
+one-pick score gates. It does not reconstruct the live market-shock overlay or
+prior-board turnover state. Account metrics below assume a stated $10,000
+initial value; no leverage or reinvestment is inferred.
+
+| Window | Policy | Trades | Total P&L | Sharpe | Account return | Account max drawdown |
+|---|---|---:|---:|---:|---:|---:|
+| 3 months | Three-pick research reference | 11 | $89.07 | 1.04 | 0.89% | -2.50% |
+| 3 months | Production core policy | 5 | $395.83 | 2.96 | 3.96% | -0.56% |
+| 6 months | Three-pick research reference | 24 | -$26.52 | 0.88 | -0.27% | -4.14% |
+| 6 months | Production core policy | 13 | $453.56 | 2.17 | 4.54% | -2.44% |
+| 12 months | Three-pick research reference | 38 | $90.01 | 0.65 | 0.90% | -5.81% |
+| 12 months | Production core policy | 23 | $495.46 | 1.49 | 4.95% | -2.43% |
+
+Decision: retain the production core Council gates. Do not loosen the threshold
+from this fixed-artifact diagnostic. The server now enforces the same `$600`
+buy-to-open cost-basis ceiling for both preview and submission, and rejects
+non-Council previews as well as submissions. Remaining work is Cirrus-style
+fold-frozen replication and, once trade counts are materially larger, explicit
+aggregate open-risk and correlation budgets.
 
 ## Release posture
 

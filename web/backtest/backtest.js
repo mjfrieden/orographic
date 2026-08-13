@@ -100,7 +100,7 @@ function renderMetrics(data) {
     ["metric-pnl", `${Number(data.total_pnl) >= 0 ? "+" : ""}${money(data.total_pnl)}`],
     ["metric-win", pct(data.win_rate)],
     ["metric-sharpe", Number(data.sharpe_ratio || 0).toFixed(2)],
-    ["metric-drawdown", pct(data.max_drawdown)],
+    ["metric-drawdown", pct(data.account_max_drawdown ?? data.max_drawdown)],
   ];
   values.forEach(([id, value]) => { byId(id).textContent = value; });
   byId("metric-win-note").textContent = `${Number(data.winners || 0).toLocaleString()} wins / ${Number(data.total_trades || 0).toLocaleString()} trades`;
