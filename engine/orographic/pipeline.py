@@ -76,20 +76,25 @@ log = logging.getLogger(__name__)
 def _partition_shadow_veto_signals(
     signals: list[Any],
     scout_diagnostics: dict[str, object],
+    *,
+    include_shadow_veto: bool = True,
 ) -> tuple[list[Any], list[Any]]:
     """Preserve the legacy live veto while retaining candidates for research.
 
-    The side model remains observation-only: its telemetry identifies the
-    counterfactual cohort, but those rows are routed to a lane that cannot
-    reach Council or Tradier.  This keeps the live policy conservative while
-    making the veto scientifically measurable.
+    Side-model and regime holds remain excluded from Council and automatic
+    Tradier routing.  They are retained for measurement and for the explicit,
+    user-directed manual-pick surface.
     """
     side_rows = scout_diagnostics.get("side_aware_scores")
     rows = side_rows if isinstance(side_rows, list) else []
     research_symbols = {
         str(row.get("symbol") or "").strip().upper()
         for row in rows
-        if isinstance(row, dict) and bool(row.get("shadow_guard_would_veto"))
+        if isinstance(row, dict)
+        and (
+            (include_shadow_veto and bool(row.get("shadow_guard_would_veto")))
+            or bool(row.get("policy_held_candidate"))
+        )
     }
     live: list[Any] = []
     research: list[Any] = []
@@ -131,6 +136,57 @@ def _coerce_int(value: object) -> int:
         return int(float(str(value)))
     except (TypeError, ValueError):
         return 0
+
+
+def _manual_pick_score(row: dict[str, Any]) -> float:
+    for key in ("risk_adjusted_score", "learned_rank_score", "forge_score"):
+        value = row.get(key)
+        if isinstance(value, Number):
+            return float(value)
+    return 0.0
+
+
+def _build_manual_trade_pick(
+    *,
+    council_payload: dict[str, Any],
+    forge_candidates: list[dict[str, Any]],
+    counterfactual_candidates: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Expose one user-directed contract without changing model authority.
+
+    The model recommendation and automatic routing contract remain unchanged.
+    This surface only gives an authenticated operator a stable candidate to
+    preview and, after explicit acknowledgement, submit manually.
+    """
+    live = council_payload.get("live_board") if isinstance(council_payload.get("live_board"), list) else []
+    shadow = council_payload.get("shadow_board") if isinstance(council_payload.get("shadow_board"), list) else []
+    pools = (
+        ("live", live),
+        ("shadow", shadow),
+        ("forge_hold", forge_candidates),
+        ("counterfactual_observation", counterfactual_candidates),
+    )
+    for source_lane, rows in pools:
+        valid = [row for row in rows if isinstance(row, dict) and str(row.get("contract_symbol") or "").strip()]
+        if not valid:
+            continue
+        candidate = max(valid, key=_manual_pick_score)
+        model_recommendation = "trade" if source_lane == "live" else "hold"
+        return {
+            "candidate": candidate,
+            "source_lane": source_lane,
+            "model_recommendation": model_recommendation,
+            "manual_entry_available": True,
+            "automatic_routing_eligible": source_lane == "live",
+            "requires_manual_override_confirmation": source_lane != "live",
+            "authority": "user_directed_only" if source_lane != "live" else "council_approved",
+            "note": (
+                "Council approved this contract for the live board."
+                if source_lane == "live"
+                else "The model recommends HOLD. An admin may still preview and submit this contract as an explicit manual override."
+            ),
+        }
+    return None
 
 
 def _coerce_float(value: object) -> float | None:
@@ -2397,14 +2453,15 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         with _fail_closed_model_modes(promotion_gate_decision):
             model_artifacts = _model_artifact_status()
             model_modes = _model_mode_status(model_artifacts)
-            regime, all_scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
-            if preserve_shadow_veto_live_policy:
-                scout_signals, counterfactual_scout_signals = _partition_shadow_veto_signals(
-                    all_scout_signals,
-                    scout_diagnostics,
-                )
-            else:
-                scout_signals, counterfactual_scout_signals = all_scout_signals, []
+            regime, all_scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(
+                config.universe,
+                retain_policy_held_candidates=True,
+            )
+            scout_signals, counterfactual_scout_signals = _partition_shadow_veto_signals(
+                all_scout_signals,
+                scout_diagnostics,
+                include_shadow_veto=preserve_shadow_veto_live_policy,
+            )
             market_shock = classify_current_market_shock(regime)
             market_shock_control_mode = str(
                 getattr(config, "market_shock_control_mode", os.getenv("OROGRAPHIC_MARKET_SHOCK_CONTROL_MODE", "active"))
@@ -2499,6 +2556,14 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             else 0.0
         )
 
+        council_payload = council.to_dict()
+        forge_candidate_rows = [row.to_dict() for row in forge_candidates]
+        counterfactual_candidate_rows = [row.to_dict() for row in counterfactual_candidates]
+        manual_trade_pick = _build_manual_trade_pick(
+            council_payload=council_payload,
+            forge_candidates=forge_candidate_rows,
+            counterfactual_candidates=counterfactual_candidate_rows,
+        )
         payload = {
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
@@ -2527,23 +2592,27 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "regime": regime.to_dict(),
             "market_shock": market_shock.to_dict(),
             "scout_signals": [row.to_dict() for row in scout_signals],
-            "forge_candidates": [row.to_dict() for row in forge_candidates],
+            "forge_candidates": forge_candidate_rows,
             "counterfactual_observation_lane": {
                 "mode": "research_only",
                 "execution_effect": "none_observation_only",
                 "council_eligible": False,
                 "tradier_routing_eligible": False,
-                "selection_reason": "shadow_no_trade_would_veto",
+                "automatic_tradier_routing_eligible": False,
+                "manual_order_preview_eligible": bool(counterfactual_candidate_rows),
+                "manual_order_requires_override_confirmation": True,
+                "selection_reason": "model_policy_hold",
                 "live_policy_effect": (
                     "legacy_compatibility_holdout"
                     if preserve_shadow_veto_live_policy
                     else "none"
                 ),
                 "signals": [row.to_dict() for row in counterfactual_input_signals],
-                "candidates": [row.to_dict() for row in counterfactual_candidates],
+                "candidates": counterfactual_candidate_rows,
                 "diagnostics": counterfactual_forge_diagnostics,
             },
-            "council": council.to_dict(),
+            "council": council_payload,
+            "manual_trade_pick": manual_trade_pick,
             "moonshot_lane": moonshot_lane,
             "diagnostics": {
                 "scout": scout_diagnostics,

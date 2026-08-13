@@ -13,6 +13,7 @@ import pandas as pd
 from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, rank_contracts_with_diagnostics, select_signals_for_forge
 from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.pipeline import (
+    _build_manual_trade_pick,
     _fail_closed_model_modes,
     _load_prior_live_board_symbols,
     _model_artifact_status,
@@ -80,6 +81,32 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
 
 
 class PipelineTests(unittest.TestCase):
+    def test_manual_trade_pick_exposes_best_held_contract_without_auto_routing(self) -> None:
+        lower = {"symbol": "AAA", "contract_symbol": "AAA260821C00100000", "forge_score": 0.61}
+        best = {"symbol": "BBB", "contract_symbol": "BBB260821P00200000", "forge_score": 0.79}
+
+        pick = _build_manual_trade_pick(
+            council_payload={"live_board": [], "shadow_board": [lower, best]},
+            forge_candidates=[lower, best],
+            counterfactual_candidates=[],
+        )
+
+        self.assertEqual(pick["candidate"]["contract_symbol"], best["contract_symbol"])
+        self.assertEqual(pick["model_recommendation"], "hold")
+        self.assertTrue(pick["manual_entry_available"])
+        self.assertFalse(pick["automatic_routing_eligible"])
+        self.assertTrue(pick["requires_manual_override_confirmation"])
+
+    def test_manual_trade_pick_uses_counterfactual_contract_when_live_forge_is_empty(self) -> None:
+        research = {"symbol": "CCC", "contract_symbol": "CCC260821C00300000", "forge_score": 0.55}
+        pick = _build_manual_trade_pick(
+            council_payload={"live_board": [], "shadow_board": []},
+            forge_candidates=[],
+            counterfactual_candidates=[research],
+        )
+        self.assertEqual(pick["source_lane"], "counterfactual_observation")
+        self.assertEqual(pick["authority"], "user_directed_only")
+
     def test_payoff_volatility_challenger_is_optional_and_observation_only(self) -> None:
         artifacts = _model_artifact_status()
 
@@ -131,7 +158,7 @@ class PipelineTests(unittest.TestCase):
             "summary": {"candidate_count": 0, "live_count": 0, "shadow_count": 0, "notes": []},
         }
 
-        def scan_in_shadow(_universe):
+        def scan_in_shadow(_universe, **_kwargs):
             self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
             self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "shadow")
             self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "shadow")
@@ -212,17 +239,27 @@ class PipelineTests(unittest.TestCase):
     def test_shadow_veto_signals_are_partitioned_into_research_only_cohort(self) -> None:
         live = _signal("AAA")
         research = _signal("BBB")
+        policy_hold = _signal("CCC")
         diagnostics = {
             "side_aware_scores": [
                 {"symbol": "AAA", "shadow_guard_would_veto": False},
                 {"symbol": "BBB", "shadow_guard_would_veto": True},
+                {"symbol": "CCC", "policy_held_candidate": True},
             ]
         }
 
-        live_rows, research_rows = _partition_shadow_veto_signals([live, research], diagnostics)
+        live_rows, research_rows = _partition_shadow_veto_signals([live, research, policy_hold], diagnostics)
 
         self.assertEqual([row.symbol for row in live_rows], ["AAA"])
-        self.assertEqual([row.symbol for row in research_rows], ["BBB"])
+        self.assertEqual([row.symbol for row in research_rows], ["BBB", "CCC"])
+
+        live_rows, research_rows = _partition_shadow_veto_signals(
+            [live, research, policy_hold],
+            diagnostics,
+            include_shadow_veto=False,
+        )
+        self.assertEqual([row.symbol for row in live_rows], ["AAA", "BBB"])
+        self.assertEqual([row.symbol for row in research_rows], ["CCC"])
 
     def test_counterfactual_candidates_cannot_reach_council_or_tradier_lane(self) -> None:
         research_signal = _signal("BBB")

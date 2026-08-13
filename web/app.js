@@ -70,12 +70,14 @@ function toneClass(value) {
 function laneLabel(lane) {
   if (lane === "live") return "Live";
   if (lane === "moonshot") return "Moonshot";
+  if (lane === "manual_override") return "Manual Pick";
   return "Shadow";
 }
 
 function laneClass(lane) {
   if (lane === "live") return "is-live";
   if (lane === "moonshot") return "is-moonshot";
+  if (lane === "manual_override") return "is-shadow";
   return "is-shadow";
 }
 
@@ -1107,9 +1109,26 @@ function renderCockpitSignal(payload) {
   if (!root) return;
   const live = payload?.council?.live_board || [];
   const shadow = payload?.council?.shadow_board || [];
+  const manualPick = payload?.manual_trade_pick?.candidate;
+  const manualFallback = manualPick && payload?.manual_trade_pick?.source_lane !== "live"
+    ? [{ candidate: manualPick, lane: "manual_override" }]
+    : [];
+  const counterfactual = payload?.counterfactual_observation_lane?.candidates || [];
+  const counterfactualFallback = counterfactual.length
+    ? [{ candidate: counterfactual[0], lane: "manual_override" }]
+    : [];
+  const forgeFallback = (payload?.forge_candidates || []).length
+    ? [{ candidate: payload.forge_candidates[0], lane: "manual_override" }]
+    : [];
   COCKPIT_SIGNALS = live.length
     ? live.map((candidate) => ({ candidate, lane: "live" }))
-    : shadow.map((candidate) => ({ candidate, lane: "shadow" }));
+    : shadow.length
+      ? shadow.map((candidate, index) => ({ candidate, lane: index === 0 ? "manual_override" : "shadow" }))
+      : manualFallback.length
+        ? manualFallback
+        : counterfactualFallback.length
+          ? counterfactualFallback
+          : forgeFallback;
   COCKPIT_SIGNAL_INDEX = Math.min(
     Math.max(COCKPIT_SIGNAL_INDEX, 0),
     Math.max(COCKPIT_SIGNALS.length - 1, 0),
@@ -1139,9 +1158,9 @@ function renderCockpitSignal(payload) {
   const afterCostEdge = Number(candidate.expected_edge_after_friction_pct);
   const maxLoss = Number(candidate.contract_cost || ask * 100);
   const generatedAt = payload.generated_at_utc || payload.timestamp;
-  const stateLabel = lane === "live" ? "Trade ready" : "Hold · shadow only";
+  const stateLabel = lane === "live" ? "Trade ready" : "Model hold · manual choice";
   const stateClass = lane === "live" ? "is-ready" : "is-hold";
-  const previewLabel = lane === "live" ? "Preview order" : "Preview shadow order";
+  const previewLabel = lane === "live" ? "Preview order" : "Preview manual trade";
   const suggestedQty = suggestedEntryQuantity(
     ask,
     Number(candidate.allocation_weight || 1),
@@ -1199,7 +1218,7 @@ function renderCockpitSignal(payload) {
           ${previewLabel}<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
         </button>
       </div>
-      <p class="signal-safety"><span class="material-symbols-outlined" aria-hidden="true">lock</span>Preview first. Broker execution remains permissioned and separately confirmed.</p>
+      <p class="signal-safety"><span class="material-symbols-outlined" aria-hidden="true">lock</span>${lane === "live" ? "Preview first. Broker execution remains permissioned and separately confirmed." : "Model recommendation: HOLD. This contract is available only as your manual decision, with a separate acknowledgement before submission."}</p>
     </div>`;
   setText("signal-index", `${COCKPIT_SIGNAL_INDEX + 1} of ${COCKPIT_SIGNALS.length}`);
   bindCardButtons();
@@ -3049,6 +3068,7 @@ function bindModal() {
             price: PENDING_ORDER.price,
             preview: false,
             confirm_live: PENDING_ORDER.isLiveOrder ? true : undefined,
+            confirm_manual_override: PENDING_ORDER.confirmManualOverride || undefined,
           }),
         });
         const data = await r.json();
@@ -3141,6 +3161,7 @@ async function handlePreview(
     const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
     const canExec = Boolean(isAdmin && submission.allowed);
+    const requiresManualOverride = Boolean(submission.requires_manual_override_confirmation);
     const estCost = estimateTradeValue(order, qty, price);
     const hasCommission =
       order.commission !== null &&
@@ -3167,10 +3188,15 @@ async function handlePreview(
         ${summaryItemHtml("Est. Cost", estCost !== null ? money(estCost) : "—")}
         ${summaryItemHtml("Commission", commissionText)}
         ${summaryItemHtml("Mode", BROKER_STATE.mode?.toUpperCase() || "--")}
-        ${summaryItemHtml("Lane", lane)}
+        ${summaryItemHtml("Lane", elig.lane || lane)}
       </div>
       ${warningHtml}
       ${submissionDetailHtml(submission, isAdmin)}
+      ${requiresManualOverride ? `
+        <label class="manual-override-confirmation">
+          <input id="manual-override-confirm" type="checkbox" />
+          <span><strong>Model says HOLD</strong>I understand this is my manual decision, not an Orographic trade recommendation.</span>
+        </label>` : ""}
     `;
 
     // Store the pending order so Execute can fire it
@@ -3182,13 +3208,23 @@ async function handlePreview(
       type: "limit",
       duration: "day",
       price: order.price || price,
+      confirmManualOverride: false,
     };
 
-    openModal("Order Preview", bodyHtml, canExec, pendingOrder, {
+    openModal("Order Preview", bodyHtml, canExec && !requiresManualOverride, pendingOrder, {
       executeLabel:
         submission.mode === "live" ? "Transmit Live Order" : "Execute Trade",
       isLiveOrder: submission.mode === "live",
     });
+    const manualConfirm = document.getElementById("manual-override-confirm");
+    if (manualConfirm) {
+      manualConfirm.addEventListener("change", () => {
+        if (!PENDING_ORDER) return;
+        PENDING_ORDER.confirmManualOverride = manualConfirm.checked;
+        PENDING_ORDER.executeEnabled = canExec && manualConfirm.checked;
+        syncModalExecuteState();
+      });
+    }
   } catch (err) {
     openModal(
       "Preview Failed",

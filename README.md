@@ -69,7 +69,7 @@ Each scan also appends a side-aware Scout shadow disagreement ledger beside the 
 
 This ledger records where the shadow side-aware Scout preferred call, put, or no-trade differently from active Scout, plus whether the symbol reached Forge, live board, or shadow board.
 
-Shadow no-trade decisions are now recorded as observation-only Scout telemetry. To avoid silently broadening the existing live policy, would-veto symbols are separated into a bounded `counterfactual_observation_lane` before live Forge intake. That lane may generate research contracts and strict prospective outcomes, but it is explicitly ineligible for Council and Tradier routing. `PipelineConfig.preserve_shadow_veto_live_policy` defaults to `True`; changing it requires a deliberate policy decision backed by the counterfactual evidence milestone.
+Model-policy holds are retained in a bounded `counterfactual_observation_lane` before live Forge intake. The lane is ineligible for Council and automatic Tradier routing, so automatic strategy behavior remains conservative. Its highest-ranked valid contract may still become `manual_trade_pick`: an authenticated admin can preview it and submit it only after explicitly acknowledging that the model says HOLD. Quote freshness, spread, buying-power, credential, preview, and live-confirmation controls remain enforced. `PipelineConfig.preserve_shadow_veto_live_policy` defaults to `True`; changing automatic policy still requires a deliberate decision backed by counterfactual evidence.
 
 Each scan also appends a rolling board history ledger beside the diagnostics:
 

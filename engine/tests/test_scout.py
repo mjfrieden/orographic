@@ -226,6 +226,36 @@ class ScoutTests(unittest.TestCase):
         self.assertTrue(diagnostics["side_aware"]["active_policy"]["applied"])
         self.assertFalse(diagnostics["side_aware"]["active_policy"]["passed"])
 
+    def test_active_no_trade_can_be_retained_for_manual_candidate_ranking(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "active"}),
+            mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.20, "put_edge": 0.10, "no_trade": 0.70},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+                retain_policy_held_candidate=True,
+            )
+
+        self.assertIsNotNone(signal)
+        self.assertTrue(diagnostics["policy_held_candidate"])
+        self.assertEqual(diagnostics["reason"], "scout_model_no_trade")
+        self.assertEqual(diagnostics["execution_eligibility"], "manual_only")
+
     def test_option_payoff_side_model_shadow_no_trade_is_observation_only(self) -> None:
         with (
             mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}, clear=True),

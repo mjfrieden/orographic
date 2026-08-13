@@ -624,6 +624,7 @@ def build_signal(
     event_feature_store: pd.DataFrame | None = None,
     *,
     return_diagnostics: bool = False,
+    retain_policy_held_candidate: bool = False,
 ) -> ScoutSignal | tuple[ScoutSignal | None, dict[str, object]] | None:
     close = pd.to_numeric(frame["Close"], errors="coerce").dropna()
     diagnostics: dict[str, object] = {
@@ -721,10 +722,15 @@ def build_signal(
         direction = active_direction
         base_scout_score = active_score
         technical_score = active_score
-    if not active_policy_passed:
+    policy_hold_reason: str | None = None
+    if not active_policy_passed and not retain_policy_held_candidate:
         diagnostics["reason"] = active_policy["reason"]
         diagnostics["active_side_policy_note"] = active_policy["note"]
         return (None, diagnostics) if return_diagnostics else None
+    if not active_policy_passed:
+        policy_hold_reason = str(active_policy.get("reason") or "active_side_policy_hold")
+        diagnostics["active_side_policy_note"] = active_policy.get("note")
+        diagnostics["policy_held_candidate"] = True
 
     conviction_score = (
         base_scout_score
@@ -758,9 +764,12 @@ def build_signal(
         diagnostics["reason"] = shadow_guard["reason"]
         diagnostics["shadow_side_guard_note"] = shadow_guard["note"]
         return (None, diagnostics) if return_diagnostics else None
-    if not passed_alignment:
+    if not passed_alignment and not retain_policy_held_candidate:
         diagnostics["reason"] = rejection_reason
         return (None, diagnostics) if return_diagnostics else None
+    if not passed_alignment:
+        policy_hold_reason = str(rejection_reason or "regime_alignment_hold")
+        diagnostics["policy_held_candidate"] = True
 
     scout_score = _clip(base_scout_score + regime_adjustment)
 
@@ -870,7 +879,8 @@ def build_signal(
         notes=notes,
     )
     diagnostics["passed"] = True
-    diagnostics["reason"] = "selected"
+    diagnostics["reason"] = policy_hold_reason or "selected"
+    diagnostics["execution_eligibility"] = "manual_only" if policy_hold_reason else "model_eligible"
     diagnostics["final_direction"] = direction
     diagnostics["final_scout_score"] = signal.scout_score
     return (signal, diagnostics) if return_diagnostics else signal
@@ -880,6 +890,8 @@ def build_signal(
 
 def scan_symbols_with_diagnostics(
     symbols: Iterable[str],
+    *,
+    retain_policy_held_candidates: bool = False,
 ) -> tuple[MarketRegime, list[ScoutSignal], dict[str, object]]:
     symbol_list = list(symbols)
     log.info("Starting scan for %d symbols", len(symbol_list))
@@ -975,6 +987,7 @@ def scan_symbols_with_diagnostics(
                 spy_frame,
                 event_feature_store,
                 return_diagnostics=True,
+                retain_policy_held_candidate=retain_policy_held_candidates,
             )
         except Exception as exc:
             log.debug("Building signal failed for %s: %s", cleaned, exc)
@@ -1029,6 +1042,7 @@ def scan_symbols_with_diagnostics(
                     "active_scout_score": signal.scout_score if signal is not None else None,
                     "active_policy_applied": bool(active_policy.get("applied")),
                     "active_policy_reason": active_policy.get("reason"),
+                    "policy_held_candidate": bool(signal_diagnostics.get("policy_held_candidate")),
                     "pre_veto_direction": signal_diagnostics.get("pre_veto_direction"),
                     "shadow_preferred_side": shadow_guard.get("preferred_side", preferred_side),
                     "shadow_guard_applied": bool(shadow_guard.get("applied")),

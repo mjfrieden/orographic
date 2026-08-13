@@ -173,6 +173,9 @@ test("Research drawer exposes interactive model governance without live authorit
     "selectedChallenger",
     'event.key === "ArrowRight"',
     "challenger_order_routing === false",
+    "confirm_manual_override",
+    "manual-override-confirm",
+    "Model says HOLD",
   ]) {
     assert.ok(source.includes(behavior), `missing model-governance behavior: ${behavior}`);
   }

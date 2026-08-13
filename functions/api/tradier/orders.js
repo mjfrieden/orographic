@@ -36,8 +36,9 @@ import {
  *
  * Preview: any authenticated session, no snapshot freshness gate.
  * Placement: admin-only. New entries require a fresh snapshot, whether the
- * contract came from the live or shadow board. Manual exits stay available even
- * if the snapshot has gone stale.
+ * contract came from the live board or the single daily manual-override pick.
+ * Held picks require explicit acknowledgement; manual exits stay available
+ * even if the snapshot has gone stale.
  */
 
 function buildRequestEnvelope({
@@ -147,6 +148,7 @@ export async function onRequestPost(context) {
     duration = "day",
     price,
     confirm_live: confirmLive,
+    confirm_manual_override: confirmManualOverride,
   } = body || {};
   const requestedExitPolicyAction = String(
     body?.exit_policy_action || "",
@@ -321,7 +323,14 @@ export async function onRequestPost(context) {
   }
 
   // ----- LIVE/SANDBOX PLACEMENT path (admin-only) -----
-  const validation = validateSubmission({ config, session, lane, snapshotInfo, side });
+  const validation = validateSubmission({
+    config,
+    session,
+    lane,
+    snapshotInfo,
+    side,
+    confirmManualOverride: confirmManualOverride === true,
+  });
   if (!validation.ok) {
     const provenance = await recordBlockedAttempt({
       context,

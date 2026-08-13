@@ -327,6 +327,34 @@ test("submitted order records provenance", async () => {
   });
 });
 
+test("held daily pick can be submitted only after explicit manual override acknowledgement", async () => {
+  await withMockTradier(async () => {
+    const heldBody = {
+      ...buyLiveBody,
+      option_symbol: "MSFT260522C00200000",
+      symbol: "MSFT",
+    };
+    const blockedContext = await makeContext({ body: heldBody });
+    const blockedResponse = await orderPost(blockedContext);
+    const blockedPayload = await blockedResponse.json();
+    assert.equal(blockedResponse.status, 409);
+    assert.match(blockedPayload.error, /manual override acknowledgement/i);
+
+    const confirmedContext = await makeContext({
+      body: { ...heldBody, confirm_manual_override: true },
+    });
+    const confirmedResponse = await orderPost(confirmedContext);
+    const confirmedPayload = await confirmedResponse.json();
+    const rows = await listOrderProvenance({ POSITIONS_DB: confirmedContext.db });
+
+    assert.equal(confirmedResponse.status, 200);
+    assert.equal(confirmedPayload.ok, true);
+    assert.equal(confirmedPayload.eligibility.lane, "shadow");
+    assert.equal(rows[0].lane, "shadow");
+    assert.equal(rows[0].event_type, "submit");
+  });
+});
+
 test("blocked stale, non-admin, live-disabled, shadow, and spread attempts are recorded", async () => {
   await withMockTradier(async () => {
     const cases = [
