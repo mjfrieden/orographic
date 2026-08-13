@@ -447,6 +447,7 @@ def mark_prospective_ledger(
         "capture_windows_quote_missing": 0,
         "capture_windows_stale_quote": 0,
         "capture_windows_missed": 0,
+        "capture_windows_newly_missed": 0,
         "legacy_capture_policy_picks_skipped": 0,
         "trajectory_marks_written": 0,
         "trajectory_quotes_missing": 0,
@@ -541,6 +542,7 @@ def mark_prospective_ledger(
                             limit_seconds=limit_seconds,
                         )
                         changed = True
+                        stats["capture_windows_newly_missed"] += 1
                     stats["capture_windows_missed"] += 1
                     continue
                 if quote is None:
@@ -624,7 +626,11 @@ def mark_prospective_ledger(
     stats["ledger_changed"] = int(changed)
     if changed:
         updated["updated_at_utc"] = captured_at
-        updated["last_mark_summary"] = stats
+    # Persist an operational heartbeat even when a retried run writes no new
+    # market mark.  Capture health must describe the latest scheduled attempt,
+    # not whichever attempt most recently changed an outcome label.
+    updated["last_capture_attempt_at_utc"] = captured_at
+    updated["last_mark_summary"] = stats
     updated["outcome_summary"] = outcome_summary
     return updated, stats
 

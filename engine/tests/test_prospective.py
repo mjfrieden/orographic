@@ -114,7 +114,16 @@ class ProspectiveLedgerTests(unittest.TestCase):
         self.assertEqual(stats["picks_partial"], 1)
         self.assertEqual(stats["picks_pending"], 0)
         self.assertEqual(stats["capture_windows_missed"], 1)
+        self.assertEqual(stats["capture_windows_newly_missed"], 1)
         self.assertEqual(pick["outcomes"]["capture_attempts"]["one_hour"]["status"], "missed_live_window")
+
+        _, repeat_stats = mark_prospective_ledger(
+            updated,
+            quotes,
+            now_utc=datetime(2026, 5, 11, 20, 11, tzinfo=timezone.utc),
+        )
+        self.assertEqual(repeat_stats["capture_windows_missed"], 1)
+        self.assertEqual(repeat_stats["capture_windows_newly_missed"], 0)
 
     def test_mark_prospective_ledger_captures_fresh_intraday_trajectory_marks(self) -> None:
         ledger = {
@@ -151,6 +160,9 @@ class ProspectiveLedgerTests(unittest.TestCase):
         self.assertEqual(repeated_stats["trajectory_marks_written"], 0)
         self.assertEqual(len(marks), 1)
         self.assertEqual(marks[0]["pnl_pct_from_emission"], 0.15)
+        self.assertEqual(repeated["last_capture_attempt_at_utc"], "2026-05-11T15:15:30+00:00")
+        self.assertEqual(repeated["last_mark_summary"]["trajectory_active_picks"], 1)
+        self.assertEqual(repeated["last_mark_summary"]["ledger_changed"], 0)
 
     def test_trajectory_capture_stops_after_friday_close(self) -> None:
         ledger = {"entries": [{

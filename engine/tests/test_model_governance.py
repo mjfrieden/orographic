@@ -55,6 +55,47 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertEqual(report["data_capture"]["status"], "fail")
         self.assertEqual(report["status"], "fail")
 
+    def test_latest_capture_health_overrides_stale_scan_capture_metrics(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={
+                "generated_at_utc": "2026-08-12T15:00:00Z",
+                "labels": {"trajectory_active_picks_last_run": 0},
+                "checks": [{"name": "trajectory_capture_health", "passed": True}],
+            },
+            capture_health={
+                "generated_at_utc": "2026-08-12T15:15:00Z",
+                "labels": {
+                    "trajectory_active_picks_last_run": 2,
+                    "trajectory_marks_written_last_run": 0,
+                    "trajectory_quotes_missing_last_run": 2,
+                },
+                "checks": [{"name": "trajectory_capture_health", "passed": False}],
+            },
+            scout_card={}, payoff_card={}, payoff_evidence={}, veto_evidence={}, path_evidence={},
+        )
+
+        self.assertEqual(report["data_capture"]["status"], "fail")
+        self.assertEqual(report["data_capture"]["active_contracts_last_run"], 2)
+        self.assertEqual(report["data_capture"]["missing_quotes_last_run"], 2)
+
+    def test_newer_scan_health_wins_over_stale_capture_health(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={
+                "generated_at_utc": "2026-08-12T15:30:00Z",
+                "labels": {"trajectory_active_picks_last_run": 1, "trajectory_marks_written_last_run": 1},
+                "checks": [{"name": "trajectory_capture_health", "passed": True}],
+            },
+            capture_health={
+                "generated_at_utc": "2026-08-12T15:15:00Z",
+                "labels": {"trajectory_active_picks_last_run": 2, "trajectory_marks_written_last_run": 0},
+                "checks": [{"name": "trajectory_capture_health", "passed": False}],
+            },
+            scout_card={}, payoff_card={}, payoff_evidence={}, veto_evidence={}, path_evidence={},
+        )
+
+        self.assertEqual(report["data_capture"]["status"], "pass")
+        self.assertEqual(report["data_capture"]["active_contracts_last_run"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

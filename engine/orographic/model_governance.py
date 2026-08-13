@@ -28,6 +28,17 @@ def _float(value: object) -> float | None:
     return parsed if parsed == parsed else None
 
 
+def _generated_at(value: dict[str, Any]) -> datetime | None:
+    raw = value.get("generated_at_utc")
+    if not isinstance(raw, str) or not raw.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+
+
 def _progress(current: int, required: int, label: str) -> dict[str, Any]:
     safe_required = max(required, 1)
     return {
@@ -56,12 +67,21 @@ def build_model_governance_summary(
     payoff_evidence: dict[str, Any],
     veto_evidence: dict[str, Any],
     path_evidence: dict[str, Any],
+    capture_health: dict[str, Any] | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
-    labels = _dict(scan_health.get("labels"))
+    active_capture_health = _dict(capture_health)
+    capture_generated = _generated_at(active_capture_health)
+    scan_generated = _generated_at(scan_health)
+    use_capture_health = bool(active_capture_health) and (
+        scan_generated is None
+        or (capture_generated is not None and capture_generated >= scan_generated)
+    )
+    health_source = active_capture_health if use_capture_health else scan_health
+    labels = _dict(health_source.get("labels"))
     health_checks = {
         str(row.get("name")): row
-        for row in scan_health.get("checks", [])
+        for row in health_source.get("checks", [])
         if isinstance(row, dict)
     }
     trajectory_check = _dict(health_checks.get("trajectory_capture_health"))
