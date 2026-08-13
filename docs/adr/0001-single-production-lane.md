@@ -52,6 +52,9 @@ do not break. Production scans force their candidate allocations to zero.
 - the cockpit keeps the Moonshot side pick visible and labels it tracked/non-routable;
 - Moonshot has no input edge into the primary ensemble or Council;
 - research and Moonshot cards have no preview or execute authority;
+- matched call/put outcome observations reuse the already-fetched option chain
+  but remain ledger-only research telemetry; they are not candidates or a
+  product lane;
 - the broker candidate lookup searches only `council.live_board`;
 - buy-to-open preview and submission reject every non-Council contract;
 - the broker boundary enforces the configured entry cost-basis ceiling after

@@ -130,6 +130,7 @@ def _prepare_chain_frame(
     signal: ScoutSignal,
     frame: pd.DataFrame,
     *,
+    option_type: str | None = None,
     long_leg_cap: float,
     effective_spread_cap: float,
     min_open_interest: int,
@@ -176,8 +177,9 @@ def _prepare_chain_frame(
     if clean.empty:
         return clean, counts, "liquidity"
 
+    effective_option_type = option_type or signal.direction
     clean["moneyness"] = clean["strike"].apply(
-        lambda strike: _candidate_moneyness(signal.direction, signal.spot, float(strike))
+        lambda strike: _candidate_moneyness(effective_option_type, signal.spot, float(strike))
     )
     clean = clean[(clean["moneyness"] >= -0.05) & (clean["moneyness"] <= 0.03)].copy()
     counts["rows_passing_moneyness"] = len(clean)
@@ -185,6 +187,137 @@ def _prepare_chain_frame(
         return clean, counts, "moneyness"
 
     return clean, counts, None
+
+
+def _paired_side_contract_observation(
+    signal: ScoutSignal,
+    frame: pd.DataFrame,
+    *,
+    regime: MarketRegime,
+    option_type: str,
+    expiry: str,
+    today: date,
+    risk_free_rate: float,
+    long_leg_cap: float,
+    effective_spread_cap: float,
+    min_open_interest: int,
+    min_volume: int,
+    min_abs_delta: float,
+    max_abs_delta: float,
+    chain_snapshot_at: datetime,
+    surface: dict[str, object],
+    target_abs_delta: float = 0.35,
+) -> dict[str, object] | None:
+    """Select one executable, model-neutral contract for paired side research."""
+    clean, _, rejection_reason = _prepare_chain_frame(
+        signal,
+        frame,
+        option_type=option_type,
+        long_leg_cap=long_leg_cap,
+        effective_spread_cap=effective_spread_cap,
+        min_open_interest=min_open_interest,
+        min_volume=min_volume,
+    )
+    if rejection_reason is not None:
+        return None
+
+    days_to_expiry = max((date.fromisoformat(expiry) - today).days, 1)
+    time_to_expiry_years = max(days_to_expiry / 365.0, 1.0 / 365.0)
+    clean["delta"] = clean.apply(
+        lambda row: black_scholes_delta(
+            spot=signal.spot,
+            strike=float(row["strike"]),
+            time_to_expiry_years=time_to_expiry_years,
+            risk_free_rate=risk_free_rate,
+            volatility=max(float(row["impliedVolatility"]), 0.10),
+            option_type=option_type,
+        ),
+        axis=1,
+    )
+    clean = clean[clean["delta"].notna()].copy()
+    clean = clean[clean["delta"].abs().between(min_abs_delta, max_abs_delta)].copy()
+    if clean.empty:
+        return None
+
+    clean["target_delta_distance"] = (clean["delta"].abs() - target_abs_delta).abs()
+    clean = clean.sort_values(
+        ["target_delta_distance", "spread_pct", "ask", "openInterest", "volume"],
+        ascending=[True, True, True, False, False],
+        kind="stable",
+    )
+    row = clean.iloc[0]
+    bid = float(row["bid"])
+    ask = float(row["ask"])
+    strike = float(row["strike"])
+    iv = max(float(row["impliedVolatility"]), 0.10)
+    premium_pct_of_spot = ask / signal.spot if signal.spot > 0 else 0.0
+    intrinsic_now = _intrinsic(option_type, signal.spot, strike)
+    extrinsic_ratio = max(ask - intrinsic_now, 0.0) / ask if ask > 0 else 1.0
+    projected_move_pct = _projected_move_pct(signal, regime)
+    pair_id = (
+        f"{signal.symbol.upper()}|{expiry}|"
+        f"{chain_snapshot_at.replace(microsecond=0).isoformat()}"
+    )
+    return {
+        "symbol": signal.symbol,
+        "contract_symbol": str(row.get("contractSymbol") or ""),
+        "option_type": option_type,
+        "expiry": expiry,
+        "strike": round(strike, 4),
+        "bid": round(bid, 4),
+        "ask": round(ask, 4),
+        "last": round(float(row.get("lastPrice") or 0.0), 4),
+        "premium": round(ask, 4),
+        "contract_cost": round(ask * 100.0, 2),
+        "spread_pct": round(float(row["spread_pct"]), 4),
+        "open_interest": int(float(row["openInterest"])),
+        "volume": int(float(row["volume"])),
+        "implied_volatility": round(iv, 4),
+        "delta": round(float(row["delta"]), 4),
+        "moneyness": round(float(row["moneyness"]), 4),
+        "projected_move_pct": round(projected_move_pct, 4),
+        "breakeven_move_pct": round(
+            _breakeven_move_pct(option_type, signal.spot, strike, ask), 4
+        ),
+        "extrinsic_ratio": round(extrinsic_ratio, 4),
+        "scout_score": signal.scout_score,
+        "scout_call_edge_prob": round(float(signal.call_edge_prob or 0.0), 4),
+        "scout_put_edge_prob": round(float(signal.put_edge_prob or 0.0), 4),
+        "scout_no_trade_prob": round(float(signal.no_trade_prob or 0.0), 4),
+        "surface_atm_iv": surface.get("atm_iv"),
+        "surface_skew_slope": surface.get("skew_slope"),
+        "surface_curvature": surface.get("curvature"),
+        "surface_put_call_wing_skew": surface.get("put_call_wing_skew"),
+        "surface_fit_rmse": surface.get("fit_rmse"),
+        "surface_observation_count": int(surface.get("observation_count") or 0),
+        "iv_relative_to_atm": (
+            round(iv - float(surface["atm_iv"]), 6)
+            if surface.get("atm_iv") is not None
+            else None
+        ),
+        "iv_minus_realized_vol": round(iv - signal.realized_vol_20d, 6),
+        "quote_mid": round((bid + ask) / 2.0, 4),
+        "quote_spread_dollars": round(ask - bid, 4),
+        "chain_snapshot_at_utc": chain_snapshot_at.replace(microsecond=0).isoformat(),
+        "last_trade_age_seconds": _last_trade_age_seconds(
+            row.get("lastTradeDate"), chain_snapshot_at
+        ),
+        "entry_data_source": str(row.get("dataSource") or "market_adapter"),
+        "entry_quote_type": "ask",
+        "realized_vol_20d": round(signal.realized_vol_20d, 4),
+        "atr_pct_14d": round(signal.atr_pct_14d, 4),
+        "premium_pct_of_spot": round(premium_pct_of_spot, 4),
+        "paired_side_observation": {
+            "pair_id": pair_id,
+            "method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+            "target_abs_delta": target_abs_delta,
+            "source_scout_direction": signal.direction,
+            "execution_effect": "none_research_only",
+        },
+        "notes": [
+            "Research-only matched-side observation; excluded from Forge ranking, Council, Moonshot, sizing, and Tradier."
+        ],
+    }
 
 
 def _stage_progress_key(stage_counts: dict[str, int]) -> tuple[int, ...]:
@@ -562,8 +695,10 @@ def rank_contracts_with_diagnostics(
     min_moneyness_gap: float = 0.01,
     prior_live_board_symbols: list[str] | None = None,
     turnover_switch_penalty: float = 0.03,
+    capture_paired_side_observations: bool = True,
 ) -> tuple[list[ContractCandidate], dict[str, object]]:
     candidates: list[ContractCandidate] = []
+    paired_side_observations: list[dict[str, object]] = []
     today = date.today()
     risk_free_rate = fetch_risk_free_rate()
 
@@ -630,6 +765,8 @@ def rank_contracts_with_diagnostics(
         saw_non_empty_chain = False
         expiry_attempts: list[dict[str, object]] = []
         expiry_surfaces: dict[str, dict[str, object]] = {}
+        best_pair_rows: list[dict[str, object]] = []
+        best_pair_key: tuple[int, float, float, int] | None = None
 
         for expiry in expiries:
             current_diag = dict(symbol_diag)
@@ -645,6 +782,59 @@ def rank_contracts_with_diagnostics(
             )
             expiry_surfaces[expiry] = surface
             current_diag["volatility_surface"] = surface
+            paired_rows: list[dict[str, object]] = []
+            if capture_paired_side_observations:
+                try:
+                    for option_type, side_frame in (("call", calls), ("put", puts)):
+                        observation = _paired_side_contract_observation(
+                            signal,
+                            side_frame,
+                            regime=regime,
+                            option_type=option_type,
+                            expiry=expiry,
+                            today=today,
+                            risk_free_rate=risk_free_rate,
+                            long_leg_cap=long_leg_cap,
+                            effective_spread_cap=effective_spread_cap,
+                            min_open_interest=min_open_interest,
+                            min_volume=min_volume,
+                            min_abs_delta=min_abs_delta,
+                            max_abs_delta=max_abs_delta,
+                            chain_snapshot_at=chain_snapshot_at,
+                            surface=surface,
+                        )
+                        if observation is not None and str(
+                            observation.get("contract_symbol") or ""
+                        ):
+                            paired_rows.append(observation)
+                except Exception as exc:
+                    log.warning(
+                        "Research-only paired-side capture skipped for %s %s: %s",
+                        signal.symbol,
+                        expiry,
+                        exc,
+                    )
+                    paired_rows = []
+            if {str(row["option_type"]) for row in paired_rows} == {"call", "put"}:
+                days_to_expiry = max((date.fromisoformat(expiry) - today).days, 1)
+                delta_distance = sum(
+                    abs(abs(float(row.get("delta") or 0.0)) - 0.35)
+                    for row in paired_rows
+                )
+                spread_total = sum(float(row.get("spread_pct") or 1.0) for row in paired_rows)
+                liquidity_total = sum(
+                    int(row.get("open_interest") or 0) + int(row.get("volume") or 0)
+                    for row in paired_rows
+                )
+                pair_key = (
+                    -days_to_expiry,
+                    -round(delta_distance, 6),
+                    -round(spread_total, 6),
+                    liquidity_total,
+                )
+                if best_pair_key is None or pair_key > best_pair_key:
+                    best_pair_key = pair_key
+                    best_pair_rows = paired_rows
             frame = calls if signal.direction == "call" else puts
             if frame.empty:
                 current_diag["rejection_reason"] = "empty_chain"
@@ -906,9 +1096,26 @@ def rank_contracts_with_diagnostics(
 
         if saw_non_empty_chain:
             stage_totals["signals_with_chain"] += 1
+        if best_pair_rows:
+            pair_expiry = str(best_pair_rows[0]["expiry"])
+            pair_term_slope = compute_term_structure_slope(expiry_surfaces, pair_expiry)
+            for observation in best_pair_rows:
+                observation["surface_term_slope_30d"] = pair_term_slope
+            paired_side_observations.extend(best_pair_rows)
+            symbol_diag["paired_side_observation_status"] = "captured"
+            symbol_diag["paired_side_observation_expiry"] = pair_expiry
+        else:
+            symbol_diag["paired_side_observation_status"] = "unavailable"
         if best_symbol_diag is None:
             per_symbol.append(symbol_diag)
             continue
+        best_symbol_diag["paired_side_observation_status"] = symbol_diag[
+            "paired_side_observation_status"
+        ]
+        if symbol_diag.get("paired_side_observation_expiry"):
+            best_symbol_diag["paired_side_observation_expiry"] = symbol_diag[
+                "paired_side_observation_expiry"
+            ]
 
         selected_expiry = str(best_symbol_diag.get("expiry") or "")
         term_slope = compute_term_structure_slope(expiry_surfaces, selected_expiry)
@@ -997,6 +1204,24 @@ def rank_contracts_with_diagnostics(
         if candidate.learned_rank_score is not None:
             learned_scores.append(float(candidate.learned_rank_score))
     return candidates, {
+        "paired_side_observations": paired_side_observations,
+        "paired_side_capture": {
+            "mode": (
+                "research_only_outcome_capture"
+                if capture_paired_side_observations
+                else "disabled"
+            ),
+            "enabled": bool(capture_paired_side_observations),
+            "execution_effect": "none",
+            "eligible_for_forge_ranking": False,
+            "eligible_for_council": False,
+            "eligible_for_moonshot": False,
+            "eligible_for_sizing": False,
+            "eligible_for_tradier": False,
+            "pair_count": len(paired_side_observations) // 2,
+            "contract_count": len(paired_side_observations),
+            "selection_method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+        },
         "waterfall": stage_totals,
         "per_symbol": per_symbol,
         "learned_ranker": {
@@ -1035,6 +1260,7 @@ def rank_contracts_with_diagnostics(
             "min_moneyness_gap": min_moneyness_gap,
             "max_structures_per_symbol": 1,
             "turnover_switch_penalty": turnover_switch_penalty,
+            "capture_paired_side_observations": capture_paired_side_observations,
             "prior_live_board_symbols": list(prior_live_board_symbols or []),
         },
     }

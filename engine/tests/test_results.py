@@ -256,6 +256,31 @@ class ResultsTests(unittest.TestCase):
         self.assertAlmostEqual(summary["positive_pnl_before_friction_rate"], 1.0, places=4)
         self.assertAlmostEqual(summary["positive_pnl_after_friction_rate"], 0.0, places=4)
 
+    def test_option_outcome_summary_reports_explicit_pair_coverage(self) -> None:
+        shared = {
+            "symbol": "AAA",
+            "entry_date": "2026-05-22",
+            "paired_observation_id": "PAIR-1",
+            "positive_pnl_after_friction": True,
+            "positive_pnl_before_friction": True,
+            "breakeven_after_friction": True,
+            "breakeven_before_friction": True,
+            "friction_flipped_winner_to_loser": False,
+            "friction_drag_pct": 0.0,
+            "total_friction_cost_usd": 0.0,
+        }
+        summary = build_option_outcome_dataset_summary(
+            [
+                {**shared, "option_type": "call"},
+                {**shared, "option_type": "put"},
+            ]
+        )
+
+        self.assertEqual(summary["explicit_paired_contract_rows"], 2)
+        self.assertEqual(summary["explicit_pair_ids"], 1)
+        self.assertEqual(summary["complete_explicit_pair_ids"], 1)
+        self.assertEqual(summary["explicit_paired_symbol_dates"], 1)
+
     def test_option_outcome_dataset_preserves_option_native_and_sentinel_fields(self) -> None:
         trade = _trade("EVNT", "real_chain", "real_chain", 1.0)
         trade.realized_vol_20d = 0.22

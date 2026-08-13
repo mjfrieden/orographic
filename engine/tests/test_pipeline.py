@@ -88,6 +88,7 @@ class UnifiedModelStackTests(unittest.TestCase):
         self.assertEqual(config.shadow_size, 0)
         self.assertEqual(config.counterfactual_observation_size, 0)
         self.assertFalse(config.preserve_shadow_veto_live_policy)
+        self.assertTrue(config.paired_side_capture_enabled)
 
     def test_current_gated_context_overrides_and_restores_external_stack(self) -> None:
         with mock.patch.dict(os.environ, {"OROGRAPHIC_MODEL_STACK": "unified_rnd"}, clear=False):
@@ -417,6 +418,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["scan_settings"]["moonshot_lane_role"], "visible_experimental_side_pick")
         self.assertEqual(payload["scan_settings"]["moonshot_primary_ensemble_effect"], "none")
         self.assertEqual(payload["scan_settings"]["moonshot_outcome_tracking"], "moonshot_prospective_ledger")
+        self.assertTrue(payload["scan_settings"]["paired_side_capture_enabled"])
         self.assertEqual(payload["moonshot_lane"]["summary"]["pick_count"], 0)
         self.assertEqual(select_signals_mock.call_args.kwargs["target_count"], 12)
         self.assertEqual(select_signals_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
@@ -424,6 +426,9 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rank_contracts_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
         self.assertEqual(rank_contracts_mock.call_args.kwargs["maximum_days_to_expiry"], 14)
         self.assertFalse(rank_contracts_mock.call_args.kwargs["enforce_pre_council_friction_gate"])
+        self.assertTrue(
+            rank_contracts_mock.call_args.kwargs["capture_paired_side_observations"]
+        )
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_live_score"], 0.86)
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_put_live_score"], 0.84)
         self.assertEqual(select_board_mock.call_args.kwargs["max_live_extrinsic_ratio"], 0.90)
@@ -431,6 +436,106 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["market_shock"]["label"], "normal_crosscurrents")
         self.assertEqual(payload["diagnostics"]["market_shock"]["mode"], "active")
         self.assertEqual(select_board_mock.call_args.kwargs["market_shock"], self.market_shock)
+
+    def test_run_scan_reuses_matching_forge_contract_in_paired_capture(self) -> None:
+        signal = _signal("AAA")
+        call = {
+            "symbol": "AAA",
+            "contract_symbol": "AAA-CALL",
+            "option_type": "call",
+            "expiry": "2026-04-17",
+            "strike": 100.0,
+            "bid": 1.0,
+            "ask": 1.1,
+            "forge_score": 0.9,
+            "notes": [],
+        }
+        pair_metadata = {
+            "pair_id": "PAIR-1",
+            "method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+            "execution_effect": "none_research_only",
+        }
+        pair_call = {**call, "paired_side_observation": pair_metadata}
+        pair_put = {
+            **call,
+            "contract_symbol": "AAA-PUT",
+            "option_type": "put",
+            "paired_side_observation": pair_metadata,
+        }
+        candidate = mock.Mock(
+            forge_score=0.9,
+            to_dict=lambda: dict(call),
+        )
+        council_payload = {
+            "live_board": [call],
+            "shadow_board": [],
+            "abstain": False,
+            "summary": {"candidate_count": 1, "live_count": 1, "shadow_count": 0},
+        }
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(
+                    MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                    [signal],
+                    {
+                        "pre_veto_direction_counts": {"call": 1},
+                        "final_direction_counts": {"call": 1},
+                        "counter_regime_survivors": 0,
+                    },
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_signals_for_forge",
+                return_value=([signal], {}),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.rank_contracts_with_diagnostics",
+                return_value=(
+                    [candidate],
+                    {
+                        "waterfall": {},
+                        "learned_ranker": {},
+                        "paired_side_observations": [pair_call, pair_put],
+                        "paired_side_capture": {"pair_count": 1},
+                    },
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_board",
+                return_value=mock.Mock(
+                    to_dict=lambda: council_payload,
+                    live_board=[candidate],
+                    abstain=False,
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_moonshot_lane",
+                return_value={
+                    "picks": [],
+                    "shadow": [],
+                    "summary": {"pick_count": 0, "eligible_count": 0},
+                },
+            ),
+        ):
+            payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None))
+
+        self.assertEqual(
+            payload["forge_candidates"][0]["paired_side_observation"]["pair_id"],
+            "PAIR-1",
+        )
+        self.assertEqual(
+            [
+                row["contract_symbol"]
+                for row in payload["paired_side_observation_set"]["contracts"]
+            ],
+            ["AAA-PUT"],
+        )
+        ledger_entry = build_prospective_pick_ledger_entry(payload)
+        self.assertEqual(len(ledger_entry["picks"]), 2)
+        self.assertEqual(len({row["contract_symbol"] for row in ledger_entry["picks"]}), 2)
+        self.assertEqual(ledger_entry["summary"]["paired_side_pair_member"], 2)
 
     def test_pre_forge_gate_skips_illiquid_signals_and_backfills_next_names(self) -> None:
         signals = [_signal("AAA"), _signal("BBB"), _signal("CCC")]
@@ -624,6 +729,13 @@ class PipelineTests(unittest.TestCase):
                 minimum_days_to_expiry=7,
                 maximum_days_to_expiry=7,
             )
+            disabled_candidates, disabled_diagnostics = rank_contracts_with_diagnostics(
+                [signal],
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                minimum_days_to_expiry=7,
+                maximum_days_to_expiry=7,
+                capture_paired_side_observations=False,
+            )
 
         self.assertEqual(diagnostics["per_symbol"][0]["final_candidates"], 3)
         # Council-facing deduplication keeps one structure, but Forge must
@@ -634,6 +746,19 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(all(candidate.quote_mid is not None for candidate in candidates))
         self.assertTrue(all(candidate.quote_spread_dollars is not None for candidate in candidates))
         self.assertTrue(all(candidate.chain_snapshot_at_utc for candidate in candidates))
+        paired = diagnostics["paired_side_observations"]
+        self.assertEqual(len(paired), 2)
+        self.assertEqual({row["option_type"] for row in paired}, {"call", "put"})
+        self.assertEqual(
+            len({row["paired_side_observation"]["pair_id"] for row in paired}),
+            1,
+        )
+        self.assertEqual(diagnostics["paired_side_capture"]["pair_count"], 1)
+        self.assertFalse(diagnostics["paired_side_capture"]["eligible_for_council"])
+        self.assertNotIn("put", {candidate.option_type for candidate in candidates})
+        self.assertEqual(len(disabled_candidates), len(candidates))
+        self.assertEqual(disabled_diagnostics["paired_side_observations"], [])
+        self.assertEqual(disabled_diagnostics["paired_side_capture"]["mode"], "disabled")
 
     def test_build_forge_rejection_waterfall_artifact_summarizes_rejections(self) -> None:
         payload = {
@@ -1915,6 +2040,8 @@ class PipelineTests(unittest.TestCase):
                 "council_holdout": 1,
                 "friction_veto": 1,
                 "counterfactual_observation": 0,
+                "paired_side_observation": 0,
+                "paired_side_pair_member": 0,
             },
         )
         lanes = {row["contract_symbol"]: row["lane"] for row in entry["picks"]}
@@ -1943,7 +2070,7 @@ class PipelineTests(unittest.TestCase):
             rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
 
         self.assertEqual(rendered["artifact"], "prospective_pick_ledger")
-        self.assertEqual(rendered["schema_version"], 3)
+        self.assertEqual(rendered["schema_version"], 4)
         self.assertEqual(rendered["payoff_shadow_policy"]["mode"], "observation_only")
         self.assertFalse(rendered["payoff_shadow_policy"]["affects_tradier_routing"])
         self.assertEqual(rendered["aggregate"]["runs"], 1)
@@ -1952,6 +2079,53 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rendered["outcome_summary"]["pending"], 4)
         self.assertEqual(rendered["outcome_summary"]["payoff_shadow_scored"], 1)
         self.assertEqual(rendered["outcome_summary"]["payoff_shadow_disagreements"], 1)
+
+    def test_prospective_ledger_tracks_matched_side_pairs_without_routing_authority(self) -> None:
+        def paired(contract: str, option_type: str) -> dict[str, object]:
+            return {
+                "symbol": "AAA",
+                "contract_symbol": contract,
+                "option_type": option_type,
+                "expiry": "2026-05-15",
+                "strike": 100.0,
+                "bid": 1.0,
+                "ask": 1.1,
+                "scout_score": 0.6,
+                "paired_side_observation": {
+                    "pair_id": "AAA|2026-05-15|2026-05-05T13:45:00Z",
+                    "method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+                    "target_abs_delta": 0.35,
+                    "execution_effect": "none_research_only",
+                },
+            }
+
+        payload = {
+            "generated_at_utc": "2026-05-05T13:45:00+00:00",
+            "scout_signals": [{"symbol": "AAA", "spot": 101.25}],
+            "forge_candidates": [],
+            "council": {"live_board": [], "shadow_board": []},
+            "paired_side_observation_set": {
+                "mode": "research_only_outcome_capture",
+                "contracts": [paired("AAA-CALL", "call"), paired("AAA-PUT", "put")],
+            },
+        }
+
+        entry = build_prospective_pick_ledger_entry(payload)
+
+        self.assertEqual(entry["summary"]["paired_side_observation"], 2)
+        self.assertEqual(entry["summary"]["paired_side_pair_member"], 2)
+        self.assertEqual(entry["summary"]["live"], 0)
+        self.assertEqual(
+            {row["lane"] for row in entry["picks"]},
+            {"paired_side_observation"},
+        )
+        self.assertTrue(
+            all(
+                row["paired_side_observation"]["execution_effect"]
+                == "none_research_only"
+                for row in entry["picks"]
+            )
+        )
 
     def test_moonshot_prospective_ledger_records_pick_and_shadow_candidates(self) -> None:
         def moonshot_candidate(contract: str, *, eligible: bool, score: float) -> dict[str, object]:

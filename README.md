@@ -127,6 +127,18 @@ Build canonical research datasets from prospective ledgers:
 
 This produces option-recommendation and moonshot outcome tables suitable for future payoff, path, side-aware, and moonshot model training.
 
+Production scans also capture one executable call and one executable put for
+each eligible Forge symbol at the same expiry, choosing the contracts nearest
+`0.35` absolute delta and then the tighter spread. These are matched research
+observations, not another product lane: they cannot enter Forge ranking,
+Council, Moonshot, sizing, order preview, or Tradier submission. If the chosen
+same-side contract is already a Forge candidate, the ledger reuses that row
+rather than duplicating it. Disable this data capture for an emergency or
+rate-limit investigation with
+`./.venv/bin/python -m engine.run_scan --no-paired-side-capture`.
+Canonical outcome summaries report explicit paired contract rows, pair IDs,
+complete call/put pairs, and paired symbol/dates so accumulation is measurable.
+
 Tradier order provenance also records model-ready execution telemetry for previews and submissions: quote age and spread, broker round-trip latency, requested limit, observed average fill, fees, fill delay, and signed adverse slippage. Preview/submission failures are retained as events so fill-quality research is not biased toward successful requests only.
 
 Before building datasets, enrich ledgers with dense path labels from archived option chains:
@@ -383,6 +395,11 @@ python scripts/validate_model_artifacts.py
 ```
 
 Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. The unified R&D stack uses it as a confidence-gated direction correction instead of a serial veto.
+
+For hierarchical call-versus-put training, only rows carrying the same explicit
+matched-pair identifier qualify as paired direction evidence. Merely finding an
+unrelated call and put for the same symbol/date is reported but cannot satisfy
+the paired-evidence promotion gate.
 
 The same training run now builds `scout_hierarchical_challenger.pkl` when strict option outcomes are available. Its first head predicts trade versus abstain; its second head predicts call versus put using only dates where both sides were observed. The unified stack blends this challenger into the side ensemble at a bounded 20% weight; `current_gated` keeps its legacy observation-only treatment.
 

@@ -333,6 +333,11 @@ def _flatten_pick(
     risk = pick.get("risk_features") if isinstance(pick.get("risk_features"), dict) else {}
     context = pick.get("context") if isinstance(pick.get("context"), dict) else {}
     moonshot = pick.get("moonshot") if isinstance(pick.get("moonshot"), dict) else {}
+    paired_observation = (
+        pick.get("paired_side_observation")
+        if isinstance(pick.get("paired_side_observation"), dict)
+        else {}
+    )
     underlying = pick.get("underlying") if isinstance(pick.get("underlying"), dict) else {}
 
     row: dict[str, Any] = {
@@ -341,6 +346,12 @@ def _flatten_pick(
         "run_generated_at_utc": entry.get("run_generated_at_utc"),
         "lane": pick.get("lane"),
         "lane_reason": pick.get("lane_reason"),
+        "paired_observation_id": paired_observation.get("pair_id"),
+        "paired_observation_method": paired_observation.get("method"),
+        "paired_observation_target_abs_delta": paired_observation.get("target_abs_delta"),
+        "paired_observation_source_scout_direction": paired_observation.get(
+            "source_scout_direction"
+        ),
         "symbol": pick.get("symbol"),
         "contract_symbol": pick.get("contract_symbol"),
         "option_type": pick.get("option_type"),
@@ -650,6 +661,11 @@ def _option_outcome_row_from_pick(
     scores = enriched_pick.get("scores") if isinstance(enriched_pick.get("scores"), dict) else {}
     risk = enriched_pick.get("risk_features") if isinstance(enriched_pick.get("risk_features"), dict) else {}
     context = enriched_pick.get("context") if isinstance(enriched_pick.get("context"), dict) else {}
+    paired_observation = (
+        enriched_pick.get("paired_side_observation")
+        if isinstance(enriched_pick.get("paired_side_observation"), dict)
+        else {}
+    )
     archived_path = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
     path_rules = outcomes.get("path_rules") if isinstance(outcomes.get("path_rules"), dict) else {}
 
@@ -801,6 +817,12 @@ def _option_outcome_row_from_pick(
         "source_artifact": outcomes.get("source_artifact", "prospective_pick_ledger"),
         "recommendation_id": enriched_pick.get("recommendation_id"),
         "lane": enriched_pick.get("lane"),
+        "paired_observation_id": paired_observation.get("pair_id"),
+        "paired_observation_method": paired_observation.get("method"),
+        "paired_observation_target_abs_delta": paired_observation.get("target_abs_delta"),
+        "paired_observation_source_scout_direction": paired_observation.get(
+            "source_scout_direction"
+        ),
         "run_generated_at_utc": enriched_pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc"),
         "fixed_exit_window": exit_window,
         "archived_quote_path": archived_path,

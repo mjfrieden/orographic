@@ -211,6 +211,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
     )
+    parser.add_argument(
+        "--no-paired-side-capture",
+        action="store_true",
+        help="Disable research-only matched call/put outcome capture for this scan.",
+    )
     return parser.parse_args()
 
 
@@ -239,6 +244,7 @@ def main() -> int:
             moonshot_threshold=max(min(float(args.moonshot_threshold), 1.0), 0.0),
             moonshot_max_cost_basis=max(float(args.moonshot_max_cost_basis), 0.0),
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
+            paired_side_capture_enabled=not bool(args.no_paired_side_capture),
         )
     )
     diagnostic_sources: dict[str, str] = {}

@@ -67,6 +67,7 @@ class PipelineConfig:
     moonshot_threshold: float = 0.68
     moonshot_max_cost_basis: float = 225.0
     enforce_pre_council_friction_gate: bool = False
+    paired_side_capture_enabled: bool = True
     market_shock_control_mode: str = "active"
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
     promotion_comparison_path: str | Path | None = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
@@ -473,6 +474,7 @@ def _prospective_pick_row(
             "last_trade_age_seconds": row.get("last_trade_age_seconds"),
         },
         "scores": {
+            "scout_score": row.get("scout_score"),
             "forge_score": row.get("forge_score"),
             "learned_rank_score": row.get("learned_rank_score"),
             "payoff_model_score": row.get("payoff_model_score"),
@@ -555,6 +557,11 @@ def _prospective_pick_row(
             "path_model_mode": row.get("path_model_mode"),
             "path_model_artifact_sha256": row.get("path_model_artifact_sha256"),
         },
+        "paired_side_observation": (
+            row.get("paired_side_observation")
+            if isinstance(row.get("paired_side_observation"), dict)
+            else None
+        ),
         "notes": row.get("notes", []),
         "outcomes": _prospective_outcome_template(),
     }
@@ -1720,6 +1727,16 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
         if isinstance(counterfactual_lane.get("candidates"), list)
         else []
     )
+    paired_capture = (
+        payload.get("paired_side_observation_set")
+        if isinstance(payload.get("paired_side_observation_set"), dict)
+        else {}
+    )
+    paired_contracts = (
+        paired_capture.get("contracts")
+        if isinstance(paired_capture.get("contracts"), list)
+        else []
+    )
     scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
     scout_spots = {
         str(row.get("symbol") or "").strip().upper(): float(row["spot"])
@@ -1809,6 +1826,24 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
             )
         )
 
+    for row in paired_contracts:
+        if not isinstance(row, dict) or not str(row.get("contract_symbol") or ""):
+            continue
+        symbol = str(row.get("symbol") or "").strip().upper()
+        rows.append(
+            _prospective_pick_row(
+                row,
+                lane="paired_side_observation",
+                lane_reason="matched_call_put_outcome_capture_research_only",
+                run_generated_at_utc=generated_at,
+                regime=payload.get("regime", {}),
+                scan_settings=payload.get("scan_settings", {}),
+                model_modes=payload.get("model_modes", {}),
+                model_artifacts=payload.get("model_artifacts", {}),
+                scout_spot=scout_spots.get(symbol),
+            )
+        )
+
     return {
         "run_generated_at_utc": generated_at,
         "regime": payload.get("regime", {}),
@@ -1822,6 +1857,14 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
             "friction_veto": sum(1 for row in rows if row["lane"] == "friction_veto"),
             "counterfactual_observation": sum(
                 1 for row in rows if row["lane"] == "counterfactual_observation"
+            ),
+            "paired_side_observation": sum(
+                1 for row in rows if row["lane"] == "paired_side_observation"
+            ),
+            "paired_side_pair_member": sum(
+                1
+                for row in rows
+                if isinstance(row.get("paired_side_observation"), dict)
             ),
         },
         "picks": rows,
@@ -1923,10 +1966,18 @@ def append_prospective_pick_ledger(
         "counterfactual_observation": sum(
             _coerce_int(row.get("summary", {}).get("counterfactual_observation")) for row in entries
         ),
+        "paired_side_observation": sum(
+            _coerce_int(row.get("summary", {}).get("paired_side_observation"))
+            for row in entries
+        ),
+        "paired_side_pair_member": sum(
+            _coerce_int(row.get("summary", {}).get("paired_side_pair_member"))
+            for row in entries
+        ),
     }
     rendered = {
         "artifact": "prospective_pick_ledger",
-        "schema_version": 3,
+        "schema_version": 4,
         "updated_at_utc": entry["run_generated_at_utc"],
         "max_entries": max(max_entries, 1),
         "outcome_policy": {
@@ -1943,6 +1994,15 @@ def append_prospective_pick_ledger(
                 "probability_and_rank_disagreement",
                 "friday_close_net_executable_return",
             ],
+        },
+        "paired_side_capture_policy": {
+            "mode": "research_only_outcome_capture",
+            "selection_method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+            "affects_forge_ranking": False,
+            "affects_council": False,
+            "affects_moonshot": False,
+            "affects_position_sizing": False,
+            "affects_tradier_routing": False,
         },
         "aggregate": aggregate,
         "outcome_summary": _prospective_outcome_summary(entries),
@@ -2480,6 +2540,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
         moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
+        paired_side_capture_enabled = _config_bool(
+            config, "paired_side_capture_enabled", True
+        )
         model_stack = str(getattr(config, "model_stack", "unified_rnd") or "unified_rnd").strip().lower()
         if model_stack not in {"unified_rnd", "current_gated"}:
             model_stack = "unified_rnd"
@@ -2533,6 +2596,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 maximum_days_to_expiry=maximum_days_to_expiry,
                 enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
                 prior_live_board_symbols=prior_live_board_symbols,
+                capture_paired_side_observations=paired_side_capture_enabled,
             )
             counterfactual_input_signals: list[Any] = []
             counterfactual_candidates: list[Any] = []
@@ -2597,6 +2661,32 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
 
         council_payload = council.to_dict()
         forge_candidate_rows = [row.to_dict() for row in forge_candidates]
+        all_paired_side_observation_rows = [
+            row
+            for row in forge_diagnostics.get("paired_side_observations", [])
+            if isinstance(row, dict)
+        ]
+        paired_by_contract = {
+            str(row.get("contract_symbol") or ""): row
+            for row in all_paired_side_observation_rows
+            if str(row.get("contract_symbol") or "")
+        }
+        paired_contracts_reused_by_forge: set[str] = set()
+        for candidate_row in forge_candidate_rows:
+            contract = str(candidate_row.get("contract_symbol") or "")
+            paired_row = paired_by_contract.get(contract)
+            if paired_row is None:
+                continue
+            candidate_row["paired_side_observation"] = paired_row.get(
+                "paired_side_observation"
+            )
+            paired_contracts_reused_by_forge.add(contract)
+        paired_side_observation_rows = [
+            row
+            for row in all_paired_side_observation_rows
+            if str(row.get("contract_symbol") or "")
+            not in paired_contracts_reused_by_forge
+        ]
         counterfactual_candidate_rows = [row.to_dict() for row in counterfactual_candidates]
         manual_trade_pick = _build_manual_trade_pick(
             council_payload=council_payload,
@@ -2628,6 +2718,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_threshold": moonshot_threshold,
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
+                "paired_side_capture_enabled": paired_side_capture_enabled,
                 "market_shock_control_mode": market_shock_control_mode,
                 "model_stack": model_stack,
             },
@@ -2639,6 +2730,22 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "market_shock": market_shock.to_dict(),
             "scout_signals": [row.to_dict() for row in scout_signals],
             "forge_candidates": forge_candidate_rows,
+            "paired_side_observation_set": {
+                **(
+                    forge_diagnostics.get("paired_side_capture", {})
+                    if isinstance(forge_diagnostics.get("paired_side_capture"), dict)
+                    else {}
+                ),
+                "mode": (
+                    "research_only_outcome_capture"
+                    if paired_side_capture_enabled
+                    else "disabled"
+                ),
+                "enabled": paired_side_capture_enabled,
+                "execution_effect": "none",
+                "production_lane": False,
+                "contracts": paired_side_observation_rows,
+            },
             "counterfactual_observation_lane": {
                 "mode": "deprecated_empty_schema_compatibility",
                 "execution_effect": "none_observation_only",
@@ -2683,6 +2790,13 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout_shadow_side_veto_observations": scout_diagnostics.get("shadow_side_veto_observations", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
+                "paired_side_observation_count": len(
+                    all_paired_side_observation_rows
+                ),
+                "paired_side_pair_count": len(all_paired_side_observation_rows) // 2,
+                "paired_side_reused_forge_contract_count": len(
+                    paired_contracts_reused_by_forge
+                ),
                 "counterfactual_signal_count": len(counterfactual_input_signals),
                 "counterfactual_candidate_count": len(counterfactual_candidates),
                 "moonshot_pick_count": moonshot_lane["summary"]["pick_count"],

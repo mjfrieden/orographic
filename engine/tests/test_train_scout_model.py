@@ -77,6 +77,46 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertEqual(labeled.iloc[0]["label_date"], pd.Timestamp("2026-04-25"))
         self.assertTrue(bool(labeled.iloc[0]["both_sides_observed"]))
 
+    def test_load_option_outcome_labels_prefers_explicit_matched_pair(self) -> None:
+        payload = {
+            "artifact": "option_outcome_dataset",
+            "rows": [
+                {
+                    "symbol": "AAA",
+                    "option_type": "call",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": 0.9,
+                },
+                {
+                    "symbol": "AAA",
+                    "option_type": "call",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": -0.1,
+                    "paired_observation_id": "PAIR-1",
+                },
+                {
+                    "symbol": "AAA",
+                    "option_type": "put",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": 0.2,
+                    "paired_observation_id": "PAIR-1",
+                },
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "option_outcomes.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            labeled, metadata = _load_option_outcome_labels([path])
+
+        self.assertEqual(labeled.iloc[0]["side_label"], "put_edge")
+        self.assertAlmostEqual(float(labeled.iloc[0]["call_avg_pnl_pct"]), -0.1)
+        self.assertTrue(bool(labeled.iloc[0]["explicit_pair_observed"]))
+        self.assertEqual(labeled.iloc[0]["label_source"], "explicit_matched_call_put_pair")
+        self.assertEqual(metadata["explicit_paired_symbol_dates"], 1)
+
     def test_hierarchical_threshold_optimizes_conservative_after_cost_utility(self) -> None:
         rows = 60
         trade_probs = np.array([0.8] * 40 + [0.5] * 20, dtype=float)

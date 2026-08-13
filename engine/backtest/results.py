@@ -368,6 +368,32 @@ def build_option_outcome_dataset(trades: list[TradeLeg]) -> list[dict[str, Any]]
 
 
 def build_option_outcome_dataset_summary(dataset: list[dict[str, Any]]) -> dict[str, Any]:
+    pair_sides: dict[str, set[str]] = {}
+    pair_symbol_dates: set[tuple[str, str]] = set()
+    for row in dataset:
+        pair_id = str(row.get("paired_observation_id") or "").strip()
+        if not pair_id:
+            continue
+        side = str(row.get("option_type") or "").strip().lower()
+        if side in {"call", "put"}:
+            pair_sides.setdefault(pair_id, set()).add(side)
+        pair_symbol_dates.add(
+            (
+                str(row.get("symbol") or "").strip().upper(),
+                str(row.get("entry_date") or "")[:10],
+            )
+        )
+    paired_rows = sum(
+        1 for row in dataset if str(row.get("paired_observation_id") or "").strip()
+    )
+    paired_summary = {
+        "explicit_paired_contract_rows": paired_rows,
+        "explicit_pair_ids": len(pair_sides),
+        "complete_explicit_pair_ids": sum(
+            1 for sides in pair_sides.values() if sides == {"call", "put"}
+        ),
+        "explicit_paired_symbol_dates": len(pair_symbol_dates),
+    }
     if not dataset:
         return {
             "rows": 0,
@@ -378,6 +404,7 @@ def build_option_outcome_dataset_summary(dataset: list[dict[str, Any]]) -> dict[
             "friction_flip_count": 0,
             "avg_friction_drag_pct": 0.0,
             "avg_total_friction_cost_usd": 0.0,
+            **paired_summary,
         }
     rows = len(dataset)
     return {
@@ -389,6 +416,7 @@ def build_option_outcome_dataset_summary(dataset: list[dict[str, Any]]) -> dict[
         "friction_flip_count": sum(1 for row in dataset if row["friction_flipped_winner_to_loser"]),
         "avg_friction_drag_pct": round(_mean([float(row["friction_drag_pct"]) for row in dataset]), 4),
         "avg_total_friction_cost_usd": round(_mean([float(row["total_friction_cost_usd"]) for row in dataset]), 2),
+        **paired_summary,
     }
 
 

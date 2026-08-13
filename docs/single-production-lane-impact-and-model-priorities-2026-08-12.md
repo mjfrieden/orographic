@@ -32,8 +32,8 @@ ablation, not adding another lane.
 | Component | Simple job | Current evidence | Best improvement |
 |---|---|---|---|
 | Directional Scout | Predicts whether the underlying is more likely up or down over five days | Mean CV AUC 0.5206 across 49,178 rows: only slightly above chance | Replace the broad classifier with regime-aware, calibrated return-distribution heads and test net option utility rather than only underlying sign |
-| Side-aware Scout | Chooses call, put, or no-trade from strict option outcomes | 271 training rows; only 6 put-edge training examples; balanced accuracy 0.3633 | Highest data priority: collect paired call/put outcomes for the same symbol/date and rebalance puts before relaxing the 70% override gate |
-| Hierarchical Scout | Separates trade/abstain from call/put direction | Trade AUC 0.4825; direction head had zero usable OOF rows | Retrain only after at least 50 paired examples per side; until then its 20% weight should be an explicit ablation target |
+| Side-aware Scout | Chooses call, put, or no-trade from strict option outcomes | The current 740-row outcome artifact has 303 symbol/dates, 17 put-edge labels, and zero explicit matched pairs | Matched call/put capture is now active; accumulate resolved pairs and rebalance puts before relaxing the 70% override gate |
+| Hierarchical Scout | Separates trade/abstain from call/put direction | Trade AUC 0.4825; direction head had zero usable OOF rows, and incidental two-sided dates no longer qualify as matched evidence | Retrain only after at least 50 explicit paired examples per side; until then its 20% weight remains an ablation target |
 | Sentinel | Converts events into direction, magnitude, horizon, and IV effects | Deterministic policy, not a supervised classifier | Label event-time option outcomes and calibrate by event type, novelty, source reliability, and horizon using point-in-time features |
 | Primary payoff model | Estimates positive option P&L, breakeven odds, return, fill, and path heads | Positive-P&L AUC 0.5678; put AUC 0.53 on 73 rows; exact-quote coverage is thin | Best near-term modeling target: retrain on larger strict executable labels, side-balanced folds, and calibrated after-cost utility |
 | Path model | Estimates early profit, favorable excursion, and decay risk | Aggregate AUC 0.5432, but side segment AUCs are below 0.47 and regimes are unclassified | Rebuild from timestamped intraday paths with real regime labels; ablate the present 18% rank weight |
@@ -51,8 +51,9 @@ ablation, not adding another lane.
    path, or cost-aware inputs reduced P&L in every tested window. Weak
    standalone cards remain a warning, but zero-weighting these interacting
    features now would be contrary to the available end-to-end evidence.
-2. **Collect paired, side-balanced option outcomes.** This directly fixes the
-   largest Scout failure: almost no put-edge examples.
+2. **Accumulate paired, side-balanced option outcomes.** Capture is implemented;
+   the remaining work is allowing enough same-expiry call/put outcomes to
+   resolve before retraining.
 3. **Retrain the primary payoff model on strict after-cost labels.** It is the
    strongest learned ranker today and has the clearest path to incremental gain.
 4. **Rebuild path and exit datasets from timestamped intraday quotes.** Do not
@@ -113,6 +114,41 @@ buy-to-open cost-basis ceiling for both preview and submission, and rejects
 non-Council previews as well as submissions. Remaining work is Cirrus-style
 fold-frozen replication and, once trade counts are materially larger, explicit
 aggregate open-risk and correlation budgets.
+
+## Matched call/put capture implemented 2026-08-13
+
+The prior prospective ledger recorded every scored Forge contract, but Forge
+only scored the side selected by Scout. Consequently, “all candidates” did not
+produce a fair call-versus-put label. The current 740-row canonical artifact
+contains 303 symbol/dates, three dates with both sides present by coincidence,
+and zero explicit matched pairs.
+
+Forge now selects a research pair from the option chain it already fetched:
+one call and one put at the same expiry, each nearest to 0.35 absolute delta
+after the existing premium, spread, liquidity, moneyness, and delta filters.
+The pair is written to the prospective outcome ledger and receives the same
+fixed-window executable outcome capture as other observations. If the selected
+same-side contract is already a Forge candidate, its row is annotated and
+reused so payoff and path datasets are not duplicated.
+
+Blast-radius controls are explicit:
+
+- paired observations never enter Forge ranking, Council, Moonshot, sizing, or
+  Tradier candidate lookup;
+- capture failures are logged and skipped without interrupting production
+  candidate construction;
+- option-chain network traffic does not increase because both sides were
+  already fetched for surface construction;
+- outcome-mark quote volume can increase by up to two contracts per eligible
+  Forge symbol, bounded by the existing 500-symbol marker limit;
+- `--no-paired-side-capture` is an operational kill switch;
+- the hierarchical trainer accepts only a shared explicit pair identifier as
+  call/put direction evidence. Incidental two-sided dates remain visible but
+  cannot pass the 50-per-side promotion gate.
+
+This milestone is data infrastructure, not a model promotion. No performance
+uplift is claimed until enough pairs have resolved and a purged, fold-frozen
+retrain beats the current Scout and production-core Council policy.
 
 ## Release posture
 

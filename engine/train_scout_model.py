@@ -616,7 +616,9 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
 
     A profitable call labels that symbol/date as call_edge; a profitable put
     labels it as put_edge; losing or flat observed expressions become no_trade.
-    When both sides exist for the same symbol/date, the better positive side wins.
+    Explicit matched-pair rows take precedence when present. Otherwise, when
+    both sides exist for the same symbol/date, the better positive side wins,
+    but those incidental rows do not qualify the hierarchical direction head.
     """
     rows: list[dict[str, Any]] = []
     skipped_after_cutoff = 0
@@ -646,6 +648,9 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
                     "option_type": side,
                     "pnl_pct": _safe_float(trade.get("pnl_pct")),
                     "pnl": _safe_float(trade.get("pnl")),
+                    "paired_observation_id": str(
+                        trade.get("paired_observation_id") or ""
+                    ).strip(),
                     "source_file": str(path),
                 }
             )
@@ -661,8 +666,22 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
     trades = pd.DataFrame(rows)
     grouped_rows: list[dict[str, Any]] = []
     for (symbol, entry_date), group in trades.groupby(["symbol", "date"], sort=True):
-        call_returns = group.loc[group["option_type"] == "call", "pnl_pct"]
-        put_returns = group.loc[group["option_type"] == "put", "pnl_pct"]
+        explicit = group.loc[group["paired_observation_id"].str.len() > 0].copy()
+        valid_pair_ids = {
+            str(pair_id)
+            for pair_id, pair_rows in explicit.groupby("paired_observation_id")
+            if set(pair_rows["option_type"].tolist()) == {"call", "put"}
+        }
+        explicit_pairs = explicit.loc[
+            explicit["paired_observation_id"].isin(valid_pair_ids)
+        ]
+        scoring_group = explicit_pairs if not explicit_pairs.empty else group
+        call_returns = scoring_group.loc[
+            scoring_group["option_type"] == "call", "pnl_pct"
+        ]
+        put_returns = scoring_group.loc[
+            scoring_group["option_type"] == "put", "pnl_pct"
+        ]
         call_score = float(call_returns.mean()) if not call_returns.empty else float("-inf")
         put_score = float(put_returns.mean()) if not put_returns.empty else float("-inf")
         best_side = "call_edge" if call_score >= put_score else "put_edge"
@@ -672,13 +691,20 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
             {
                 "symbol": symbol,
                 "date": entry_date,
-                "label_date": pd.to_datetime(group["label_date"]).max(),
+                "label_date": pd.to_datetime(scoring_group["label_date"]).max(),
                 "side_label": label,
                 "side_label_id": SIDE_CLASS_TO_ID[label],
                 "call_avg_pnl_pct": None if call_score == float("-inf") else round(call_score, 6),
                 "put_avg_pnl_pct": None if put_score == float("-inf") else round(put_score, 6),
                 "trade_count": int(len(group)),
                 "both_sides_observed": bool(not call_returns.empty and not put_returns.empty),
+                "explicit_pair_observed": bool(valid_pair_ids),
+                "explicit_pair_count": len(valid_pair_ids),
+                "label_source": (
+                    "explicit_matched_call_put_pair"
+                    if valid_pair_ids
+                    else "available_symbol_date_outcomes"
+                ),
             }
         )
 
@@ -688,6 +714,16 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
         "trade_rows": int(len(trades)),
         "labeled_symbol_dates": int(len(labeled)),
         "skipped_after_cutoff": int(skipped_after_cutoff),
+        "explicit_paired_contract_rows": int(
+            (trades["paired_observation_id"].str.len() > 0).sum()
+        ),
+        "explicit_pair_ids": int(
+            trades.loc[
+                trades["paired_observation_id"].str.len() > 0,
+                "paired_observation_id",
+            ].nunique()
+        ),
+        "explicit_paired_symbol_dates": int(labeled["explicit_pair_observed"].sum()),
         "class_counts": {
             label: int((labeled["side_label"] == label).sum())
             for label in SIDE_CLASS_TO_ID
@@ -910,7 +946,10 @@ def _hierarchical_cv_report(
         return {"folds": 0, "reason": "insufficient_examples"}
     trade_y = (frame["side_label"].to_numpy(dtype=object) != "no_trade").astype(int)
     direction_y = (frame["side_label"].to_numpy(dtype=object) == "call_edge").astype(int)
-    paired = frame.get("both_sides_observed", pd.Series(False, index=frame.index)).fillna(False).to_numpy(dtype=bool)
+    paired = frame.get(
+        "explicit_pair_observed",
+        frame.get("both_sides_observed", pd.Series(False, index=frame.index)),
+    ).fillna(False).to_numpy(dtype=bool)
     order = np.argsort(pd.to_datetime(dates).view("int64"), kind="stable")
     X_sorted, frame_sorted = X[order], frame.iloc[order].reset_index(drop=True)
     trade_sorted, direction_sorted, paired_sorted = trade_y[order], direction_y[order], paired[order]
@@ -1425,8 +1464,11 @@ def train(
         hierarchical_X = hierarchical_scaler.fit_transform(hierarchical_X_raw)
         trade_y = (hierarchical_frame["side_label"].to_numpy(dtype=object) != "no_trade").astype(int)
         paired_direction = hierarchical_frame.get(
-            "both_sides_observed",
-            pd.Series(False, index=hierarchical_frame.index),
+            "explicit_pair_observed",
+            hierarchical_frame.get(
+                "both_sides_observed",
+                pd.Series(False, index=hierarchical_frame.index),
+            ),
         ).fillna(False).to_numpy(dtype=bool)
         direction_idx = np.where((trade_y == 1) & paired_direction)[0]
         direction_y = (hierarchical_frame.iloc[direction_idx]["side_label"].to_numpy(dtype=object) == "call_edge").astype(int)
@@ -1452,7 +1494,7 @@ def train(
         regime_counts = {str(name): int(count) for name, count in pd.Series(regime_labels).value_counts().to_dict().items()}
         gates = {
             "minimum_independent_rows": {"passed": len(hierarchical_frame) >= 150, "actual": int(len(hierarchical_frame)), "required_min": 150},
-            "minimum_call_put_rows": {"passed": bool(paired_direction_counts) and min(paired_direction_counts.values()) >= 50, "actual_paired_direction_rows": paired_direction_counts, "all_label_counts": label_counts, "required_min_each_direction": 50},
+            "minimum_call_put_rows": {"passed": bool(paired_direction_counts) and min(paired_direction_counts.values()) >= 50, "actual_paired_direction_rows": paired_direction_counts, "actual_explicit_paired_direction_rows": paired_direction_counts, "all_label_counts": label_counts, "required_min_each_direction": 50},
             "regime_coverage": {"passed": sum(count >= 25 for count in regime_counts.values()) >= 2, "actual": regime_counts, "required_segments_with_25_rows": 2},
             "trade_probability_skill": {
                 "passed": hierarchical_cv.get("trade_brier") is not None and hierarchical_cv.get("trade_baseline_brier") is not None and float(hierarchical_cv["trade_brier"]) < float(hierarchical_cv["trade_baseline_brier"]),

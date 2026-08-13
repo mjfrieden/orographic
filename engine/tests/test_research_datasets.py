@@ -232,6 +232,12 @@ class ResearchDatasetTests(unittest.TestCase):
                                 "iv_minus_realized_vol": 0.11,
                             },
                             "context": {"model_modes": {"path_model": "shadow"}},
+                            "paired_side_observation": {
+                                "pair_id": "AAA|2026-06-05|2026-05-22T14:07:00Z",
+                                "method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+                                "target_abs_delta": 0.35,
+                                "source_scout_direction": "call",
+                            },
                             "outcomes": {
                                 "status": "complete",
                                 "quote_verification": {"outcome_quotes_captured": True},
@@ -283,6 +289,11 @@ class ResearchDatasetTests(unittest.TestCase):
         self.assertEqual(rows[0]["surface_observation_count"], 18)
         self.assertEqual(rows[0]["last_trade_age_seconds"], 42.0)
         self.assertEqual(rows[0]["quote_spread_dollars"], 0.2)
+        self.assertEqual(
+            rows[0]["paired_observation_id"],
+            "AAA|2026-06-05|2026-05-22T14:07:00Z",
+        )
+        self.assertEqual(rows[0]["paired_observation_target_abs_delta"], 0.35)
 
     def test_canonical_rows_prefer_executable_v1_over_legacy_mid_marks(self) -> None:
         label = {
