@@ -1,7 +1,7 @@
 {
   "artifact": "payoff_challenger_prospective_evidence",
-  "schema_version": 1,
-  "generated_at_utc": "2026-08-11T14:34:36+00:00",
+  "schema_version": 2,
+  "generated_at_utc": "2026-08-13T02:32:35+00:00",
   "decision": "collecting_evidence",
   "execution_effect": "none_observation_only",
   "policy": {
@@ -19,13 +19,13 @@
     }
   },
   "coverage": {
-    "scored_recommendations": 0,
+    "scored_recommendations": 1,
     "older_model_scored_recommendations_excluded": 0,
     "resolved_recommendations": 0,
     "resolved_runs": 0,
     "decision_disagreements": 0,
     "stored_broad_disagreements": 0,
-    "unresolved_scored_recommendations": 0,
+    "unresolved_scored_recommendations": 1,
     "friday_capture_valid": 0,
     "friday_capture_missed": 0,
     "friday_capture_quote_missing_retryable": 0,
@@ -60,7 +60,7 @@
   "rank_replay": {
     "eligible_complete_runs": 0,
     "incomplete_runs_excluded": 0,
-    "single_candidate_runs_excluded": 0,
+    "single_candidate_runs_excluded": 1,
     "selection_disagreements": 0,
     "active_top1_avg_net_return": null,
     "shadow_top1_avg_net_return": null,
@@ -97,13 +97,79 @@
       "regime_stability": false
     }
   },
+  "readiness": {
+    "sample_ready": false,
+    "blocking_sample_gates": [
+      "resolved_recommendations",
+      "resolved_runs",
+      "decision_disagreements",
+      "side_coverage",
+      "regime_coverage",
+      "complete_rank_replay_runs",
+      "friday_capture_integrity"
+    ],
+    "progress": {
+      "resolved_recommendations": {
+        "current": 0,
+        "required": 100,
+        "remaining": 100,
+        "progress_pct": 0.0
+      },
+      "resolved_runs": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "decision_disagreements": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "call_rows": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "put_rows": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      },
+      "qualified_regimes": {
+        "current": 0,
+        "required": 2,
+        "remaining": 2,
+        "progress_pct": 0.0
+      },
+      "complete_rank_replay_runs": {
+        "current": 0,
+        "required": 30,
+        "remaining": 30,
+        "progress_pct": 0.0
+      }
+    },
+    "capture_integrity": {
+      "valid": 0,
+      "missed": 0,
+      "quote_missing_retryable": 0,
+      "observed_windows": 0,
+      "actual_pct": null,
+      "required_pct": 0.95,
+      "passed": false
+    },
+    "next_action": "Capture strict Friday-close executable labels for the current challenger cohort."
+  },
   "source": {
     "artifact": "prospective_pick_ledger",
     "schema_version": 3,
-    "updated_at_utc": "2026-08-11T14:09:40+00:00"
+    "updated_at_utc": "2026-08-13T02:32:34+00:00"
   },
   "model_cohort": {
-    "artifact_sha256": null,
+    "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
     "policy": "analyze only the latest observed challenger artifact; never pool model versions"
   },
   "replay_command": "python scripts/build_payoff_challenger_evidence.py"

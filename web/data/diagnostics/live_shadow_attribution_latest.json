@@ -1,13 +1,15 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-11T14:09:40+00:00",
-  "trading_day": "2026-08-11",
+  "generated_at_utc": "2026-08-13T02:32:34+00:00",
+  "trading_day": "2026-08-12",
   "timezone": "America/Chicago",
   "scan_settings": {
     "live_size": 1,
     "shadow_size": 3,
     "forge_intake": 12,
+    "counterfactual_observation_size": 3,
+    "preserve_shadow_veto_live_policy": true,
     "universe_size": 100,
     "minimum_days_to_expiry": 7,
     "maximum_days_to_expiry": 14,
@@ -93,92 +95,96 @@
     }
   },
   "summary": {
-    "scout_signal_count": 0,
-    "pre_forge_signal_count": 0,
-    "forge_candidate_count": 0,
+    "scout_signal_count": 2,
+    "pre_forge_signal_count": 1,
+    "forge_candidate_count": 1,
     "live_count": 0,
-    "shadow_count": 0,
+    "shadow_count": 1,
+    "counterfactual_signal_count": 3,
+    "counterfactual_candidate_count": 3,
     "abstain": true,
     "live_side_mix": {
       "call": 0,
       "put": 0
     },
     "shadow_side_mix": {
-      "call": 0,
+      "call": 1,
       "put": 0
     },
     "forge_candidate_side_mix": {
-      "call": 0,
+      "call": 1,
       "put": 0
     },
-    "friction_veto_count": 0,
-    "dedupe_removed_count": 0,
-    "pre_forge_rejection_count": 0,
+    "friction_veto_count": 7,
+    "dedupe_removed_count": 6,
+    "pre_forge_rejection_count": 1,
     "council_holdout_count": 0,
     "live_avg_forge_score": null,
-    "shadow_avg_forge_score": null,
+    "shadow_avg_forge_score": 0.6416,
     "live_avg_policy_score": null,
-    "shadow_avg_policy_score": null,
+    "shadow_avg_policy_score": 0.6931,
     "live_avg_edge_after_friction_pct": null,
-    "shadow_avg_edge_after_friction_pct": null,
+    "shadow_avg_edge_after_friction_pct": 0.0373,
     "live_avg_fill_quality_ok": null,
-    "shadow_avg_fill_quality_ok": null,
+    "shadow_avg_fill_quality_ok": 1.0,
     "live_avg_no_trade_prob": null,
-    "shadow_avg_no_trade_prob": null,
+    "shadow_avg_no_trade_prob": 0.4468,
     "live_avg_path_holding_quality_score": null,
-    "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 20,
-    "side_aware_no_trade_disagreements": 80,
-    "shadow_side_veto_rejections": 67,
-    "abstain_primary_reason": "no_forge_candidates"
+    "shadow_avg_path_holding_quality_score": 0.7067,
+    "side_aware_directional_disagreements": 18,
+    "side_aware_no_trade_disagreements": 81,
+    "shadow_side_veto_rejections": 0,
+    "abstain_primary_reason": "score_and_extrinsic_limit"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 1,
-        "put": 99
+        "call": 17,
+        "put": 83
       },
       "final_direction_counts": {
-        "call": 0,
-        "put": 0
+        "call": 17,
+        "put": 83
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 20,
-      "side_aware_no_trade_disagreements": 80,
-      "shadow_side_veto_rejections": 67
+      "side_aware_directional_disagreements": 18,
+      "side_aware_no_trade_disagreements": 81,
+      "shadow_side_veto_rejections": 0
     },
     "forge": {
       "waterfall": {
-        "signals_considered": 0,
-        "signals_with_expiry": 0,
-        "signals_with_chain": 0,
-        "rows_after_basic": 0,
-        "rows_positive_bid_ask": 0,
-        "rows_within_long_leg_cap": 0,
-        "rows_within_spread_cap": 0,
-        "rows_passing_liquidity": 0,
-        "rows_passing_moneyness": 0,
-        "rows_passing_delta": 0,
-        "rows_passing_net_debit": 0,
-        "final_candidates": 0,
+        "signals_considered": 1,
+        "signals_with_expiry": 1,
+        "signals_with_chain": 1,
+        "rows_after_basic": 112,
+        "rows_positive_bid_ask": 105,
+        "rows_within_long_leg_cap": 29,
+        "rows_within_spread_cap": 19,
+        "rows_passing_liquidity": 16,
+        "rows_passing_moneyness": 12,
+        "rows_passing_delta": 7,
+        "rows_passing_net_debit": 7,
+        "final_candidates": 7,
         "candidates_after_friction_gate": 0,
-        "candidates_after_deduplication": 0
+        "candidates_after_deduplication": 1
       },
       "path_model": {
-        "mode_counts": {},
-        "scored_candidates": 0,
-        "avg_holding_quality_score": null,
-        "avg_early_profit_take_prob": null,
-        "avg_decay_risk": null
+        "mode_counts": {
+          "integrated_forge": 7
+        },
+        "scored_candidates": 7,
+        "avg_holding_quality_score": 0.5099,
+        "avg_early_profit_take_prob": 0.2299,
+        "avg_decay_risk": 0.3331
       },
       "pre_council_gate": {
         "kept": 0,
-        "dropped": 0,
+        "dropped": 7,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
-        "removed_candidates": 0,
-        "kept_candidates": 0,
+        "removed_candidates": 6,
+        "kept_candidates": 1,
         "max_structures_per_symbol_side": 2,
         "min_moneyness_gap": 0.01,
         "max_structures_per_symbol": 1,
@@ -189,20 +195,20 @@
       }
     },
     "council": {
-      "candidate_count": 0,
+      "candidate_count": 1,
       "live_count": 0,
-      "shadow_count": 0,
+      "shadow_count": 1,
       "avg_pairwise_correlation": null,
       "abstain_audit": {
-        "primary_reason": "no_forge_candidates",
-        "primary_reason_label": "No Forge candidates reached Council.",
+        "primary_reason": "score_and_extrinsic_limit",
+        "primary_reason_label": "Candidates failed both score and extrinsic gates.",
         "requested_live_size": 1,
-        "candidate_count": 0,
+        "candidate_count": 1,
         "core_filter_pass_count": 0,
         "unique_eligible_count": 0,
         "score_only_fail_count": 0,
         "extrinsic_only_fail_count": 0,
-        "score_and_extrinsic_fail_count": 0,
+        "score_and_extrinsic_fail_count": 1,
         "model_no_trade_fail_count": 0,
         "fill_quality_fail_count": 0,
         "sentinel_no_trade_pressure_fail_count": 0,
@@ -213,7 +219,9 @@
         "blocked_symbols": {
           "score_only": [],
           "extrinsic_only": [],
-          "score_and_extrinsic": [],
+          "score_and_extrinsic": [
+            "IWM"
+          ],
           "model_no_trade": [],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
@@ -223,7 +231,38 @@
         "best_rejected_candidates": {
           "score_only": [],
           "extrinsic_only": [],
-          "score_and_extrinsic": [],
+          "score_and_extrinsic": [
+            {
+              "symbol": "IWM",
+              "contract_symbol": "IWM260821C00302500",
+              "option_type": "call",
+              "expiry": "2026-08-21",
+              "strike": 302.5,
+              "forge_score": 0.6416,
+              "effective_candidate_score": 0.6931,
+              "learned_rank_score": 0.7473,
+              "final_candidate_score": 0.7473,
+              "risk_adjusted_score": 0.6931,
+              "utility_after_friction_score": 0.5933,
+              "expected_edge_after_friction_pct": 0.0373,
+              "friction_buffer_pct": 0.3007,
+              "prob_no_trade": 0.4468,
+              "scout_no_trade_prob": 0.3171,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4342,
+              "sentinel_no_trade_relevance": 0.671,
+              "sentinel_no_trade_pressure": 0.2913,
+              "extrinsic_ratio": 0.9323,
+              "contract_cost": 310.0,
+              "spread_pct": 0.0395,
+              "delta": 0.5327,
+              "iv_rank": 0.2299,
+              "council_risk_flags": [
+                "market_shock:constructive_risk_on",
+                "sector_cluster"
+              ]
+            }
+          ],
           "model_no_trade": [],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
@@ -240,24 +279,253 @@
     }
   },
   "top_live_board": [],
-  "top_shadow_board": [],
+  "top_shadow_board": [
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260821C00302500",
+      "option_type": "call",
+      "expiry": "2026-08-21",
+      "strike": 302.5,
+      "forge_score": 0.6416,
+      "policy_score": 0.6931,
+      "risk_adjusted_score": 0.6931,
+      "final_candidate_score": 0.7473,
+      "utility_after_friction_score": 0.5933,
+      "payoff_edge_score": 0.5532,
+      "expected_edge_after_friction_pct": 0.0373,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.4468,
+      "scout_no_trade_prob": 0.3171,
+      "no_trade_pressure": 0.4468,
+      "sentinel_confidence": 0.4342,
+      "sentinel_no_trade_relevance": 0.671,
+      "sentinel_no_trade_pressure": 0.2913,
+      "path_holding_quality_score": 0.7067,
+      "path_early_profit_take_prob": 0.4735,
+      "path_decay_risk": 0.3309,
+      "path_model_mode": "integrated_forge",
+      "contract_cost": 310.0,
+      "council_risk_flags": [
+        "market_shock:constructive_risk_on",
+        "sector_cluster"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "Sentinel shadow mismatch: one_week catalyst vs 8 DTE",
+        "Payoff model shadow score 0.75"
+      ]
+    }
+  ],
   "council_holdouts": [],
-  "friction_vetoes": [],
-  "pre_forge_rejections": [],
+  "counterfactual_observation": {
+    "execution_effect": "none_observation_only",
+    "live_policy_effect": "legacy_compatibility_holdout",
+    "council_eligible": false,
+    "tradier_routing_eligible": false,
+    "candidates": [
+      {
+        "symbol": "QQQ",
+        "contract_symbol": "QQQ260821P00716000",
+        "option_type": "put",
+        "expiry": "2026-08-21",
+        "strike": 716.0,
+        "forge_score": 0.57,
+        "policy_score": 0.9159,
+        "risk_adjusted_score": null,
+        "final_candidate_score": 0.9159,
+        "utility_after_friction_score": 1.0,
+        "payoff_edge_score": 0.898,
+        "expected_edge_after_friction_pct": 1.0777,
+        "prob_fill_quality_ok": 1.0,
+        "prob_no_trade": 0.102,
+        "scout_no_trade_prob": 0.0194,
+        "no_trade_pressure": 0.2914,
+        "sentinel_confidence": 0.4359,
+        "sentinel_no_trade_relevance": 0.6685,
+        "sentinel_no_trade_pressure": 0.2914,
+        "path_holding_quality_score": 0.941,
+        "path_early_profit_take_prob": 0.9437,
+        "path_decay_risk": 0.1457,
+        "path_model_mode": "integrated_forge",
+        "contract_cost": 435.0,
+        "council_risk_flags": [],
+        "notes": [
+          "projected payoff is asymmetric",
+          "delta sits in the preferred weekly range",
+          "Sentinel shadow mismatch: one_week catalyst vs 8 DTE",
+          "Payoff model shadow score 0.92"
+        ]
+      },
+      {
+        "symbol": "TLT",
+        "contract_symbol": "TLT260821P00083000",
+        "option_type": "put",
+        "expiry": "2026-08-21",
+        "strike": 83.0,
+        "forge_score": 0.6411,
+        "policy_score": 0.6866,
+        "risk_adjusted_score": null,
+        "final_candidate_score": 0.6866,
+        "utility_after_friction_score": 1.0,
+        "payoff_edge_score": 0.6689,
+        "expected_edge_after_friction_pct": 0.2396,
+        "prob_fill_quality_ok": 1.0,
+        "prob_no_trade": 0.3311,
+        "scout_no_trade_prob": 0.9351,
+        "no_trade_pressure": 0.9351,
+        "sentinel_confidence": 0.4359,
+        "sentinel_no_trade_relevance": 0.6685,
+        "sentinel_no_trade_pressure": 0.2914,
+        "path_holding_quality_score": 0.6866,
+        "path_early_profit_take_prob": 0.3107,
+        "path_decay_risk": 0.1509,
+        "path_model_mode": "integrated_forge",
+        "contract_cost": 106.0,
+        "council_risk_flags": [],
+        "notes": [
+          "projected payoff is asymmetric",
+          "time-value burden is acceptable",
+          "Sentinel shadow mismatch: one_week catalyst vs 8 DTE",
+          "Payoff model shadow score 0.69"
+        ]
+      },
+      {
+        "symbol": "XLE",
+        "contract_symbol": "XLE260821P00060500",
+        "option_type": "put",
+        "expiry": "2026-08-21",
+        "strike": 60.5,
+        "forge_score": 0.4684,
+        "policy_score": 0.1973,
+        "risk_adjusted_score": null,
+        "final_candidate_score": 0.1973,
+        "utility_after_friction_score": 0.0,
+        "payoff_edge_score": 0.0885,
+        "expected_edge_after_friction_pct": -0.6752,
+        "prob_fill_quality_ok": 1.0,
+        "prob_no_trade": 0.9115,
+        "scout_no_trade_prob": 0.2879,
+        "no_trade_pressure": 0.9115,
+        "sentinel_confidence": 0.4359,
+        "sentinel_no_trade_relevance": 0.6685,
+        "sentinel_no_trade_pressure": 0.2914,
+        "path_holding_quality_score": 0.239,
+        "path_early_profit_take_prob": 0.0243,
+        "path_decay_risk": 0.5802,
+        "path_model_mode": "integrated_forge",
+        "contract_cost": 65.0,
+        "council_risk_flags": [],
+        "notes": [
+          "projected payoff is asymmetric",
+          "delta sits in the preferred weekly range",
+          "Sentinel shadow mismatch: one_week catalyst vs 8 DTE",
+          "Payoff model shadow score 0.20"
+        ]
+      }
+    ]
+  },
+  "friction_vetoes": [
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260821C00302500",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": 0.0373,
+      "friction_buffer_pct": 0.3007,
+      "extrinsic_ratio": 0.9323,
+      "forge_score": 0.6416,
+      "learned_rank_score": 0.7473,
+      "contract_cost": 310.0,
+      "spread_pct": 0.0395,
+      "delta": 0.5327
+    },
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260821C00307000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": 0.0018,
+      "friction_buffer_pct": 0.3352,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6326,
+      "learned_rank_score": 0.5193,
+      "contract_cost": 111.0,
+      "spread_pct": 0.0461,
+      "delta": 0.2545
+    },
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260821C00306000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.0356,
+      "friction_buffer_pct": 0.3331,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6358,
+      "learned_rank_score": 0.5116,
+      "contract_cost": 144.0,
+      "spread_pct": 0.0426,
+      "delta": 0.3117
+    },
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260821C00305000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.0582,
+      "friction_buffer_pct": 0.3276,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6413,
+      "learned_rank_score": 0.4707,
+      "contract_cost": 182.0,
+      "spread_pct": 0.0335,
+      "delta": 0.3731
+    },
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260821C00304000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.1613,
+      "friction_buffer_pct": 0.3262,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6436,
+      "learned_rank_score": 0.3994,
+      "contract_cost": 228.0,
+      "spread_pct": 0.0312,
+      "delta": 0.4372
+    }
+  ],
+  "pre_forge_rejections": [
+    {
+      "symbol": "XLV",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-21",
+      "long_leg_cap": 2.75,
+      "spread_cap": 0.18,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-21",
+          "reason": "spread_cap",
+          "rows_after_basic": 62,
+          "rows_positive_bid_ask": 51,
+          "rows_within_long_leg_cap": 3,
+          "rows_within_spread_cap": 0,
+          "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    }
+  ],
   "profitability_evidence": {
-    "shadow_window_runs": 229,
-    "disagreement_observations": 7504,
-    "directional_disagreements": 2449,
-    "tracked_recommendation_runs": 174,
-    "tracked_recommendations": 1648,
+    "shadow_window_runs": 230,
+    "disagreement_observations": 7603,
+    "directional_disagreements": 2467,
+    "tracked_recommendation_runs": 175,
+    "tracked_recommendations": 1652,
     "tracked_live_recommendations": 18,
-    "tracked_shadow_recommendations": 459,
+    "tracked_shadow_recommendations": 460,
     "tracked_holdouts": 248,
     "tracked_friction_vetoes": 923,
     "outcomes_complete": 962,
     "outcomes_partial": 20,
-    "outcomes_pending": 666,
-    "capture_policy_v2_picks": 0,
+    "outcomes_pending": 670,
+    "capture_policy_v2_picks": 4,
     "capture_windows_valid": 0,
     "capture_windows_quote_missing": 0,
     "capture_windows_stale_quote": 0,
@@ -273,11 +541,11 @@
     "shadow_friday_close_avg_pnl_pct": 0.2016,
     "holdout_friday_close_avg_pnl_pct": 0.0636,
     "friction_veto_friday_close_avg_pnl_pct": 0.28,
-    "research_runs": 174,
-    "research_abstain_runs": 156,
-    "board_runs": 223,
-    "board_abstain_runs": 188,
-    "moonshot_tracked_candidates": 426,
+    "research_runs": 175,
+    "research_abstain_runs": 157,
+    "board_runs": 224,
+    "board_abstain_runs": 189,
+    "moonshot_tracked_candidates": 427,
     "moonshot_friday_close_avg_pnl_pct": -0.026,
     "canonical_baseline": {
       "backtest": {
@@ -298,7 +566,7 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-11T14:09:41+00:00",
+      "generated_at_utc": "2026-08-13T02:32:35+00:00",
       "as_of_utc": "2026-07-10T21:16:24+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
@@ -327,11 +595,11 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-11T14:09:40+00:00",
+        "prospective_ledger_updated_at_utc": "2026-08-13T02:32:34+00:00",
         "eligible_marked_recommendations": 286,
-        "shadow_ledger_updated_at_utc": "2026-08-11T14:09:40+00:00",
-        "shadow_runs": 229,
-        "shadow_disagreements": 7504
+        "shadow_ledger_updated_at_utc": "2026-08-13T02:32:34+00:00",
+        "shadow_runs": 230,
+        "shadow_disagreements": 7603
       },
       "windows": [
         {
@@ -653,8 +921,8 @@
     },
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
-      "schema_version": 1,
-      "generated_at_utc": "2026-08-11T14:09:41+00:00",
+      "schema_version": 2,
+      "generated_at_utc": "2026-08-13T02:32:35+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -672,13 +940,13 @@
         }
       },
       "coverage": {
-        "scored_recommendations": 0,
+        "scored_recommendations": 1,
         "older_model_scored_recommendations_excluded": 0,
         "resolved_recommendations": 0,
         "resolved_runs": 0,
         "decision_disagreements": 0,
         "stored_broad_disagreements": 0,
-        "unresolved_scored_recommendations": 0,
+        "unresolved_scored_recommendations": 1,
         "friday_capture_valid": 0,
         "friday_capture_missed": 0,
         "friday_capture_quote_missing_retryable": 0,
@@ -713,7 +981,7 @@
       "rank_replay": {
         "eligible_complete_runs": 0,
         "incomplete_runs_excluded": 0,
-        "single_candidate_runs_excluded": 0,
+        "single_candidate_runs_excluded": 1,
         "selection_disagreements": 0,
         "active_top1_avg_net_return": null,
         "shadow_top1_avg_net_return": null,
@@ -750,16 +1018,915 @@
           "regime_stability": false
         }
       },
+      "readiness": {
+        "sample_ready": false,
+        "blocking_sample_gates": [
+          "resolved_recommendations",
+          "resolved_runs",
+          "decision_disagreements",
+          "side_coverage",
+          "regime_coverage",
+          "complete_rank_replay_runs",
+          "friday_capture_integrity"
+        ],
+        "progress": {
+          "resolved_recommendations": {
+            "current": 0,
+            "required": 100,
+            "remaining": 100,
+            "progress_pct": 0.0
+          },
+          "resolved_runs": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "decision_disagreements": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "call_rows": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "put_rows": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "qualified_regimes": {
+            "current": 0,
+            "required": 2,
+            "remaining": 2,
+            "progress_pct": 0.0
+          },
+          "complete_rank_replay_runs": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          }
+        },
+        "capture_integrity": {
+          "valid": 0,
+          "missed": 0,
+          "quote_missing_retryable": 0,
+          "observed_windows": 0,
+          "actual_pct": null,
+          "required_pct": 0.95,
+          "passed": false
+        },
+        "next_action": "Capture strict Friday-close executable labels for the current challenger cohort."
+      },
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 3,
-        "updated_at_utc": "2026-08-11T14:09:40+00:00"
+        "updated_at_utc": "2026-08-13T02:32:34+00:00"
       },
       "model_cohort": {
-        "artifact_sha256": null,
+        "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
         "policy": "analyze only the latest observed challenger artifact; never pool model versions"
       },
       "replay_command": "python scripts/build_payoff_challenger_evidence.py"
+    },
+    "counterfactual_veto_evidence": {
+      "artifact": "counterfactual_scout_veto_evidence",
+      "schema_version": 1,
+      "generated_at_utc": "2026-08-13T02:32:35+00:00",
+      "decision": "collecting_evidence",
+      "execution_effect": "none_advisory_only",
+      "policy": {
+        "cohort": "Forge-ranked live, shadow, Council-holdout, and counterfactual-observation candidates",
+        "label": "strict Friday-close executable outcome v2 or newer",
+        "independence_unit": "first recommendation per Central trading date, symbol, and option contract",
+        "inference_unit": "market-day cluster",
+        "current_rule": {
+          "no_trade_probability_gte": 0.7,
+          "no_trade_margin_over_active_direction_gte": 0.2,
+          "required_preferred_class": "no_trade"
+        },
+        "scope_limit": "Conditional on reaching Forge; this artifact does not estimate outcomes for symbols never ranked by Forge.",
+        "authority": "May recommend a policy review only; cannot alter thresholds, Council eligibility, or Tradier routing."
+      },
+      "coverage": {
+        "raw_scored_recommendations": 375,
+        "independent_recommendations": 264,
+        "repeated_scan_rows_excluded": 111,
+        "older_side_model_rows_excluded": 0,
+        "resolved_recommendations": 0,
+        "current_rule_vetoes": 1,
+        "resolved_current_rule_vetoes": 0,
+        "independent_veto_trading_days": 0,
+        "friday_capture_valid": 0,
+        "friday_capture_missed": 0,
+        "friday_capture_quote_missing_retryable": 0,
+        "friday_capture_integrity_pct": null
+      },
+      "current_rule": {
+        "no_trade_threshold": 0.7,
+        "margin_threshold": 0.2,
+        "vetoed": {
+          "observations": 1,
+          "resolved": 0,
+          "trading_days": 0,
+          "mean_net_executable_return": null,
+          "median_net_executable_return": null,
+          "positive_rate": null,
+          "mean_net_executable_pnl_usd": null
+        },
+        "retained": {
+          "observations": 263,
+          "resolved": 0,
+          "trading_days": 0,
+          "mean_net_executable_return": null,
+          "median_net_executable_return": null,
+          "positive_rate": null,
+          "mean_net_executable_pnl_usd": null
+        },
+        "veto_benefit": {
+          "trading_days": 0,
+          "mean_avoided_net_return": null,
+          "confidence_interval_95": {
+            "lower": null,
+            "upper": null
+          },
+          "probability_positive": null,
+          "method": "market-day clustered nonparametric bootstrap",
+          "resamples": 4000
+        }
+      },
+      "threshold_frontier": [
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 263,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        }
+      ],
+      "walk_forward_threshold_selection": {
+        "eligible_folds": 0,
+        "folds": [],
+        "out_of_fold_vetoes": {
+          "observations": 0,
+          "resolved": 0,
+          "trading_days": 0,
+          "mean_net_executable_return": null,
+          "median_net_executable_return": null,
+          "positive_rate": null,
+          "mean_net_executable_pnl_usd": null
+        },
+        "out_of_fold_veto_benefit": {
+          "trading_days": 0,
+          "mean_avoided_net_return": null,
+          "confidence_interval_95": {
+            "lower": null,
+            "upper": null
+          },
+          "probability_positive": null,
+          "method": "market-day clustered nonparametric bootstrap",
+          "resamples": 4000
+        },
+        "method": "five-block expanding walk-forward; one trading-day embargo; threshold selected on training dates only"
+      },
+      "current_rule_by_side": {},
+      "current_rule_by_regime": {},
+      "gates": {
+        "sample": {
+          "resolved_current_rule_vetoes": false,
+          "independent_trading_days": false,
+          "call_coverage": false,
+          "put_coverage": false,
+          "regime_coverage": false,
+          "friday_capture_integrity": false,
+          "walk_forward_folds": false
+        },
+        "performance": {
+          "current_rule_avoids_losses": false,
+          "bootstrap_probability_positive": false,
+          "walk_forward_out_of_fold_positive": false
+        }
+      },
+      "readiness": {
+        "sample_ready": false,
+        "blocking_sample_gates": [
+          "resolved_current_rule_vetoes",
+          "independent_trading_days",
+          "call_coverage",
+          "put_coverage",
+          "regime_coverage",
+          "friday_capture_integrity",
+          "walk_forward_folds"
+        ],
+        "progress": {
+          "resolved_current_rule_vetoes": {
+            "current": 0,
+            "required": 100,
+            "remaining": 100,
+            "progress_pct": 0.0
+          },
+          "independent_trading_days": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "call_rows": {
+            "current": 0,
+            "required": 20,
+            "remaining": 20,
+            "progress_pct": 0.0
+          },
+          "put_rows": {
+            "current": 0,
+            "required": 20,
+            "remaining": 20,
+            "progress_pct": 0.0
+          },
+          "qualified_regimes": {
+            "current": 0,
+            "required": 2,
+            "remaining": 2,
+            "progress_pct": 0.0
+          },
+          "walk_forward_folds": {
+            "current": 0,
+            "required": 3,
+            "remaining": 3,
+            "progress_pct": 0.0
+          }
+        },
+        "next_action": "Capture more strict Friday-close outcomes for independent current-rule veto observations."
+      },
+      "model_cohort": {
+        "scout_side_model_sha256": "bb097b2db11d5de3b124a98cc9dbb8537910cb9a2589f9d8ef815f6802ed53f8",
+        "policy": "analyze only the latest observed side-model artifact; never pool model versions"
+      },
+      "source": {
+        "artifact": "prospective_pick_ledger",
+        "schema_version": 3,
+        "updated_at_utc": "2026-08-13T02:32:34+00:00"
+      },
+      "replay_command": "python scripts/build_counterfactual_veto_evidence.py"
     }
   }
 }
