@@ -23,6 +23,7 @@ from .positions import DEFAULT_LIVE_BASE_URL, DEFAULT_SANDBOX_BASE_URL, _as_numb
 
 
 MARKET_TZ = ZoneInfo("America/Chicago")
+MARKET_OPEN_BUFFER = time(8, 30)
 MARK_CLOSE_BUFFER = time(15, 0)
 DEFAULT_TRADIER_QUOTE_BATCH_SIZE = 75
 DEFAULT_TRADIER_QUOTE_TIMEOUT_SECONDS = 20
@@ -393,7 +394,17 @@ def _trajectory_capture_active(run_generated_at_utc: str, now: datetime) -> bool
     run_dt = _parse_dt(run_generated_at_utc)
     targets = _fixed_exit_targets(run_generated_at_utc) or {}
     terminal = targets.get("friday_close")
-    return run_dt is not None and terminal is not None and run_dt <= now <= terminal
+    local_now = now.astimezone(MARKET_TZ)
+    market_session_open = (
+        local_now.weekday() < 5
+        and MARKET_OPEN_BUFFER <= local_now.time().replace(tzinfo=None) <= MARK_CLOSE_BUFFER
+    )
+    return (
+        market_session_open
+        and run_dt is not None
+        and terminal is not None
+        and run_dt <= now <= terminal
+    )
 
 
 def _append_trajectory_mark(
