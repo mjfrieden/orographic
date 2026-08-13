@@ -183,6 +183,30 @@ class ProspectiveLedgerTests(unittest.TestCase):
         self.assertEqual(stats["trajectory_active_picks"], 0)
         self.assertNotIn("trajectory_marks", updated["entries"][0]["picks"][0]["outcomes"])
 
+    def test_trajectory_capture_is_inactive_outside_market_session(self) -> None:
+        ledger = {"entries": [{
+            "run_generated_at_utc": "2026-05-11T15:00:00+00:00",
+            "picks": [{
+                "contract_symbol": "AAA260515C00100000",
+                "emission_quote": {"mid": 1.0},
+                "outcomes": {"quote_verification": {"capture_policy_version": 2}, "fixed_exit_marks": {}},
+            }],
+        }]}
+
+        updated, stats = mark_prospective_ledger(
+            ledger,
+            {"AAA260515C00100000": {
+                "bid": 2.0,
+                "ask": 2.1,
+                "bid_observed_at_utc": "2026-05-12T20:59:00+00:00",
+            }},
+            now_utc=datetime(2026, 5, 12, 22, 0, tzinfo=timezone.utc),
+        )
+
+        self.assertEqual(stats["trajectory_active_picks"], 0)
+        self.assertEqual(stats["trajectory_quotes_stale"], 0)
+        self.assertNotIn("trajectory_marks", updated["entries"][0]["picks"][0]["outcomes"])
+
     def test_mark_prospective_ledger_counts_missing_due_quotes(self) -> None:
         ledger = {
             "entries": [
