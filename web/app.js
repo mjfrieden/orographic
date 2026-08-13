@@ -1206,6 +1206,39 @@ function renderCockpitSignal(payload) {
   syncCockpitSignalControls();
 }
 
+function renderMoonshotSidePick(payload) {
+  const root = document.getElementById("moonshot-side-pick");
+  if (!root) return;
+  const lane = payload?.moonshot_lane || {};
+  const pick = Array.isArray(lane.picks) ? lane.picks[0] : null;
+  const policy = lane.policy || {};
+  const tracking = policy.outcome_tracking || {};
+
+  if (!pick) {
+    root.className = "moonshot-side-pick is-quiet";
+    root.innerHTML = `
+      <strong>No side pick today</strong>
+      <span>No contract cleared the Moonshot tail-upside gate. The primary Council decision is unchanged.</span>`;
+    return;
+  }
+
+  const moonshot = pick.moonshot || {};
+  const reasons = Array.isArray(moonshot.reasons) ? moonshot.reasons.slice(0, 2) : [];
+  root.className = "moonshot-side-pick is-active";
+  root.innerHTML = `
+    <div class="moonshot-side-contract">
+      <span>${escapeHtml(pick.symbol || "—")} · ${escapeHtml(String(pick.option_type || "option").toUpperCase())}</span>
+      <strong>${escapeHtml(pick.contract_symbol || "Experimental contract")}</strong>
+      <small>${escapeHtml(reasons.join(" · ") || "Tail-upside experiment cleared its dedicated gate.")}</small>
+    </div>
+    <div class="moonshot-side-metrics">
+      <div><span>Tail score</span><strong>${Number(moonshot.tail_upside_score || 0).toFixed(2)}</strong></div>
+      <div><span>Ask</span><strong>${money(pick.ask ?? pick.premium)}</strong></div>
+      <div><span>Tracking</span><strong>${escapeHtml(tracking.dataset || "moonshot_outcomes")}</strong></div>
+    </div>
+    <p><span class="material-symbols-outlined" aria-hidden="true">lock</span>Visible experiment only. It does not affect the primary ensemble, Council, sizing, or Tradier routing.</p>`;
+}
+
 function syncCockpitSignalControls() {
   const previous = document.getElementById("signal-prev");
   const next = document.getElementById("signal-next");
@@ -2680,6 +2713,7 @@ async function renderBoard(payload) {
   const summary = payload.council.summary || payload.summary || {};
   const abstainAudit = summary.abstain_audit || {};
   const generatedAt = payload.generated_at_utc || payload.timestamp;
+  renderMoonshotSidePick(payload);
 
   // Stale check (4 hours)
   const isStale =

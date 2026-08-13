@@ -22,6 +22,7 @@ const REQUIRED_STATIC_IDS = [
   "live-picks-grid",
   "shadow-picks-grid",
   "moonshot-picks-grid",
+  "moonshot-side-pick",
   // Account positions and orders.
   "positions-sync-status",
   "positions-refresh-btn",
@@ -137,6 +138,17 @@ test("Signal & Book exposes interactive sizing, candidate, book, and evidence co
   ]) {
     assert.ok(source.includes(behavior), `missing interaction behavior: ${behavior}`);
   }
+});
+
+test("Moonshot remains a visible, outcome-tracked, non-routable side experiment", async () => {
+  const html = await readFile(indexPath, "utf8");
+  const source = await readFile(appPath, "utf8");
+
+  assert.ok(html.includes("Visible side pick"));
+  assert.ok(html.includes("Tracked · non-routable"));
+  assert.ok(source.includes("renderMoonshotSidePick"));
+  assert.ok(source.includes("It does not affect the primary ensemble, Council, sizing, or Tradier routing."));
+  assert.ok(source.includes('tracking.dataset || "moonshot_outcomes"'));
 });
 
 test("Signal & Book preserves readable synchronization spacing", async () => {

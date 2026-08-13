@@ -10,11 +10,28 @@ Orographic has exactly one production candidate and order-authority path:
 
 `Scout → Sentinel → Forge unified rank → Council → council.live_board → broker`
 
-There is no shadow, counterfactual, Moonshot, Forge-only, or manual-HOLD order
-lane. A buy-to-open request is valid only when its contract is present on the
-fresh `council.live_board` snapshot. A legacy override acknowledgement cannot
-bypass this invariant. Sell-to-close remains available for existing positions
-because closing risk does not create a new recommendation.
+Moonshot is intentionally separate from that primary path. It emits one visible
+experimental side pick and writes prospective outcomes, but has no effect on the
+primary ensemble, Council, position sizing, or broker routing. There is no
+shadow, counterfactual, Forge-only, Moonshot, or manual-HOLD order lane. A
+buy-to-open request is valid only when its contract is present on the fresh
+`council.live_board` snapshot. A legacy override acknowledgement cannot bypass
+this invariant. Sell-to-close remains available for existing positions because
+closing risk does not create a new recommendation.
+
+```mermaid
+flowchart LR
+    A["Directional models"] --> D["Direction ensemble"]
+    B["Payoff model"] --> E["Contract ensemble"]
+    C["Path and execution models"] --> E
+    D --> E
+    E --> F["Council risk gates"]
+    F --> G["Today's primary pick"]
+    F -.-> H["HOLD recommendation"]
+
+    M["Moonshot experiment"] --> N["Visible side pick"]
+    N --> O["Outcome tracking"]
+```
 
 ## Research policy
 
@@ -32,6 +49,8 @@ do not break. Production scans force their candidate allocations to zero.
 - `run_scan` forces shadow and counterfactual allocation to zero, even when an
   older caller supplies non-zero settings.
 - the web cockpit presents orders only from the Council production board;
+- the cockpit keeps the Moonshot side pick visible and labels it tracked/non-routable;
+- Moonshot has no input edge into the primary ensemble or Council;
 - research and Moonshot cards have no preview or execute authority;
 - the broker candidate lookup searches only `council.live_board`;
 - buy-to-open validation rejects every non-Council contract;
@@ -40,7 +59,8 @@ do not break. Production scans force their candidate allocations to zero.
 ## Consequences
 
 The product becomes easier to reason about and order provenance becomes
-unambiguous. The cost is that operators can no longer use Orographic to place
-ad hoc Forge, held, Moonshot, or challenger entries. Historical diagnostic
+unambiguous. The cost is that operators cannot use Orographic to place ad hoc
+Forge, held, Moonshot, or challenger entries. Moonshot remains visible so its
+independent hypothesis can accumulate honest prospective evidence. Historical diagnostic
 schemas remain temporarily noisy and should be renamed through a versioned
 migration rather than deleting fields and breaking archives.

@@ -82,6 +82,24 @@ class AlphaExperimentTests(unittest.TestCase):
         self.assertIn("council_cost_cap_path_tiebreaker", names)
         self.assertIn("council_cost_cap_path_tiebreaker_loose", names)
 
+    def test_build_variants_exposes_exact_unified_ablations(self) -> None:
+        variants = build_variants(600.0, unified_ablation_only=True)
+        stacks = {row.model_stack for row in variants}
+
+        self.assertEqual(
+            stacks,
+            {
+                "current_gated",
+                "unified_rnd",
+                "unified_no_hierarchical",
+                "unified_no_path",
+                "unified_no_cost_aware",
+                "unified_primary_only",
+            },
+        )
+        self.assertTrue(all(row.council_only for row in variants))
+        self.assertTrue(all(row.shadow_size == 0 for row in variants))
+
     def test_path_shadow_board_prefers_higher_holding_quality(self) -> None:
         live = _candidate("LIVE", forge_score=0.7)
         live.path_holding_quality_score = 0.45

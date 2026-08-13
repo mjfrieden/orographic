@@ -153,6 +153,25 @@ body.cockpit-page {
 .signal-choice:hover, .signal-choice:focus-visible, .signal-choice.is-active { border-color: var(--cockpit-gold); color: var(--cockpit-gold); outline: none; background: rgba(237, 196, 105, .06); }
 .signal-pagination { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--cockpit-border); padding-top: 10px; color: var(--cockpit-muted); font-size: 12px; }
 
+.moonshot-side-lane { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(237, 196, 105, .28); }
+.moonshot-side-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.moonshot-side-head h2 { margin: 0; color: #f2d796; font: 600 24px/1.05 "Cormorant Garamond", Georgia, serif; }
+.moonshot-side-authority { display: inline-flex; align-items: center; gap: 5px; color: var(--cockpit-gold); font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.moonshot-side-authority .material-symbols-outlined { font-size: 15px; }
+.moonshot-side-pick { margin-top: 12px; padding: 14px; border: 1px solid rgba(237, 196, 105, .25); border-radius: 5px; background: rgba(237, 196, 105, .035); }
+.moonshot-side-pick.is-quiet { display: grid; gap: 5px; color: var(--cockpit-muted); font-size: 11px; }
+.moonshot-side-pick.is-quiet strong { color: var(--cockpit-text); font-size: 12px; }
+.moonshot-side-contract span, .moonshot-side-metrics span { color: var(--cockpit-muted); font-size: 8px; letter-spacing: .09em; text-transform: uppercase; }
+.moonshot-side-contract strong { display: block; margin: 4px 0; color: var(--cockpit-text); font-size: 12px; overflow-wrap: anywhere; }
+.moonshot-side-contract small { display: block; color: #aeb8c4; font-size: 9px; line-height: 1.45; }
+.moonshot-side-metrics { display: grid; grid-template-columns: .7fr .7fr 1.6fr; margin-top: 10px; border-top: 1px solid var(--cockpit-border); border-bottom: 1px solid var(--cockpit-border); }
+.moonshot-side-metrics > div { min-width: 0; padding: 8px 10px; border-right: 1px solid var(--cockpit-border); }
+.moonshot-side-metrics > div:first-child { padding-left: 0; }
+.moonshot-side-metrics > div:last-child { border-right: 0; }
+.moonshot-side-metrics strong { display: block; margin-top: 3px; color: var(--cockpit-gold); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.moonshot-side-pick > p { display: flex; align-items: center; gap: 6px; margin: 9px 0 0; color: var(--cockpit-muted); font-size: 9px; line-height: 1.4; }
+.moonshot-side-pick > p .material-symbols-outlined { color: var(--cockpit-teal); font-size: 14px; }
+
 .book-heading { padding-bottom: 18px; }
 .book-pnl { text-align: right; }
 .book-pnl strong { display: block; color: var(--cockpit-teal); font-size: 22px; margin-top: 5px; }
@@ -351,6 +370,10 @@ body.cockpit-page {
   .positions-toolbar { flex-direction: column; align-items: stretch; gap: 4px; padding: 10px 0; }
   .positions-toolbar .quiet-button { justify-content: flex-start; padding-left: 0; }
   .signal-order-row, .signal-evidence-grid { grid-template-columns: 1fr; }
+  .moonshot-side-head { display: grid; grid-template-columns: 1fr; }
+  .moonshot-side-metrics { grid-template-columns: 1fr; }
+  .moonshot-side-metrics > div { padding-left: 0; border-right: 0; border-bottom: 1px solid var(--cockpit-border); }
+  .moonshot-side-metrics > div:last-child { border-bottom: 0; }
   .no-trade-stages { grid-template-columns: repeat(2, 1fr); }
   .no-trade-stage:nth-child(2) { border-right: 0; }
   .no-trade-stage:nth-child(-n + 2) { border-bottom: 1px solid var(--cockpit-border); }

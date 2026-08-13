@@ -32,6 +32,14 @@ from engine.backtest.runner import _load_universe
 from engine.orographic.council import select_board
 from engine.orographic.event_features import load_event_feature_frame
 from engine.orographic.schemas import ContractCandidate, MarketRegime
+from engine.orographic.unified_stack import (
+    CURRENT_GATED,
+    UNIFIED_NO_COST_AWARE,
+    UNIFIED_NO_HIERARCHICAL,
+    UNIFIED_NO_PATH,
+    UNIFIED_PRIMARY_ONLY,
+    UNIFIED_RND,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -73,21 +81,39 @@ def build_variants(
     cost_cap_usd: float | None,
     *,
     unified_comparison_only: bool = False,
+    unified_ablation_only: bool = False,
 ) -> list[VariantConfig]:
     current = VariantConfig(
         name="council_cost_cap",
         council_only=True,
         max_estimated_cost_basis=cost_cap_usd,
         shadow_size=0,
-        model_stack="current_gated",
+        model_stack=CURRENT_GATED,
     )
     unified = VariantConfig(
         name="unified_council_cost_cap",
         council_only=True,
         max_estimated_cost_basis=cost_cap_usd,
         shadow_size=0,
-        model_stack="unified_rnd",
+        model_stack=UNIFIED_RND,
     )
+    ablations = [
+        VariantConfig(
+            name=profile,
+            council_only=True,
+            max_estimated_cost_basis=cost_cap_usd,
+            shadow_size=0,
+            model_stack=profile,
+        )
+        for profile in (
+            UNIFIED_NO_HIERARCHICAL,
+            UNIFIED_NO_PATH,
+            UNIFIED_NO_COST_AWARE,
+            UNIFIED_PRIMARY_ONLY,
+        )
+    ]
+    if unified_ablation_only:
+        return [current, unified, *ablations]
     if unified_comparison_only:
         return [current, unified]
     return [
@@ -514,6 +540,7 @@ def run_experiment(
     option_outcome_dir: Path | None = None,
     event_features_path: Path | None = None,
     unified_comparison_only: bool = False,
+    unified_ablation_only: bool = False,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -548,6 +575,7 @@ def run_experiment(
     variants = build_variants(
         cost_cap_usd,
         unified_comparison_only=unified_comparison_only,
+        unified_ablation_only=unified_ablation_only,
     )
     event_feature_store = load_event_feature_frame(event_features_path)
     variant_trades: dict[str, list[TradeLeg]] = {variant.name: [] for variant in variants}
@@ -844,6 +872,10 @@ def run_experiment(
         "promotion_decision": "hold_pending_leakage_safe_out_of_sample_validation",
         "experimental_variants": [
             "unified_council_cost_cap",
+            UNIFIED_NO_HIERARCHICAL,
+            UNIFIED_NO_PATH,
+            UNIFIED_NO_COST_AWARE,
+            UNIFIED_PRIMARY_ONLY,
             "council_cost_cap_symbol_priors",
             "council_cost_cap_path_tiebreaker",
             "council_cost_cap_path_tiebreaker_loose",
@@ -875,6 +907,7 @@ def run_experiment(
             "event_features_path": str(event_features_path) if event_features_path else None,
             "event_feature_rows": len(event_feature_store),
             "unified_comparison_only": unified_comparison_only,
+            "unified_ablation_only": unified_ablation_only,
         },
         "variant_summaries": summaries,
         "option_outcome_datasets": {
@@ -999,6 +1032,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Run only the current gated Council baseline and the unified R&D Council stack.",
     )
+    parser.add_argument(
+        "--unified-ablation-only",
+        action="store_true",
+        help="Run the current baseline, full unified stack, and exact unified component ablations.",
+    )
     return parser.parse_args()
 
 
@@ -1038,6 +1076,7 @@ def main() -> None:
         option_outcome_dir=args.option_outcome_dir,
         event_features_path=args.event_features_path,
         unified_comparison_only=bool(args.unified_comparison_only),
+        unified_ablation_only=bool(args.unified_ablation_only),
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

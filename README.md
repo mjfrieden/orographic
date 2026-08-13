@@ -45,10 +45,14 @@ Run a fresh scan:
 ```
 
 The scan defaults to `--model-stack unified_rnd`. Its only production and
-buy-to-open authority is `council.live_board`. Shadow-board, counterfactual,
-Forge-only, Moonshot, and manual HOLD candidates cannot be previewed or opened
-through the broker transmitter. Use `--model-stack current_gated` only to
-reproduce the former scoring baseline; it does not create another order lane.
+buy-to-open authority is `council.live_board`. Moonshot remains a separate,
+visible experimental side lane: it emits at most one tail-upside pick for
+prospective outcome tracking, but does not influence the primary ensemble,
+Council, sizing, or Tradier routing. Shadow-board, counterfactual, arbitrary
+Forge, Moonshot, and manual HOLD candidates cannot be previewed or opened
+through the broker transmitter. Use
+`--model-stack current_gated` only to reproduce the former scoring baseline; it
+does not create another order lane.
 
 Live scan contract selection defaults to the recovered production DTE window:
 `--minimum-days-to-expiry 7 --maximum-days-to-expiry 14`. Override those only
@@ -87,7 +91,7 @@ Each scan also appends a dedicated moonshot prospective ledger:
 
 - `web/data/diagnostics/moonshot_prospective_ledger.json`
 
-This ledger records tail-upside research observations with their score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. Moonshot output is non-routable telemetry, not a production lane.
+This ledger records the visible Moonshot side pick and tail-upside research observations with their score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. Moonshot is its own experimental lane, but remains non-routable and outside the primary ensemble.
 
 Prospective outcome capture uses policy v2. One-hour quotes must be retrieved within 15 minutes of the target; close-based quotes must be retrieved within 30 minutes. Broker quote timestamps are retained, quotes older than 15 minutes are rejected, and late windows are recorded as `missed_live_window` rather than filled with a current quote. Missing or stale quotes remain retryable inside the live window and recoverable from immutable archives afterward. Legacy pending picks are frozen so current prices cannot contaminate historical horizons.
 
@@ -287,6 +291,18 @@ Run the walk-forward alpha experiment with the same sizing policy:
 ```
 
 The alpha experiment now also writes one canonical `option_outcome_dataset` artifact per variant into `output/` by default. Override the directory with `--option-outcome-dir`.
+
+Run an exact primary-ensemble component ablation (Moonshot is intentionally
+excluded because it is a separate side experiment):
+
+```bash
+./.venv/bin/python -m engine.backtest.alpha_experiment \
+  --unified-ablation-only \
+  --strict-options-data \
+  --expiry-policy target_dte \
+  --target-dte-min 7 \
+  --target-dte-max 14
+```
 
 Current production decision as of May 6, 2026:
 

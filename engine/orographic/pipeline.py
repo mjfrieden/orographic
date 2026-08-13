@@ -2584,7 +2584,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             max_cost_basis=moonshot_max_cost_basis,
         )
         log.info(
-            "Moonshot lane selected %d/%d eligible candidates.",
+            "Moonshot side lane selected %d/%d eligible candidates for outcome tracking.",
             moonshot_lane["summary"]["pick_count"],
             moonshot_lane["summary"]["eligible_count"],
         )
@@ -2610,6 +2610,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "production_lane_count": 1,
                 "production_lane": "council.live_board",
                 "research_outputs_routable": False,
+                "moonshot_lane_role": "visible_experimental_side_pick",
+                "moonshot_primary_ensemble_effect": "none",
+                "moonshot_outcome_tracking": "moonshot_prospective_ledger",
                 "live_size": live_size,
                 "shadow_size": shadow_size,
                 "forge_intake": forge_intake,

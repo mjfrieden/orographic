@@ -801,27 +801,9 @@ def score_candidates(
         shadow_model_path=shadow_model_path,
     )
     if os.getenv(STACK_MODE_ENV, "").strip().lower() == "unified_rnd":
-        for candidate in candidates:
-            primary = _clip(_safe_float(candidate.learned_rank_score, candidate.forge_score))
-            path_quality = _clip(_safe_float(candidate.path_holding_quality_score, 0.5))
-            challenger_rank = _clip(_safe_float(candidate.payoff_shadow_rank, primary))
-            conservative_score = _clip(
-                0.5 + _safe_float(candidate.payoff_shadow_conservative_utility) / 0.50
-            )
-            unified_score = _clip(
-                0.60 * primary
-                + 0.18 * path_quality
-                + 0.14 * challenger_rank
-                + 0.08 * conservative_score
-            )
-            candidate.forge_score = round(unified_score, 4)
-            candidate.final_candidate_score = round(unified_score, 4)
-            candidate.learned_rank_score = round(unified_score, 4)
-            candidate.ranker_mode = "unified_rnd_active"
-            candidate.path_model_mode = "unified_rnd_active"
-            candidate.notes.append(
-                "Unified R&D rank active: primary payoff + path + cost-aware challenger"
-            )
+        from engine.orographic.unified_stack import apply_base_unified_rank
+
+        apply_base_unified_rank(candidates, profile="unified_rnd")
     candidates.sort(key=lambda candidate: candidate.forge_score, reverse=True)
     return candidates
 
