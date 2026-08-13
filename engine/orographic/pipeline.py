@@ -53,10 +53,11 @@ DEFAULT_DIAGNOSTICS_DIR = REPO_ROOT / "web" / "data" / "diagnostics"
 class PipelineConfig:
     universe: list[str]
     live_size: int = 1
-    shadow_size: int = 3
+    shadow_size: int = 0
     forge_intake: int = 12
-    counterfactual_observation_size: int = 3
-    preserve_shadow_veto_live_policy: bool = True
+    counterfactual_observation_size: int = 0
+    preserve_shadow_veto_live_policy: bool = False
+    model_stack: str = "unified_rnd"
     minimum_days_to_expiry: int = 7
     maximum_days_to_expiry: int = 14
     minimum_live_score: float = 0.86
@@ -152,41 +153,28 @@ def _build_manual_trade_pick(
     forge_candidates: list[dict[str, Any]],
     counterfactual_candidates: list[dict[str, Any]],
 ) -> dict[str, Any] | None:
-    """Expose one user-directed contract without changing model authority.
+    """Expose the best Council-approved contract; never create another order lane.
 
-    The model recommendation and automatic routing contract remain unchanged.
-    This surface only gives an authenticated operator a stable candidate to
-    preview and, after explicit acknowledgement, submit manually.
+    The extra arguments remain in the function contract so older snapshot and
+    diagnostic callers keep working, but held/research candidates are never
+    eligible for preview or submission.
     """
+    del forge_candidates, counterfactual_candidates
     live = council_payload.get("live_board") if isinstance(council_payload.get("live_board"), list) else []
-    shadow = council_payload.get("shadow_board") if isinstance(council_payload.get("shadow_board"), list) else []
-    pools = (
-        ("live", live),
-        ("shadow", shadow),
-        ("forge_hold", forge_candidates),
-        ("counterfactual_observation", counterfactual_candidates),
-    )
-    for source_lane, rows in pools:
-        valid = [row for row in rows if isinstance(row, dict) and str(row.get("contract_symbol") or "").strip()]
-        if not valid:
-            continue
-        candidate = max(valid, key=_manual_pick_score)
-        model_recommendation = "trade" if source_lane == "live" else "hold"
-        return {
-            "candidate": candidate,
-            "source_lane": source_lane,
-            "model_recommendation": model_recommendation,
-            "manual_entry_available": True,
-            "automatic_routing_eligible": source_lane == "live",
-            "requires_manual_override_confirmation": source_lane != "live",
-            "authority": "user_directed_only" if source_lane != "live" else "council_approved",
-            "note": (
-                "Council approved this contract for the live board."
-                if source_lane == "live"
-                else "The model recommends HOLD. An admin may still preview and submit this contract as an explicit manual override."
-            ),
-        }
-    return None
+    valid = [row for row in live if isinstance(row, dict) and str(row.get("contract_symbol") or "").strip()]
+    if not valid:
+        return None
+    candidate = max(valid, key=_manual_pick_score)
+    return {
+        "candidate": candidate,
+        "source_lane": "live",
+        "model_recommendation": "trade",
+        "manual_entry_available": True,
+        "automatic_routing_eligible": True,
+        "requires_manual_override_confirmation": False,
+        "authority": "council_approved",
+        "note": "Council approved this contract for the single production board.",
+    }
 
 
 def _coerce_float(value: object) -> float | None:
@@ -749,6 +737,7 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
         else "heuristic_fallback"
     )
     return {
+        "product_stack": str(os.getenv("OROGRAPHIC_MODEL_STACK", "unified_rnd") or "unified_rnd"),
         "directional_scout": directional_mode,
         "side_aware_scout": _normalize_mode(
             os.getenv("OROGRAPHIC_SIDE_MODEL_MODE", "active"),
@@ -775,7 +764,7 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
         "payoff_volatility_challenger": "observation_only" if bool(payoff_shadow.get("present")) else "unavailable",
         "path_model": _normalize_mode(
             os.getenv("OROGRAPHIC_PATH_MODEL_MODE", "shadow"),
-            active_values=set(),
+            active_values={"active", "live", "on"},
             shadow_values={"shadow", "observe", "off"},
             default="shadow",
         ),
@@ -826,6 +815,44 @@ def _fail_closed_model_modes(promotion_decision: str):
     try:
         for name in names:
             os.environ[name] = "shadow"
+        yield
+    finally:
+        for name, value in prior.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
+@contextmanager
+def _configured_model_stack(model_stack: str, promotion_decision: str):
+    """Select one product stack while retaining the old gated stack as a baseline."""
+    normalized = str(model_stack or "unified_rnd").strip().lower()
+    if normalized != "unified_rnd":
+        prior_stack = os.environ.get("OROGRAPHIC_MODEL_STACK")
+        try:
+            os.environ["OROGRAPHIC_MODEL_STACK"] = "current_gated"
+            with _fail_closed_model_modes(promotion_decision):
+                yield
+        finally:
+            if prior_stack is None:
+                os.environ.pop("OROGRAPHIC_MODEL_STACK", None)
+            else:
+                os.environ["OROGRAPHIC_MODEL_STACK"] = prior_stack
+        return
+
+    names = (
+        "OROGRAPHIC_MODEL_STACK",
+        "OROGRAPHIC_SIDE_MODEL_MODE",
+        "OROGRAPHIC_SENTINEL_MODE",
+        "OROGRAPHIC_PAYOFF_MODEL_MODE",
+        "OROGRAPHIC_PATH_MODEL_MODE",
+    )
+    prior = {name: os.environ.get(name) for name in names}
+    try:
+        os.environ["OROGRAPHIC_MODEL_STACK"] = "unified_rnd"
+        for name in names[1:]:
+            os.environ[name] = "active"
         yield
     finally:
         for name, value in prior.items():
@@ -2433,10 +2460,17 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
     log.info("Orographic pipeline started with universe of %d symbols.", len(config.universe))
     try:
         live_size = _config_int(config, "live_size", 3, minimum=1)
-        shadow_size = _config_int(config, "shadow_size", 3, minimum=1)
+        requested_shadow_size = _config_int(config, "shadow_size", 0, minimum=0)
+        shadow_size = 0
         forge_intake = _config_int(config, "forge_intake", 12, minimum=1)
-        counterfactual_observation_size = _config_int(config, "counterfactual_observation_size", 3, minimum=0)
-        preserve_shadow_veto_live_policy = _config_bool(config, "preserve_shadow_veto_live_policy", True)
+        requested_counterfactual_size = _config_int(config, "counterfactual_observation_size", 0, minimum=0)
+        requested_shadow_veto_policy = _config_bool(config, "preserve_shadow_veto_live_policy", False)
+        counterfactual_observation_size = 0
+        preserve_shadow_veto_live_policy = False
+        if requested_shadow_size or requested_counterfactual_size or requested_shadow_veto_policy:
+            log.warning(
+                "Ignoring deprecated alternate-lane settings: Orographic permits only council.live_board as the production lane."
+            )
         minimum_days_to_expiry = _config_int(config, "minimum_days_to_expiry", 7, minimum=0)
         maximum_days_to_expiry = _config_int(config, "maximum_days_to_expiry", 14, minimum=0)
         minimum_live_score = _config_float(config, "minimum_live_score", 0.86, minimum=0.0, maximum=1.0)
@@ -2446,11 +2480,14 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
         moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
+        model_stack = str(getattr(config, "model_stack", "unified_rnd") or "unified_rnd").strip().lower()
+        if model_stack not in {"unified_rnd", "current_gated"}:
+            model_stack = "unified_rnd"
         promotion_comparison_path = getattr(config, "promotion_comparison_path", None)
         if not isinstance(promotion_comparison_path, (str, os.PathLike)):
             promotion_comparison_path = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
         promotion_gate_decision = _promotion_gate_decision(promotion_comparison_path)
-        with _fail_closed_model_modes(promotion_gate_decision):
+        with _configured_model_stack(model_stack, promotion_gate_decision):
             model_artifacts = _model_artifact_status()
             model_modes = _model_mode_status(model_artifacts)
             regime, all_scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(
@@ -2460,7 +2497,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             scout_signals, counterfactual_scout_signals = _partition_shadow_veto_signals(
                 all_scout_signals,
                 scout_diagnostics,
-                include_shadow_veto=preserve_shadow_veto_live_policy,
+                include_shadow_veto=(
+                    preserve_shadow_veto_live_policy or counterfactual_observation_size > 0
+                ),
             )
             market_shock = classify_current_market_shock(regime)
             market_shock_control_mode = str(
@@ -2568,6 +2607,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
             "scan_settings": {
+                "production_lane_count": 1,
+                "production_lane": "council.live_board",
+                "research_outputs_routable": False,
                 "live_size": live_size,
                 "shadow_size": shadow_size,
                 "forge_intake": forge_intake,
@@ -2584,6 +2626,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
                 "market_shock_control_mode": market_shock_control_mode,
+                "model_stack": model_stack,
             },
             "diagnostic_sources": {
                 "promotion_comparison": str(promotion_comparison_path) if promotion_comparison_path else None,
@@ -2594,13 +2637,13 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "scout_signals": [row.to_dict() for row in scout_signals],
             "forge_candidates": forge_candidate_rows,
             "counterfactual_observation_lane": {
-                "mode": "research_only",
+                "mode": "deprecated_empty_schema_compatibility",
                 "execution_effect": "none_observation_only",
                 "council_eligible": False,
                 "tradier_routing_eligible": False,
                 "automatic_tradier_routing_eligible": False,
-                "manual_order_preview_eligible": bool(counterfactual_candidate_rows),
-                "manual_order_requires_override_confirmation": True,
+                "manual_order_preview_eligible": False,
+                "manual_order_requires_override_confirmation": False,
                 "selection_reason": "model_policy_hold",
                 "live_policy_effect": (
                     "legacy_compatibility_holdout"

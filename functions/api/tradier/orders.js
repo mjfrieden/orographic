@@ -148,7 +148,6 @@ export async function onRequestPost(context) {
     duration = "day",
     price,
     confirm_live: confirmLive,
-    confirm_manual_override: confirmManualOverride,
   } = body || {};
   const requestedExitPolicyAction = String(
     body?.exit_policy_action || "",
@@ -329,7 +328,6 @@ export async function onRequestPost(context) {
     lane,
     snapshotInfo,
     side,
-    confirmManualOverride: confirmManualOverride === true,
   });
   if (!validation.ok) {
     const provenance = await recordBlockedAttempt({

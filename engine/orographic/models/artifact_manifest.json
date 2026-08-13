@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "generated_at": "2026-06-28",
+  "schema_version": 2,
+  "generated_at": "2026-08-12",
   "artifacts": {
     "scout_model": {
       "path": "engine/orographic/models/scout_model.pkl",
@@ -32,39 +32,61 @@
       "path": "engine/orographic/models/payoff_model.pkl",
       "sha256": "634d618da76663e31a4958cf90c9bbecda9eac545435cd7dde2a2544f94ecaa4",
       "required": true,
-      "role": "active option payoff ranker",
-      "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
+      "role": "primary option payoff input to the single unified rank"
     },
     "path_model": {
       "path": "engine/orographic/models/path_model.pkl",
       "sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9",
-      "required": false,
-      "role": "shadow-only path-quality observer",
-      "shadow_env": "OROGRAPHIC_PATH_MODEL_MODE=shadow"
+      "required": true,
+      "role": "bounded path-quality input to the single unified rank"
+    },
+    "scout_hierarchical_challenger": {
+      "path": "engine/orographic/models/scout_hierarchical_challenger.pkl",
+      "sha256": "5114acbcd0f7a12ddec17e97d2b4e3c8cf9d58b12812eb0131970e68db13c15a",
+      "required": true,
+      "role": "bounded 20 percent side-ensemble input; no independent routing authority"
+    },
+    "payoff_cost_aware_challenger": {
+      "path": "engine/orographic/models/payoff_cost_aware_challenger.pkl",
+      "sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
+      "required": true,
+      "role": "bounded cost-aware and conservative-utility input; no independent routing authority"
     },
     "scout_model_card": {
       "path": "engine/orographic/models/scout_model_card.json",
-      "sha256": "3eed480ef3296e74e1aa7b77a4902d3227d500aef7ea900dacae17265fb71fc8",
+      "sha256": "5518f5898c364959749a3a96168efe397443f4dc44c219bea3d403c738fd3829",
       "required": true,
       "role": "Scout model governance card"
     },
     "sentinel_model_card": {
       "path": "engine/orographic/models/sentinel_model_card.json",
-      "sha256": "22d0f40d90d9f9456d23c3f51f0bd64132891f96827a2fc3d42ffdc879f72a79",
+      "sha256": "12933fb2e47786c6847434c1d9ad3a41281ea34a70b1ae4245bca4933a78da97",
       "required": true,
       "role": "Sentinel model governance card"
     },
     "payoff_model_card": {
       "path": "engine/orographic/models/payoff_model_card.json",
-      "sha256": "752f769fb352610b34ce77cb636e65ea43c4b4608053167013c17cc9a52e20cb",
+      "sha256": "d681a9d256f4793d031731c3edad13bb83dbc032a417f7b8c6d5bf58dd4fbc6d",
       "required": true,
       "role": "payoff ranker model governance card"
     },
     "path_model_card": {
       "path": "engine/orographic/models/path_model_card.json",
-      "sha256": "f9483d315cd4bc1010d09e270d1fbd92cf895197b439cbe40cac96537043e239",
-      "required": false,
+      "sha256": "49d0daed461c40ed45d1457a865d4d987699120c082d9bbf6e3fcbbc6f3abe4a",
+      "required": true,
       "role": "path-quality model governance card"
+    },
+    "scout_hierarchical_challenger_card": {
+      "path": "engine/orographic/models/scout_hierarchical_challenger_card.json",
+      "sha256": "fe1c6a3ff43178b75d62da6baa45f38eef52016c5bc80c033bb48eeb597c9a2d",
+      "required": true,
+      "role": "hierarchical Scout governance card"
+    },
+    "payoff_cost_aware_challenger_card": {
+      "path": "engine/orographic/models/payoff_cost_aware_challenger_card.json",
+      "sha256": "90d91d8261f0c5e0dedb646b4c52cb5efcb90b29895746752e0b32549dbbba5e",
+      "required": true,
+      "role": "cost-aware payoff governance card"
     }
   },
   "promotion_policy": {
@@ -75,25 +97,24 @@
       "maintain side-balanced validation, especially put-edge coverage"
     ],
     "payoff_ranker_default": "active",
-    "path_model_default": "shadow",
-    "path_model_required_before_any_live_use": [
-      "positive disagreement analysis against the terminal payoff ranker",
-      "stable quote-path coverage across at least 30 live shadow trading days",
-      "no increase in decay-driven false positives"
+    "path_model_default": "unified_rnd_active_bounded",
+    "production_lane_count": 1,
+    "production_lane": "council.live_board",
+    "challenger_policy": [
+      "compare offline or as non-routable telemetry",
+      "replace or reweight a component inside the unified stack after leakage-safe validation",
+      "never grant a challenger an independent Council board or Tradier route"
     ],
     "artifact_change_rule": "Any artifact hash change must update this manifest and the corresponding model card."
   },
   "deployment_decision": {
-    "effective_date": "2026-05-06",
-    "production_default_variant": "council_cost_cap",
-    "production_default_label": "Council + Cost Cap",
-    "research_only_variants": [
-      "council_cost_cap_path_tiebreaker"
-    ],
-    "rejected_variants": [
-      "council_cost_cap_path_tiebreaker_loose"
-    ],
-    "decision_reason": "The conservative path-aware tie-breaker improved the 3- and 6-month walk-forward windows but lagged the production default over 12 months on both total P&L and Sharpe. The loose tie-breaker degraded materially and is not eligible for promotion.",
-    "evidence_note_path": "docs/model-deployment-decision-2026-05-06.md"
+    "effective_date": "2026-08-12",
+    "production_default_variant": "unified_council_cost_cap",
+    "production_default_label": "Unified Stack + Council + Cost Cap",
+    "comparison_baseline": "current_gated",
+    "production_lane_count": 1,
+    "production_lane": "council.live_board",
+    "decision_reason": "The unified archived-chain comparison improved P&L, win rate, and Sharpe across 3/6/12-month windows versus the former gated baseline. Capital scaling remains held because the replay is fixed-artifact, samples are small, six-month P&L is negative, and drawdown is unacceptable.",
+    "evidence_note_path": "docs/single-production-lane-impact-and-model-priorities-2026-08-12.md"
   }
 }

@@ -5,8 +5,8 @@ Orographic is a new short-term options platform built from the useful parts of t
 It is split into three first-party layers:
 
 - `Scout`: a Cirrus-style symbol and direction engine. It decides whether a name has enough short-term edge to even deserve option-chain work.
-- `Forge`: a Cumulus-style contract engine. It chooses the actual weekly contract and scores quote quality, breakeven burden, payoff shape, and shadow-mode learned payoff rank.
-- `Council`: a Stratus-style portfolio gate. It selects the live board, keeps a model-observation shadow board, and enforces side, sector, correlation, sizing, and no-trade discipline.
+- `Forge`: a Cumulus-style contract engine. It chooses the actual weekly contract and combines quote quality, breakeven burden, payoff shape, learned payoff rank, path quality, and transaction-cost awareness.
+- `Council`: a Stratus-style portfolio gate. It selects one ranked R&D board and enforces side, sector, correlation, sizing, and no-trade discipline.
 
 The game layer lives in `web/`. It is designed to deploy cleanly to Cloudflare Pages as a static site.
 
@@ -19,8 +19,8 @@ The current game loop also uses Pages Functions as a thin Tradier proxy. The bro
 - No synthetic bid/ask fallback in the scan engine.
 - One canonical snapshot schema from Scout to Forge to Council.
 - Hard abstain support instead of forcing a pick.
-- Live and shadow lanes are first-class from day one.
-- New ML/AI features run in shadow mode by default until explicitly promoted.
+- One canonical production lane combines Scout, Sentinel, Forge, path quality, cost-aware ranking, and Council.
+- The former gated/shadow stack remains available only as a comparison baseline with `--model-stack current_gated`.
 - Scout snapshots include side-aware `call_edge`, `put_edge`, and `no_trade` probabilities.
 - Sentinel extracts structured event features from headlines instead of acting as a raw sentiment oracle.
 - Deployment path is intentionally cheap:
@@ -44,6 +44,12 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
+The scan defaults to `--model-stack unified_rnd`. Its only production and
+buy-to-open authority is `council.live_board`. Shadow-board, counterfactual,
+Forge-only, Moonshot, and manual HOLD candidates cannot be previewed or opened
+through the broker transmitter. Use `--model-stack current_gated` only to
+reproduce the former scoring baseline; it does not create another order lane.
+
 Live scan contract selection defaults to the recovered production DTE window:
 `--minimum-days-to-expiry 7 --maximum-days-to-expiry 14`. Override those only
 for explicit research runs, not routine production scans.
@@ -61,27 +67,27 @@ Each scan also writes a Forge bottleneck artifact beside the snapshot:
 - `web/data/diagnostics/forge_rejection_waterfall_latest.json`
 - `web/data/diagnostics/forge_rejection_waterfall_YYYY-MM-DD.json`
 
-Each snapshot also includes `promotion_readiness`, a shadow-mode governance report for Side-Aware Scout, Sentinel, the active payoff ranker, and Council risk intelligence. It records current shadow observations, pending acceptance gates, and the staged path from `shadow` to `tie_breaker`, `small_weight`, `limited_active`, and `active`. The dashboard renders this as the Promotion Readiness panel.
+Each snapshot still includes `promotion_readiness` for evidence and auditability. In the unified R&D stack it does not split models into a second product lane or silently disable a layer; it records whether the combined stack has enough evidence for deployment beyond R&D.
 
-Each scan also appends a side-aware Scout shadow disagreement ledger beside the diagnostics:
+Each scan also appends a legacy-named side-aware Scout disagreement ledger beside the diagnostics:
 
 - `web/data/diagnostics/side_aware_scout_shadow_ledger.json`
 
-This ledger records where the shadow side-aware Scout preferred call, put, or no-trade differently from active Scout, plus whether the symbol reached Forge, live board, or shadow board.
+This ledger records offline model disagreements for historical comparability. It is research telemetry, not a candidate lane, and has no Council or broker authority.
 
-Model-policy holds are retained in a bounded `counterfactual_observation_lane` before live Forge intake. The lane is ineligible for Council and automatic Tradier routing, so automatic strategy behavior remains conservative. Its highest-ranked valid contract may still become `manual_trade_pick`: an authenticated admin can preview it and submit it only after explicitly acknowledging that the model says HOLD. Quote freshness, spread, buying-power, credential, preview, and live-confirmation controls remain enforced. `PipelineConfig.preserve_shadow_veto_live_policy` defaults to `True`; changing automatic policy still requires a deliberate decision backed by counterfactual evidence.
+The unified stack does not allocate a counterfactual observation lane. The old payload key remains as an always-empty compatibility field so archived snapshots and readers do not break. Broker-side quote freshness, spread, buying-power, credential, preview, and live-confirmation controls remain enforced independently of model-stack selection.
 
 Each scan also appends a rolling board history ledger beside the diagnostics:
 
 - `web/data/diagnostics/board_recommendation_history.json`
 
-This ledger records each run's live board, shadow board, regime, and board counts so recommendations can be tracked over time instead of being overwritten by the newest snapshot.
+This ledger preserves historical live/shadow fields for archive compatibility. New production scans populate one Council board and leave the shadow field empty.
 
 Each scan also appends a dedicated moonshot prospective ledger:
 
 - `web/data/diagnostics/moonshot_prospective_ledger.json`
 
-This ledger records moonshot picks and near-miss shadow candidates with their tail-upside score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. It is intentionally separate from the all-Forge-candidate prospective ledger so moonshot research can be evaluated as its own lane.
+This ledger records tail-upside research observations with their score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. Moonshot output is non-routable telemetry, not a production lane.
 
 Prospective outcome capture uses policy v2. One-hour quotes must be retrieved within 15 minutes of the target; close-based quotes must be retrieved within 30 minutes. Broker quote timestamps are retained, quotes older than 15 minutes are rejected, and late windows are recorded as `missed_live_window` rather than filled with a current quote. Missing or stale quotes remain retryable inside the live window and recoverable from immutable archives afterward. Legacy pending picks are frozen so current prices cannot contaminate historical horizons.
 
@@ -332,10 +338,8 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
 - `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
-- `OROGRAPHIC_SENTINEL_MODE`: optional; defaults to `shadow`. Set to `active` only when Sentinel event multipliers should affect Scout scoring.
-- `OROGRAPHIC_SIDE_MODEL_MODE`: optional; defaults to `shadow`. Set to `active` only after promotion gates pass if the option-payoff side-aware Scout model should steer live call/put direction.
-- `OROGRAPHIC_PAYOFF_MODEL_MODE`: optional; defaults to `active` for the existing payoff ranker. Set to `shadow` for observation-only scoring.
-- `OROGRAPHIC_PATH_MODEL_MODE`: optional; defaults to `shadow` and currently remains shadow-only even if set. This layer records hold-window quality, early profit-taking odds, and decay risk for research/promotion analysis.
+- `OROGRAPHIC_MODEL_STACK`: optional; defaults to `unified_rnd`. This activates the integrated side, Sentinel, payoff, path, and cost-aware stack in one R&D lane. Set it to `current_gated` to reproduce the former promotion-gated baseline.
+- `OROGRAPHIC_SENTINEL_MODE`, `OROGRAPHIC_SIDE_MODEL_MODE`, `OROGRAPHIC_PAYOFF_MODEL_MODE`, and `OROGRAPHIC_PATH_MODEL_MODE`: legacy per-layer overrides used by `current_gated`; the unified stack activates and combines these layers explicitly.
 
 Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel is logged as a model-observation signal and does not steer live recommendations.
 
@@ -347,9 +351,9 @@ Model artifacts are pinned in `engine/orographic/models/artifact_manifest.json`.
 python scripts/validate_model_artifacts.py
 ```
 
-Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. That side model remains shadow-only unless `OROGRAPHIC_SIDE_MODEL_MODE=active` is explicitly set.
+Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. The unified R&D stack uses it as a confidence-gated direction correction instead of a serial veto.
 
-The same training run now builds `scout_hierarchical_challenger.pkl` when strict option outcomes are available. Its first head predicts trade versus abstain; its second head predicts call versus put using only dates where both sides were observed. Purged out-of-fold predictions select trade and direction-confidence thresholds against downside-decile after-cost utility with side/regime depth constraints. This challenger is hard-coded observation-only regardless of `OROGRAPHIC_SIDE_MODEL_MODE`, and its predictions flow into the Scout shadow ledger for prospective evaluation.
+The same training run now builds `scout_hierarchical_challenger.pkl` when strict option outcomes are available. Its first head predicts trade versus abstain; its second head predicts call versus put using only dates where both sides were observed. The unified stack blends this challenger into the side ensemble at a bounded 20% weight; `current_gated` keeps its legacy observation-only treatment.
 
 Use `--hierarchical-only` to train that challenger while preserving every active Scout model, scaler, side model, and model card:
 
@@ -360,13 +364,13 @@ python -m engine.train_scout_model --cutoff 2026-08-11 --hierarchical-only \
 
 Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the active-by-default activation policy for the recovered payoff ranker.
 
-Path-model training writes both the requested report and `engine/orographic/models/path_model_card.json` with hold-window path targets, quote-path coverage, walk-forward early-take-profit calibration, and a shadow-only activation policy.
+Path-model training writes both the requested report and `engine/orographic/models/path_model_card.json` with hold-window path targets, quote-path coverage, walk-forward early-take-profit calibration, and decay risk. The unified R&D stack folds that score into Forge ranking; legacy gated runs keep the prior observation-only policy.
 
-Production status today:
+R&D status today:
 
-- live production path: `council_cost_cap`
-- research-only path: `council_cost_cap_path_tiebreaker`
-- rejected experimental path: `council_cost_cap_path_tiebreaker_loose`
+- canonical research path: `unified_council_cost_cap`
+- comparison baseline: `council_cost_cap` with `model_stack=current_gated`
+- deployment promotion: held pending leakage-safe out-of-sample validation
 
 Recommended payoff-model training flow:
 
@@ -414,7 +418,7 @@ This evaluator models +25% target, -50% stop, and expiry hazards only when times
 
 Prospective path collection is performed by the same 15-minute Tradier outcome workflow that captures fixed exits. For every active policy-v2 contract, it now appends one fresh, minute-deduplicated `trajectory_mark` per run from emission through Friday close. These contract-specific marks take priority over the rotating full-chain archive when path labels are rebuilt. The scan-health report fails `trajectory_capture_health` whenever active picks exist but the scheduled run writes no fresh marks or receives missing/stale quotes.
 
-Promotion gates should stay pending until a shadow model beats the active system where they disagree, after costs, across 3/6/12-month validation windows and at least 30 live shadow trading days. Promote one layer at a time.
+Model changes should remain pending until the challenger beats the current unified system where they disagree, after costs, across leakage-safe 3/6/12-month validation windows and at least 30 prospective trading days. Comparison is offline or telemetry-only; it never creates a second production lane.
 
 Replay the canonical promotion comparison from the existing prospective and side-aware shadow ledgers:
 
@@ -430,7 +434,7 @@ Build the paired prospective evidence report for the volatility/contract payoff 
 python scripts/build_payoff_challenger_evidence.py
 ```
 
-This writes `web/data/diagnostics/payoff_challenger_evidence_latest.json`. It compares active and challenger probabilities on the exact same recommendations using only strict executable Friday-close labels, reports discrimination and calibration by side and regime, and replays each fully resolved scan with the top active-ranked versus top challenger-ranked contract. Incomplete candidate sets fail closed and are excluded from the rank replay. Eligibility for a limited live-shadow experiment requires adequate resolved samples and disagreements, both call and put coverage, at least two qualified regimes, positive challenger profitability, and a positive paired-run bootstrap lower bound. The report is observation-only and cannot affect Tradier routing.
+This writes `web/data/diagnostics/payoff_challenger_evidence_latest.json`. It compares current and challenger probabilities on the exact same recommendations using only strict executable Friday-close labels, reports discrimination and calibration by side and regime, and replays each fully resolved scan with the top current-ranked versus challenger-ranked contract. Incomplete candidate sets fail closed and are excluded from the rank replay. A challenger may replace or change weight within the one unified stack only after adequate resolved samples and disagreements, both call and put coverage, at least two qualified regimes, positive challenger profitability, and a positive paired-run bootstrap lower bound. It never receives separate Tradier authority.
 
 Build the Scout no-trade veto value and threshold-frontier report:
 
@@ -455,7 +459,7 @@ The Tradier workflow in this repo currently supports:
 5. Server-side option order preview using `preview=true`
 6. Admin-only limit-order placement for both entries and manual exits
 7. Optional private per-run position history capture during Python scan runs
-8. Live entry placement gated by admin access and fresh snapshot timing for both live-board and shadow-board entries
+8. Buy-to-open placement gated by admin access and fresh snapshot timing, and restricted to `council.live_board`
 
 ## Hosted Position History
 

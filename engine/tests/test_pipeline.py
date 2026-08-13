@@ -14,6 +14,7 @@ from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates,
 from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.pipeline import (
     _build_manual_trade_pick,
+    _configured_model_stack,
     _fail_closed_model_modes,
     _load_prior_live_board_symbols,
     _model_artifact_status,
@@ -80,32 +81,47 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
     )
 
 
+class UnifiedModelStackTests(unittest.TestCase):
+    def test_pipeline_defaults_to_one_unified_lane(self) -> None:
+        config = PipelineConfig(universe=["AAPL"])
+        self.assertEqual(config.model_stack, "unified_rnd")
+        self.assertEqual(config.shadow_size, 0)
+        self.assertEqual(config.counterfactual_observation_size, 0)
+        self.assertFalse(config.preserve_shadow_veto_live_policy)
+
+    def test_current_gated_context_overrides_and_restores_external_stack(self) -> None:
+        with mock.patch.dict(os.environ, {"OROGRAPHIC_MODEL_STACK": "unified_rnd"}, clear=False):
+            with _configured_model_stack("current_gated", "not_ready"):
+                self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "current_gated")
+                self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
+            self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "unified_rnd")
+
+
 class PipelineTests(unittest.TestCase):
-    def test_manual_trade_pick_exposes_best_held_contract_without_auto_routing(self) -> None:
+    def test_manual_trade_pick_uses_only_council_approved_contract(self) -> None:
         lower = {"symbol": "AAA", "contract_symbol": "AAA260821C00100000", "forge_score": 0.61}
         best = {"symbol": "BBB", "contract_symbol": "BBB260821P00200000", "forge_score": 0.79}
 
         pick = _build_manual_trade_pick(
-            council_payload={"live_board": [], "shadow_board": [lower, best]},
+            council_payload={"live_board": [lower, best], "shadow_board": []},
             forge_candidates=[lower, best],
             counterfactual_candidates=[],
         )
 
         self.assertEqual(pick["candidate"]["contract_symbol"], best["contract_symbol"])
-        self.assertEqual(pick["model_recommendation"], "hold")
+        self.assertEqual(pick["model_recommendation"], "trade")
         self.assertTrue(pick["manual_entry_available"])
-        self.assertFalse(pick["automatic_routing_eligible"])
-        self.assertTrue(pick["requires_manual_override_confirmation"])
+        self.assertTrue(pick["automatic_routing_eligible"])
+        self.assertFalse(pick["requires_manual_override_confirmation"])
 
-    def test_manual_trade_pick_uses_counterfactual_contract_when_live_forge_is_empty(self) -> None:
+    def test_manual_trade_pick_rejects_every_non_council_candidate(self) -> None:
         research = {"symbol": "CCC", "contract_symbol": "CCC260821C00300000", "forge_score": 0.55}
         pick = _build_manual_trade_pick(
             council_payload={"live_board": [], "shadow_board": []},
             forge_candidates=[],
             counterfactual_candidates=[research],
         )
-        self.assertEqual(pick["source_lane"], "counterfactual_observation")
-        self.assertEqual(pick["authority"], "user_directed_only")
+        self.assertIsNone(pick)
 
     def test_payoff_volatility_challenger_is_optional_and_observation_only(self) -> None:
         artifacts = _model_artifact_status()
@@ -191,6 +207,7 @@ class PipelineTests(unittest.TestCase):
             ):
                 payload = run_scan(PipelineConfig(
                     universe=["AAA"],
+                    model_stack="current_gated",
                     board_history_path=None,
                     promotion_comparison_path=comparison_path,
                 ))
@@ -261,7 +278,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual([row.symbol for row in live_rows], ["AAA", "BBB"])
         self.assertEqual([row.symbol for row in research_rows], ["CCC"])
 
-    def test_counterfactual_candidates_cannot_reach_council_or_tradier_lane(self) -> None:
+    def test_deprecated_alternate_lane_settings_cannot_split_the_candidate_surface(self) -> None:
         research_signal = _signal("BBB")
         candidate_payload = {
             "symbol": "BBB",
@@ -288,7 +305,7 @@ class PipelineTests(unittest.TestCase):
             "live_board": [],
             "shadow_board": [],
             "abstain": True,
-            "summary": {"candidate_count": 0, "live_count": 0, "shadow_count": 0, "notes": []},
+            "summary": {"candidate_count": 1, "live_count": 0, "shadow_count": 0, "notes": []},
         }
 
         def rank(signals, *_args, **_kwargs):
@@ -298,7 +315,7 @@ class PipelineTests(unittest.TestCase):
             )
 
         def council(candidates, *_args, **_kwargs):
-            self.assertEqual(candidates, [])
+            self.assertEqual(candidates, [candidate])
             return mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True)
 
         with (
@@ -334,6 +351,7 @@ class PipelineTests(unittest.TestCase):
                 PipelineConfig(
                     universe=["BBB"],
                     counterfactual_observation_size=1,
+                    model_stack="current_gated",
                     board_history_path=None,
                 )
             )
@@ -341,12 +359,12 @@ class PipelineTests(unittest.TestCase):
         lane = payload["counterfactual_observation_lane"]
         self.assertFalse(lane["council_eligible"])
         self.assertFalse(lane["tradier_routing_eligible"])
-        self.assertEqual(len(lane["candidates"]), 1)
-        self.assertEqual(payload["forge_candidates"], [])
+        self.assertEqual(lane["mode"], "deprecated_empty_schema_compatibility")
+        self.assertEqual(lane["candidates"], [])
+        self.assertEqual(payload["forge_candidates"], [candidate_payload])
         self.assertEqual(payload["council"]["live_board"], [])
         ledger_entry = build_prospective_pick_ledger_entry(payload)
-        self.assertEqual(ledger_entry["summary"]["counterfactual_observation"], 1)
-        self.assertEqual(ledger_entry["picks"][0]["lane"], "counterfactual_observation")
+        self.assertEqual(ledger_entry["summary"]["counterfactual_observation"], 0)
 
     def test_run_scan_defaults_to_recovered_dte_window(self) -> None:
         signal = _signal("AAA")
@@ -1266,7 +1284,9 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("directional_scout", payload["model_modes"])
         self.assertIn("payoff_ranker", payload["model_modes"])
         self.assertIn("model_artifacts", payload["attribution"])
-        self.assertEqual(payload["attribution"]["scan_settings"]["shadow_size"], 1)
+        self.assertEqual(payload["attribution"]["scan_settings"]["shadow_size"], 0)
+        self.assertEqual(payload["scan_settings"]["production_lane_count"], 1)
+        self.assertEqual(payload["scan_settings"]["production_lane"], "council.live_board")
 
     def test_run_scan_passes_prior_live_board_symbols_into_council(self) -> None:
         signal = _signal("AAA")

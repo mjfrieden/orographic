@@ -6,7 +6,13 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.schemas import MarketRegime
-from engine.orographic.scout import _MODEL_PATH, _SCALER_PATH, _load_model, build_signal
+from engine.orographic.scout import (
+    _MODEL_PATH,
+    _SCALER_PATH,
+    _apply_unified_side_policy,
+    _load_model,
+    build_signal,
+)
 from engine.orographic.sentinel import SentinelScore
 
 
@@ -24,6 +30,31 @@ def _frame() -> pd.DataFrame:
 
 
 class ScoutTests(unittest.TestCase):
+    def test_unified_side_policy_keeps_direction_when_side_model_is_not_decisive(self) -> None:
+        passed, direction, score, diagnostics = _apply_unified_side_policy(
+            direction="put",
+            base_score=-0.60,
+            side_probs={"call_edge": 0.30, "put_edge": 0.10, "no_trade": 0.60},
+            side_model_mode="trained_option_payoff_three_class",
+        )
+
+        self.assertTrue(passed)
+        self.assertEqual(direction, "put")
+        self.assertLess(score, 0.0)
+        self.assertFalse(diagnostics["override_applied"])
+
+    def test_unified_side_policy_allows_high_confidence_direction_override(self) -> None:
+        _, direction, score, diagnostics = _apply_unified_side_policy(
+            direction="put",
+            base_score=-0.60,
+            side_probs={"call_edge": 0.75, "put_edge": 0.05, "no_trade": 0.20},
+            side_model_mode="trained_option_payoff_three_class",
+        )
+
+        self.assertEqual(direction, "call")
+        self.assertGreater(score, 0.0)
+        self.assertTrue(diagnostics["override_applied"])
+
     def test_hierarchical_challenger_is_observed_without_changing_live_signal(self) -> None:
         observation = {
             "mode": "observation_only",

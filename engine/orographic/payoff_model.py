@@ -25,6 +25,7 @@ MODEL_PATH = Path(__file__).parent / "models" / "payoff_model.pkl"
 SHADOW_MODEL_PATH = Path(__file__).parent / "models" / "payoff_volatility_shadow.pkl"
 COST_AWARE_SHADOW_MODEL_PATH = Path(__file__).parent / "models" / "payoff_cost_aware_challenger.pkl"
 RANKER_MODE_ENV = "OROGRAPHIC_PAYOFF_MODEL_MODE"
+STACK_MODE_ENV = "OROGRAPHIC_MODEL_STACK"
 
 FEATURE_COLS = [
     "option_type_is_call",
@@ -799,6 +800,28 @@ def score_candidates(
         as_of=as_of,
         shadow_model_path=shadow_model_path,
     )
+    if os.getenv(STACK_MODE_ENV, "").strip().lower() == "unified_rnd":
+        for candidate in candidates:
+            primary = _clip(_safe_float(candidate.learned_rank_score, candidate.forge_score))
+            path_quality = _clip(_safe_float(candidate.path_holding_quality_score, 0.5))
+            challenger_rank = _clip(_safe_float(candidate.payoff_shadow_rank, primary))
+            conservative_score = _clip(
+                0.5 + _safe_float(candidate.payoff_shadow_conservative_utility) / 0.50
+            )
+            unified_score = _clip(
+                0.60 * primary
+                + 0.18 * path_quality
+                + 0.14 * challenger_rank
+                + 0.08 * conservative_score
+            )
+            candidate.forge_score = round(unified_score, 4)
+            candidate.final_candidate_score = round(unified_score, 4)
+            candidate.learned_rank_score = round(unified_score, 4)
+            candidate.ranker_mode = "unified_rnd_active"
+            candidate.path_model_mode = "unified_rnd_active"
+            candidate.notes.append(
+                "Unified R&D rank active: primary payoff + path + cost-aware challenger"
+            )
     candidates.sort(key=lambda candidate: candidate.forge_score, reverse=True)
     return candidates
 

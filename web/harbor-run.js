@@ -138,8 +138,6 @@ function buildContractMap(payload) {
   };
 
   asArray(payload?.council?.live_board).forEach((candidate) => push("live", candidate));
-  asArray(payload?.council?.shadow_board).forEach((candidate) => push("shadow", candidate));
-  asArray(payload?.forge_candidates).forEach((candidate) => push("forge", candidate));
   return map;
 }
 

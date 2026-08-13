@@ -327,7 +327,7 @@ test("submitted order records provenance", async () => {
   });
 });
 
-test("held daily pick can be submitted only after explicit manual override acknowledgement", async () => {
+test("non-Council contract remains blocked even with a legacy override acknowledgement", async () => {
   await withMockTradier(async () => {
     const heldBody = {
       ...buyLiveBody,
@@ -338,7 +338,7 @@ test("held daily pick can be submitted only after explicit manual override ackno
     const blockedResponse = await orderPost(blockedContext);
     const blockedPayload = await blockedResponse.json();
     assert.equal(blockedResponse.status, 409);
-    assert.match(blockedPayload.error, /manual override acknowledgement/i);
+    assert.match(blockedPayload.error, /single production board/i);
 
     const confirmedContext = await makeContext({
       body: { ...heldBody, confirm_manual_override: true },
@@ -347,15 +347,15 @@ test("held daily pick can be submitted only after explicit manual override ackno
     const confirmedPayload = await confirmedResponse.json();
     const rows = await listOrderProvenance({ POSITIONS_DB: confirmedContext.db });
 
-    assert.equal(confirmedResponse.status, 200);
-    assert.equal(confirmedPayload.ok, true);
-    assert.equal(confirmedPayload.eligibility.lane, "shadow");
-    assert.equal(rows[0].lane, "shadow");
-    assert.equal(rows[0].event_type, "submit");
+    assert.equal(confirmedResponse.status, 409);
+    assert.equal(confirmedPayload.ok, false);
+    assert.equal(confirmedPayload.eligibility.lane, "unknown");
+    assert.equal(rows[0].lane, "unknown");
+    assert.equal(rows[0].event_type, "blocked_validation");
   });
 });
 
-test("blocked stale, non-admin, live-disabled, shadow, and spread attempts are recorded", async () => {
+test("blocked stale, non-admin, live-disabled, non-Council, and spread attempts are recorded", async () => {
   await withMockTradier(async () => {
     const cases = [
       {

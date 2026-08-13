@@ -38,6 +38,7 @@ _SCALER_PATH = _MODEL_DIR / "scout_scaler.pkl"
 _SIDE_MODEL_PATH = _MODEL_DIR / "scout_side_model.pkl"
 _HIERARCHICAL_SIDE_MODEL_PATH = _MODEL_DIR / "scout_hierarchical_challenger.pkl"
 SIDE_MODEL_MODE_ENV = "OROGRAPHIC_SIDE_MODEL_MODE"
+MODEL_STACK_ENV = "OROGRAPHIC_MODEL_STACK"
 REGIME_SAME_SIDE_BONUS = 0.08
 REGIME_COUNTERTREND_PENALTY = 0.18
 REGIME_COUNTERTREND_MIN_ABS_SCORE = 0.35
@@ -276,6 +277,63 @@ def _apply_active_side_policy(
         f"({preferred} {max(call_prob, put_prob):.2%}; no-trade {no_trade_prob:.2%})"
     )
     return True, preferred, derived_score, diagnostics
+
+
+def _apply_unified_side_policy(
+    *,
+    direction: str,
+    base_score: float,
+    side_probs: dict[str, float],
+    side_model_mode: str,
+) -> tuple[bool, str, float, dict[str, object]]:
+    """Use all side heads as a soft ensemble instead of a serial hard veto."""
+    call_prob = round(_side_probability(side_probs, "call"), 4)
+    put_prob = round(_side_probability(side_probs, "put"), 4)
+    no_trade_prob = round(_side_probability(side_probs, "no_trade"), 4)
+    current_prob = call_prob if direction == "call" else put_prob
+    opposite_direction = "put" if direction == "call" else "call"
+    opposite_prob = put_prob if direction == "call" else call_prob
+    directional_winner = "call" if call_prob >= put_prob else "put"
+    directional_winner_prob = max(call_prob, put_prob)
+    direction_margin = directional_winner_prob - current_prob
+    selected_direction = direction
+    override_applied = False
+    if (
+        directional_winner != direction
+        and directional_winner_prob >= SHADOW_SIDE_VETO_MIN_PROB
+        and direction_margin >= SHADOW_SIDE_VETO_MIN_MARGIN
+        and directional_winner_prob > no_trade_prob
+    ):
+        selected_direction = directional_winner
+        override_applied = True
+
+    selected_prob = call_prob if selected_direction == "call" else put_prob
+    selected_opposite_prob = put_prob if selected_direction == "call" else call_prob
+    support_factor = _clip(0.80 + 0.20 * (selected_prob - selected_opposite_prob), 0.65, 1.0)
+    magnitude = max(abs(float(base_score)) * support_factor, 0.05)
+    signed_score = round(magnitude if selected_direction == "call" else -magnitude, 4)
+    return True, selected_direction, signed_score, {
+        "applied": True,
+        "passed": True,
+        "policy": "unified_soft_ensemble",
+        "preferred_side": selected_direction,
+        "call_probability": call_prob,
+        "put_probability": put_prob,
+        "no_trade_probability": no_trade_prob,
+        "derived_scout_score": signed_score,
+        "reason": None,
+        "note": (
+            "Unified R&D retained the directional Scout side unless the side ensemble "
+            "cleared the established 70% / 20-point override gate; no-trade probability "
+            "continues to Forge/Council as risk instead of a separate lane."
+        ),
+        "source_model_mode": side_model_mode,
+        "prior_direction": direction,
+        "opposite_direction": opposite_direction,
+        "override_applied": override_applied,
+        "directional_override_min_probability": SHADOW_SIDE_VETO_MIN_PROB,
+        "directional_override_min_margin": SHADOW_SIDE_VETO_MIN_MARGIN,
+    }
 
 
 def _ml_side_probabilities(feats: dict[str, float], fallback_score: float) -> tuple[dict[str, float], str]:
@@ -699,6 +757,18 @@ def build_signal(
         **side_probs,
     }
     hierarchical_observation = _hierarchical_side_observation(feats)
+    unified_stack = os.getenv(MODEL_STACK_ENV, "").strip().lower() == "unified_rnd"
+    if unified_stack and hierarchical_observation is not None:
+        blend_weight = 0.20
+        for key in ("call_edge", "put_edge", "no_trade"):
+            side_probs[key] = round(
+                (1.0 - blend_weight) * float(side_probs.get(key, 0.0))
+                + blend_weight * float(hierarchical_observation.get(key, 0.0)),
+                4,
+            )
+        total = sum(side_probs.values()) or 1.0
+        side_probs = {key: round(value / total, 4) for key, value in side_probs.items()}
+        diagnostics["side_aware"].update(side_probs)
     diagnostics["hierarchical_side_challenger"] = hierarchical_observation or {
         "mode": "unavailable",
         "execution_effect": "none_observation_only",
@@ -711,12 +781,20 @@ def build_signal(
             "directional_model_score": round(float(raw_score if raw_score is not None else 0.0), 4),
             "option_payoff_score": round(float(option_payoff_score), 4),
         }
-    active_policy_passed, active_direction, active_score, active_policy = _apply_active_side_policy(
-        direction=direction,
-        side_probs=side_probs,
-        side_model_mode=side_model_mode,
-        side_activation_mode=side_activation_mode,
-    )
+    if unified_stack and side_activation_mode == "active":
+        active_policy_passed, active_direction, active_score, active_policy = _apply_unified_side_policy(
+            direction=direction,
+            base_score=base_scout_score,
+            side_probs=side_probs,
+            side_model_mode=side_model_mode,
+        )
+    else:
+        active_policy_passed, active_direction, active_score, active_policy = _apply_active_side_policy(
+            direction=direction,
+            side_probs=side_probs,
+            side_model_mode=side_model_mode,
+            side_activation_mode=side_activation_mode,
+        )
     diagnostics["side_aware"]["active_policy"] = active_policy
     if active_policy.get("applied"):
         direction = active_direction

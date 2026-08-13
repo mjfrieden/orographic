@@ -30,6 +30,7 @@ from engine.backtest.results import apply_coverage_policy, build_results
 from engine.backtest.results import save_option_outcome_dataset
 from engine.backtest.runner import _load_universe
 from engine.orographic.council import select_board
+from engine.orographic.event_features import load_event_feature_frame
 from engine.orographic.schemas import ContractCandidate, MarketRegime
 
 logging.basicConfig(
@@ -55,6 +56,7 @@ class VariantConfig:
     path_tiebreaker_min_path_quality_edge: float = 0.10
     live_size: int = 3
     shadow_size: int = 3
+    model_stack: str = "current_gated"
 
 
 @dataclass(frozen=True)
@@ -67,11 +69,31 @@ class SymbolPrior:
     score: float
 
 
-def build_variants(cost_cap_usd: float | None) -> list[VariantConfig]:
+def build_variants(
+    cost_cap_usd: float | None,
+    *,
+    unified_comparison_only: bool = False,
+) -> list[VariantConfig]:
+    current = VariantConfig(
+        name="council_cost_cap",
+        council_only=True,
+        max_estimated_cost_basis=cost_cap_usd,
+        shadow_size=0,
+        model_stack="current_gated",
+    )
+    unified = VariantConfig(
+        name="unified_council_cost_cap",
+        council_only=True,
+        max_estimated_cost_basis=cost_cap_usd,
+        shadow_size=0,
+        model_stack="unified_rnd",
+    )
+    if unified_comparison_only:
+        return [current, unified]
     return [
         VariantConfig(name="baseline_all_candidates", council_only=False),
         VariantConfig(name="council_only", council_only=True),
-        VariantConfig(name="council_cost_cap", council_only=True, max_estimated_cost_basis=cost_cap_usd),
+        current,
         VariantConfig(
             name="council_cost_cap_symbol_priors",
             council_only=True,
@@ -92,6 +114,7 @@ def build_variants(cost_cap_usd: float | None) -> list[VariantConfig]:
             path_tiebreaker_max_forge_gap=0.08,
             path_tiebreaker_min_path_quality_edge=0.03,
         ),
+        unified,
     ]
 
 
@@ -489,6 +512,8 @@ def run_experiment(
     max_symbol_candidates_per_week: int | None = None,
     max_sector_candidates_per_week: int | None = None,
     option_outcome_dir: Path | None = None,
+    event_features_path: Path | None = None,
+    unified_comparison_only: bool = False,
 ) -> dict[str, Any]:
     start_date = end_date - timedelta(days=months * 30)
     log.info("Alpha experiment window: %s → %s (%d months)", start_date, end_date, months)
@@ -520,27 +545,37 @@ def run_experiment(
     user_histories = {s: equity_histories[s] for s in symbols if s in equity_histories}
     mondays = mondays_in_range(start_date, end_date)
 
-    variants = build_variants(cost_cap_usd)
+    variants = build_variants(
+        cost_cap_usd,
+        unified_comparison_only=unified_comparison_only,
+    )
+    event_feature_store = load_event_feature_frame(event_features_path)
     variant_trades: dict[str, list[TradeLeg]] = {variant.name: [] for variant in variants}
     weekly_diagnostics: dict[str, list[dict[str, Any]]] = {variant.name: [] for variant in variants}
     research_trade_history: list[TradeLeg] = []
 
     for monday in mondays:
-        week = replay_week(
-            monday,
-            symbols,
-            user_histories,
-            spy_history,
-            vix_history,
-            options_provider,
-            strict_options_data=strict_options_data,
-            expiry_policy=expiry_policy,
-            target_dte_min=target_dte_min,
-            target_dte_max=target_dte_max,
-            max_entry_spread_pct=max_entry_spread_pct,
-            min_entry_open_interest=min_entry_open_interest,
-            min_entry_volume=min_entry_volume,
-        )
+        week_by_stack = {
+            model_stack: replay_week(
+                monday,
+                symbols,
+                user_histories,
+                spy_history,
+                vix_history,
+                options_provider,
+                strict_options_data=strict_options_data,
+                expiry_policy=expiry_policy,
+                target_dte_min=target_dte_min,
+                target_dte_max=target_dte_max,
+                max_entry_spread_pct=max_entry_spread_pct,
+                min_entry_open_interest=min_entry_open_interest,
+                min_entry_volume=min_entry_volume,
+                event_feature_store=event_feature_store,
+                model_stack=model_stack,
+            )
+            for model_stack in {variant.model_stack for variant in variants}
+        }
+        week = week_by_stack["current_gated"]
         log.info(
             "Week %s → %d signal(s), %d candidate(s), regime=%s",
             monday,
@@ -558,6 +593,7 @@ def run_experiment(
         research_priors = build_symbol_priors(research_trade_history, monday)
 
         for variant in variants:
+            week = week_by_stack[variant.model_stack]
             candidate_pool = list(week.candidates)
             cost_diag = {"kept": len(candidate_pool), "dropped": 0, "max_estimated_cost_basis": None}
             prior_diag = {"boosted_symbols": [], "excluded_symbols": [], "available_priors": 0}
@@ -670,6 +706,7 @@ def run_experiment(
 
             weekly_diagnostics[variant.name].append({
                 "monday": week.monday.isoformat(),
+                "model_stack": variant.model_stack,
                 "regime": week.regime.mode,
                 "regime_bias": round(float(week.regime.bias), 4),
                 "regime_source_symbol": week.regime.source_symbol,
@@ -802,7 +839,11 @@ def run_experiment(
         "symbols": symbols,
         "recommended_default_variant": "council_cost_cap",
         "recommended_default_variant_label": "Council + Cost Cap",
+        "research_default_variant": "unified_council_cost_cap",
+        "research_default_variant_label": "Unified R&D + Council + Cost Cap",
+        "promotion_decision": "hold_pending_leakage_safe_out_of_sample_validation",
         "experimental_variants": [
+            "unified_council_cost_cap",
             "council_cost_cap_symbol_priors",
             "council_cost_cap_path_tiebreaker",
             "council_cost_cap_path_tiebreaker_loose",
@@ -831,6 +872,9 @@ def run_experiment(
             "min_exit_volume": min_exit_volume,
             "max_symbol_candidates_per_week": max_symbol_candidates_per_week,
             "max_sector_candidates_per_week": max_sector_candidates_per_week,
+            "event_features_path": str(event_features_path) if event_features_path else None,
+            "event_feature_rows": len(event_feature_store),
+            "unified_comparison_only": unified_comparison_only,
         },
         "variant_summaries": summaries,
         "option_outcome_datasets": {
@@ -928,8 +972,8 @@ def parse_args() -> argparse.Namespace:
         default=14,
         help="Maximum DTE when --expiry-policy=target_dte.",
     )
-    parser.add_argument("--entry-slippage-pct", type=float, default=0.0, help="Extra entry premium stress, e.g. 0.03 for 3%.")
-    parser.add_argument("--exit-slippage-pct", type=float, default=0.0, help="Exit bid haircut stress, e.g. 0.03 for 3%.")
+    parser.add_argument("--entry-slippage-pct", type=float, default=0.0, help="Extra entry premium stress, e.g. 0.03 for 3%%.")
+    parser.add_argument("--exit-slippage-pct", type=float, default=0.0, help="Exit bid haircut stress, e.g. 0.03 for 3%%.")
     parser.add_argument("--max-entry-spread-pct", type=float, default=0.0, help="Reject entries wider than this bid/ask spread pct; <=0 disables.")
     parser.add_argument("--max-exit-spread-pct", type=float, default=0.0, help="Reject exits wider than this bid/ask spread pct; <=0 disables.")
     parser.add_argument("--min-entry-open-interest", type=int, default=150, help="Minimum entry open interest.")
@@ -943,6 +987,17 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=None,
         help="Directory for per-variant canonical option outcome datasets. Defaults to output/.",
+    )
+    parser.add_argument(
+        "--event-features-path",
+        type=Path,
+        default=None,
+        help="Point-in-time event feature store used by the unified historical Sentinel/Scout stack.",
+    )
+    parser.add_argument(
+        "--unified-comparison-only",
+        action="store_true",
+        help="Run only the current gated Council baseline and the unified R&D Council stack.",
     )
     return parser.parse_args()
 
@@ -981,6 +1036,8 @@ def main() -> None:
         max_symbol_candidates_per_week=args.max_symbol_candidates_per_week if args.max_symbol_candidates_per_week > 0 else None,
         max_sector_candidates_per_week=args.max_sector_candidates_per_week if args.max_sector_candidates_per_week > 0 else None,
         option_outcome_dir=args.option_outcome_dir,
+        event_features_path=args.event_features_path,
+        unified_comparison_only=bool(args.unified_comparison_only),
     )
     print_experiment_summary(payload)
     print(f"Saved alpha experiment results → {args.output}")

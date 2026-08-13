@@ -33,15 +33,22 @@ from engine.orographic.forge import (
     _spread_cap,
 )
 from engine.orographic.scout import (
+    _apply_active_side_policy,
     _apply_regime_alignment,
+    _apply_unified_side_policy,
     _extract_features,
+    _hierarchical_side_observation,
+    _ml_scout_signal,
     _ml_scout_score,
+    _ml_side_probabilities,
     _heuristic_scout_score,
     _rsi,
     _atr_pct,
     _clip,
     _load_model,
 )
+from engine.orographic.event_features import latest_event_feature_snapshot
+from engine.orographic.sentinel import _build_structured_score
 from engine.backtest.fetcher import (
     fetch_equity_history,
     friday_of_week,
@@ -53,6 +60,7 @@ from engine.backtest.options_provider import HistoricalOptionsProvider
 log = logging.getLogger(__name__)
 
 ExpiryPolicy = Literal["same_week", "next_listed_weekly", "target_dte"]
+ModelStack = Literal["current_gated", "unified_rnd"]
 BACKTEST_RISK_FREE_RATE = 0.043
 
 
@@ -186,6 +194,9 @@ def build_signal_as_of(
     history_df: pd.DataFrame,
     regime: MarketRegime,
     spy_history: pd.DataFrame | None = None,
+    event_feature_store: pd.DataFrame | None = None,
+    *,
+    model_stack: ModelStack = "current_gated",
 ) -> ScoutSignal | None:
     """
     Run Scout signal generation against historical data ending on `as_of`.
@@ -217,12 +228,23 @@ def build_signal_as_of(
 
     # ── ML inference (Sanitized & Unbiased) ──
     # We are now using a model trained strictly on pre-2026 data.
-    feats    = _extract_features(close, frame, spy_close_aligned)
-    ml_score = _ml_scout_score(feats)
-    using_ml = ml_score is not None
+    event_snapshot = latest_event_feature_snapshot(
+        symbol,
+        event_feature_store,
+        as_of=as_of,
+    )
+    event_context = event_snapshot.to_context_dict() if event_snapshot is not None else {}
+    feats = _extract_features(
+        close,
+        frame,
+        spy_close_aligned,
+        event_snapshot=event_snapshot.to_feature_dict() if event_snapshot is not None else None,
+    )
+    ml_signal = _ml_scout_signal(feats)
+    using_ml = ml_signal is not None
     
     if using_ml:
-        raw_score       = ml_score
+        raw_score, raw_probability = ml_signal
         technical_score = raw_score
         empirical_score = 0.0
         base_scout_score = raw_score
@@ -235,6 +257,33 @@ def build_signal_as_of(
         )
         direction = "call" if technical_score >= 0 else "put"
         raw_score = None
+        raw_probability = None
+
+    side_probs, side_model_mode = _ml_side_probabilities(feats, base_scout_score)
+    hierarchical = _hierarchical_side_observation(feats) if model_stack == "unified_rnd" else None
+    if hierarchical is not None:
+        # The hierarchical challenger is deliberately a minority vote. It is
+        # included in the R&D stack without allowing its sparse direction head
+        # to erase the better-supported three-class side model.
+        blend_weight = 0.20
+        for key in ("call_edge", "put_edge", "no_trade"):
+            side_probs[key] = round(
+                (1.0 - blend_weight) * float(side_probs.get(key, 0.0))
+                + blend_weight * float(hierarchical.get(key, 0.0)),
+                4,
+            )
+        total = sum(side_probs.values()) or 1.0
+        side_probs = {key: round(value / total, 4) for key, value in side_probs.items()}
+
+    if model_stack == "unified_rnd":
+        side_passed, direction, base_scout_score, _ = _apply_unified_side_policy(
+            direction=direction,
+            base_score=base_scout_score,
+            side_probs=side_probs,
+            side_model_mode=side_model_mode,
+        )
+        if not side_passed:
+            return None
 
     conviction_score = raw_score if using_ml else technical_score
     passed_alignment, regime_adjustment, _, alignment_note = _apply_regime_alignment(
@@ -247,9 +296,22 @@ def build_signal_as_of(
 
     scout_score = _clip(base_scout_score + regime_adjustment)
 
+    sentinel = None
+    if model_stack == "unified_rnd":
+        sentinel = _build_structured_score(
+            {},
+            symbol=symbol,
+            headlines=[],
+            direction=direction,
+            scout_score=scout_score,
+            event_context=event_context,
+            sentinel_mode="active",
+        )
+        scout_score = _clip(scout_score * sentinel.multiplier)
+
     notes: list[str] = []
     if using_ml:
-        notes.append(f"ML model active (prob_bull={raw_score/2+0.5:.2%})")
+        notes.append(f"ML model active (prob_bull={float(raw_probability or 0.0):.2%})")
     else:
         notes.append("heuristic fallback (model not found)")
     if alignment_note:
@@ -260,6 +322,31 @@ def build_signal_as_of(
         notes.append("RSI is balanced")
     if atr_pct_14d > 0.05:
         notes.append("ATR elevated")
+    if model_stack == "unified_rnd":
+        notes.append("Unified R&D model stack active")
+        if hierarchical is not None:
+            notes.append("Hierarchical Scout included as a 20% ensemble vote")
+        if sentinel is not None and sentinel.multiplier != 1.0:
+            notes.append(f"Historical Sentinel multiplier {sentinel.multiplier:.3f}x")
+
+    sentinel_event = {}
+    if sentinel is not None:
+        sentinel_event = {
+            "event_type": sentinel.event_type,
+            "event_polarity": sentinel.event_polarity,
+            "directional_relevance": sentinel.directional_relevance,
+            "novelty": sentinel.novelty,
+            "source_reliability": sentinel.source_reliability,
+            "time_horizon": sentinel.time_horizon,
+            "decay_half_life": sentinel.decay_half_life,
+            "spot_vs_iv_effect": sentinel.spot_vs_iv_effect,
+            "call_relevance": sentinel.call_relevance,
+            "put_relevance": sentinel.put_relevance,
+            "no_trade_relevance": sentinel.no_trade_relevance,
+            "confidence": sentinel.confidence,
+            "structured_event_score": sentinel.structured_event_score,
+            "event_context": event_context,
+        }
 
     return ScoutSignal(
         symbol=symbol,
@@ -273,8 +360,45 @@ def build_signal_as_of(
         technical_score=round(technical_score, 4),
         empirical_score=round(empirical_score, 4),
         scout_score=round(scout_score, 4),
+        call_edge_prob=side_probs["call_edge"],
+        put_edge_prob=side_probs["put_edge"],
+        no_trade_prob=side_probs["no_trade"],
+        scout_model_mode=(
+            f"unified_{side_model_mode}" if model_stack == "unified_rnd" else side_model_mode
+        ),
+        sentinel_event=sentinel_event,
         notes=notes,
     )
+
+
+def apply_unified_candidate_score(candidates: list[ContractCandidate]) -> list[ContractCandidate]:
+    """Collapse payoff, path, and cost-aware challenger outputs into one R&D rank."""
+    for candidate in candidates:
+        primary = float(candidate.learned_rank_score or candidate.forge_score or 0.0)
+        path = float(candidate.path_holding_quality_score or 0.5)
+        challenger_rank = float(candidate.payoff_shadow_rank or primary)
+        conservative = candidate.payoff_shadow_conservative_utility
+        conservative_score = max(0.0, min(1.0, 0.5 + float(conservative or 0.0) / 0.50))
+        unified = max(
+            0.0,
+            min(
+                1.0,
+                0.60 * primary
+                + 0.18 * path
+                + 0.14 * challenger_rank
+                + 0.08 * conservative_score,
+            ),
+        )
+        candidate.forge_score = round(unified, 4)
+        candidate.final_candidate_score = round(unified, 4)
+        candidate.learned_rank_score = round(unified, 4)
+        candidate.ranker_mode = "unified_rnd_active"
+        candidate.path_model_mode = "unified_rnd_active"
+        candidate.notes.append(
+            "Unified R&D rank active: primary payoff + standalone path + cost-aware challenger"
+        )
+    candidates.sort(key=lambda candidate: candidate.forge_score, reverse=True)
+    return candidates
 
 
 def infer_regime_as_of(
@@ -559,6 +683,8 @@ def replay_week(
     max_entry_spread_pct: float | None = None,
     min_entry_open_interest: int = 150,
     min_entry_volume: int = 25,
+    event_feature_store: pd.DataFrame | None = None,
+    model_stack: ModelStack = "current_gated",
 ) -> WeekReplay:
     """
     Reconstruct what Scout + Forge would have produced on the given Monday.
@@ -602,7 +728,15 @@ def replay_week(
         except Exception:
             pass
         try:
-            sig = build_signal_as_of(symbol, monday, hist, regime, spy_history)
+            sig = build_signal_as_of(
+                symbol,
+                monday,
+                hist,
+                regime,
+                spy_history,
+                event_feature_store,
+                model_stack=model_stack,
+            )
         except Exception as exc:
             log.warning("Scout replay failed for %s on %s: %s", symbol, monday, exc)
             sig = None
@@ -640,7 +774,12 @@ def replay_week(
     try:
         from engine.orographic.payoff_model import score_candidates
 
-        score_candidates(candidates, regime, as_of=monday)
+        score_candidates(
+            candidates,
+            regime,
+            as_of=monday,
+            activation_mode="active" if model_stack == "unified_rnd" else "shadow",
+        )
     except Exception as exc:
         log.warning("Payoff model scoring skipped for %s: %s", monday, exc)
     try:
@@ -649,6 +788,9 @@ def replay_week(
         score_path_candidates(candidates, regime, as_of=monday)
     except Exception as exc:
         log.warning("Path model scoring skipped for %s: %s", monday, exc)
+
+    if model_stack == "unified_rnd":
+        apply_unified_candidate_score(candidates)
 
     candidates.sort(key=lambda c: c.forge_score, reverse=True)
 

@@ -773,15 +773,8 @@ export function findCandidate(snapshot, contractSymbol) {
   if (!target) {
     return null;
   }
-  const manualPick = snapshot?.manual_trade_pick;
-  const manualCandidate = manualPick?.candidate;
-  const manualRows = manualCandidate && manualPick?.source_lane !== "live" ? [manualCandidate] : [];
   const pools = [
     { lane: "live", rows: toList(snapshot?.council?.live_board) },
-    { lane: "manual_override", rows: manualRows },
-    { lane: "shadow", rows: toList(snapshot?.council?.shadow_board) },
-    { lane: "manual_override", rows: toList(snapshot?.counterfactual_observation_lane?.candidates) },
-    { lane: "manual_override", rows: toList(snapshot?.forge_candidates) },
   ];
   for (const pool of pools) {
     const candidate = pool.rows.find(
@@ -917,7 +910,6 @@ export function buildSubmissionPreview({
     lane,
     snapshotInfo,
     side,
-    confirmManualOverride: true,
   });
   let allowed = validation.ok;
   let reason = validation.ok ? null : validation.error;
@@ -936,8 +928,7 @@ export function buildSubmissionPreview({
     max_contracts: config.maxContracts,
     mode: config.mode,
     side,
-    requires_manual_override_confirmation:
-      side === "buy_to_open" && ["shadow", "manual_override"].includes(lane),
+    requires_manual_override_confirmation: false,
   };
 }
 
@@ -962,7 +953,6 @@ export function validateSubmission({
   lane,
   snapshotInfo,
   side = "buy_to_open",
-  confirmManualOverride = false,
 }) {
   if (!session) {
     return { ok: false, status: 401, error: "Authenticated session required." };
@@ -984,19 +974,11 @@ export function validateSubmission({
 
   // Bypassed for closing positions because manual exit does not depend on AI radar freshness
   if (side === "buy_to_open") {
-    const manualOverrideLane = ["shadow", "manual_override"].includes(lane);
-    if (lane !== "live" && !manualOverrideLane) {
+    if (lane !== "live") {
       return {
         ok: false,
         status: 409,
-        error: "Manual or untracked contracts cannot be opened through the broker transmitter.",
-      };
-    }
-    if (manualOverrideLane && !confirmManualOverride) {
-      return {
-        ok: false,
-        status: 409,
-        error: "Manual override acknowledgement is required because the model recommendation is HOLD.",
+        error: "Only contracts on Council's single production board can be opened through the broker transmitter.",
       };
     }
     if (!snapshotInfo?.is_fresh) {

@@ -1,8 +1,8 @@
 {
   "activation_policy": {
-    "default": "observation_only",
-    "reason": "Cost-aware multi-task challenger cannot affect Forge order, Council eligibility, sizing, or Tradier routing.",
-    "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
+    "default": "unified_rnd_bounded_input",
+    "reason": "The cost-aware model contributes a bounded 14% rank plus 8% conservative-utility input inside the single unified stack; it has no independent Council or Tradier lane.",
+    "required_action": "Run zero-weight and score-orientation ablations because current cross-validation discrimination is below chance."
   },
   "artifact": "cost_aware_payoff_challenger",
   "artifacts": {
@@ -1583,9 +1583,9 @@
         }
       }
     },
-    "required_next_step": "Run shadow disagreement evaluation across 3/6/12-month windows and at least 30 live shadow trading days.",
+    "required_next_step": "Run leakage-safe zero-weight, inverted-rank, and retrained challenger comparisons across 3/6/12-month windows.",
     "status": "hold",
-    "summary": "One or more dataset-coverage or walk-forward gates remain below threshold; hold promotion and keep gathering evidence."
+    "summary": "One or more dataset-coverage or walk-forward gates remain below threshold; keep influence bounded and treat this model as the highest-priority ablation."
   },
   "selected_family": "ensemble",
   "side_counts": {

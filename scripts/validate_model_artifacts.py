@@ -166,8 +166,8 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         if cv.get("path_expected_mfe_mae_mean") is None or cv.get("path_decay_risk_mae_mean") is None:
             errors.append("path_model_card: missing path regression MAE metrics")
         activation = path_card.get("activation_policy", {})
-        if activation.get("default") != "shadow":
-            errors.append("path_model_card: activation policy default is not shadow")
+        if activation.get("default") != "unified_rnd_active":
+            errors.append("path_model_card: activation policy default is not unified_rnd_active")
     elif isinstance(artifacts.get("path_model_card"), dict) and artifacts.get("path_model_card", {}).get("required"):
         errors.append("path_model_card: file missing")
 

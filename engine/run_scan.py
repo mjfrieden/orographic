@@ -146,7 +146,12 @@ def parse_args() -> argparse.Namespace:
         help="Disable writing the rolling board recommendation history.",
     )
     parser.add_argument("--live-size", type=int, default=1)
-    parser.add_argument("--shadow-size", type=int, default=3)
+    parser.add_argument(
+        "--model-stack",
+        choices=("unified_rnd", "current_gated"),
+        default="unified_rnd",
+        help="Unified R&D runs all integrated models in one lane; current_gated preserves the old promotion-gated baseline.",
+    )
     parser.add_argument(
         "--forge-intake",
         type=int,
@@ -202,12 +207,6 @@ def parse_args() -> argparse.Namespace:
         help="Maximum premium cost basis for moonshot satellite eligibility.",
     )
     parser.add_argument(
-        "--counterfactual-observation-size",
-        type=int,
-        default=3,
-        help="Maximum shadow-veto signals per scan sent through the research-only Forge lane.",
-    )
-    parser.add_argument(
         "--enforce-pre-council-friction-gate",
         action="store_true",
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
@@ -226,9 +225,11 @@ def main() -> int:
         PipelineConfig(
             universe=universe,
             live_size=max(int(args.live_size), 1),
-            shadow_size=max(int(args.shadow_size), 1),
+            shadow_size=0,
             forge_intake=max(int(args.forge_intake), 1),
-            counterfactual_observation_size=max(int(args.counterfactual_observation_size), 0),
+            counterfactual_observation_size=0,
+            preserve_shadow_veto_live_policy=False,
+            model_stack=str(args.model_stack),
             minimum_days_to_expiry=max(int(args.minimum_days_to_expiry), 0),
             maximum_days_to_expiry=max(int(args.maximum_days_to_expiry), 0),
             minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
