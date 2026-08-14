@@ -1,8 +1,8 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-13T20:09:25+00:00",
-  "trading_day": "2026-08-13",
+  "generated_at_utc": "2026-08-14T14:09:42+00:00",
+  "trading_day": "2026-08-14",
   "timezone": "America/Chicago",
   "scan_settings": {
     "live_size": 1,
@@ -93,7 +93,7 @@
     }
   },
   "summary": {
-    "scout_signal_count": 0,
+    "scout_signal_count": 1,
     "pre_forge_signal_count": 0,
     "forge_candidate_count": 0,
     "live_count": 0,
@@ -113,7 +113,7 @@
     },
     "friction_veto_count": 0,
     "dedupe_removed_count": 0,
-    "pre_forge_rejection_count": 0,
+    "pre_forge_rejection_count": 1,
     "council_holdout_count": 0,
     "live_avg_forge_score": null,
     "shadow_avg_forge_score": null,
@@ -127,25 +127,25 @@
     "shadow_avg_no_trade_prob": null,
     "live_avg_path_holding_quality_score": null,
     "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 16,
-    "side_aware_no_trade_disagreements": 83,
-    "shadow_side_veto_rejections": 70,
+    "side_aware_directional_disagreements": 27,
+    "side_aware_no_trade_disagreements": 73,
+    "shadow_side_veto_rejections": 65,
     "abstain_primary_reason": "no_forge_candidates"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 0,
-        "put": 100
+        "call": 2,
+        "put": 98
       },
       "final_direction_counts": {
-        "call": 0,
+        "call": 1,
         "put": 0
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 16,
-      "side_aware_no_trade_disagreements": 83,
-      "shadow_side_veto_rejections": 70
+      "side_aware_directional_disagreements": 27,
+      "side_aware_no_trade_disagreements": 73,
+      "shadow_side_veto_rejections": 65
     },
     "forge": {
       "waterfall": {
@@ -232,7 +232,7 @@
         }
       },
       "notes": [
-        "Market-shock overlay active: constructive_risk_on severity=0.05 stance=allow.",
+        "Market-shock overlay active: constructive_risk_on severity=0.00 stance=allow.",
         "Allow standard live selection with normal high-extrinsic discipline.",
         "Council abstained because no contract cleared the live board threshold.",
         "Council is operating under a risk-on market regime."
@@ -243,12 +243,42 @@
   "top_shadow_board": [],
   "council_holdouts": [],
   "friction_vetoes": [],
-  "pre_forge_rejections": [],
+  "pre_forge_rejections": [
+    {
+      "symbol": "ANET",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-21",
+      "long_leg_cap": 2.75,
+      "spread_cap": 0.18,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-21",
+          "reason": "spread_cap",
+          "rows_after_basic": 61,
+          "rows_positive_bid_ask": 53,
+          "rows_within_long_leg_cap": 11,
+          "rows_within_spread_cap": 0,
+          "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        },
+        {
+          "expiry": "2026-08-28",
+          "reason": "spread_cap",
+          "rows_after_basic": 29,
+          "rows_positive_bid_ask": 29,
+          "rows_within_long_leg_cap": 6,
+          "rows_within_spread_cap": 0,
+          "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    }
+  ],
   "profitability_evidence": {
-    "shadow_window_runs": 238,
-    "disagreement_observations": 8388,
-    "directional_disagreements": 2650,
-    "tracked_recommendation_runs": 183,
+    "shadow_window_runs": 239,
+    "disagreement_observations": 8488,
+    "directional_disagreements": 2677,
+    "tracked_recommendation_runs": 184,
     "tracked_recommendations": 1657,
     "tracked_live_recommendations": 18,
     "tracked_shadow_recommendations": 465,
@@ -258,8 +288,8 @@
     "outcomes_partial": 29,
     "outcomes_pending": 666,
     "capture_policy_v2_picks": 9,
-    "capture_windows_valid": 2,
-    "capture_windows_quote_missing": 16,
+    "capture_windows_valid": 0,
+    "capture_windows_quote_missing": 18,
     "capture_windows_stale_quote": 0,
     "capture_windows_missed": 9,
     "quote_coverage_pct": 1.0,
@@ -273,10 +303,10 @@
     "shadow_friday_close_avg_pnl_pct": 0.2016,
     "holdout_friday_close_avg_pnl_pct": 0.0636,
     "friction_veto_friday_close_avg_pnl_pct": 0.28,
-    "research_runs": 183,
-    "research_abstain_runs": 165,
-    "board_runs": 232,
-    "board_abstain_runs": 197,
+    "research_runs": 184,
+    "research_abstain_runs": 166,
+    "board_runs": 233,
+    "board_abstain_runs": 198,
     "moonshot_tracked_candidates": 432,
     "moonshot_friday_close_avg_pnl_pct": -0.026,
     "canonical_baseline": {
@@ -298,7 +328,7 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-13T20:09:27+00:00",
+      "generated_at_utc": "2026-08-14T14:09:43+00:00",
       "as_of_utc": "2026-07-10T21:16:24+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
@@ -327,11 +357,11 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-13T20:09:25+00:00",
+        "prospective_ledger_updated_at_utc": "2026-08-14T14:09:42+00:00",
         "eligible_marked_recommendations": 286,
-        "shadow_ledger_updated_at_utc": "2026-08-13T20:09:25+00:00",
-        "shadow_runs": 238,
-        "shadow_disagreements": 8388
+        "shadow_ledger_updated_at_utc": "2026-08-14T14:09:42+00:00",
+        "shadow_runs": 239,
+        "shadow_disagreements": 8488
       },
       "windows": [
         {
@@ -654,7 +684,7 @@
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-13T20:09:26+00:00",
+      "generated_at_utc": "2026-08-14T14:09:43+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -819,7 +849,7 @@
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 3,
-        "updated_at_utc": "2026-08-13T20:09:25+00:00"
+        "updated_at_utc": "2026-08-14T14:09:42+00:00"
       },
       "model_cohort": {
         "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
