@@ -26,6 +26,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scout-pair-readiness", type=Path, default=Path("web/data/diagnostics/scout_pair_readiness_latest.json"))
     parser.add_argument("--payoff-card", type=Path, default=Path("engine/orographic/models/payoff_cost_aware_challenger_card.json"))
     parser.add_argument("--payoff-evidence", type=Path, default=Path("web/data/diagnostics/payoff_challenger_evidence_latest.json"))
+    parser.add_argument("--payoff-stack-audit", type=Path, default=Path("web/data/diagnostics/payoff_stack_fold_frozen_audit_latest.json"))
     parser.add_argument("--veto-evidence", type=Path, default=Path("web/data/diagnostics/counterfactual_veto_evidence_latest.json"))
     parser.add_argument("--path-evidence", type=Path, default=Path("web/data/diagnostics/path_hazard_challenger_latest.json"))
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/model_governance_summary_latest.json"))
@@ -41,6 +42,7 @@ def main() -> int:
         scout_pair_readiness=_load(args.scout_pair_readiness),
         payoff_card=_load(args.payoff_card),
         payoff_evidence=_load(args.payoff_evidence),
+        payoff_stack_audit=_load(args.payoff_stack_audit),
         veto_evidence=_load(args.veto_evidence),
         path_evidence=_load(args.path_evidence),
     )

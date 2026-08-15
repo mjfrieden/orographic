@@ -459,6 +459,20 @@ Train the cost-aware multi-task challenger without granting it any live authorit
 
 The challenger adds q10/q50/q90 strict after-cost return estimates, fill quality, positive-P&L and breakeven probabilities, favorable/adverse path heads, and target-before-stop probability. Quantiles are projected into monotone order, while promotion gates check central-interval coverage and realized performance for the conservative `q10 > 0` selector. Its scores are persisted for prospective replay but cannot alter Forge order, Council eligibility, sizing, or Tradier routing.
 
+Audit the payoff contribution with fold-specific retraining and exact zero-weight
+and inverted-orientation comparisons:
+
+```bash
+python scripts/build_payoff_stack_audit.py
+```
+
+The evaluator groups rows by decision date, purges labels that were not
+available before each validation block, fits and freezes a pre-registered
+linear classifier and q10 model inside every fold, and hashes each fold's
+training and validation evidence. Fixed full-history artifacts are reported
+separately and cannot satisfy promotion gates. The output is research-only and
+cannot write active models or change the unified production rank.
+
 Recommended path-model training flow:
 
 ```bash

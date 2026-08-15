@@ -78,6 +78,28 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertEqual(report["data_capture"]["status"], "fail")
         self.assertEqual(report["status"], "fail")
 
+    def test_payoff_fold_audit_controls_governance_next_action(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={}, scout_card={}, payoff_card={}, payoff_evidence={},
+            veto_evidence={}, path_evidence={},
+            payoff_stack_audit={
+                "coverage": {"evaluated_validation_dates": 16},
+                "sample_gates": {"minimum_history_days": {"passed": False}},
+                "variants": {
+                    "fold_frozen_retrained": {
+                        "paired_lift_vs_zero_cost_aware": {"mean_lift": 0.15}
+                    }
+                },
+                "next_action": "Extend strict executable history.",
+            },
+        )
+
+        payoff = report["challengers"][1]
+        self.assertEqual(payoff["metrics"][3]["value"], 16)
+        self.assertEqual(payoff["metrics"][4]["value"], 0.15)
+        self.assertIn("minimum history days", payoff["blockers"])
+        self.assertEqual(payoff["next_action"], "Extend strict executable history.")
+
     def test_latest_capture_health_overrides_stale_scan_capture_metrics(self) -> None:
         report = build_model_governance_summary(
             scan_health={

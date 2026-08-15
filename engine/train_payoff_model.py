@@ -227,6 +227,12 @@ def _candidate_from_trade(trade: dict[str, Any]) -> ContractCandidate:
             trade.get("vrp_gap"),
             max(_safe_float(trade.get("implied_volatility"), 0.35) - _safe_float(trade.get("realized_vol_20d")), 0.0),
         ),
+        pre_payoff_forge_score=_safe_float(trade.get("pre_payoff_forge_score"), forge_score),
+        payoff_model_score=_safe_float(trade.get("payoff_model_score"), forge_score),
+        path_holding_quality_score=_safe_float(
+            trade.get("path_holding_quality_score"),
+            0.5,
+        ),
         expected_edge_after_friction_pct=trade.get("expected_edge_after_friction_pct"),
         sentinel_event_type=trade.get("sentinel_event_type"),
         sentinel_holding_window_fit=trade.get("sentinel_holding_window_fit"),

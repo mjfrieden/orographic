@@ -91,6 +91,25 @@ class TrainPayoffModelLoaderTests(unittest.TestCase):
         self.assertTrue(report["gates"]["return_interval_calibration"]["passed"])
         self.assertTrue(report["gates"]["conservative_after_cost_utility"]["passed"])
 
+    def test_loader_preserves_primary_and_path_scores_for_stack_audit(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "outcomes.json"
+            path.write_text(json.dumps({
+                "artifact": "option_outcome_dataset",
+                "label_policy": "strict_executable_quote_or_fill_v2",
+                "rows": [_trade_row(
+                    payoff_model_score=0.72,
+                    pre_payoff_forge_score=0.63,
+                    path_holding_quality_score=0.41,
+                )],
+            }))
+            examples, _ = load_examples([path], options_data_dir=None)
+
+        candidate = examples[0].candidate
+        self.assertEqual(candidate.payoff_model_score, 0.72)
+        self.assertEqual(candidate.pre_payoff_forge_score, 0.63)
+        self.assertEqual(candidate.path_holding_quality_score, 0.41)
+
     def test_family_selection_penalizes_a_weak_put_segment(self) -> None:
         aggregate_winner_with_weak_put = {
             "positive_pnl_brier_mean": 0.18,

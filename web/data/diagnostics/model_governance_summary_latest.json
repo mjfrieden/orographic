@@ -1,7 +1,7 @@
 {
   "artifact": "model_governance_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-15T22:59:19.927491Z",
+  "generated_at_utc": "2026-08-15T23:07:22.562382Z",
   "status": "hold",
   "headline": "Production policy is unchanged while challengers collect binding evidence.",
   "live_authority": {
@@ -97,15 +97,24 @@
           "label": "Exact paths",
           "value": 44,
           "format": "integer"
+        },
+        {
+          "label": "Frozen audit dates",
+          "value": 16,
+          "format": "integer"
+        },
+        {
+          "label": "Retrained lift",
+          "value": 0.150781,
+          "format": "decimal"
         }
       ],
       "blockers": [
-        "breakeven auc",
-        "breakeven brier vs baseline",
-        "conservative after cost utility",
-        "observed quote path coverage"
+        "minimum history days",
+        "full 3 6 12 month windows",
+        "validation side coverage"
       ],
-      "next_action": "Run leakage-safe zero-weight, inverted-rank, and retrained challenger comparisons across 3/6/12-month windows."
+      "next_action": "Extend strict executable history, then rerun the same frozen-fold audit."
     },
     {
       "id": "veto",

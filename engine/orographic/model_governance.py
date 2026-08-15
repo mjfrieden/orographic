@@ -68,6 +68,7 @@ def build_model_governance_summary(
     veto_evidence: dict[str, Any],
     path_evidence: dict[str, Any],
     scout_pair_readiness: dict[str, Any] | None = None,
+    payoff_stack_audit: dict[str, Any] | None = None,
     capture_health: dict[str, Any] | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
@@ -163,6 +164,11 @@ def build_model_governance_summary(
     payoff_resolved = _int(payoff_coverage.get("resolved_recommendations"))
     payoff_gates = _dict(_dict(payoff_card.get("promotion_gates")).get("gates"))
     payoff_cv = _dict(payoff_card.get("cross_validation"))
+    payoff_audit = _dict(payoff_stack_audit)
+    payoff_audit_coverage = _dict(payoff_audit.get("coverage"))
+    payoff_audit_gates = _dict(payoff_audit.get("sample_gates"))
+    retrained_variant = _dict(_dict(payoff_audit.get("variants")).get("fold_frozen_retrained"))
+    retrained_lift = _dict(retrained_variant.get("paired_lift_vs_zero_cost_aware"))
     payoff = {
         "id": "payoff",
         "title": "Cost-aware payoff ranker",
@@ -176,10 +182,13 @@ def build_model_governance_summary(
             {"label": "Training examples", "value": _int(payoff_card.get("training_examples")), "format": "integer"},
             {"label": "Positive-P&L AUC", "value": _float(payoff_cv.get("positive_pnl_auc_mean")), "format": "decimal"},
             {"label": "Exact paths", "value": _int(_dict(payoff_card.get("coverage")).get("examples_with_exact_quote_path")), "format": "integer"},
+            {"label": "Frozen audit dates", "value": _int(payoff_audit_coverage.get("evaluated_validation_dates")), "format": "integer"},
+            {"label": "Retrained lift", "value": _float(retrained_lift.get("mean_lift")), "format": "decimal"},
         ],
-        "blockers": _failed_gate_names(payoff_gates),
+        "blockers": _failed_gate_names(payoff_audit_gates or payoff_gates),
         "next_action": str(
-            _dict(payoff_card.get("promotion_gates")).get("required_next_step")
+            payoff_audit.get("next_action")
+            or _dict(payoff_card.get("promotion_gates")).get("required_next_step")
             or "Accumulate prospective disagreements and require positive after-cost paired lift."
         ),
     }

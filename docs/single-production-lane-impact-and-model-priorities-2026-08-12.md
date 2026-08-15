@@ -171,6 +171,30 @@ keeps `active_model_change_allowed=false`. Model governance also continues to
 show Scout as held. No active model, ensemble weight, Council rule, position
 size, Moonshot selection, or Tradier route changes as a result of this gate.
 
+## Fold-frozen payoff audit added 2026-08-15
+
+The first Cirrus-style payoff audit uses 409 deduplicated strict-executable
+rows across 26 decision dates. It creates expanding validation blocks, purges
+every training label whose exit was not observable before the validation
+start, and freezes a pre-registered linear probability/q10 bundle for each
+block. Four folds and 16 validation dates are currently usable.
+
+Against the exact zero-cost-aware-weight rank, the fold-frozen retrain improved
+mean selected after-cost return by 0.1508 per decision date, but the paired 95%
+bootstrap interval still crosses zero (-0.0223 to 0.3933). Inverting the
+retrained cost signal reduced performance by 0.0909, with only 12% bootstrap
+probability of positive lift. This does not support a sign inversion. The
+current full-history artifact appears much stronger, but that comparison is
+explicitly marked future-trained and cannot satisfy a promotion gate.
+
+The audit remains **HOLD** because strict history spans only 51 days rather
+than the initial 90-day window, the full 3/6/12-month windows are unavailable,
+and all 16 selected validation contracts were calls.
+The correct action is to retain the current unified weight, extend strict
+history and put coverage, then rerun the identical 3/6/12-month protocol. The
+audit writes no model and has no effect on Forge, Council, Moonshot, sizing, or
+Tradier.
+
 ## Release posture
 
 The architecture is suitable for one production lane, but the evidence does
