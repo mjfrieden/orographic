@@ -162,7 +162,51 @@ Audit research data capture after archiving and dataset generation:
 
 The scheduled workflow runs this audit and fails if the live chain archive is empty, required ledgers are missing, or the generated datasets are internally inconsistent.
 
-For durable storage beyond GitHub's short-lived workflow artifacts, configure `OROGRAPHIC_RESEARCH_R2_BUCKET` and `CLOUDFLARE_R2_API_TOKEN` as GitHub secrets alongside `CLOUDFLARE_ACCOUNT_ID`. The R2 token should include Cloudflare's `Workers R2 Storage Edit` permission for the account or target bucket. When present, the scheduled workflow uploads `engine/data/live_options_archive/` and `output/research_datasets/` to Cloudflare R2.
+For durable storage beyond GitHub's short-lived workflow artifacts, configure `OROGRAPHIC_RESEARCH_R2_BUCKET` and `CLOUDFLARE_R2_API_TOKEN` as GitHub secrets alongside `CLOUDFLARE_ACCOUNT_ID`. The R2 token should include Cloudflare's `Workers R2 Storage Edit` permission for the account or target bucket. When present, the scan workflow restores the prior canonical evidence bundle, compacts it with the current ledgers, strict outcomes, and option quotes, uploads a timestamped raw snapshot with a verifiable manifest/catalog entry, and publishes the canonical bundle manifest last.
+
+### Canonical evidence lifecycle
+
+The evidence lifecycle and migration decision is documented in
+[`docs/evidence-lifecycle-and-consolidation-2026-08-15.md`](docs/evidence-lifecycle-and-consolidation-2026-08-15.md).
+The canonical bundle separates cumulative inventory, strict training-eligible
+evidence, and the exact current-model prospective cohort.
+
+Build and validate the bundle locally with:
+
+```bash
+python scripts/consolidate_research_evidence.py \
+  --source-root output/restored_canonical_evidence \
+  --source-root output/research_datasets \
+  --source-root engine/data/live_options_archive \
+  --output-dir output/canonical_evidence
+```
+
+Restore it on a clean machine with:
+
+```bash
+python scripts/restore_research_artifacts_from_r2.py \
+  --mode canonical \
+  --output-dir output/restored_canonical_evidence
+```
+
+For R2 objects created before snapshot manifests existed, use `--mode legacy`
+once to bootstrap them into the compactor. The restore uses Cloudflare's R2
+Objects API to list every matching object rather than relying on a developer's
+local archive.
+
+Materialize the canonical quote history in the partition layout consumed by
+Cirrus with:
+
+```bash
+python scripts/materialize_canonical_evidence_for_cirrus.py \
+  --canonical-dir output/canonical_evidence \
+  --output-dir engine/data/options/blended/partitioned
+```
+
+The committed `data/evidence_seed/strict_option_outcomes.json.gz` preserves the
+740-row strict executable-label v2 dataset that predated R2 manifests. It is a
+one-time immutable migration input, not a second production lane or a file to
+replace during routine scans.
 
 Optionally capture standing-position value on each run into a private local file:
 

@@ -110,6 +110,7 @@ def build_scan_health_summary(
     recommendation_dataset: Path,
     moonshot_dataset: Path,
     combined_dataset: Path,
+    canonical_manifest: Path | None = None,
     output: Path | None = None,
     max_run_age_minutes: int = 240,
     min_quote_coverage_pct: float = 0.95,
@@ -134,6 +135,8 @@ def build_scan_health_summary(
     audit_summary = audit.get("summary") if isinstance(audit.get("summary"), dict) else {}
     archive = _load_json(archive_manifest)
     archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
+    canonical = _load_json(canonical_manifest) if canonical_manifest is not None else {}
+    canonical_evidence = canonical.get("evidence") if isinstance(canonical.get("evidence"), dict) else {}
 
     recommendation_rows = _dataset_rows(recommendation_dataset)
     moonshot_rows = _dataset_rows(moonshot_dataset)
@@ -243,6 +246,22 @@ def build_scan_health_summary(
         actual=combined_rows,
         expected=recommendation_rows + moonshot_rows,
     )
+    if canonical_manifest is not None:
+        canonical_checks = canonical.get("checks") if isinstance(canonical.get("checks"), dict) else {}
+        _check(
+            checks,
+            "canonical_evidence_bundle_valid",
+            canonical_manifest.exists()
+            and canonical_checks.get("recommendations_unique") is True
+            and canonical_checks.get("quotes_unique") is True
+            and canonical_checks.get("immutable_labels_preserved") is True
+            and canonical_checks.get("inputs_readable") is True,
+            # Input-readability failures mean the materialization silently lost
+            # a source and must not be treated as healthy.
+            path=str(canonical_manifest),
+            bundle_id=canonical.get("bundle_id"),
+            inputs_readable=canonical_checks.get("inputs_readable"),
+        )
     _check(
         checks,
         "dashboard_push_completed",
@@ -307,6 +326,9 @@ def build_scan_health_summary(
             "recommendation_dataset_rows": recommendation_rows,
             "moonshot_dataset_rows": moonshot_rows,
             "combined_dataset_rows": combined_rows,
+            "evidence_lifecycle": canonical_evidence,
+            "canonical_bundle_id": canonical.get("bundle_id"),
+            "canonical_manifest_path": str(canonical_manifest) if canonical_manifest is not None else None,
         },
         "publishing": {
             "dashboard_push_status": dashboard_push_status,
@@ -332,6 +354,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--recommendation-dataset", type=Path, default=Path("output/research_datasets/option_recommendation_outcomes.parquet"))
     parser.add_argument("--moonshot-dataset", type=Path, default=Path("output/research_datasets/moonshot_outcomes.parquet"))
     parser.add_argument("--combined-dataset", type=Path, default=Path("output/research_datasets/all_recommendation_outcomes.parquet"))
+    parser.add_argument("--canonical-manifest", type=Path, default=Path("output/canonical_evidence/evidence_manifest.json"))
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/scan_health_summary.json"))
     parser.add_argument("--max-run-age-minutes", type=int, default=240)
     parser.add_argument("--min-quote-coverage-pct", type=float, default=0.95)
@@ -354,6 +377,7 @@ def main() -> int:
         recommendation_dataset=args.recommendation_dataset,
         moonshot_dataset=args.moonshot_dataset,
         combined_dataset=args.combined_dataset,
+        canonical_manifest=args.canonical_manifest,
         output=args.output,
         max_run_age_minutes=max(int(args.max_run_age_minutes), 1),
         min_quote_coverage_pct=max(min(float(args.min_quote_coverage_pct), 1.0), 0.0),

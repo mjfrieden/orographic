@@ -10,6 +10,14 @@ class ModelGovernanceTests(unittest.TestCase):
     def test_summary_separates_capture_health_from_challenger_authority(self) -> None:
         report = build_model_governance_summary(
             scan_health={
+                "research": {
+                    "canonical_bundle_id": "bundle-1",
+                    "evidence_lifecycle": {
+                        "cumulative_inventory": {"primary": {"recommendations": 100}},
+                        "training_eligible": {"deduplicated_recommendation_outcomes": 20},
+                        "current_model_cohort": {"resolved_recommendations": 12},
+                    },
+                },
                 "labels": {
                     "trajectory_active_picks_last_run": 2,
                     "trajectory_marks_written_last_run": 2,
@@ -31,6 +39,13 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertFalse(report["live_authority"]["challenger_order_routing"])
         self.assertEqual(report["summary"]["held"], 4)
         self.assertEqual(report["challengers"][3]["progress"]["current"], 4)
+        self.assertEqual(report["data_capture"]["canonical_bundle_id"], "bundle-1")
+        self.assertEqual(
+            report["data_capture"]["evidence_inventory"]["training_eligible"][
+                "deduplicated_recommendation_outcomes"
+            ],
+            20,
+        )
 
     def test_missing_trajectory_contract_is_hold_not_false_pass(self) -> None:
         report = build_model_governance_summary(

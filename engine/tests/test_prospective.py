@@ -229,6 +229,58 @@ class ProspectiveLedgerTests(unittest.TestCase):
         self.assertEqual(stats["quotes_missing"], 1)
         self.assertEqual(stats["capture_windows_quote_missing"], 1)
 
+    def test_existing_executable_label_repairs_retry_status_without_fresh_quote(self) -> None:
+        ledger = {
+            "entries": [{
+                "run_generated_at_utc": "2026-05-11T15:00:00+00:00",
+                "picks": [{
+                    "contract_symbol": "AAA260515C00100000",
+                    "outcomes": {
+                        "quote_verification": {"capture_policy_version": 2},
+                        "fixed_exit_marks": {
+                            "one_hour": {
+                                "captured_at_utc": "2026-05-11T16:05:00+00:00",
+                                "mark": 1.45,
+                            }
+                        },
+                        "executable_labels": {
+                            "one_hour": {
+                                "label_available_at_utc": "2026-05-11T16:05:00Z",
+                                "exit": {"quote": {
+                                    "capture_delay_seconds": 300.0,
+                                    "age_at_label_availability_seconds": 0.0,
+                                }},
+                            }
+                        },
+                        "capture_attempts": {
+                            "one_hour": {
+                                "status": "quote_missing_retryable",
+                                "attempted_at_utc": "2026-05-11T16:10:00+00:00",
+                            }
+                        },
+                    },
+                }],
+            }],
+        }
+
+        updated, stats = mark_prospective_ledger(
+            ledger,
+            {},
+            now_utc=datetime(2026, 5, 11, 16, 10, tzinfo=timezone.utc),
+        )
+
+        outcomes = updated["entries"][0]["picks"][0]["outcomes"]
+        self.assertEqual(outcomes["capture_attempts"]["one_hour"]["status"], "captured_valid")
+        self.assertEqual(
+            outcomes["capture_attempts"]["one_hour"]["attempted_at_utc"],
+            "2026-05-11T16:05:00Z",
+        )
+        self.assertEqual(outcomes["capture_attempts"]["one_hour"]["capture_delay_seconds"], 300.0)
+        self.assertEqual(stats["capture_windows_valid"], 1)
+        self.assertEqual(stats["capture_windows_quote_missing"], 0)
+        self.assertEqual(stats["quotes_missing"], 0)
+        self.assertTrue(outcomes["quote_verification"]["capture_integrity_passed"])
+
     def test_mark_prospective_ledger_rejects_stale_broker_quote(self) -> None:
         ledger = {"entries": [{
             "run_generated_at_utc": "2026-05-11T15:00:00+00:00",

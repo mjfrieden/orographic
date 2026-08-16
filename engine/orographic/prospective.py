@@ -541,6 +541,52 @@ def mark_prospective_ledger(
                     continue
                 stats["capture_windows_due"] += 1
                 state, delay_seconds, limit_seconds = _capture_window_state(now, target, window_name)
+                existing_label = executable_labels.get(window_name)
+                if isinstance(existing_label, dict):
+                    # Executable labels are immutable facts.  A later capture run
+                    # can legitimately fail to fetch a fresh quote, but that retry
+                    # must never downgrade a window that was already captured.
+                    # Reconcile legacy contradictory attempt metadata from the
+                    # label itself before considering retryable/missed states.
+                    label_exit = (
+                        existing_label.get("exit")
+                        if isinstance(existing_label.get("exit"), dict)
+                        else {}
+                    )
+                    label_quote = (
+                        label_exit.get("quote")
+                        if isinstance(label_exit.get("quote"), dict)
+                        else {}
+                    )
+                    stored_mark = (
+                        fixed_marks.get(window_name)
+                        if isinstance(fixed_marks.get(window_name), dict)
+                        else {}
+                    )
+                    successful_at = str(
+                        existing_label.get("label_available_at_utc")
+                        or stored_mark.get("captured_at_utc")
+                        or captured_at
+                    )
+                    successful_delay = _as_number(label_quote.get("capture_delay_seconds"))
+                    if successful_delay is None:
+                        successful_delay = delay_seconds
+                    reconciled_attempt = _capture_attempt_payload(
+                        status="captured_valid",
+                        target=target,
+                        attempted_at=successful_at,
+                        delay_seconds=float(successful_delay),
+                        limit_seconds=limit_seconds,
+                        broker_quote_age_seconds=_as_number(
+                            label_quote.get("age_at_label_availability_seconds")
+                        ),
+                    )
+                    prior_attempt = capture_attempts.get(window_name)
+                    if prior_attempt != reconciled_attempt:
+                        capture_attempts[window_name] = reconciled_attempt
+                        changed = True
+                    stats["capture_windows_valid"] += 1
+                    continue
                 if state == "missed_live_window":
                     prior_attempt = capture_attempts.get(window_name)
                     prior_status = prior_attempt.get("status") if isinstance(prior_attempt, dict) else None

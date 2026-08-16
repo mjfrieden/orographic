@@ -81,6 +81,8 @@ def build_model_governance_summary(
     )
     health_source = active_capture_health if use_capture_health else scan_health
     labels = _dict(health_source.get("labels"))
+    research = _dict(scan_health.get("research"))
+    evidence_lifecycle = _dict(research.get("evidence_lifecycle"))
     health_checks = {
         str(row.get("name")): row
         for row in health_source.get("checks", [])
@@ -272,6 +274,8 @@ def build_model_governance_summary(
             "trajectory_marks": path_marks,
             "missing_quotes_last_run": _int(labels.get("trajectory_quotes_missing_last_run")),
             "stale_quotes_last_run": _int(labels.get("trajectory_quotes_stale_last_run")),
+            "evidence_inventory": evidence_lifecycle,
+            "canonical_bundle_id": research.get("canonical_bundle_id"),
         },
         "challengers": challengers,
         "summary": {
