@@ -1,7 +1,7 @@
 {
   "artifact": "prospective_pick_ledger",
   "schema_version": 3,
-  "updated_at_utc": "2026-08-17T17:08:56+00:00",
+  "updated_at_utc": "2026-08-17T18:26:59+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -49,7 +49,7 @@
     "capture_windows_valid": 0,
     "capture_windows_quote_missing": 29,
     "capture_windows_stale_quote": 0,
-    "capture_windows_missed": 18,
+    "capture_windows_missed": 19,
     "legacy_capture_policy_picks": 1648,
     "capture_policy_v2_picks": 19,
     "payoff_shadow_disagreement_avg_net_return": -0.3291
@@ -375201,10 +375201,19 @@
               "emission_quote_captured": true,
               "outcome_quotes_captured": false,
               "capture_policy_version": 2,
-              "capture_integrity_passed": null
+              "capture_integrity_passed": false
             },
             "capture_attempts": {
-              "one_hour": null,
+              "one_hour": {
+                "status": "missed_live_window",
+                "target_at_utc": "2026-08-17T18:08:56+00:00",
+                "attempted_at_utc": "2026-08-17T18:26:59+00:00",
+                "capture_delay_seconds": 1083.223,
+                "max_capture_delay_seconds": 900.0,
+                "retryable_live": false,
+                "retryable_via_archive": true,
+                "broker_quote_age_seconds": null
+              },
               "end_of_day": null,
               "next_day_close": null,
               "friday_close": null
@@ -375264,5 +375273,23 @@
     "labels_observed": 22,
     "labels_missing": 1645,
     "labels_missing_entry_mark": 0
+  },
+  "last_mark_summary": {
+    "entries_seen": 188,
+    "picks_seen": 1667,
+    "marks_written": 0,
+    "executable_labels_written": 0,
+    "executable_labels_skipped": 3891,
+    "quotes_missing": 0,
+    "picks_completed": 962,
+    "picks_partial": 30,
+    "picks_pending": 675,
+    "capture_windows_due": 48,
+    "capture_windows_valid": 0,
+    "capture_windows_quote_missing": 0,
+    "capture_windows_stale_quote": 0,
+    "capture_windows_missed": 48,
+    "legacy_capture_policy_picks_skipped": 1648,
+    "ledger_changed": 1
   }
 }
