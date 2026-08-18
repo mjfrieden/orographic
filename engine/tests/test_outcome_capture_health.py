@@ -10,6 +10,28 @@ from scripts.build_outcome_capture_health import build_outcome_capture_health
 
 
 class OutcomeCaptureHealthTests(unittest.TestCase):
+    def test_flags_late_scheduler_delivery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prospective = self._ledger(root, "prospective.json", {})
+            moonshot = self._ledger(root, "moonshot.json", {})
+            report = build_outcome_capture_health(
+                prospective_ledger=prospective,
+                moonshot_ledger=moonshot,
+                token_configured=True,
+                prospective_step_status="success",
+                moonshot_step_status="success",
+                evidence_step_status="success",
+                scheduled_at_utc="2026-08-18T13:30:00Z",
+                scheduler="cloudflare_cron",
+                max_scheduler_delay_seconds=600,
+                now_utc=datetime(2026, 8, 18, 13, 41, tzinfo=UTC),
+            )
+
+        failed = {row["name"] for row in report["failed_checks"]}
+        self.assertIn("scheduler_delivery_fresh", failed)
+        self.assertEqual(report["scheduler"]["delivery_delay_seconds"], 660.0)
+
     def _ledger(self, root: Path, name: str, stats: dict) -> Path:
         path = root / name
         path.write_text(json.dumps({"last_capture_attempt_at_utc": "2026-08-12T15:15:00Z", "last_mark_summary": stats}))

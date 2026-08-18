@@ -132,6 +132,26 @@ class ScanHealthSummaryTests(unittest.TestCase):
                     },
                 },
             )
+            cirrus = _write_json(
+                root / "canonical_materialization.json",
+                {
+                    "artifact": "cirrus_canonical_archive_materialization",
+                    "schema_version": 2,
+                    "status": "passed",
+                    "canonical_bundle_id": "bundle-1",
+                    "rows": 0,
+                    "expected_rows": 0,
+                    "partitions": 0,
+                    "expected_partitions": 0,
+                    "latest_quote_date": None,
+                    "checks": {
+                        "canonical_bundle_valid": True,
+                        "row_count_matches": True,
+                        "partition_count_matches": True,
+                        "stale_partitions_replaced": True,
+                    },
+                },
+            )
             output = root / "health.json"
 
             report = build_scan_health_summary(
@@ -144,6 +164,7 @@ class ScanHealthSummaryTests(unittest.TestCase):
                 moonshot_dataset=moonshots,
                 combined_dataset=combined,
                 canonical_manifest=canonical,
+                cirrus_materialization=cirrus,
                 output=output,
                 now_utc=now,
                 r2_status="success",
@@ -157,6 +178,8 @@ class ScanHealthSummaryTests(unittest.TestCase):
         self.assertEqual(report["labels"]["quote_coverage_pct"], 1.0)
         self.assertEqual(report["labels"]["capture_policy_v2_picks"], 23)
         self.assertEqual(report["research"]["canonical_bundle_id"], "bundle-1")
+        checks = {check["name"]: check for check in report["checks"]}
+        self.assertTrue(checks["cirrus_materialization_valid"]["passed"])
         self.assertEqual(
             report["research"]["evidence_lifecycle"]["current_model_cohort"][
                 "resolved_recommendations"
@@ -268,6 +291,26 @@ class ScanHealthSummaryTests(unittest.TestCase):
 
         self.assertEqual(report["status"], "failed")
         self.assertIn("snapshot_is_fresh", {check["name"] for check in report["failed_checks"]})
+
+    def test_historical_capture_debt_does_not_fail_a_clean_current_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = _write_json(Path(tmpdir) / "ledger.json", {
+                "outcome_summary": {
+                    "capture_windows_missed": 31,
+                    "capture_windows_quote_missing": 77,
+                    "capture_windows_stale_quote": 4,
+                },
+                "last_mark_summary": {
+                    "capture_windows_newly_missed": 0,
+                    "capture_windows_quote_missing": 0,
+                    "capture_windows_stale_quote": 0,
+                },
+            })
+            health = _ledger_health(path)
+
+        self.assertEqual(health["capture_windows_missed"], 31)
+        self.assertEqual(health["capture_windows_newly_missed_last_run"], 0)
+        self.assertEqual(health["capture_windows_quote_missing_last_run"], 0)
 
 
 if __name__ == "__main__":

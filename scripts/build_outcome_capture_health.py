@@ -21,6 +21,18 @@ def _int(value: object) -> int:
         return 0
 
 
+def _parse_utc(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
+
+
 def build_outcome_capture_health(
     *,
     prospective_ledger: Path,
@@ -29,8 +41,16 @@ def build_outcome_capture_health(
     prospective_step_status: str,
     moonshot_step_status: str,
     evidence_step_status: str = "unknown",
+    scheduled_at_utc: str = "",
+    scheduler: str = "manual",
+    max_scheduler_delay_seconds: int = 600,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
+    now = (now_utc or datetime.now(UTC)).astimezone(UTC)
+    scheduled_at = _parse_utc(scheduled_at_utc)
+    scheduler_delay_seconds = (
+        max(0.0, (now - scheduled_at).total_seconds()) if scheduled_at is not None else None
+    )
     ledgers = []
     for name, path, step_status in (
         ("prospective", prospective_ledger, prospective_step_status),
@@ -67,6 +87,18 @@ def build_outcome_capture_health(
     ]
     trajectory_passed = active == 0 or (written > 0 and missing == 0 and stale == 0)
     checks = [
+        {
+            "name": "scheduler_delivery_fresh",
+            "passed": scheduler_delay_seconds is None
+            or scheduler_delay_seconds <= max_scheduler_delay_seconds,
+            "scheduler": scheduler,
+            "scheduled_at_utc": scheduled_at.isoformat().replace("+00:00", "Z")
+            if scheduled_at is not None else None,
+            "delay_seconds": round(scheduler_delay_seconds, 3)
+            if scheduler_delay_seconds is not None else None,
+            "max_delay_seconds": max_scheduler_delay_seconds,
+            "manual_dispatch": scheduled_at is None,
+        },
         {"name": "tradier_capture_configured", "passed": token_configured},
         {"name": "capture_steps_completed", "passed": not step_failures, "failed_steps": step_failures},
         {
@@ -89,13 +121,21 @@ def build_outcome_capture_health(
         },
     ]
     failed = [row for row in checks if not row["passed"]]
-    generated = (now_utc or datetime.now(UTC)).astimezone(UTC).isoformat().replace("+00:00", "Z")
+    generated = now.isoformat().replace("+00:00", "Z")
     return {
         "artifact": "outcome_capture_health",
         "schema_version": 1,
         "generated_at_utc": generated,
         "status": "passed" if not failed else "failed",
         "alert_required": bool(failed),
+        "scheduler": {
+            "source": scheduler,
+            "scheduled_at_utc": scheduled_at.isoformat().replace("+00:00", "Z")
+            if scheduled_at is not None else None,
+            "delivery_delay_seconds": round(scheduler_delay_seconds, 3)
+            if scheduler_delay_seconds is not None else None,
+            "max_delivery_delay_seconds": max_scheduler_delay_seconds,
+        },
         "labels": {
             "trajectory_active_picks_last_run": active,
             "trajectory_marks_written_last_run": written,
@@ -119,6 +159,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prospective-step-status", default="unknown")
     parser.add_argument("--moonshot-step-status", default="unknown")
     parser.add_argument("--evidence-step-status", default="unknown")
+    parser.add_argument("--scheduled-at-utc", default="")
+    parser.add_argument("--scheduler", default="manual")
+    parser.add_argument("--max-scheduler-delay-seconds", type=int, default=600)
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/outcome_capture_health_latest.json"))
     parser.add_argument("--fail-on-alert", action="store_true")
     return parser.parse_args()
@@ -133,6 +176,9 @@ def main() -> int:
         prospective_step_status=str(args.prospective_step_status),
         moonshot_step_status=str(args.moonshot_step_status),
         evidence_step_status=str(args.evidence_step_status),
+        scheduled_at_utc=str(args.scheduled_at_utc),
+        scheduler=str(args.scheduler),
+        max_scheduler_delay_seconds=max(args.max_scheduler_delay_seconds, 1),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")

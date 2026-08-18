@@ -400,6 +400,7 @@ jobs:
           python scripts/build_scan_health_summary.py \
             --output web/data/diagnostics/scan_health_summary_latest.json \
             --canonical-manifest output/canonical_evidence/evidence_manifest.json \
+            --cirrus-materialization engine/data/options/blended/partitioned/canonical_materialization.json \
             --r2-status "${{ steps.upload_r2.outcome || 'skipped' }}" \
             --dashboard-push-status "${{ steps.push_snapshot.outcome || 'skipped' }}" \
             --dashboard-deploy-status "${{ steps.deploy_pages.outcome || 'skipped' }}" \

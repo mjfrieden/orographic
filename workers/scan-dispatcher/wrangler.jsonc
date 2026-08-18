@@ -11,12 +11,15 @@
     "GITHUB_OWNER": "mjfrieden",
     "GITHUB_REPO": "orographic",
     "GITHUB_WORKFLOW": "orographic_scan.yml",
+    "GITHUB_OUTCOME_WORKFLOW": "orographic_outcome_capture.yml",
     "GITHUB_REF": "main"
   },
   "triggers": {
     "crons": [
-      // The paired UTC hours cover both Chicago offsets; the Worker dispatches
-      // only at 09:07, 12:07, and 15:07 America/Chicago on weekdays.
+      // The UTC range covers market hours in both Chicago offsets. The Worker
+      // dispatches outcome capture every five minutes from 08:25 through 15:10
+      // Chicago time and full scans at 09:07, 12:07, and 15:07.
+      "*/5 13-22 * * MON-FRI",
       "7 14,15,17,18,20,21 * * MON-FRI"
     ]
   }
