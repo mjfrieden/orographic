@@ -1,13 +1,21 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-18T14:09:23+00:00",
+  "generated_at_utc": "2026-08-18T17:40:27+00:00",
   "trading_day": "2026-08-18",
   "timezone": "America/Chicago",
   "scan_settings": {
+    "production_lane_count": 1,
+    "production_lane": "council.live_board",
+    "research_outputs_routable": false,
+    "moonshot_lane_role": "visible_experimental_side_pick",
+    "moonshot_primary_ensemble_effect": "none",
+    "moonshot_outcome_tracking": "moonshot_prospective_ledger",
     "live_size": 1,
-    "shadow_size": 3,
+    "shadow_size": 0,
     "forge_intake": 12,
+    "counterfactual_observation_size": 0,
+    "preserve_shadow_veto_live_policy": false,
     "universe_size": 100,
     "minimum_days_to_expiry": 7,
     "maximum_days_to_expiry": 14,
@@ -18,17 +26,20 @@
     "moonshot_threshold": 0.68,
     "moonshot_max_cost_basis": 225.0,
     "enforce_pre_council_friction_gate": false,
-    "market_shock_control_mode": "active"
+    "paired_side_capture_enabled": true,
+    "market_shock_control_mode": "active",
+    "model_stack": "unified_rnd"
   },
   "model_modes": {
+    "product_stack": "unified_rnd",
     "directional_scout": "artifact",
-    "side_aware_scout": "shadow",
-    "sentinel": "shadow",
-    "payoff_ranker": "shadow",
+    "side_aware_scout": "active",
+    "sentinel": "active",
+    "payoff_ranker": "active",
     "payoff_volatility_challenger": "observation_only",
-    "path_model": "shadow",
+    "path_model": "active",
     "side_model_source": "artifact",
-    "path_model_source": "heuristic"
+    "path_model_source": "artifact"
   },
   "model_artifacts": {
     "scout_model": {
@@ -62,23 +73,23 @@
       "required": false
     },
     "path_model": {
-      "present": false,
-      "sha256": null,
-      "required": false
+      "present": true,
+      "sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9",
+      "required": true
     },
     "scout_model_card": {
       "present": true,
-      "sha256": "3eed480ef3296e74e1aa7b77a4902d3227d500aef7ea900dacae17265fb71fc8",
+      "sha256": "5518f5898c364959749a3a96168efe397443f4dc44c219bea3d403c738fd3829",
       "required": true
     },
     "sentinel_model_card": {
       "present": true,
-      "sha256": "22d0f40d90d9f9456d23c3f51f0bd64132891f96827a2fc3d42ffdc879f72a79",
+      "sha256": "12933fb2e47786c6847434c1d9ad3a41281ea34a70b1ae4245bca4933a78da97",
       "required": true
     },
     "payoff_model_card": {
       "present": true,
-      "sha256": "752f769fb352610b34ce77cb636e65ea43c4b4608053167013c17cc9a52e20cb",
+      "sha256": "d681a9d256f4793d031731c3edad13bb83dbc032a417f7b8c6d5bf58dd4fbc6d",
       "required": true
     },
     "payoff_volatility_shadow_card": {
@@ -87,20 +98,22 @@
       "required": false
     },
     "path_model_card": {
-      "present": false,
-      "sha256": null,
-      "required": false
+      "present": true,
+      "sha256": "49d0daed461c40ed45d1457a865d4d987699120c082d9bbf6e3fcbbc6f3abe4a",
+      "required": true
     }
   },
   "summary": {
-    "scout_signal_count": 2,
-    "pre_forge_signal_count": 0,
-    "forge_candidate_count": 0,
-    "live_count": 0,
+    "scout_signal_count": 23,
+    "pre_forge_signal_count": 12,
+    "forge_candidate_count": 13,
+    "live_count": 1,
     "shadow_count": 0,
-    "abstain": true,
+    "counterfactual_signal_count": 0,
+    "counterfactual_candidate_count": 0,
+    "abstain": false,
     "live_side_mix": {
-      "call": 0,
+      "call": 1,
       "put": 0
     },
     "shadow_side_mix": {
@@ -108,77 +121,79 @@
       "put": 0
     },
     "forge_candidate_side_mix": {
-      "call": 0,
+      "call": 13,
       "put": 0
     },
-    "friction_veto_count": 0,
-    "dedupe_removed_count": 0,
-    "pre_forge_rejection_count": 2,
-    "council_holdout_count": 0,
-    "live_avg_forge_score": null,
+    "friction_veto_count": 29,
+    "dedupe_removed_count": 28,
+    "pre_forge_rejection_count": 3,
+    "council_holdout_count": 12,
+    "live_avg_forge_score": 0.7861,
     "shadow_avg_forge_score": null,
-    "live_avg_policy_score": null,
+    "live_avg_policy_score": 0.8783,
     "shadow_avg_policy_score": null,
-    "live_avg_edge_after_friction_pct": null,
+    "live_avg_edge_after_friction_pct": 0.2259,
     "shadow_avg_edge_after_friction_pct": null,
-    "live_avg_fill_quality_ok": null,
+    "live_avg_fill_quality_ok": 1.0,
     "shadow_avg_fill_quality_ok": null,
-    "live_avg_no_trade_prob": null,
+    "live_avg_no_trade_prob": 0.1303,
     "shadow_avg_no_trade_prob": null,
-    "live_avg_path_holding_quality_score": null,
+    "live_avg_path_holding_quality_score": 0.7287,
     "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 34,
-    "side_aware_no_trade_disagreements": 64,
-    "shadow_side_veto_rejections": 48,
-    "abstain_primary_reason": "no_forge_candidates"
+    "side_aware_directional_disagreements": 16,
+    "side_aware_no_trade_disagreements": 62,
+    "shadow_side_veto_rejections": 0,
+    "abstain_primary_reason": "live_board_available"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 3,
-        "put": 97
+        "call": 23,
+        "put": 77
       },
       "final_direction_counts": {
-        "call": 2,
-        "put": 0
+        "call": 23,
+        "put": 77
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 34,
-      "side_aware_no_trade_disagreements": 64,
-      "shadow_side_veto_rejections": 48
+      "side_aware_directional_disagreements": 16,
+      "side_aware_no_trade_disagreements": 62,
+      "shadow_side_veto_rejections": 0
     },
     "forge": {
       "waterfall": {
-        "signals_considered": 0,
-        "signals_with_expiry": 0,
-        "signals_with_chain": 0,
-        "rows_after_basic": 0,
-        "rows_positive_bid_ask": 0,
-        "rows_within_long_leg_cap": 0,
-        "rows_within_spread_cap": 0,
-        "rows_passing_liquidity": 0,
-        "rows_passing_moneyness": 0,
-        "rows_passing_delta": 0,
-        "rows_passing_net_debit": 0,
-        "final_candidates": 0,
-        "candidates_after_friction_gate": 0,
-        "candidates_after_deduplication": 0
+        "signals_considered": 12,
+        "signals_with_expiry": 12,
+        "signals_with_chain": 12,
+        "rows_after_basic": 1085,
+        "rows_positive_bid_ask": 937,
+        "rows_within_long_leg_cap": 248,
+        "rows_within_spread_cap": 169,
+        "rows_passing_liquidity": 122,
+        "rows_passing_moneyness": 70,
+        "rows_passing_delta": 41,
+        "rows_passing_net_debit": 41,
+        "final_candidates": 41,
+        "candidates_after_friction_gate": 12,
+        "candidates_after_deduplication": 13
       },
       "path_model": {
-        "mode_counts": {},
-        "scored_candidates": 0,
-        "avg_holding_quality_score": null,
-        "avg_early_profit_take_prob": null,
-        "avg_decay_risk": null
+        "mode_counts": {
+          "unified_rnd": 41
+        },
+        "scored_candidates": 41,
+        "avg_holding_quality_score": 0.6001,
+        "avg_early_profit_take_prob": 0.4929,
+        "avg_decay_risk": 0.163
       },
       "pre_council_gate": {
-        "kept": 0,
-        "dropped": 0,
+        "kept": 12,
+        "dropped": 29,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
-        "removed_candidates": 0,
-        "kept_candidates": 0,
+        "removed_candidates": 28,
+        "kept_candidates": 13,
         "max_structures_per_symbol_side": 2,
         "min_moneyness_gap": 0.01,
         "max_structures_per_symbol": 1,
@@ -189,63 +204,843 @@
       }
     },
     "council": {
-      "candidate_count": 0,
-      "live_count": 0,
+      "candidate_count": 13,
+      "live_count": 1,
       "shadow_count": 0,
       "avg_pairwise_correlation": null,
       "abstain_audit": {
-        "primary_reason": "no_forge_candidates",
-        "primary_reason_label": "No Forge candidates reached Council.",
+        "primary_reason": "live_board_available",
+        "primary_reason_label": "Council abstained after applying the live-board filters.",
         "requested_live_size": 1,
-        "candidate_count": 0,
-        "core_filter_pass_count": 0,
-        "unique_eligible_count": 0,
+        "candidate_count": 13,
+        "core_filter_pass_count": 1,
+        "unique_eligible_count": 1,
         "score_only_fail_count": 0,
-        "extrinsic_only_fail_count": 0,
-        "score_and_extrinsic_fail_count": 0,
-        "model_no_trade_fail_count": 0,
+        "extrinsic_only_fail_count": 2,
+        "score_and_extrinsic_fail_count": 6,
+        "model_no_trade_fail_count": 4,
         "fill_quality_fail_count": 0,
         "sentinel_no_trade_pressure_fail_count": 0,
-        "mixed_policy_fail_count": 0,
+        "mixed_policy_fail_count": 4,
         "symbol_probation_fail_count": 0,
         "side_balance_rejections": 0,
         "side_balance_demotions": 0,
         "blocked_symbols": {
           "score_only": [],
-          "extrinsic_only": [],
-          "score_and_extrinsic": [],
-          "model_no_trade": [],
+          "extrinsic_only": [
+            "XLP",
+            "XLE"
+          ],
+          "score_and_extrinsic": [
+            "XOM",
+            "DIA",
+            "IWM"
+          ],
+          "model_no_trade": [
+            "SPY",
+            "QQQ",
+            "XLF"
+          ],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
-          "mixed_policy": [],
+          "mixed_policy": [
+            "SPY",
+            "QQQ",
+            "XLF"
+          ],
           "symbol_probation": []
         },
         "best_rejected_candidates": {
           "score_only": [],
-          "extrinsic_only": [],
-          "score_and_extrinsic": [],
-          "model_no_trade": [],
+          "extrinsic_only": [
+            {
+              "symbol": "XLP",
+              "contract_symbol": "XLP260828C00086500",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 86.5,
+              "forge_score": 0.8401,
+              "effective_candidate_score": 0.887,
+              "learned_rank_score": 0.8401,
+              "final_candidate_score": 0.8401,
+              "risk_adjusted_score": 0.887,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 0.4721,
+              "friction_buffer_pct": 0.3257,
+              "prob_no_trade": 0.0792,
+              "scout_no_trade_prob": 0.2747,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 67.0,
+              "spread_pct": 0.0303,
+              "delta": 0.4059,
+              "iv_rank": 0.5544,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            },
+            {
+              "symbol": "XLE",
+              "contract_symbol": "XLE260828C00064000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 64.0,
+              "forge_score": 0.8336,
+              "effective_candidate_score": 0.8771,
+              "learned_rank_score": 0.8336,
+              "final_candidate_score": 0.8336,
+              "risk_adjusted_score": 0.8771,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 0.2905,
+              "friction_buffer_pct": 0.3296,
+              "prob_no_trade": 0.054,
+              "scout_no_trade_prob": 0.2373,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 83.0,
+              "spread_pct": 0.0368,
+              "delta": 0.4349,
+              "iv_rank": 0.6628,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            }
+          ],
+          "score_and_extrinsic": [
+            {
+              "symbol": "XOM",
+              "contract_symbol": "XOM260828C00167500",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 167.5,
+              "forge_score": 0.7377,
+              "effective_candidate_score": 0.566,
+              "learned_rank_score": 0.7377,
+              "final_candidate_score": 0.7377,
+              "risk_adjusted_score": 0.566,
+              "utility_after_friction_score": 0.131,
+              "expected_edge_after_friction_pct": -0.1476,
+              "friction_buffer_pct": 0.3401,
+              "prob_no_trade": 0.1912,
+              "scout_no_trade_prob": 0.1819,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 208.0,
+              "spread_pct": 0.0543,
+              "delta": 0.3847,
+              "iv_rank": 0.6556,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            },
+            {
+              "symbol": "DIA",
+              "contract_symbol": "DIA260828C00538000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 538.0,
+              "forge_score": 0.7371,
+              "effective_candidate_score": 0.8213,
+              "learned_rank_score": 0.7371,
+              "final_candidate_score": 0.7371,
+              "risk_adjusted_score": 0.8213,
+              "utility_after_friction_score": 0.9077,
+              "expected_edge_after_friction_pct": 0.1631,
+              "friction_buffer_pct": 0.3369,
+              "prob_no_trade": 0.2807,
+              "scout_no_trade_prob": 0.2155,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 209.0,
+              "spread_pct": 0.049,
+              "delta": 0.3376,
+              "iv_rank": 0.4007,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            },
+            {
+              "symbol": "IWM",
+              "contract_symbol": "IWM260828C00302500",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 302.5,
+              "forge_score": 0.7207,
+              "effective_candidate_score": 0.7458,
+              "learned_rank_score": 0.7207,
+              "final_candidate_score": 0.7207,
+              "risk_adjusted_score": 0.7458,
+              "utility_after_friction_score": 0.7208,
+              "expected_edge_after_friction_pct": 0.0883,
+              "friction_buffer_pct": 0.3233,
+              "prob_no_trade": 0.2476,
+              "scout_no_trade_prob": 0.1924,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 231.0,
+              "spread_pct": 0.0263,
+              "delta": 0.4263,
+              "iv_rank": 0.2693,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            },
+            {
+              "symbol": "DIS",
+              "contract_symbol": "DIS260828C00107000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 107.0,
+              "forge_score": 0.6694,
+              "effective_candidate_score": 0.4926,
+              "learned_rank_score": 0.6694,
+              "final_candidate_score": 0.6694,
+              "risk_adjusted_score": 0.4926,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.2241,
+              "friction_buffer_pct": 0.3624,
+              "prob_no_trade": 0.1978,
+              "scout_no_trade_prob": 0.2914,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 80.0,
+              "spread_pct": 0.0915,
+              "delta": 0.2962,
+              "iv_rank": 0.3539,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            },
+            {
+              "symbol": "BAC",
+              "contract_symbol": "BAC260828C00065000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 65.0,
+              "forge_score": 0.6677,
+              "effective_candidate_score": 0.5415,
+              "learned_rank_score": 0.6677,
+              "final_candidate_score": 0.6677,
+              "risk_adjusted_score": 0.5415,
+              "utility_after_friction_score": 0.1818,
+              "expected_edge_after_friction_pct": -0.1273,
+              "friction_buffer_pct": 0.3361,
+              "prob_no_trade": 0.4213,
+              "scout_no_trade_prob": 0.2445,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 43.0,
+              "spread_pct": 0.0476,
+              "delta": 0.3217,
+              "iv_rank": 0.3478,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on"
+              ]
+            }
+          ],
+          "model_no_trade": [
+            {
+              "symbol": "SPY",
+              "contract_symbol": "SPY260828C00777000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 777.0,
+              "forge_score": 0.4468,
+              "effective_candidate_score": 0.4441,
+              "learned_rank_score": 0.4468,
+              "final_candidate_score": 0.4468,
+              "risk_adjusted_score": 0.4441,
+              "utility_after_friction_score": 0.2105,
+              "expected_edge_after_friction_pct": -0.1158,
+              "friction_buffer_pct": 0.3127,
+              "prob_no_trade": 0.6144,
+              "scout_no_trade_prob": 0.2042,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 234.0,
+              "spread_pct": 0.0086,
+              "delta": 0.2807,
+              "iv_rank": 0.318,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "QQQ",
+              "contract_symbol": "QQQ260828C00732500",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 732.5,
+              "forge_score": 0.428,
+              "effective_candidate_score": 0.3685,
+              "learned_rank_score": 0.428,
+              "final_candidate_score": 0.428,
+              "risk_adjusted_score": 0.3685,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.3081,
+              "friction_buffer_pct": 0.317,
+              "prob_no_trade": 0.7135,
+              "scout_no_trade_prob": 0.0295,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 317.0,
+              "spread_pct": 0.0159,
+              "delta": 0.2575,
+              "iv_rank": 0.3537,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "XLF",
+              "contract_symbol": "XLF260828C00058000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 58.0,
+              "forge_score": 0.3518,
+              "effective_candidate_score": 0.3171,
+              "learned_rank_score": 0.3518,
+              "final_candidate_score": 0.3518,
+              "risk_adjusted_score": 0.3171,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.4847,
+              "friction_buffer_pct": 0.3597,
+              "prob_no_trade": 0.7251,
+              "scout_no_trade_prob": 0.2214,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 48.0,
+              "spread_pct": 0.087,
+              "delta": 0.477,
+              "iv_rank": 0.3754,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "GLD",
+              "contract_symbol": "GLD260828C00410000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 410.0,
+              "forge_score": 0.3471,
+              "effective_candidate_score": 0.306,
+              "learned_rank_score": 0.3471,
+              "final_candidate_score": 0.3471,
+              "risk_adjusted_score": 0.306,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.5192,
+              "friction_buffer_pct": 0.332,
+              "prob_no_trade": 0.8135,
+              "scout_no_trade_prob": 0.1052,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 250.0,
+              "spread_pct": 0.0408,
+              "delta": 0.2678,
+              "iv_rank": 0.2687,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            }
+          ],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
-          "mixed_policy": [],
+          "mixed_policy": [
+            {
+              "symbol": "SPY",
+              "contract_symbol": "SPY260828C00777000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 777.0,
+              "forge_score": 0.4468,
+              "effective_candidate_score": 0.4441,
+              "learned_rank_score": 0.4468,
+              "final_candidate_score": 0.4468,
+              "risk_adjusted_score": 0.4441,
+              "utility_after_friction_score": 0.2105,
+              "expected_edge_after_friction_pct": -0.1158,
+              "friction_buffer_pct": 0.3127,
+              "prob_no_trade": 0.6144,
+              "scout_no_trade_prob": 0.2042,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 234.0,
+              "spread_pct": 0.0086,
+              "delta": 0.2807,
+              "iv_rank": 0.318,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "QQQ",
+              "contract_symbol": "QQQ260828C00732500",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 732.5,
+              "forge_score": 0.428,
+              "effective_candidate_score": 0.3685,
+              "learned_rank_score": 0.428,
+              "final_candidate_score": 0.428,
+              "risk_adjusted_score": 0.3685,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.3081,
+              "friction_buffer_pct": 0.317,
+              "prob_no_trade": 0.7135,
+              "scout_no_trade_prob": 0.0295,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 317.0,
+              "spread_pct": 0.0159,
+              "delta": 0.2575,
+              "iv_rank": 0.3537,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "XLF",
+              "contract_symbol": "XLF260828C00058000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 58.0,
+              "forge_score": 0.3518,
+              "effective_candidate_score": 0.3171,
+              "learned_rank_score": 0.3518,
+              "final_candidate_score": 0.3518,
+              "risk_adjusted_score": 0.3171,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.4847,
+              "friction_buffer_pct": 0.3597,
+              "prob_no_trade": 0.7251,
+              "scout_no_trade_prob": 0.2214,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 48.0,
+              "spread_pct": 0.087,
+              "delta": 0.477,
+              "iv_rank": 0.3754,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "GLD",
+              "contract_symbol": "GLD260828C00410000",
+              "option_type": "call",
+              "expiry": "2026-08-28",
+              "strike": 410.0,
+              "forge_score": 0.3471,
+              "effective_candidate_score": 0.306,
+              "learned_rank_score": 0.3471,
+              "final_candidate_score": 0.3471,
+              "risk_adjusted_score": 0.306,
+              "utility_after_friction_score": 0.0,
+              "expected_edge_after_friction_pct": -0.5192,
+              "friction_buffer_pct": 0.332,
+              "prob_no_trade": 0.8135,
+              "scout_no_trade_prob": 0.1052,
+              "prob_fill_quality_ok": 0.9999,
+              "sentinel_confidence": 0.4346,
+              "sentinel_no_trade_relevance": 0.6695,
+              "sentinel_no_trade_pressure": 0.291,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 250.0,
+              "spread_pct": 0.0408,
+              "delta": 0.2678,
+              "iv_rank": 0.2687,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "market_shock:constructive_risk_on",
+                "model_no_trade"
+              ]
+            }
+          ],
           "symbol_probation": []
         }
       },
       "notes": [
         "Market-shock overlay active: constructive_risk_on severity=0.06 stance=allow.",
         "Allow standard live selection with normal high-extrinsic discipline.",
-        "Council abstained because no contract cleared the live board threshold.",
+        "Side-balance guard demoted an over-concentrated position to shadow.",
         "Council is operating under a risk-on market regime."
       ]
     }
   },
-  "top_live_board": [],
+  "top_live_board": [
+    {
+      "symbol": "XLP",
+      "contract_symbol": "XLP260828C00084500",
+      "option_type": "call",
+      "expiry": "2026-08-28",
+      "strike": 84.5,
+      "forge_score": 0.7861,
+      "policy_score": 0.8783,
+      "risk_adjusted_score": 0.8783,
+      "final_candidate_score": 0.7861,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.8697,
+      "expected_edge_after_friction_pct": 0.2259,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.1303,
+      "scout_no_trade_prob": 0.2747,
+      "no_trade_pressure": 0.291,
+      "sentinel_confidence": 0.4346,
+      "sentinel_no_trade_relevance": 0.6695,
+      "sentinel_no_trade_pressure": 0.291,
+      "path_holding_quality_score": 0.7287,
+      "path_early_profit_take_prob": 0.7715,
+      "path_decay_risk": 0.0,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 188.0,
+      "council_risk_flags": [
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "time-value burden is acceptable",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.13, fill 1.00, path 0.73",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    }
+  ],
   "top_shadow_board": [],
-  "council_holdouts": [],
-  "friction_vetoes": [],
+  "council_holdouts": [
+    {
+      "symbol": "XLP",
+      "contract_symbol": "XLP260828C00086500",
+      "option_type": "call",
+      "expiry": "2026-08-28",
+      "strike": 86.5,
+      "forge_score": 0.8401,
+      "policy_score": 0.887,
+      "risk_adjusted_score": 0.887,
+      "final_candidate_score": 0.8401,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.9208,
+      "expected_edge_after_friction_pct": 0.4721,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.0792,
+      "scout_no_trade_prob": 0.2747,
+      "no_trade_pressure": 0.291,
+      "sentinel_confidence": 0.4346,
+      "sentinel_no_trade_relevance": 0.6695,
+      "sentinel_no_trade_pressure": 0.291,
+      "path_holding_quality_score": 0.9112,
+      "path_early_profit_take_prob": 0.7779,
+      "path_decay_risk": 0.0,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 67.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.08, fill 1.00, path 0.91",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
+    {
+      "symbol": "XLE",
+      "contract_symbol": "XLE260828C00064000",
+      "option_type": "call",
+      "expiry": "2026-08-28",
+      "strike": 64.0,
+      "forge_score": 0.8336,
+      "policy_score": 0.8771,
+      "risk_adjusted_score": 0.8771,
+      "final_candidate_score": 0.8336,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.946,
+      "expected_edge_after_friction_pct": 0.2905,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.054,
+      "scout_no_trade_prob": 0.2373,
+      "no_trade_pressure": 0.291,
+      "sentinel_confidence": 0.4346,
+      "sentinel_no_trade_relevance": 0.6695,
+      "sentinel_no_trade_pressure": 0.291,
+      "path_holding_quality_score": 0.829,
+      "path_early_profit_take_prob": 0.5724,
+      "path_decay_risk": 0.0,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 83.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.05, fill 1.00, path 0.83",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
+    {
+      "symbol": "XOM",
+      "contract_symbol": "XOM260828C00167500",
+      "option_type": "call",
+      "expiry": "2026-08-28",
+      "strike": 167.5,
+      "forge_score": 0.7377,
+      "policy_score": 0.566,
+      "risk_adjusted_score": 0.566,
+      "final_candidate_score": 0.7377,
+      "utility_after_friction_score": 0.131,
+      "payoff_edge_score": 0.8088,
+      "expected_edge_after_friction_pct": -0.1476,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.1912,
+      "scout_no_trade_prob": 0.1819,
+      "no_trade_pressure": 0.291,
+      "sentinel_confidence": 0.4346,
+      "sentinel_no_trade_relevance": 0.6695,
+      "sentinel_no_trade_pressure": 0.291,
+      "path_holding_quality_score": 0.8495,
+      "path_early_profit_take_prob": 0.8457,
+      "path_decay_risk": 0.1653,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 208.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model ranker active",
+        "Turnover penalty applied (0.02) because post-friction edge is thin",
+        "Forge multi-head active: no-trade 0.19, fill 1.00, path 0.85",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
+    {
+      "symbol": "DIA",
+      "contract_symbol": "DIA260828C00538000",
+      "option_type": "call",
+      "expiry": "2026-08-28",
+      "strike": 538.0,
+      "forge_score": 0.7371,
+      "policy_score": 0.8213,
+      "risk_adjusted_score": 0.8213,
+      "final_candidate_score": 0.7371,
+      "utility_after_friction_score": 0.9077,
+      "payoff_edge_score": 0.7193,
+      "expected_edge_after_friction_pct": 0.1631,
+      "prob_fill_quality_ok": 0.9999,
+      "prob_no_trade": 0.2807,
+      "scout_no_trade_prob": 0.2155,
+      "no_trade_pressure": 0.291,
+      "sentinel_confidence": 0.4346,
+      "sentinel_no_trade_relevance": 0.6695,
+      "sentinel_no_trade_pressure": 0.291,
+      "path_holding_quality_score": 0.8709,
+      "path_early_profit_take_prob": 0.7442,
+      "path_decay_risk": 0.1071,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 209.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.28, fill 1.00, path 0.87",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260828C00302500",
+      "option_type": "call",
+      "expiry": "2026-08-28",
+      "strike": 302.5,
+      "forge_score": 0.7207,
+      "policy_score": 0.7458,
+      "risk_adjusted_score": 0.7458,
+      "final_candidate_score": 0.7207,
+      "utility_after_friction_score": 0.7208,
+      "payoff_edge_score": 0.7524,
+      "expected_edge_after_friction_pct": 0.0883,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.2476,
+      "scout_no_trade_prob": 0.1924,
+      "no_trade_pressure": 0.291,
+      "sentinel_confidence": 0.4346,
+      "sentinel_no_trade_relevance": 0.6695,
+      "sentinel_no_trade_pressure": 0.291,
+      "path_holding_quality_score": 0.772,
+      "path_early_profit_take_prob": 0.722,
+      "path_decay_risk": 0.1887,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 231.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "market_shock:constructive_risk_on"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_week catalyst vs 10 DTE",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.25, fill 1.00, path 0.77",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    }
+  ],
+  "counterfactual_observation": {
+    "execution_effect": "none_observation_only",
+    "live_policy_effect": "none",
+    "council_eligible": false,
+    "tradier_routing_eligible": false,
+    "candidates": []
+  },
+  "friction_vetoes": [
+    {
+      "symbol": "XOM",
+      "contract_symbol": "XOM260828C00167500",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.1476,
+      "friction_buffer_pct": 0.3401,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.7377,
+      "learned_rank_score": 0.7377,
+      "contract_cost": 208.0,
+      "spread_pct": 0.0543,
+      "delta": 0.3847
+    },
+    {
+      "symbol": "DIS",
+      "contract_symbol": "DIS260828C00107000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.2241,
+      "friction_buffer_pct": 0.3624,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6694,
+      "learned_rank_score": 0.6694,
+      "contract_cost": 80.0,
+      "spread_pct": 0.0915,
+      "delta": 0.2962
+    },
+    {
+      "symbol": "BAC",
+      "contract_symbol": "BAC260828C00065000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.1273,
+      "friction_buffer_pct": 0.3361,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6677,
+      "learned_rank_score": 0.6677,
+      "contract_cost": 43.0,
+      "spread_pct": 0.0476,
+      "delta": 0.3217
+    },
+    {
+      "symbol": "XLE",
+      "contract_symbol": "XLE260828C00062000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.0404,
+      "friction_buffer_pct": 0.0999,
+      "extrinsic_ratio": 0.2748,
+      "forge_score": 0.6617,
+      "learned_rank_score": 0.6617,
+      "contract_cost": 202.0,
+      "spread_pct": 0.0665,
+      "delta": 0.7317
+    },
+    {
+      "symbol": "IWM",
+      "contract_symbol": "IWM260828C00302000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.0832,
+      "friction_buffer_pct": 0.3217,
+      "extrinsic_ratio": 1.0,
+      "forge_score": 0.6436,
+      "learned_rank_score": 0.6436,
+      "contract_cost": 256.0,
+      "spread_pct": 0.0237,
+      "delta": 0.4534
+    }
+  ],
   "pre_forge_rejections": [
     {
-      "symbol": "COF",
+      "symbol": "XLI",
       "reason": "liquidity_gate",
       "expiry": "2026-08-28",
       "long_leg_cap": 2.75,
@@ -253,18 +1048,18 @@
       "expiry_attempts": [
         {
           "expiry": "2026-08-28",
-          "reason": "spread_cap",
-          "rows_after_basic": 30,
-          "rows_positive_bid_ask": 28,
-          "rows_within_long_leg_cap": 7,
-          "rows_within_spread_cap": 0,
+          "reason": "liquidity",
+          "rows_after_basic": 61,
+          "rows_positive_bid_ask": 57,
+          "rows_within_long_leg_cap": 19,
+          "rows_within_spread_cap": 4,
           "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         }
       ]
     },
     {
-      "symbol": "COP",
+      "symbol": "XLY",
       "reason": "liquidity_gate",
       "expiry": "2026-08-28",
       "long_leg_cap": 2.25,
@@ -272,33 +1067,52 @@
       "expiry_attempts": [
         {
           "expiry": "2026-08-28",
-          "reason": "spread_cap",
-          "rows_after_basic": 38,
-          "rows_positive_bid_ask": 38,
-          "rows_within_long_leg_cap": 10,
-          "rows_within_spread_cap": 0,
+          "reason": "liquidity",
+          "rows_after_basic": 49,
+          "rows_positive_bid_ask": 37,
+          "rows_within_long_leg_cap": 12,
+          "rows_within_spread_cap": 3,
           "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    },
+    {
+      "symbol": "ANET",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-28",
+      "long_leg_cap": 2.75,
+      "spread_cap": 0.18,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-28",
+          "reason": "moneyness",
+          "rows_after_basic": 53,
+          "rows_positive_bid_ask": 45,
+          "rows_within_long_leg_cap": 14,
+          "rows_within_spread_cap": 3,
+          "rows_passing_liquidity": 2,
           "rows_passing_moneyness": 0
         }
       ]
     }
   ],
   "profitability_evidence": {
-    "shadow_window_runs": 245,
-    "disagreement_observations": 9051,
-    "directional_disagreements": 2820,
-    "tracked_recommendation_runs": 190,
-    "tracked_recommendations": 1679,
-    "tracked_live_recommendations": 19,
+    "shadow_window_runs": 246,
+    "disagreement_observations": 9129,
+    "directional_disagreements": 2836,
+    "tracked_recommendation_runs": 191,
+    "tracked_recommendations": 1706,
+    "tracked_live_recommendations": 20,
     "tracked_shadow_recommendations": 473,
-    "tracked_holdouts": 249,
-    "tracked_friction_vetoes": 938,
+    "tracked_holdouts": 253,
+    "tracked_friction_vetoes": 946,
     "outcomes_complete": 962,
     "outcomes_partial": 39,
-    "outcomes_pending": 678,
-    "capture_policy_v2_picks": 31,
-    "capture_windows_valid": 0,
-    "capture_windows_quote_missing": 47,
+    "outcomes_pending": 705,
+    "capture_policy_v2_picks": 58,
+    "capture_windows_valid": 47,
+    "capture_windows_quote_missing": 0,
     "capture_windows_stale_quote": 0,
     "capture_windows_missed": 31,
     "quote_coverage_pct": 1.0,
@@ -312,11 +1126,11 @@
     "shadow_friday_close_avg_pnl_pct": 0.1891,
     "holdout_friday_close_avg_pnl_pct": 0.0636,
     "friction_veto_friday_close_avg_pnl_pct": 0.2785,
-    "research_runs": 190,
+    "research_runs": 191,
     "research_abstain_runs": 171,
-    "board_runs": 239,
+    "board_runs": 240,
     "board_abstain_runs": 203,
-    "moonshot_tracked_candidates": 442,
+    "moonshot_tracked_candidates": 446,
     "moonshot_friday_close_avg_pnl_pct": -0.0256,
     "canonical_baseline": {
       "backtest": {
@@ -337,7 +1151,7 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-18T14:09:25+00:00",
+      "generated_at_utc": "2026-08-18T17:40:29+00:00",
       "as_of_utc": "2026-08-14T17:09:13+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
@@ -366,11 +1180,11 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-18T14:09:23+00:00",
+        "prospective_ledger_updated_at_utc": "2026-08-18T17:40:27+00:00",
         "eligible_marked_recommendations": 293,
-        "shadow_ledger_updated_at_utc": "2026-08-18T14:09:23+00:00",
-        "shadow_runs": 245,
-        "shadow_disagreements": 9051
+        "shadow_ledger_updated_at_utc": "2026-08-18T17:40:27+00:00",
+        "shadow_runs": 246,
+        "shadow_disagreements": 9129
       },
       "windows": [
         {
@@ -693,7 +1507,7 @@
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-18T14:09:24+00:00",
+      "generated_at_utc": "2026-08-18T17:40:28+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -711,110 +1525,66 @@
         }
       },
       "coverage": {
-        "scored_recommendations": 16,
-        "older_model_scored_recommendations_excluded": 0,
-        "resolved_recommendations": 7,
-        "resolved_runs": 4,
-        "decision_disagreements": 5,
-        "stored_broad_disagreements": 6,
-        "unresolved_scored_recommendations": 9,
+        "scored_recommendations": 5,
+        "older_model_scored_recommendations_excluded": 16,
+        "resolved_recommendations": 0,
+        "resolved_runs": 0,
+        "decision_disagreements": 0,
+        "stored_broad_disagreements": 0,
+        "unresolved_scored_recommendations": 5,
         "friday_capture_valid": 0,
         "friday_capture_missed": 0,
-        "friday_capture_quote_missing_retryable": 7,
+        "friday_capture_quote_missing_retryable": 0,
         "friday_capture_integrity_pct": null
       },
       "overall": {
         "active": {
-          "observations": 7,
-          "positive_rate": 0.1429,
-          "auc": 0.1667,
-          "brier": 0.3927,
-          "log_loss": 1.0138
+          "observations": 0,
+          "positive_rate": null,
+          "auc": null,
+          "brier": null,
+          "log_loss": null
         },
         "challenger": {
-          "observations": 7,
-          "positive_rate": 0.1429,
-          "auc": 0.6667,
-          "brier": 0.1224,
-          "log_loss": 0.4022
+          "observations": 0,
+          "positive_rate": null,
+          "auc": null,
+          "brier": null,
+          "log_loss": null
         },
         "baseline": {
-          "positive_rate": 0.1429,
-          "brier": 0.1224
+          "positive_rate": null,
+          "brier": null
         }
       },
       "disagreement_cohort": {
-        "rows": 5,
-        "active_accuracy": 0,
-        "challenger_accuracy": 1,
-        "avg_net_executable_return": -0.3914
+        "rows": 0,
+        "active_accuracy": null,
+        "challenger_accuracy": null,
+        "avg_net_executable_return": null
       },
       "rank_replay": {
-        "eligible_complete_runs": 2,
-        "incomplete_runs_excluded": 2,
-        "single_candidate_runs_excluded": 3,
-        "selection_disagreements": 1,
-        "active_top1_avg_net_return": -0.1648,
-        "shadow_top1_avg_net_return": -0.4297,
+        "eligible_complete_runs": 0,
+        "incomplete_runs_excluded": 1,
+        "single_candidate_runs_excluded": 0,
+        "selection_disagreements": 0,
+        "active_top1_avg_net_return": null,
+        "shadow_top1_avg_net_return": null,
         "paired_inference": {
-          "observations": 2,
-          "mean_lift": -0.26494,
+          "observations": 0,
+          "mean_lift": null,
           "confidence_interval_95": {
-            "lower": -0.529881,
-            "upper": 0.0
+            "lower": null,
+            "upper": null
           },
-          "probability_positive": 0.0,
+          "probability_positive": null,
           "method": "paired-run nonparametric bootstrap",
           "resamples": 4000
         },
         "selection_policy": "top one active-payoff versus challenger probability per run from the identical fully resolved, post-friction candidate set"
       },
-      "by_side": {
-        "call": {
-          "rows": 7,
-          "active": {
-            "observations": 7,
-            "positive_rate": 0.1429,
-            "auc": 0.1667,
-            "brier": 0.3927,
-            "log_loss": 1.0138
-          },
-          "challenger": {
-            "observations": 7,
-            "positive_rate": 0.1429,
-            "auc": 0.6667,
-            "brier": 0.1224,
-            "log_loss": 0.4022
-          },
-          "baseline": {
-            "positive_rate": 0.1429,
-            "brier": 0.1224
-          }
-        }
-      },
-      "by_regime": {
-        "risk_on": {
-          "rows": 7,
-          "active": {
-            "observations": 7,
-            "positive_rate": 0.1429,
-            "auc": 0.1667,
-            "brier": 0.3927,
-            "log_loss": 1.0138
-          },
-          "challenger": {
-            "observations": 7,
-            "positive_rate": 0.1429,
-            "auc": 0.6667,
-            "brier": 0.1224,
-            "log_loss": 0.4022
-          },
-          "baseline": {
-            "positive_rate": 0.1429,
-            "brier": 0.1224
-          }
-        }
-      },
+      "by_side": {},
+      "by_regime": {},
       "gates": {
         "sample": {
           "resolved_recommendations": false,
@@ -826,7 +1596,7 @@
           "friday_capture_integrity": false
         },
         "performance": {
-          "discrimination_non_worse": true,
+          "discrimination_non_worse": false,
           "calibration_skill": false,
           "rank_replay_positive": false,
           "side_stability": false,
@@ -846,28 +1616,28 @@
         ],
         "progress": {
           "resolved_recommendations": {
-            "current": 7,
+            "current": 0,
             "required": 100,
-            "remaining": 93,
-            "progress_pct": 0.07
+            "remaining": 100,
+            "progress_pct": 0.0
           },
           "resolved_runs": {
-            "current": 4,
+            "current": 0,
             "required": 30,
-            "remaining": 26,
-            "progress_pct": 0.1333
+            "remaining": 30,
+            "progress_pct": 0.0
           },
           "decision_disagreements": {
-            "current": 5,
+            "current": 0,
             "required": 30,
-            "remaining": 25,
-            "progress_pct": 0.1667
+            "remaining": 30,
+            "progress_pct": 0.0
           },
           "call_rows": {
-            "current": 7,
+            "current": 0,
             "required": 30,
-            "remaining": 23,
-            "progress_pct": 0.2333
+            "remaining": 30,
+            "progress_pct": 0.0
           },
           "put_rows": {
             "current": 0,
@@ -882,16 +1652,16 @@
             "progress_pct": 0.0
           },
           "complete_rank_replay_runs": {
-            "current": 2,
+            "current": 0,
             "required": 30,
-            "remaining": 28,
-            "progress_pct": 0.0667
+            "remaining": 30,
+            "progress_pct": 0.0
           }
         },
         "capture_integrity": {
           "valid": 0,
           "missed": 0,
-          "quote_missing_retryable": 7,
+          "quote_missing_retryable": 0,
           "observed_windows": 0,
           "actual_pct": null,
           "required_pct": 0.95,
@@ -901,14 +1671,854 @@
       },
       "source": {
         "artifact": "prospective_pick_ledger",
-        "schema_version": 3,
-        "updated_at_utc": "2026-08-18T14:09:23+00:00"
+        "schema_version": 4,
+        "updated_at_utc": "2026-08-18T17:40:27+00:00"
       },
       "model_cohort": {
-        "artifact_sha256": "4e856718ee45a4cefc456b70554073d2c849972b5414621401c1b94194e6810b",
+        "artifact_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
         "policy": "analyze only the latest observed challenger artifact; never pool model versions"
       },
       "replay_command": "python scripts/build_payoff_challenger_evidence.py"
+    },
+    "counterfactual_veto_evidence": {
+      "artifact": "counterfactual_scout_veto_evidence",
+      "schema_version": 1,
+      "generated_at_utc": "2026-08-18T17:40:28+00:00",
+      "decision": "collecting_evidence",
+      "execution_effect": "none_advisory_only",
+      "policy": {
+        "cohort": "Forge-ranked live, shadow, Council-holdout, and counterfactual-observation candidates",
+        "label": "strict Friday-close executable outcome v2 or newer",
+        "independence_unit": "first recommendation per Central trading date, symbol, and option contract",
+        "inference_unit": "market-day cluster",
+        "current_rule": {
+          "no_trade_probability_gte": 0.7,
+          "no_trade_margin_over_active_direction_gte": 0.2,
+          "required_preferred_class": "no_trade"
+        },
+        "scope_limit": "Conditional on reaching Forge; this artifact does not estimate outcomes for symbols never ranked by Forge.",
+        "authority": "May recommend a policy review only; cannot alter thresholds, Council eligibility, or Tradier routing."
+      },
+      "coverage": {
+        "raw_scored_recommendations": 392,
+        "independent_recommendations": 280,
+        "repeated_scan_rows_excluded": 112,
+        "older_side_model_rows_excluded": 0,
+        "resolved_recommendations": 6,
+        "current_rule_vetoes": 0,
+        "resolved_current_rule_vetoes": 0,
+        "independent_veto_trading_days": 0,
+        "friday_capture_valid": 6,
+        "friday_capture_missed": 0,
+        "friday_capture_quote_missing_retryable": 0,
+        "friday_capture_integrity_pct": 1.0
+      },
+      "current_rule": {
+        "no_trade_threshold": 0.7,
+        "margin_threshold": 0.2,
+        "vetoed": {
+          "observations": 0,
+          "resolved": 0,
+          "trading_days": 0,
+          "mean_net_executable_return": null,
+          "median_net_executable_return": null,
+          "positive_rate": null,
+          "mean_net_executable_pnl_usd": null
+        },
+        "retained": {
+          "observations": 280,
+          "resolved": 6,
+          "trading_days": 3,
+          "mean_net_executable_return": -0.413745,
+          "median_net_executable_return": -0.469486,
+          "positive_rate": 0.1667,
+          "mean_net_executable_pnl_usd": -84.6667
+        },
+        "veto_benefit": {
+          "trading_days": 0,
+          "mean_avoided_net_return": null,
+          "confidence_interval_95": {
+            "lower": null,
+            "upper": null
+          },
+          "probability_positive": null,
+          "method": "market-day clustered nonparametric bootstrap",
+          "resamples": 4000
+        }
+      },
+      "threshold_frontier": [
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 2,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 278,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.5,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.6,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.08,
+            "median_net_executable_return": -0.08,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -2.0
+          },
+          "retained": {
+            "observations": 279,
+            "resolved": 5,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.480494,
+            "median_net_executable_return": -0.734426,
+            "positive_rate": 0.2,
+            "mean_net_executable_pnl_usd": -101.2
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.08,
+            "confidence_interval_95": {
+              "lower": 0.08,
+              "upper": 0.08
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.7,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.8,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.0,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.1,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.2,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        },
+        {
+          "no_trade_threshold": 0.9,
+          "margin_threshold": 0.3,
+          "vetoed": {
+            "observations": 0,
+            "resolved": 0,
+            "trading_days": 0,
+            "mean_net_executable_return": null,
+            "median_net_executable_return": null,
+            "positive_rate": null,
+            "mean_net_executable_pnl_usd": null
+          },
+          "retained": {
+            "observations": 280,
+            "resolved": 6,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.413745,
+            "median_net_executable_return": -0.469486,
+            "positive_rate": 0.1667,
+            "mean_net_executable_pnl_usd": -84.6667
+          },
+          "veto_benefit": {
+            "trading_days": 0,
+            "mean_avoided_net_return": null,
+            "confidence_interval_95": {
+              "lower": null,
+              "upper": null
+            },
+            "probability_positive": null,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000
+          }
+        }
+      ],
+      "walk_forward_threshold_selection": {
+        "eligible_folds": 0,
+        "folds": [],
+        "out_of_fold_vetoes": {
+          "observations": 0,
+          "resolved": 0,
+          "trading_days": 0,
+          "mean_net_executable_return": null,
+          "median_net_executable_return": null,
+          "positive_rate": null,
+          "mean_net_executable_pnl_usd": null
+        },
+        "out_of_fold_veto_benefit": {
+          "trading_days": 0,
+          "mean_avoided_net_return": null,
+          "confidence_interval_95": {
+            "lower": null,
+            "upper": null
+          },
+          "probability_positive": null,
+          "method": "market-day clustered nonparametric bootstrap",
+          "resamples": 4000
+        },
+        "method": "five-block expanding walk-forward; one trading-day embargo; threshold selected on training dates only"
+      },
+      "current_rule_by_side": {},
+      "current_rule_by_regime": {},
+      "gates": {
+        "sample": {
+          "resolved_current_rule_vetoes": false,
+          "independent_trading_days": false,
+          "call_coverage": false,
+          "put_coverage": false,
+          "regime_coverage": false,
+          "friday_capture_integrity": true,
+          "walk_forward_folds": false
+        },
+        "performance": {
+          "current_rule_avoids_losses": false,
+          "bootstrap_probability_positive": false,
+          "walk_forward_out_of_fold_positive": false
+        }
+      },
+      "readiness": {
+        "sample_ready": false,
+        "blocking_sample_gates": [
+          "resolved_current_rule_vetoes",
+          "independent_trading_days",
+          "call_coverage",
+          "put_coverage",
+          "regime_coverage",
+          "walk_forward_folds"
+        ],
+        "progress": {
+          "resolved_current_rule_vetoes": {
+            "current": 0,
+            "required": 100,
+            "remaining": 100,
+            "progress_pct": 0.0
+          },
+          "independent_trading_days": {
+            "current": 0,
+            "required": 30,
+            "remaining": 30,
+            "progress_pct": 0.0
+          },
+          "call_rows": {
+            "current": 0,
+            "required": 20,
+            "remaining": 20,
+            "progress_pct": 0.0
+          },
+          "put_rows": {
+            "current": 0,
+            "required": 20,
+            "remaining": 20,
+            "progress_pct": 0.0
+          },
+          "qualified_regimes": {
+            "current": 0,
+            "required": 2,
+            "remaining": 2,
+            "progress_pct": 0.0
+          },
+          "walk_forward_folds": {
+            "current": 0,
+            "required": 3,
+            "remaining": 3,
+            "progress_pct": 0.0
+          }
+        },
+        "next_action": "Capture more strict Friday-close outcomes for independent current-rule veto observations."
+      },
+      "model_cohort": {
+        "scout_side_model_sha256": "bb097b2db11d5de3b124a98cc9dbb8537910cb9a2589f9d8ef815f6802ed53f8",
+        "policy": "analyze only the latest observed side-model artifact; never pool model versions"
+      },
+      "source": {
+        "artifact": "prospective_pick_ledger",
+        "schema_version": 4,
+        "updated_at_utc": "2026-08-18T17:40:27+00:00"
+      },
+      "replay_command": "python scripts/build_counterfactual_veto_evidence.py"
     }
   }
 }
