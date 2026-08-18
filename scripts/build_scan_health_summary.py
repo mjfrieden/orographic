@@ -86,6 +86,9 @@ def _ledger_health(path: Path) -> dict[str, Any]:
         "capture_windows_quote_missing": _int(outcome.get("capture_windows_quote_missing")),
         "capture_windows_stale_quote": _int(outcome.get("capture_windows_stale_quote")),
         "capture_windows_missed": _int(outcome.get("capture_windows_missed")),
+        "capture_windows_newly_missed_last_run": _int(last_mark.get("capture_windows_newly_missed")),
+        "capture_windows_quote_missing_last_run": _int(last_mark.get("capture_windows_quote_missing")),
+        "capture_windows_stale_quote_last_run": _int(last_mark.get("capture_windows_stale_quote")),
         "trajectory_scored_picks": _int(outcome.get("trajectory_scored_picks")),
         "trajectory_marks": _int(outcome.get("trajectory_marks")),
         "trajectory_picks_with_4_marks": _int(outcome.get("trajectory_picks_with_4_marks")),
@@ -111,6 +114,7 @@ def build_scan_health_summary(
     moonshot_dataset: Path,
     combined_dataset: Path,
     canonical_manifest: Path | None = None,
+    cirrus_materialization: Path | None = None,
     output: Path | None = None,
     max_run_age_minutes: int = 240,
     min_quote_coverage_pct: float = 0.95,
@@ -137,6 +141,7 @@ def build_scan_health_summary(
     archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
     canonical = _load_json(canonical_manifest) if canonical_manifest is not None else {}
     canonical_evidence = canonical.get("evidence") if isinstance(canonical.get("evidence"), dict) else {}
+    cirrus = _load_json(cirrus_materialization) if cirrus_materialization is not None else {}
 
     recommendation_rows = _dataset_rows(recommendation_dataset)
     moonshot_rows = _dataset_rows(moonshot_dataset)
@@ -189,6 +194,18 @@ def build_scan_health_summary(
         prospective["capture_windows_quote_missing"] + moonshot["capture_windows_quote_missing"]
     )
     stale_quote_windows = prospective["capture_windows_stale_quote"] + moonshot["capture_windows_stale_quote"]
+    newly_missed_windows = (
+        prospective["capture_windows_newly_missed_last_run"]
+        + moonshot["capture_windows_newly_missed_last_run"]
+    )
+    current_retryable_missing_windows = (
+        prospective["capture_windows_quote_missing_last_run"]
+        + moonshot["capture_windows_quote_missing_last_run"]
+    )
+    current_stale_quote_windows = (
+        prospective["capture_windows_stale_quote_last_run"]
+        + moonshot["capture_windows_stale_quote_last_run"]
+    )
     trajectory_active = prospective["trajectory_active_picks_last_run"] + moonshot["trajectory_active_picks_last_run"]
     trajectory_written = prospective["trajectory_marks_written_last_run"] + moonshot["trajectory_marks_written_last_run"]
     trajectory_missing = prospective["trajectory_quotes_missing_last_run"] + moonshot["trajectory_quotes_missing_last_run"]
@@ -204,10 +221,14 @@ def build_scan_health_summary(
     _check(
         checks,
         "outcome_capture_timing_integrity",
-        missed_capture_windows == 0 and stale_quote_windows == 0,
-        missed_windows=missed_capture_windows,
-        retryable_quote_missing_windows=retryable_missing_windows,
-        stale_quote_windows=stale_quote_windows,
+        newly_missed_windows == 0 and current_stale_quote_windows == 0,
+        newly_missed_windows=newly_missed_windows,
+        retryable_quote_missing_windows=current_retryable_missing_windows,
+        stale_quote_windows=current_stale_quote_windows,
+        historical_missed_windows=missed_capture_windows,
+        historical_retryable_quote_missing_windows=retryable_missing_windows,
+        historical_stale_quote_windows=stale_quote_windows,
+        note="Historical capture debt remains visible but does not make a healthy current run fail.",
     )
     _check(
         checks,
@@ -262,6 +283,30 @@ def build_scan_health_summary(
             bundle_id=canonical.get("bundle_id"),
             inputs_readable=canonical_checks.get("inputs_readable"),
         )
+    if cirrus_materialization is not None:
+        cirrus_checks = cirrus.get("checks") if isinstance(cirrus.get("checks"), dict) else {}
+        expected_quote_rows = _int(
+            canonical_evidence.get("cumulative_inventory", {}).get("option_quote_rows")
+            if isinstance(canonical_evidence.get("cumulative_inventory"), dict) else 0
+        )
+        _check(
+            checks,
+            "cirrus_materialization_valid",
+            cirrus_materialization.exists()
+            and cirrus.get("status") == "passed"
+            and cirrus.get("canonical_bundle_id") == canonical.get("bundle_id")
+            and _int(cirrus.get("rows")) == expected_quote_rows
+            and cirrus_checks.get("canonical_bundle_valid") is True
+            and cirrus_checks.get("row_count_matches") is True
+            and cirrus_checks.get("partition_count_matches") is True
+            and cirrus_checks.get("stale_partitions_replaced") is True,
+            path=str(cirrus_materialization),
+            bundle_id=cirrus.get("canonical_bundle_id"),
+            expected_bundle_id=canonical.get("bundle_id"),
+            rows=_int(cirrus.get("rows")),
+            expected_rows=expected_quote_rows,
+            latest_quote_date=cirrus.get("latest_quote_date"),
+        )
     _check(
         checks,
         "dashboard_push_completed",
@@ -282,6 +327,16 @@ def build_scan_health_summary(
     )
 
     failed = [check for check in checks if not check["passed"]]
+    warnings: list[dict[str, Any]] = []
+    event_feed_status = str(audit_summary.get("event_feed_status") or "unknown").lower()
+    if event_feed_status not in {"unknown", "healthy", "success", "passed"}:
+        warnings.append({
+            "name": "event_feed_delivery_degraded",
+            "status": event_feed_status,
+            "new_rows": _int(audit_summary.get("event_feed_new_rows")),
+            "http_429_responses": _int(audit_summary.get("event_feed_http_429_responses")),
+            "note": "Market and option collection can remain healthy while event evidence is degraded.",
+        })
     report = {
         "artifact": "scan_health_summary",
         "schema_version": 1,
@@ -310,6 +365,9 @@ def build_scan_health_summary(
             "capture_windows_missed": missed_capture_windows,
             "capture_windows_quote_missing": retryable_missing_windows,
             "capture_windows_stale_quote": stale_quote_windows,
+            "capture_windows_newly_missed_last_run": newly_missed_windows,
+            "capture_windows_quote_missing_last_run": current_retryable_missing_windows,
+            "capture_windows_stale_quote_last_run": current_stale_quote_windows,
             "trajectory_active_picks_last_run": trajectory_active,
             "trajectory_marks_written_last_run": trajectory_written,
             "trajectory_quotes_missing_last_run": trajectory_missing,
@@ -329,6 +387,7 @@ def build_scan_health_summary(
             "evidence_lifecycle": canonical_evidence,
             "canonical_bundle_id": canonical.get("bundle_id"),
             "canonical_manifest_path": str(canonical_manifest) if canonical_manifest is not None else None,
+            "cirrus_materialization": cirrus,
         },
         "publishing": {
             "dashboard_push_status": dashboard_push_status,
@@ -337,6 +396,7 @@ def build_scan_health_summary(
         },
         "checks": checks,
         "failed_checks": failed,
+        "warnings": warnings,
     }
     if output is not None:
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -355,6 +415,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--moonshot-dataset", type=Path, default=Path("output/research_datasets/moonshot_outcomes.parquet"))
     parser.add_argument("--combined-dataset", type=Path, default=Path("output/research_datasets/all_recommendation_outcomes.parquet"))
     parser.add_argument("--canonical-manifest", type=Path, default=Path("output/canonical_evidence/evidence_manifest.json"))
+    parser.add_argument(
+        "--cirrus-materialization",
+        type=Path,
+        default=Path("engine/data/options/blended/partitioned/canonical_materialization.json"),
+    )
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/scan_health_summary.json"))
     parser.add_argument("--max-run-age-minutes", type=int, default=240)
     parser.add_argument("--min-quote-coverage-pct", type=float, default=0.95)
@@ -378,6 +443,7 @@ def main() -> int:
         moonshot_dataset=args.moonshot_dataset,
         combined_dataset=args.combined_dataset,
         canonical_manifest=args.canonical_manifest,
+        cirrus_materialization=args.cirrus_materialization,
         output=args.output,
         max_run_age_minutes=max(int(args.max_run_age_minutes), 1),
         min_quote_coverage_pct=max(min(float(args.min_quote_coverage_pct), 1.0), 0.0),

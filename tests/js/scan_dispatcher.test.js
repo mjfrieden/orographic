@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import worker, {
+  dispatchOutcomeCapture,
   dispatchScan,
   dispatchUrl,
+  isChicagoOutcomeCaptureSlot,
   isChicagoScanSlot,
 } from "../../workers/scan-dispatcher/src/index.js";
 
@@ -12,6 +14,14 @@ test("recognizes Chicago scan slots across daylight saving time", () => {
   assert.equal(isChicagoScanSlot(Date.parse("2026-01-05T15:07:00Z")), true);
   assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T15:07:00Z")), false);
   assert.equal(isChicagoScanSlot(Date.parse("2026-08-02T14:07:00Z")), false);
+});
+
+test("recognizes five-minute Chicago outcome capture slots", () => {
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T13:30:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T14:30:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T13:27:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T20:15:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T13:30:00Z")), false);
 });
 
 test("does not dispatch for paired UTC hours outside a Chicago scan slot", async () => {
@@ -46,6 +56,50 @@ test("dispatches the main workflow with authenticated GitHub headers", async () 
   assert.equal(captured.init.method, "POST");
   assert.equal(captured.init.headers.Authorization, "Bearer secret");
   assert.deepEqual(JSON.parse(captured.init.body), { ref: "main" });
+});
+
+test("dispatches the configured outcome workflow", async () => {
+  let captured;
+  await dispatchOutcomeCapture(
+    {
+      GITHUB_DISPATCH_TOKEN: "secret",
+      GITHUB_OUTCOME_WORKFLOW: "capture.yml",
+    },
+    async (url, init) => {
+      captured = { url, init };
+      return new Response(null, { status: 204 });
+    },
+    "2026-08-03T13:30:00.000Z"
+  );
+
+  assert.match(captured.url, /workflows\/capture\.yml\/dispatches$/);
+  assert.deepEqual(JSON.parse(captured.init.body).inputs, {
+    scheduled_time_utc: "2026-08-03T13:30:00.000Z",
+    scheduler: "cloudflare_cron",
+  });
+});
+
+test("dispatches a scan at its seven-minute slot", async () => {
+  const urls = [];
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    urls.push(url);
+    return new Response(null, { status: 204 });
+  };
+  try {
+    let pending;
+    await worker.scheduled(
+      { cron: "*", scheduledTime: Date.parse("2026-08-03T14:07:00Z") },
+      { GITHUB_DISPATCH_TOKEN: "secret" },
+      { waitUntil: (promise) => { pending = promise; } }
+    );
+    await pending;
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+
+  assert.equal(urls.length, 1);
+  assert.match(urls[0], /orographic_scan\.yml/);
 });
 
 test("fails clearly when the dispatch credential is absent", async () => {

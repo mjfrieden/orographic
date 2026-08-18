@@ -246,7 +246,18 @@ class EvidenceStoreTests(unittest.TestCase):
             )
             self.assertTrue(partition.exists())
             self.assertEqual(result["rows"], 1)
+            self.assertEqual(result["expected_rows"], 1)
+            self.assertEqual(result["status"], "passed")
             self.assertEqual(len(pd.read_parquet(partition)), 1)
+
+            stale = root / "cirrus" / "partitioned" / "quote_date=1999-01-01" / "underlying_symbol=OLD" / "chain.parquet"
+            stale.parent.mkdir(parents=True)
+            pd.DataFrame([{"contract_symbol": "OLD"}]).to_parquet(stale, index=False)
+            materialize_cirrus_archive(
+                canonical_dir=canonical,
+                output_dir=root / "cirrus" / "partitioned",
+            )
+            self.assertFalse(stale.exists())
 
 
 if __name__ == "__main__":

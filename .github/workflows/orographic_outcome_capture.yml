@@ -2,10 +2,18 @@ name: Orographic Outcome Capture
 
 on:
   workflow_dispatch:
-  schedule:
-    # Covers US market hours across daylight/standard time. The marker captures
-    # fresh trajectories for active contracts and strict fixed-exit windows.
-    - cron: "*/15 13-22 * * 1-5"
+    inputs:
+      scheduled_time_utc:
+        description: "Cloudflare scheduler timestamp used to measure dispatch delay"
+        required: false
+        type: string
+      scheduler:
+        description: "Dispatch authority"
+        required: false
+        type: string
+  # Cloudflare's durable cron dispatcher invokes this workflow every five
+  # minutes during the Chicago market session. Keeping a single timing
+  # authority avoids duplicate jobs and GitHub schedule jitter.
 
 concurrency:
   group: orographic-research-write-${{ github.ref }}
@@ -94,6 +102,8 @@ jobs:
             --prospective-step-status "${{ steps.capture_prospective.outcome }}" \
             --moonshot-step-status "${{ steps.capture_moonshot.outcome }}" \
             --evidence-step-status "${{ steps.refresh_evidence.outcome }}" \
+            --scheduled-at-utc "${{ inputs.scheduled_time_utc }}" \
+            --scheduler "${{ inputs.scheduler || 'manual' }}" \
             --output web/data/diagnostics/outcome_capture_health_latest.json
           python scripts/build_model_governance_summary.py \
             --capture-health web/data/diagnostics/outcome_capture_health_latest.json
