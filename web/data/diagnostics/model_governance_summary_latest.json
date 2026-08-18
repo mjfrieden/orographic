@@ -1,9 +1,9 @@
 {
   "artifact": "model_governance_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-18T17:36:24.469359Z",
-  "status": "hold",
-  "headline": "Production policy is unchanged while challengers collect binding evidence.",
+  "generated_at_utc": "2026-08-18T17:46:14.448163Z",
+  "status": "fail",
+  "headline": "Research data capture needs attention; challenger authority remains disabled.",
   "live_authority": {
     "policy": "active_production_models_only",
     "challenger_order_routing": false,
@@ -12,16 +12,48 @@
     "summary": "No research challenger can size, select, or transmit a Tradier order."
   },
   "data_capture": {
-    "status": "pass",
-    "headline": "Captured fresh path marks for 30 active contracts.",
-    "active_contracts_last_run": 30,
-    "marks_written_last_run": 30,
-    "trajectory_contracts": 30,
-    "trajectory_marks": 120,
+    "status": "fail",
+    "headline": "Active contracts are missing fresh, timestamp-valid path evidence.",
+    "active_contracts_last_run": 61,
+    "marks_written_last_run": 60,
+    "trajectory_contracts": 61,
+    "trajectory_marks": 210,
     "missing_quotes_last_run": 0,
-    "stale_quotes_last_run": 0,
-    "evidence_inventory": {},
-    "canonical_bundle_id": null
+    "stale_quotes_last_run": 1,
+    "evidence_inventory": {
+      "cumulative_inventory": {
+        "moonshot": {
+          "recommendations": 450,
+          "runs": 150,
+          "strict_capture_policy_v2": 24,
+          "with_any_executable_label": 118,
+          "with_any_fixed_mark": 434,
+          "with_friday_executable_label": 63
+        },
+        "option_quote_rows": 101979,
+        "primary": {
+          "recommendations": 1733,
+          "runs": 192,
+          "strict_capture_policy_v2": 85,
+          "with_any_executable_label": 30,
+          "with_any_fixed_mark": 1001,
+          "with_friday_executable_label": 10
+        },
+        "recommendation_outcome_rows": 813
+      },
+      "current_model_cohort": {
+        "artifact_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
+        "resolved_recommendations": 0,
+        "resolved_runs": 0,
+        "scored_recommendations": 5
+      },
+      "training_eligible": {
+        "deduplicated_recommendation_outcomes": 813,
+        "primary_recommendations_with_executable_label": 30,
+        "strict_capture_policy_v2_primary_recommendations": 85
+      }
+    },
+    "canonical_bundle_id": "9af9a7f8c9e80ffdbc1b"
   },
   "challengers": [
     {
@@ -78,10 +110,10 @@
       "execution_effect": "none",
       "summary": "Predicts after-cost return quantiles, breakeven probability, and fill quality.",
       "progress": {
-        "current": 7,
+        "current": 0,
         "required": 100,
-        "remaining": 93,
-        "progress_pct": 0.07,
+        "remaining": 100,
+        "progress_pct": 0.0,
         "label": "resolved prospective recommendations"
       },
       "metrics": [
@@ -136,7 +168,7 @@
       "metrics": [
         {
           "label": "Independent scored",
-          "value": 275,
+          "value": 280,
           "format": "integer"
         },
         {
