@@ -99,6 +99,57 @@ class PayoffModelTests(unittest.TestCase):
         self.assertTrue(all(candidate.payoff_shadow_disagreement for candidate in candidates))
         self.assertTrue(all(candidate.payoff_shadow_artifact_sha256 for candidate in candidates))
 
+    def test_cost_aware_shadow_emits_monotone_quantiles_without_changing_live_order(self) -> None:
+        candidates = [_candidate("call", 0.4, 0.63), _candidate("put", -0.4, 0.47)]
+        shadow_features = ["option_type_is_call", "moneyness", "dte"]
+        X = feature_matrix(
+            candidates,
+            MarketRegime("neutral", 0.0, "SPY"),
+            as_of=date(2026, 4, 18),
+            feature_cols=shadow_features,
+        )
+        positive = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(2, dtype=int))
+        fill = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(2, dtype=int))
+        target = DummyClassifier(strategy="constant", constant=1).fit(X, np.ones(2, dtype=int))
+        bundle = {
+            "positive_classifier": positive,
+            "fill_quality_classifier": fill,
+            "path_take_profit_classifier": target,
+            # Deliberately crossed to verify the inference-time monotonic projection.
+            "return_quantile_10_regressor": DummyRegressor(strategy="constant", constant=0.60).fit(X, np.ones(2)),
+            "return_quantile_50_regressor": DummyRegressor(strategy="constant", constant=0.10).fit(X, np.ones(2)),
+            "return_quantile_90_regressor": DummyRegressor(strategy="constant", constant=0.40).fit(X, np.ones(2)),
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            shadow_path = Path(tmpdir) / "cost_aware_shadow.pkl"
+            joblib.dump(
+                {
+                    "mode": "observation_only_never_used_for_routing",
+                    "feature_cols": shadow_features,
+                    "global": bundle,
+                    "by_side": {},
+                    "metadata": {"label_means": {}},
+                },
+                shadow_path,
+            )
+            score_candidates(
+                candidates,
+                MarketRegime("neutral", 0.0, "SPY"),
+                as_of=date(2026, 4, 18),
+                model_path=Path(tmpdir) / "missing_active.pkl",
+                shadow_model_path=shadow_path,
+            )
+
+        self.assertEqual([candidate.forge_score for candidate in candidates], [0.63, 0.47])
+        for candidate in candidates:
+            self.assertEqual(candidate.payoff_shadow_return_q10, 0.10)
+            self.assertEqual(candidate.payoff_shadow_return_q50, 0.40)
+            self.assertEqual(candidate.payoff_shadow_return_q90, 0.60)
+            self.assertEqual(candidate.payoff_shadow_prob_fill_quality, 1.0)
+            self.assertEqual(candidate.payoff_shadow_prob_target_before_stop, 1.0)
+            self.assertEqual(candidate.payoff_shadow_conservative_utility, 0.10)
+            self.assertEqual(candidate.payoff_shadow_mode, "observation_only")
+
     def test_artifact_can_score_in_shadow_mode(self) -> None:
         candidates = [_candidate("call", 0.4, 0.51), _candidate("put", -0.5, 0.49)]
         X = feature_matrix(candidates, MarketRegime("neutral", 0.0, "SPY"), as_of=date(2026, 4, 18), feature_cols=FEATURE_COLS)
@@ -249,6 +300,17 @@ class PayoffModelTests(unittest.TestCase):
         candidate.sentinel_no_trade_relevance = 0.05
         candidate.sentinel_spot_effect = 1.0
         candidate.sentinel_iv_effect = 0.0
+        candidate.surface_atm_iv = 0.30
+        candidate.surface_skew_slope = -0.15
+        candidate.surface_curvature = 0.9
+        candidate.surface_put_call_wing_skew = 0.04
+        candidate.surface_term_slope_30d = 0.03
+        candidate.surface_fit_rmse = 0.012
+        candidate.surface_observation_count = 20
+        candidate.iv_relative_to_atm = 0.02
+        candidate.iv_minus_realized_vol = 0.10
+        candidate.quote_spread_dollars = 0.10
+        candidate.last_trade_age_seconds = 60.0
 
         row = feature_row(candidate, MarketRegime("risk_on", 0.3, "SPY"), as_of=date(2026, 4, 18))
 
@@ -262,6 +324,13 @@ class PayoffModelTests(unittest.TestCase):
         self.assertEqual(row["sentinel_side_relevance"], 0.9)
         self.assertEqual(row["sentinel_spot_effect"], 1.0)
         self.assertEqual(row["sentinel_iv_effect"], 0.0)
+        self.assertEqual(row["surface_available"], 1.0)
+        self.assertEqual(row["surface_atm_iv"], 0.30)
+        self.assertEqual(row["surface_skew_slope"], -0.15)
+        self.assertEqual(row["surface_term_slope_30d"], 0.03)
+        self.assertEqual(row["iv_relative_to_atm"], 0.02)
+        self.assertGreater(row["surface_observation_count_log"], 3.0)
+        self.assertGreater(row["last_trade_age_log_seconds"], 4.0)
 
 
 if __name__ == "__main__":

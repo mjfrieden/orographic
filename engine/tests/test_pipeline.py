@@ -13,10 +13,13 @@ import pandas as pd
 from engine.orographic.forge import _apply_pre_council_gate, _dedupe_candidates, rank_contracts_with_diagnostics, select_signals_for_forge
 from engine.orographic.market_shock import MarketShockRegime
 from engine.orographic.pipeline import (
+    _build_manual_trade_pick,
+    _configured_model_stack,
     _fail_closed_model_modes,
     _load_prior_live_board_symbols,
     _model_artifact_status,
     _model_mode_status,
+    _partition_shadow_veto_signals,
     _promotion_gate_decision,
     append_board_recommendation_history,
     append_moonshot_prospective_ledger,
@@ -78,7 +81,49 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
     )
 
 
+class UnifiedModelStackTests(unittest.TestCase):
+    def test_pipeline_defaults_to_one_unified_lane(self) -> None:
+        config = PipelineConfig(universe=["AAPL"])
+        self.assertEqual(config.model_stack, "unified_rnd")
+        self.assertEqual(config.shadow_size, 0)
+        self.assertEqual(config.counterfactual_observation_size, 0)
+        self.assertFalse(config.preserve_shadow_veto_live_policy)
+        self.assertTrue(config.paired_side_capture_enabled)
+
+    def test_current_gated_context_overrides_and_restores_external_stack(self) -> None:
+        with mock.patch.dict(os.environ, {"OROGRAPHIC_MODEL_STACK": "unified_rnd"}, clear=False):
+            with _configured_model_stack("current_gated", "not_ready"):
+                self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "current_gated")
+                self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
+            self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "unified_rnd")
+
+
 class PipelineTests(unittest.TestCase):
+    def test_manual_trade_pick_uses_only_council_approved_contract(self) -> None:
+        lower = {"symbol": "AAA", "contract_symbol": "AAA260821C00100000", "forge_score": 0.61}
+        best = {"symbol": "BBB", "contract_symbol": "BBB260821P00200000", "forge_score": 0.79}
+
+        pick = _build_manual_trade_pick(
+            council_payload={"live_board": [lower, best], "shadow_board": []},
+            forge_candidates=[lower, best],
+            counterfactual_candidates=[],
+        )
+
+        self.assertEqual(pick["candidate"]["contract_symbol"], best["contract_symbol"])
+        self.assertEqual(pick["model_recommendation"], "trade")
+        self.assertTrue(pick["manual_entry_available"])
+        self.assertTrue(pick["automatic_routing_eligible"])
+        self.assertFalse(pick["requires_manual_override_confirmation"])
+
+    def test_manual_trade_pick_rejects_every_non_council_candidate(self) -> None:
+        research = {"symbol": "CCC", "contract_symbol": "CCC260821C00300000", "forge_score": 0.55}
+        pick = _build_manual_trade_pick(
+            council_payload={"live_board": [], "shadow_board": []},
+            forge_candidates=[],
+            counterfactual_candidates=[research],
+        )
+        self.assertIsNone(pick)
+
     def test_payoff_volatility_challenger_is_optional_and_observation_only(self) -> None:
         artifacts = _model_artifact_status()
 
@@ -130,7 +175,7 @@ class PipelineTests(unittest.TestCase):
             "summary": {"candidate_count": 0, "live_count": 0, "shadow_count": 0, "notes": []},
         }
 
-        def scan_in_shadow(_universe):
+        def scan_in_shadow(_universe, **_kwargs):
             self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
             self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "shadow")
             self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "shadow")
@@ -163,6 +208,7 @@ class PipelineTests(unittest.TestCase):
             ):
                 payload = run_scan(PipelineConfig(
                     universe=["AAA"],
+                    model_stack="current_gated",
                     board_history_path=None,
                     promotion_comparison_path=comparison_path,
                 ))
@@ -207,6 +253,119 @@ class PipelineTests(unittest.TestCase):
         universe = load_universe(None)
         self.assertEqual(len(universe), 100)
         self.assertEqual(universe[:4], ["SPY", "QQQ", "IWM", "DIA"])
+
+    def test_shadow_veto_signals_are_partitioned_into_research_only_cohort(self) -> None:
+        live = _signal("AAA")
+        research = _signal("BBB")
+        policy_hold = _signal("CCC")
+        diagnostics = {
+            "side_aware_scores": [
+                {"symbol": "AAA", "shadow_guard_would_veto": False},
+                {"symbol": "BBB", "shadow_guard_would_veto": True},
+                {"symbol": "CCC", "policy_held_candidate": True},
+            ]
+        }
+
+        live_rows, research_rows = _partition_shadow_veto_signals([live, research, policy_hold], diagnostics)
+
+        self.assertEqual([row.symbol for row in live_rows], ["AAA"])
+        self.assertEqual([row.symbol for row in research_rows], ["BBB", "CCC"])
+
+        live_rows, research_rows = _partition_shadow_veto_signals(
+            [live, research, policy_hold],
+            diagnostics,
+            include_shadow_veto=False,
+        )
+        self.assertEqual([row.symbol for row in live_rows], ["AAA", "BBB"])
+        self.assertEqual([row.symbol for row in research_rows], ["CCC"])
+
+    def test_deprecated_alternate_lane_settings_cannot_split_the_candidate_surface(self) -> None:
+        research_signal = _signal("BBB")
+        candidate_payload = {
+            "symbol": "BBB",
+            "contract_symbol": "BBB260821C00100000",
+            "option_type": "call",
+            "expiry": "2026-08-21",
+            "strike": 100.0,
+            "bid": 1.0,
+            "ask": 1.2,
+            "last": 1.1,
+            "contract_cost": 120.0,
+            "spread_pct": 0.1667,
+            "open_interest": 400,
+            "volume": 100,
+            "forge_score": 0.72,
+            "friction_gate_passed": True,
+            "notes": [],
+        }
+        candidate = mock.Mock(
+            forge_score=0.72,
+            to_dict=lambda: candidate_payload,
+        )
+        council_payload = {
+            "live_board": [],
+            "shadow_board": [],
+            "abstain": True,
+            "summary": {"candidate_count": 1, "live_count": 0, "shadow_count": 0, "notes": []},
+        }
+
+        def rank(signals, *_args, **_kwargs):
+            return ([candidate], {"waterfall": {}, "learned_ranker": {}}) if signals else (
+                [],
+                {"waterfall": {}, "learned_ranker": {}},
+            )
+
+        def council(candidates, *_args, **_kwargs):
+            self.assertEqual(candidates, [candidate])
+            return mock.Mock(to_dict=lambda: council_payload, live_board=[], abstain=True)
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(
+                    MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                    [research_signal],
+                    {
+                        "pre_veto_direction_counts": {"call": 1, "put": 0},
+                        "final_direction_counts": {"call": 1, "put": 0},
+                        "counter_regime_survivors": 0,
+                        "shadow_side_veto_observations": 1,
+                        "shadow_side_veto_rejections": 0,
+                        "side_aware_scores": [
+                            {"symbol": "BBB", "shadow_guard_would_veto": True}
+                        ],
+                    },
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_signals_for_forge",
+                side_effect=lambda signals, **_kwargs: (list(signals), {}),
+            ),
+            mock.patch("engine.orographic.pipeline.rank_contracts_with_diagnostics", side_effect=rank),
+            mock.patch("engine.orographic.pipeline.select_board", side_effect=council),
+            mock.patch(
+                "engine.orographic.pipeline.select_moonshot_lane",
+                return_value={"picks": [], "shadow": [], "summary": {"pick_count": 0, "eligible_count": 0}},
+            ),
+        ):
+            payload = run_scan(
+                PipelineConfig(
+                    universe=["BBB"],
+                    counterfactual_observation_size=1,
+                    model_stack="current_gated",
+                    board_history_path=None,
+                )
+            )
+
+        lane = payload["counterfactual_observation_lane"]
+        self.assertFalse(lane["council_eligible"])
+        self.assertFalse(lane["tradier_routing_eligible"])
+        self.assertEqual(lane["mode"], "deprecated_empty_schema_compatibility")
+        self.assertEqual(lane["candidates"], [])
+        self.assertEqual(payload["forge_candidates"], [candidate_payload])
+        self.assertEqual(payload["council"]["live_board"], [])
+        ledger_entry = build_prospective_pick_ledger_entry(payload)
+        self.assertEqual(ledger_entry["summary"]["counterfactual_observation"], 0)
 
     def test_run_scan_defaults_to_recovered_dte_window(self) -> None:
         signal = _signal("AAA")
@@ -256,6 +415,10 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["scan_settings"]["moonshot_size"], 1)
         self.assertEqual(payload["scan_settings"]["moonshot_threshold"], 0.68)
         self.assertEqual(payload["scan_settings"]["moonshot_max_cost_basis"], 225.0)
+        self.assertEqual(payload["scan_settings"]["moonshot_lane_role"], "visible_experimental_side_pick")
+        self.assertEqual(payload["scan_settings"]["moonshot_primary_ensemble_effect"], "none")
+        self.assertEqual(payload["scan_settings"]["moonshot_outcome_tracking"], "moonshot_prospective_ledger")
+        self.assertTrue(payload["scan_settings"]["paired_side_capture_enabled"])
         self.assertEqual(payload["moonshot_lane"]["summary"]["pick_count"], 0)
         self.assertEqual(select_signals_mock.call_args.kwargs["target_count"], 12)
         self.assertEqual(select_signals_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
@@ -263,6 +426,9 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rank_contracts_mock.call_args.kwargs["minimum_days_to_expiry"], 7)
         self.assertEqual(rank_contracts_mock.call_args.kwargs["maximum_days_to_expiry"], 14)
         self.assertFalse(rank_contracts_mock.call_args.kwargs["enforce_pre_council_friction_gate"])
+        self.assertTrue(
+            rank_contracts_mock.call_args.kwargs["capture_paired_side_observations"]
+        )
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_live_score"], 0.86)
         self.assertEqual(select_board_mock.call_args.kwargs["minimum_put_live_score"], 0.84)
         self.assertEqual(select_board_mock.call_args.kwargs["max_live_extrinsic_ratio"], 0.90)
@@ -270,6 +436,106 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["market_shock"]["label"], "normal_crosscurrents")
         self.assertEqual(payload["diagnostics"]["market_shock"]["mode"], "active")
         self.assertEqual(select_board_mock.call_args.kwargs["market_shock"], self.market_shock)
+
+    def test_run_scan_reuses_matching_forge_contract_in_paired_capture(self) -> None:
+        signal = _signal("AAA")
+        call = {
+            "symbol": "AAA",
+            "contract_symbol": "AAA-CALL",
+            "option_type": "call",
+            "expiry": "2026-04-17",
+            "strike": 100.0,
+            "bid": 1.0,
+            "ask": 1.1,
+            "forge_score": 0.9,
+            "notes": [],
+        }
+        pair_metadata = {
+            "pair_id": "PAIR-1",
+            "method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+            "execution_effect": "none_research_only",
+        }
+        pair_call = {**call, "paired_side_observation": pair_metadata}
+        pair_put = {
+            **call,
+            "contract_symbol": "AAA-PUT",
+            "option_type": "put",
+            "paired_side_observation": pair_metadata,
+        }
+        candidate = mock.Mock(
+            forge_score=0.9,
+            to_dict=lambda: dict(call),
+        )
+        council_payload = {
+            "live_board": [call],
+            "shadow_board": [],
+            "abstain": False,
+            "summary": {"candidate_count": 1, "live_count": 1, "shadow_count": 0},
+        }
+
+        with (
+            mock.patch(
+                "engine.orographic.pipeline.scan_symbols_with_diagnostics",
+                return_value=(
+                    MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                    [signal],
+                    {
+                        "pre_veto_direction_counts": {"call": 1},
+                        "final_direction_counts": {"call": 1},
+                        "counter_regime_survivors": 0,
+                    },
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_signals_for_forge",
+                return_value=([signal], {}),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.rank_contracts_with_diagnostics",
+                return_value=(
+                    [candidate],
+                    {
+                        "waterfall": {},
+                        "learned_ranker": {},
+                        "paired_side_observations": [pair_call, pair_put],
+                        "paired_side_capture": {"pair_count": 1},
+                    },
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_board",
+                return_value=mock.Mock(
+                    to_dict=lambda: council_payload,
+                    live_board=[candidate],
+                    abstain=False,
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.pipeline.select_moonshot_lane",
+                return_value={
+                    "picks": [],
+                    "shadow": [],
+                    "summary": {"pick_count": 0, "eligible_count": 0},
+                },
+            ),
+        ):
+            payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None))
+
+        self.assertEqual(
+            payload["forge_candidates"][0]["paired_side_observation"]["pair_id"],
+            "PAIR-1",
+        )
+        self.assertEqual(
+            [
+                row["contract_symbol"]
+                for row in payload["paired_side_observation_set"]["contracts"]
+            ],
+            ["AAA-PUT"],
+        )
+        ledger_entry = build_prospective_pick_ledger_entry(payload)
+        self.assertEqual(len(ledger_entry["picks"]), 2)
+        self.assertEqual(len({row["contract_symbol"] for row in ledger_entry["picks"]}), 2)
+        self.assertEqual(ledger_entry["summary"]["paired_side_pair_member"], 2)
 
     def test_pre_forge_gate_skips_illiquid_signals_and_backfills_next_names(self) -> None:
         signals = [_signal("AAA"), _signal("BBB"), _signal("CCC")]
@@ -425,6 +691,74 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(candidates[0].sentinel_holding_window_label, "mismatch")
         self.assertEqual(diagnostics["per_symbol"][0]["sentinel_holding_window_label"], "mismatch")
         self.assertIn("Sentinel shadow mismatch", " ".join(candidates[0].notes))
+
+    def test_forge_scores_complete_chain_and_attaches_surface_telemetry(self) -> None:
+        signal = _signal("AAA")
+        calls = pd.DataFrame([
+            {"contractSymbol": f"AAA260417C{strike:08d}", "bid": bid, "ask": ask, "lastPrice": (bid + ask) / 2,
+             "strike": strike / 1000, "openInterest": 600, "volume": 150, "impliedVolatility": iv,
+             "lastTradeDate": "2026-04-10T14:00:00Z"}
+            for strike, bid, ask, iv in [
+                (98000, 1.30, 1.38, 0.29),
+                (100000, 1.00, 1.08, 0.25),
+                (102000, 0.72, 0.79, 0.24),
+            ]
+        ])
+        puts = pd.DataFrame([
+            {"contractSymbol": f"AAA260417P{strike:08d}", "bid": 0.8, "ask": 0.88, "lastPrice": 0.84,
+             "strike": strike / 1000, "openInterest": 600, "volume": 150, "impliedVolatility": iv}
+            for strike, iv in [(94000, 0.34), (97000, 0.29), (100000, 0.26)]
+        ])
+
+        with (
+            mock.patch("engine.orographic.forge.option_expiries", return_value=["2026-04-17"]),
+            mock.patch("engine.orographic.forge.option_chain", return_value=(calls, puts)),
+            mock.patch("engine.orographic.forge.fetch_risk_free_rate", return_value=0.04),
+            mock.patch("engine.orographic.forge.compute_iv_rank", return_value=0.35),
+            mock.patch(
+                "engine.orographic.payoff_model.score_candidates",
+                side_effect=lambda candidates, regime, as_of=None, prior_live_board_symbols=None, turnover_switch_penalty=0.03: None,
+            ),
+            mock.patch("engine.orographic.forge.date") as date_mock,
+        ):
+            date_mock.today.return_value = date(2026, 4, 10)
+            date_mock.fromisoformat.side_effect = date.fromisoformat
+            candidates, diagnostics = rank_contracts_with_diagnostics(
+                [signal],
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                minimum_days_to_expiry=7,
+                maximum_days_to_expiry=7,
+            )
+            disabled_candidates, disabled_diagnostics = rank_contracts_with_diagnostics(
+                [signal],
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                minimum_days_to_expiry=7,
+                maximum_days_to_expiry=7,
+                capture_paired_side_observations=False,
+            )
+
+        self.assertEqual(diagnostics["per_symbol"][0]["final_candidates"], 3)
+        # Council-facing deduplication keeps one structure, but Forge must
+        # score all three eligible contracts before that policy is applied.
+        self.assertEqual(len(candidates), 1)
+        self.assertTrue(all(candidate.surface_atm_iv is not None for candidate in candidates))
+        self.assertTrue(all(candidate.surface_observation_count == 5 for candidate in candidates))
+        self.assertTrue(all(candidate.quote_mid is not None for candidate in candidates))
+        self.assertTrue(all(candidate.quote_spread_dollars is not None for candidate in candidates))
+        self.assertTrue(all(candidate.chain_snapshot_at_utc for candidate in candidates))
+        paired = diagnostics["paired_side_observations"]
+        self.assertEqual(len(paired), 2)
+        self.assertEqual({row["option_type"] for row in paired}, {"call", "put"})
+        self.assertEqual(
+            len({row["paired_side_observation"]["pair_id"] for row in paired}),
+            1,
+        )
+        self.assertEqual(diagnostics["paired_side_capture"]["pair_count"], 1)
+        self.assertFalse(diagnostics["paired_side_capture"]["eligible_for_council"])
+        self.assertNotIn("put", {candidate.option_type for candidate in candidates})
+        self.assertEqual(len(disabled_candidates), len(candidates))
+        self.assertEqual(disabled_diagnostics["paired_side_observations"], [])
+        self.assertEqual(disabled_diagnostics["paired_side_capture"]["mode"], "disabled")
 
     def test_build_forge_rejection_waterfall_artifact_summarizes_rejections(self) -> None:
         payload = {
@@ -666,6 +1000,17 @@ class PipelineTests(unittest.TestCase):
             "rank_replay": {"eligible_complete_runs": 4},
             "readiness": {"next_action": "Capture strict Friday-close executable labels."},
         }
+        veto_evidence = {
+            "artifact": "counterfactual_scout_veto_evidence",
+            "decision": "collecting_evidence",
+            "coverage": {
+                "independent_recommendations": 44,
+                "resolved_current_rule_vetoes": 9,
+                "independent_veto_trading_days": 6,
+            },
+            "current_rule": {"veto_benefit": {"mean_avoided_net_return": 0.07}},
+            "readiness": {"next_action": "Capture more strict Friday-close outcomes."},
+        }
 
         with tempfile.TemporaryDirectory() as tmpdir:
             prospective_path = Path(tmpdir) / "prospective.json"
@@ -675,6 +1020,7 @@ class PipelineTests(unittest.TestCase):
             board_path = Path(tmpdir) / "board.json"
             comparison_path = Path(tmpdir) / "comparison.json"
             challenger_evidence_path = Path(tmpdir) / "challenger.json"
+            veto_evidence_path = Path(tmpdir) / "veto.json"
             prospective_path.write_text(json.dumps(prospective), encoding="utf-8")
             moonshot_path.write_text(json.dumps(moonshot), encoding="utf-8")
             shadow_path.write_text(json.dumps(shadow), encoding="utf-8")
@@ -682,6 +1028,7 @@ class PipelineTests(unittest.TestCase):
             board_path.write_text(json.dumps(board), encoding="utf-8")
             comparison_path.write_text(json.dumps(comparison), encoding="utf-8")
             challenger_evidence_path.write_text(json.dumps(challenger_evidence), encoding="utf-8")
+            veto_evidence_path.write_text(json.dumps(veto_evidence), encoding="utf-8")
 
             payload = {
                 "model_modes": {"payoff_ranker": "active"},
@@ -693,6 +1040,7 @@ class PipelineTests(unittest.TestCase):
                     "board_history": str(board_path),
                     "promotion_comparison": str(comparison_path),
                     "payoff_challenger_evidence": str(challenger_evidence_path),
+                    "counterfactual_veto_evidence": str(veto_evidence_path),
                 },
                 "diagnostics": {
                     "scout": {"side_aware_scores": [], "sentinel_scores": []},
@@ -708,6 +1056,11 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(models["Payoff Ranker"]["mode"], "shadow")
         self.assertEqual(models["Payoff Ranker"]["live_realized_pnl"], 25.0)
+        self.assertEqual(models["Side-Aware Scout"]["veto_evidence_decision"], "collecting_evidence")
+        self.assertEqual(models["Side-Aware Scout"]["veto_independent_recommendations"], 44)
+        self.assertEqual(models["Side-Aware Scout"]["veto_resolved_current_rule"], 9)
+        self.assertEqual(models["Side-Aware Scout"]["veto_independent_trading_days"], 6)
+        self.assertEqual(models["Side-Aware Scout"]["veto_mean_avoided_net_return"], 0.07)
         self.assertEqual(models["Council Risk Intelligence"]["holdout_friday_close_avg_pnl_pct"], 0.25)
         self.assertEqual(readiness["profitability_summary"]["tracked_recommendations"], 3)
         self.assertEqual(readiness["profitability_summary"]["quote_coverage_pct"], 1.0)
@@ -716,6 +1069,8 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(readiness["profitability_summary"]["payoff_challenger_resolved"], 12)
         self.assertEqual(readiness["profitability_summary"]["payoff_challenger_replay_runs"], 4)
         self.assertEqual(readiness["profitability_summary"]["payoff_challenger_disagreements"], 7)
+        self.assertEqual(readiness["profitability_summary"]["counterfactual_veto_decision"], "collecting_evidence")
+        self.assertEqual(readiness["profitability_summary"]["counterfactual_veto_resolved"], 9)
         self.assertEqual(
             readiness["profitability_summary"]["payoff_challenger_next_action"],
             "Capture strict Friday-close executable labels.",
@@ -1057,7 +1412,9 @@ class PipelineTests(unittest.TestCase):
         self.assertIn("directional_scout", payload["model_modes"])
         self.assertIn("payoff_ranker", payload["model_modes"])
         self.assertIn("model_artifacts", payload["attribution"])
-        self.assertEqual(payload["attribution"]["scan_settings"]["shadow_size"], 1)
+        self.assertEqual(payload["attribution"]["scan_settings"]["shadow_size"], 0)
+        self.assertEqual(payload["scan_settings"]["production_lane_count"], 1)
+        self.assertEqual(payload["scan_settings"]["production_lane"], "council.live_board")
 
     def test_run_scan_passes_prior_live_board_symbols_into_council(self) -> None:
         signal = _signal("AAA")
@@ -1674,7 +2031,19 @@ class PipelineTests(unittest.TestCase):
 
         entry = build_prospective_pick_ledger_entry(payload)
 
-        self.assertEqual(entry["summary"], {"pick_rows": 4, "live": 1, "shadow": 1, "council_holdout": 1, "friction_veto": 1})
+        self.assertEqual(
+            entry["summary"],
+            {
+                "pick_rows": 4,
+                "live": 1,
+                "shadow": 1,
+                "council_holdout": 1,
+                "friction_veto": 1,
+                "counterfactual_observation": 0,
+                "paired_side_observation": 0,
+                "paired_side_pair_member": 0,
+            },
+        )
         lanes = {row["contract_symbol"]: row["lane"] for row in entry["picks"]}
         self.assertEqual(lanes, {"AAA1": "live", "BBB1": "shadow", "CCC1": "friction_veto", "DDD1": "council_holdout"})
         self.assertEqual(entry["picks"][0]["recommendation_id"], "2026-05-05T13:45:00+00:00|AAA1|live")
@@ -1701,7 +2070,7 @@ class PipelineTests(unittest.TestCase):
             rendered = json.loads(ledger_path.read_text(encoding="utf-8"))
 
         self.assertEqual(rendered["artifact"], "prospective_pick_ledger")
-        self.assertEqual(rendered["schema_version"], 3)
+        self.assertEqual(rendered["schema_version"], 4)
         self.assertEqual(rendered["payoff_shadow_policy"]["mode"], "observation_only")
         self.assertFalse(rendered["payoff_shadow_policy"]["affects_tradier_routing"])
         self.assertEqual(rendered["aggregate"]["runs"], 1)
@@ -1710,6 +2079,53 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(rendered["outcome_summary"]["pending"], 4)
         self.assertEqual(rendered["outcome_summary"]["payoff_shadow_scored"], 1)
         self.assertEqual(rendered["outcome_summary"]["payoff_shadow_disagreements"], 1)
+
+    def test_prospective_ledger_tracks_matched_side_pairs_without_routing_authority(self) -> None:
+        def paired(contract: str, option_type: str) -> dict[str, object]:
+            return {
+                "symbol": "AAA",
+                "contract_symbol": contract,
+                "option_type": option_type,
+                "expiry": "2026-05-15",
+                "strike": 100.0,
+                "bid": 1.0,
+                "ask": 1.1,
+                "scout_score": 0.6,
+                "paired_side_observation": {
+                    "pair_id": "AAA|2026-05-15|2026-05-05T13:45:00Z",
+                    "method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+                    "target_abs_delta": 0.35,
+                    "execution_effect": "none_research_only",
+                },
+            }
+
+        payload = {
+            "generated_at_utc": "2026-05-05T13:45:00+00:00",
+            "scout_signals": [{"symbol": "AAA", "spot": 101.25}],
+            "forge_candidates": [],
+            "council": {"live_board": [], "shadow_board": []},
+            "paired_side_observation_set": {
+                "mode": "research_only_outcome_capture",
+                "contracts": [paired("AAA-CALL", "call"), paired("AAA-PUT", "put")],
+            },
+        }
+
+        entry = build_prospective_pick_ledger_entry(payload)
+
+        self.assertEqual(entry["summary"]["paired_side_observation"], 2)
+        self.assertEqual(entry["summary"]["paired_side_pair_member"], 2)
+        self.assertEqual(entry["summary"]["live"], 0)
+        self.assertEqual(
+            {row["lane"] for row in entry["picks"]},
+            {"paired_side_observation"},
+        )
+        self.assertTrue(
+            all(
+                row["paired_side_observation"]["execution_effect"]
+                == "none_research_only"
+                for row in entry["picks"]
+            )
+        )
 
     def test_moonshot_prospective_ledger_records_pick_and_shadow_candidates(self) -> None:
         def moonshot_candidate(contract: str, *, eligible: bool, score: float) -> dict[str, object]:

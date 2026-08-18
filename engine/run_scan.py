@@ -25,6 +25,7 @@ from engine.orographic.pipeline import (
 )
 from engine.orographic.positions import append_position_history, fetch_position_snapshot
 from engine.orographic.payoff_challenger_evidence import write_payoff_challenger_evidence
+from engine.orographic.counterfactual_veto_evidence import write_counterfactual_veto_evidence
 from engine.orographic.promotion_comparison import write_promotion_comparison
 
 logging.basicConfig(
@@ -145,7 +146,12 @@ def parse_args() -> argparse.Namespace:
         help="Disable writing the rolling board recommendation history.",
     )
     parser.add_argument("--live-size", type=int, default=1)
-    parser.add_argument("--shadow-size", type=int, default=3)
+    parser.add_argument(
+        "--model-stack",
+        choices=("unified_rnd", "current_gated"),
+        default="unified_rnd",
+        help="Unified R&D runs all integrated models in one lane; current_gated preserves the old promotion-gated baseline.",
+    )
     parser.add_argument(
         "--forge-intake",
         type=int,
@@ -205,6 +211,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
     )
+    parser.add_argument(
+        "--no-paired-side-capture",
+        action="store_true",
+        help="Disable research-only matched call/put outcome capture for this scan.",
+    )
     return parser.parse_args()
 
 
@@ -219,8 +230,11 @@ def main() -> int:
         PipelineConfig(
             universe=universe,
             live_size=max(int(args.live_size), 1),
-            shadow_size=max(int(args.shadow_size), 1),
+            shadow_size=0,
             forge_intake=max(int(args.forge_intake), 1),
+            counterfactual_observation_size=0,
+            preserve_shadow_veto_live_policy=False,
+            model_stack=str(args.model_stack),
             minimum_days_to_expiry=max(int(args.minimum_days_to_expiry), 0),
             maximum_days_to_expiry=max(int(args.maximum_days_to_expiry), 0),
             minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
@@ -230,6 +244,7 @@ def main() -> int:
             moonshot_threshold=max(min(float(args.moonshot_threshold), 1.0), 0.0),
             moonshot_max_cost_basis=max(float(args.moonshot_max_cost_basis), 0.0),
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
+            paired_side_capture_enabled=not bool(args.no_paired_side_capture),
         )
     )
     diagnostic_sources: dict[str, str] = {}
@@ -313,6 +328,17 @@ def main() -> int:
                 "Updated payoff challenger prospective evidence at %s (%s).",
                 challenger_evidence_path,
                 challenger_evidence["decision"],
+            )
+            veto_evidence_path = Path(args.output).parent / "diagnostics" / "counterfactual_veto_evidence_latest.json"
+            veto_evidence = write_counterfactual_veto_evidence(
+                Path(prospective_source),
+                veto_evidence_path,
+            )
+            diagnostic_sources["counterfactual_veto_evidence"] = str(veto_evidence_path)
+            log.info(
+                "Updated advisory Scout veto evidence at %s (%s).",
+                veto_evidence_path,
+                veto_evidence["decision"],
             )
         if prospective_source and shadow_source:
             comparison_path = Path(args.output).parent / "diagnostics" / "promotion_shadow_active_comparison_latest.json"

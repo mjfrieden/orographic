@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/orographic-mark-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/orographic-apple-touch.png" />
     <link rel="stylesheet" href="/styles.css?v=20260808" />
-    <link rel="stylesheet" href="/cockpit.css?v=20260811a" />
+    <link rel="stylesheet" href="/cockpit.css?v=20260812c" />
   </head>
   <body class="cockpit-page">
     <nav class="cockpit-topbar" aria-label="Account and platform status">
@@ -41,6 +41,9 @@
       </div>
 
       <div class="top-actions">
+        <a class="quiet-button" href="/backtest/">
+          <span class="material-symbols-outlined" aria-hidden="true">science</span>Backtest Lab
+        </a>
         <span class="guarded-live"><span class="material-symbols-outlined" aria-hidden="true">verified_user</span>Guarded live</span>
         <button id="logout-btn" class="quiet-button" type="button">Log out</button>
       </div>
@@ -74,6 +77,19 @@
               Next<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
             </button>
           </div>
+
+          <section class="moonshot-side-lane" aria-labelledby="moonshot-side-title">
+            <header class="moonshot-side-head">
+              <div>
+                <p class="section-label">Moonshot Experiment</p>
+                <h2 id="moonshot-side-title">Visible side pick</h2>
+              </div>
+              <span class="moonshot-side-authority"><span class="material-symbols-outlined" aria-hidden="true">science</span>Tracked · non-routable</span>
+            </header>
+            <div id="moonshot-side-pick" class="moonshot-side-pick" aria-live="polite">
+              Waiting for the latest experimental pick…
+            </div>
+          </section>
         </article>
 
         <article class="book-pane" id="execution" aria-labelledby="positions-title">
@@ -173,6 +189,47 @@
           <div><strong>Reviewing claims</strong><span id="research-claims-message">Loading research readiness…</span></div>
         </div>
 
+        <section class="governance-overview" aria-label="Research governance overview">
+          <article id="governance-capture-card" class="governance-overview-card is-hold">
+            <span class="material-symbols-outlined" aria-hidden="true">sensors</span>
+            <div>
+              <small>Path data</small>
+              <strong id="governance-capture-status">Checking</strong>
+              <p id="governance-capture-note">Loading scheduled Tradier trajectory health…</p>
+            </div>
+          </article>
+          <article id="governance-challenger-card" class="governance-overview-card is-hold">
+            <span class="material-symbols-outlined" aria-hidden="true">experiment</span>
+            <div>
+              <small>Challenger queue</small>
+              <strong id="governance-challenger-status">Checking</strong>
+              <p id="governance-challenger-note">Loading promotion evidence…</p>
+            </div>
+          </article>
+          <article id="governance-authority-card" class="governance-overview-card is-pass">
+            <span class="material-symbols-outlined" aria-hidden="true">shield_lock</span>
+            <div>
+              <small>Live authority</small>
+              <strong id="governance-authority-status">Protected</strong>
+              <p id="governance-authority-note">Research models cannot route Tradier orders.</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="challenger-workspace" aria-labelledby="challenger-workspace-title">
+          <header class="challenger-workspace-head">
+            <div>
+              <span>Research lanes</span>
+              <h3 id="challenger-workspace-title">What needs evidence next?</h3>
+            </div>
+            <p id="governance-generated">Loading governance artifact…</p>
+          </header>
+          <div id="challenger-tabs" class="challenger-tabs" role="tablist" aria-label="Model challenger research lanes"></div>
+          <article id="challenger-detail" class="challenger-detail" role="tabpanel" aria-live="polite">
+            <p class="drawer-note">Loading challenger evidence…</p>
+          </article>
+        </section>
+
         <div class="drawer-grid">
           <article>
             <div class="drawer-section-head">
@@ -232,6 +289,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=20260808d"></script>
+    <script type="module" src="/app.js?v=20260812f"></script>
   </body>
 </html>

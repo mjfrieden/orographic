@@ -56,6 +56,7 @@ class LiveOptionsArchiveTests(unittest.TestCase):
                     "impliedVolatility": 0.4,
                     "openInterest": 500,
                     "volume": 100,
+                    "lastTradeDate": "2026-05-22T14:06:00Z",
                 }
             ]
         )
@@ -70,6 +71,7 @@ class LiveOptionsArchiveTests(unittest.TestCase):
                     "impliedVolatility": 0.42,
                     "openInterest": 400,
                     "volume": 80,
+                    "lastTradeDate": "2026-05-22T14:05:00Z",
                 }
             ]
         )
@@ -89,12 +91,19 @@ class LiveOptionsArchiveTests(unittest.TestCase):
             manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["summary"]["symbols_archived"], 1)
             self.assertEqual(manifest["summary"]["rows_archived"], 2)
+            self.assertEqual(manifest["schema_version"], 2)
+            self.assertEqual(manifest["summary"]["rows_with_two_sided_quotes"], 2)
+            self.assertEqual(manifest["summary"]["rows_with_valid_iv"], 2)
+            self.assertEqual(manifest["summary"]["rows_with_last_trade_timestamp"], 2)
             partition_path = Path(manifest["symbols"]["AAA"]["path"])
             self.assertTrue(partition_path.exists())
             archived = pd.read_parquet(partition_path)
 
         self.assertEqual(set(archived["option_type"].tolist()), {"C", "P"})
         self.assertEqual(archived["underlying_symbol"].iloc[0], "AAA")
+        self.assertIn("quote_spread_pct", archived.columns)
+        self.assertIn("chain_snapshot_at_utc", archived.columns)
+        self.assertEqual(sorted(archived["last_trade_age_seconds"].astype(int).tolist()), [60, 120])
 
 
 if __name__ == "__main__":

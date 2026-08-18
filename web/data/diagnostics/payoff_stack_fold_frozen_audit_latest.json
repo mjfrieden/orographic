@@ -1,0 +1,938 @@
+{
+  "artifact": "payoff_stack_fold_frozen_audit",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-15T23:07:22.430917Z",
+  "status": "hold_insufficient_window",
+  "execution_effect": "none_research_only",
+  "active_model_change_allowed": false,
+  "source": {
+    "input_files": [
+      "output/option_outcomes_live_recommendations.json"
+    ],
+    "input_artifacts": {
+      "output/option_outcomes_live_recommendations.json": "option_outcome_dataset"
+    },
+    "deduplicated_examples": 409
+  },
+  "methodology": {
+    "split": "expanding walk-forward grouped by decision date with labels purged by availability date",
+    "model_family": "pre-registered linear logistic + q10 quantile regression",
+    "weights": {
+      "primary": 0.6,
+      "path": 0.18,
+      "cost_rank": 0.14,
+      "conservative": 0.08
+    },
+    "selection": "one top-scored contract per validation decision date",
+    "fixed_artifact_warning": "fixed-artifact variants are diagnostic only and cannot satisfy promotion gates"
+  },
+  "coverage": {
+    "rows": 409,
+    "decision_dates": 26,
+    "first_decision_date": "2026-05-27",
+    "last_decision_date": "2026-07-17",
+    "history_days": 51,
+    "evaluated_validation_dates": 16,
+    "fixed_artifact_available": true
+  },
+  "sample_gates": {
+    "minimum_ready_folds": {
+      "passed": true,
+      "actual": 4,
+      "required": 3
+    },
+    "minimum_validation_dates": {
+      "passed": true,
+      "actual": 16,
+      "required": 15
+    },
+    "minimum_history_days": {
+      "passed": false,
+      "actual": 51,
+      "required": 90
+    },
+    "full_3_6_12_month_windows": {
+      "passed": false,
+      "actual_history_days": 51,
+      "windows": {
+        "3_month": {
+          "passed": false,
+          "required_days": 90
+        },
+        "6_month": {
+          "passed": false,
+          "required_days": 180
+        },
+        "12_month": {
+          "passed": false,
+          "required_days": 365
+        }
+      }
+    },
+    "validation_side_coverage": {
+      "passed": false,
+      "actual": {
+        "call": 16
+      },
+      "required_each": 5
+    },
+    "no_label_leakage": {
+      "passed": true
+    }
+  },
+  "folds": [
+    {
+      "fold": 1,
+      "ready": false,
+      "train_rows": 33,
+      "validation_rows": 114,
+      "train_side_counts": {
+        "call": 30,
+        "put": 3
+      },
+      "training_labels_available_through": "2026-06-08",
+      "validation_start": "2026-06-12",
+      "validation_end": "2026-06-26",
+      "training_evidence_sha256": "e751af20e525e6d9437afc816b1a84837d4535442b1b3ed31a7b3f9c81e0a211",
+      "validation_evidence_sha256": "b9fd2e0607b0a047ef18aeaa347bf1e569074f4b00adc32ab95ba40eb4407a14",
+      "artifact_policy": "fit once on purged training rows, freeze for the full validation block, then discard"
+    },
+    {
+      "fold": 2,
+      "ready": true,
+      "train_rows": 173,
+      "validation_rows": 71,
+      "train_side_counts": {
+        "call": 114,
+        "put": 59
+      },
+      "training_labels_available_through": "2026-06-26",
+      "validation_start": "2026-06-28",
+      "validation_end": "2026-07-01",
+      "training_evidence_sha256": "83f0e57ad709b9f4c7ffa59954351bb551d1c5ebdf62c699e96bbad7de00454c",
+      "validation_evidence_sha256": "5407fc49cef59ae282ac644caa4155b10aa571012fa51337f3c6890445786513",
+      "artifact_policy": "fit once on purged training rows, freeze for the full validation block, then discard"
+    },
+    {
+      "fold": 3,
+      "ready": true,
+      "train_rows": 173,
+      "validation_rows": 78,
+      "train_side_counts": {
+        "call": 114,
+        "put": 59
+      },
+      "training_labels_available_through": "2026-06-26",
+      "validation_start": "2026-07-02",
+      "validation_end": "2026-07-07",
+      "training_evidence_sha256": "83f0e57ad709b9f4c7ffa59954351bb551d1c5ebdf62c699e96bbad7de00454c",
+      "validation_evidence_sha256": "6d819bf262b3b0fb89a67282fca762b81afdff9777814f5cff4260bc6c26b3b7",
+      "artifact_policy": "fit once on purged training rows, freeze for the full validation block, then discard"
+    },
+    {
+      "fold": 4,
+      "ready": true,
+      "train_rows": 275,
+      "validation_rows": 45,
+      "train_side_counts": {
+        "call": 215,
+        "put": 60
+      },
+      "training_labels_available_through": "2026-07-03",
+      "validation_start": "2026-07-08",
+      "validation_end": "2026-07-13",
+      "training_evidence_sha256": "8be7197acdc9dd0805ee307dd1fc053ad5912b92163e8f40cfac3414d89fa0bf",
+      "validation_evidence_sha256": "83733b1e9760c8314c668312611293811099b7a8cb1eec6d77ca946d18622bae",
+      "artifact_policy": "fit once on purged training rows, freeze for the full validation block, then discard"
+    },
+    {
+      "fold": 5,
+      "ready": true,
+      "train_rows": 356,
+      "validation_rows": 39,
+      "train_side_counts": {
+        "call": 293,
+        "put": 63
+      },
+      "training_labels_available_through": "2026-07-10",
+      "validation_start": "2026-07-14",
+      "validation_end": "2026-07-17",
+      "training_evidence_sha256": "2f31977efdc23c64f1ed080c98561253d0634f049208610d604dd0706e5f984e",
+      "validation_evidence_sha256": "e60f97709b8d328131a02b2a14879015b4190298ff1ed89922eb44e973ee41c2",
+      "artifact_policy": "fit once on purged training rows, freeze for the full validation block, then discard"
+    }
+  ],
+  "variants": {
+    "current_fixed_artifact": {
+      "metrics": {
+        "decision_dates": 16,
+        "picks": 16,
+        "mean_after_cost_return": 0.429025,
+        "median_after_cost_return": 0.20775,
+        "sum_after_cost_return": 6.8644,
+        "win_rate": 0.6875,
+        "downside_decile": -0.2951,
+        "side_counts": {
+          "call": 16
+        }
+      },
+      "paired_lift_vs_zero_cost_aware": {
+        "paired_dates": 16,
+        "mean_lift": 0.463987,
+        "ci_95": [
+          0.166476,
+          0.786483
+        ],
+        "probability_positive": 1.0
+      },
+      "uses_future_trained_artifact": true,
+      "picks": [
+        {
+          "decision_date": "2026-06-28",
+          "symbol": "CMG",
+          "contract_symbol": "CMG260710C00032000",
+          "option_type": "call",
+          "score": 0.722646,
+          "realized_after_cost_return": 0.5561
+        },
+        {
+          "decision_date": "2026-06-29",
+          "symbol": "CMG",
+          "contract_symbol": "CMG260710C00033500",
+          "option_type": "call",
+          "score": 0.820874,
+          "realized_after_cost_return": 1.8923
+        },
+        {
+          "decision_date": "2026-06-30",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260710C00170000",
+          "option_type": "call",
+          "score": 0.729586,
+          "realized_after_cost_return": 0.1494
+        },
+        {
+          "decision_date": "2026-07-01",
+          "symbol": "COP",
+          "contract_symbol": "COP260710C00105000",
+          "option_type": "call",
+          "score": 0.773578,
+          "realized_after_cost_return": 0.0694
+        },
+        {
+          "decision_date": "2026-07-02",
+          "symbol": "HYG",
+          "contract_symbol": "HYG260710C00079500",
+          "option_type": "call",
+          "score": 0.714576,
+          "realized_after_cost_return": -0.3514
+        },
+        {
+          "decision_date": "2026-07-03",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260710C00172500",
+          "option_type": "call",
+          "score": 0.781116,
+          "realized_after_cost_return": 1.6154
+        },
+        {
+          "decision_date": "2026-07-06",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260717C00172500",
+          "option_type": "call",
+          "score": 0.813738,
+          "realized_after_cost_return": 2.4328
+        },
+        {
+          "decision_date": "2026-07-07",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260717C00055000",
+          "option_type": "call",
+          "score": 0.832522,
+          "realized_after_cost_return": 0.3
+        },
+        {
+          "decision_date": "2026-07-08",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00056000",
+          "option_type": "call",
+          "score": 0.79074,
+          "realized_after_cost_return": -0.0833
+        },
+        {
+          "decision_date": "2026-07-09",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260717C00104000",
+          "option_type": "call",
+          "score": 0.867272,
+          "realized_after_cost_return": 0.1474
+        },
+        {
+          "decision_date": "2026-07-10",
+          "symbol": "KO",
+          "contract_symbol": "KO260717C00084000",
+          "option_type": "call",
+          "score": 0.856136,
+          "realized_after_cost_return": -0.1972
+        },
+        {
+          "decision_date": "2026-07-13",
+          "symbol": "XLP",
+          "contract_symbol": "XLP260724C00084000",
+          "option_type": "call",
+          "score": 0.845156,
+          "realized_after_cost_return": -0.2388
+        },
+        {
+          "decision_date": "2026-07-14",
+          "symbol": "WFC",
+          "contract_symbol": "WFC260724C00087000",
+          "option_type": "call",
+          "score": 0.806492,
+          "realized_after_cost_return": 0.2661
+        },
+        {
+          "decision_date": "2026-07-15",
+          "symbol": "WMT",
+          "contract_symbol": "WMT260724C00115000",
+          "option_type": "call",
+          "score": 0.864944,
+          "realized_after_cost_return": 0.3483
+        },
+        {
+          "decision_date": "2026-07-16",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260724C00058000",
+          "option_type": "call",
+          "score": 0.853088,
+          "realized_after_cost_return": 0.6829
+        },
+        {
+          "decision_date": "2026-07-17",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00057000",
+          "option_type": "call",
+          "score": 0.77156,
+          "realized_after_cost_return": -0.725
+        }
+      ]
+    },
+    "fixed_artifact_inverted": {
+      "metrics": {
+        "decision_dates": 16,
+        "picks": 16,
+        "mean_after_cost_return": -0.524281,
+        "median_after_cost_return": -0.58945,
+        "sum_after_cost_return": -8.3885,
+        "win_rate": 0.0,
+        "downside_decile": -0.94915,
+        "side_counts": {
+          "call": 16
+        }
+      },
+      "paired_lift_vs_zero_cost_aware": {
+        "paired_dates": 16,
+        "mean_lift": -0.489319,
+        "ci_95": [
+          -0.965205,
+          -0.123352
+        ],
+        "probability_positive": 0.0
+      },
+      "uses_future_trained_artifact": true,
+      "picks": [
+        {
+          "decision_date": "2026-06-28",
+          "symbol": "T",
+          "contract_symbol": "T260710C00023000",
+          "option_type": "call",
+          "score": 0.867834,
+          "realized_after_cost_return": -1.0
+        },
+        {
+          "decision_date": "2026-06-29",
+          "symbol": "TLT",
+          "contract_symbol": "TLT260708C00088000",
+          "option_type": "call",
+          "score": 0.89602,
+          "realized_after_cost_return": -1.0
+        },
+        {
+          "decision_date": "2026-06-30",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.937486,
+          "realized_after_cost_return": -0.2462
+        },
+        {
+          "decision_date": "2026-07-01",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260710C00052500",
+          "option_type": "call",
+          "score": 0.85952,
+          "realized_after_cost_return": -0.1855
+        },
+        {
+          "decision_date": "2026-07-02",
+          "symbol": "HYG",
+          "contract_symbol": "HYG260710C00079500",
+          "option_type": "call",
+          "score": 0.934576,
+          "realized_after_cost_return": -0.3514
+        },
+        {
+          "decision_date": "2026-07-03",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.894328,
+          "realized_after_cost_return": -0.0926
+        },
+        {
+          "decision_date": "2026-07-06",
+          "symbol": "DIA",
+          "contract_symbol": "DIA260717C00537000",
+          "option_type": "call",
+          "score": 0.871486,
+          "realized_after_cost_return": -0.8983
+        },
+        {
+          "decision_date": "2026-07-07",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00057500",
+          "option_type": "call",
+          "score": 0.906866,
+          "realized_after_cost_return": -0.8077
+        },
+        {
+          "decision_date": "2026-07-08",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00056000",
+          "option_type": "call",
+          "score": 0.85996,
+          "realized_after_cost_return": -0.0833
+        },
+        {
+          "decision_date": "2026-07-09",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260717C00105000",
+          "option_type": "call",
+          "score": 0.876804,
+          "realized_after_cost_return": -0.1705
+        },
+        {
+          "decision_date": "2026-07-10",
+          "symbol": "KO",
+          "contract_symbol": "KO260717C00084000",
+          "option_type": "call",
+          "score": 0.84704,
+          "realized_after_cost_return": -0.1972
+        },
+        {
+          "decision_date": "2026-07-13",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.91336,
+          "realized_after_cost_return": -0.5122
+        },
+        {
+          "decision_date": "2026-07-14",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.902776,
+          "realized_after_cost_return": -0.7222
+        },
+        {
+          "decision_date": "2026-07-15",
+          "symbol": "KO",
+          "contract_symbol": "KO260724C00084000",
+          "option_type": "call",
+          "score": 0.85421,
+          "realized_after_cost_return": -0.6667
+        },
+        {
+          "decision_date": "2026-07-16",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.797188,
+          "realized_after_cost_return": -0.7297
+        },
+        {
+          "decision_date": "2026-07-17",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00057000",
+          "option_type": "call",
+          "score": 0.911564,
+          "realized_after_cost_return": -0.725
+        }
+      ]
+    },
+    "fold_frozen_inverted": {
+      "metrics": {
+        "decision_dates": 16,
+        "picks": 16,
+        "mean_after_cost_return": -0.125887,
+        "median_after_cost_return": -0.218,
+        "sum_after_cost_return": -2.0142,
+        "win_rate": 0.25,
+        "downside_decile": -0.73555,
+        "side_counts": {
+          "call": 16
+        }
+      },
+      "paired_lift_vs_zero_cost_aware": {
+        "paired_dates": 16,
+        "mean_lift": -0.090925,
+        "ci_95": [
+          -0.271644,
+          0.008288
+        ],
+        "probability_positive": 0.11975
+      },
+      "uses_future_trained_artifact": false,
+      "picks": [
+        {
+          "decision_date": "2026-06-28",
+          "symbol": "T",
+          "contract_symbol": "T260710C00023000",
+          "option_type": "call",
+          "score": 0.805609,
+          "realized_after_cost_return": -1.0
+        },
+        {
+          "decision_date": "2026-06-29",
+          "symbol": "PG",
+          "contract_symbol": "PG260710C00150000",
+          "option_type": "call",
+          "score": 0.830614,
+          "realized_after_cost_return": 0.3351
+        },
+        {
+          "decision_date": "2026-06-30",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.819591,
+          "realized_after_cost_return": -0.2462
+        },
+        {
+          "decision_date": "2026-07-01",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260710C00054000",
+          "option_type": "call",
+          "score": 0.79607,
+          "realized_after_cost_return": -0.15
+        },
+        {
+          "decision_date": "2026-07-02",
+          "symbol": "HYG",
+          "contract_symbol": "HYG260710C00079500",
+          "option_type": "call",
+          "score": 0.816681,
+          "realized_after_cost_return": -0.3514
+        },
+        {
+          "decision_date": "2026-07-03",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.782328,
+          "realized_after_cost_return": -0.0926
+        },
+        {
+          "decision_date": "2026-07-06",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260717C00172500",
+          "option_type": "call",
+          "score": 0.797488,
+          "realized_after_cost_return": 2.4328
+        },
+        {
+          "decision_date": "2026-07-07",
+          "symbol": "KO",
+          "contract_symbol": "KO260717C00086000",
+          "option_type": "call",
+          "score": 0.834125,
+          "realized_after_cost_return": -0.7414
+        },
+        {
+          "decision_date": "2026-07-08",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00056000",
+          "option_type": "call",
+          "score": 0.881504,
+          "realized_after_cost_return": -0.0833
+        },
+        {
+          "decision_date": "2026-07-09",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260717C00104000",
+          "option_type": "call",
+          "score": 0.929772,
+          "realized_after_cost_return": 0.1474
+        },
+        {
+          "decision_date": "2026-07-10",
+          "symbol": "KO",
+          "contract_symbol": "KO260717C00084000",
+          "option_type": "call",
+          "score": 0.936133,
+          "realized_after_cost_return": -0.1972
+        },
+        {
+          "decision_date": "2026-07-13",
+          "symbol": "XLP",
+          "contract_symbol": "XLP260724C00084000",
+          "option_type": "call",
+          "score": 0.971818,
+          "realized_after_cost_return": -0.2388
+        },
+        {
+          "decision_date": "2026-07-14",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.937776,
+          "realized_after_cost_return": -0.7222
+        },
+        {
+          "decision_date": "2026-07-15",
+          "symbol": "WMT",
+          "contract_symbol": "WMT260724C00115000",
+          "option_type": "call",
+          "score": 0.891098,
+          "realized_after_cost_return": 0.3483
+        },
+        {
+          "decision_date": "2026-07-16",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.87719,
+          "realized_after_cost_return": -0.7297
+        },
+        {
+          "decision_date": "2026-07-17",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00057000",
+          "option_type": "call",
+          "score": 0.951562,
+          "realized_after_cost_return": -0.725
+        }
+      ]
+    },
+    "fold_frozen_retrained": {
+      "metrics": {
+        "decision_dates": 16,
+        "picks": 16,
+        "mean_after_cost_return": 0.115819,
+        "median_after_cost_return": -0.0737,
+        "sum_after_cost_return": 1.8531,
+        "win_rate": 0.375,
+        "downside_decile": -0.7236,
+        "side_counts": {
+          "call": 16
+        }
+      },
+      "paired_lift_vs_zero_cost_aware": {
+        "paired_dates": 16,
+        "mean_lift": 0.150781,
+        "ci_95": [
+          -0.022313,
+          0.393331
+        ],
+        "probability_positive": 0.918
+      },
+      "uses_future_trained_artifact": false,
+      "picks": [
+        {
+          "decision_date": "2026-06-28",
+          "symbol": "T",
+          "contract_symbol": "T260710C00023000",
+          "option_type": "call",
+          "score": 0.772275,
+          "realized_after_cost_return": -1.0
+        },
+        {
+          "decision_date": "2026-06-29",
+          "symbol": "PG",
+          "contract_symbol": "PG260710C00150000",
+          "option_type": "call",
+          "score": 0.850614,
+          "realized_after_cost_return": 0.3351
+        },
+        {
+          "decision_date": "2026-06-30",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.835381,
+          "realized_after_cost_return": -0.2462
+        },
+        {
+          "decision_date": "2026-07-01",
+          "symbol": "COP",
+          "contract_symbol": "COP260710C00104000",
+          "option_type": "call",
+          "score": 0.810872,
+          "realized_after_cost_return": -0.0415
+        },
+        {
+          "decision_date": "2026-07-02",
+          "symbol": "HYG",
+          "contract_symbol": "HYG260710C00079500",
+          "option_type": "call",
+          "score": 0.832471,
+          "realized_after_cost_return": -0.3514
+        },
+        {
+          "decision_date": "2026-07-03",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260710C00172500",
+          "option_type": "call",
+          "score": 0.799778,
+          "realized_after_cost_return": 1.6154
+        },
+        {
+          "decision_date": "2026-07-06",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260717C00172500",
+          "option_type": "call",
+          "score": 0.839988,
+          "realized_after_cost_return": 2.4328
+        },
+        {
+          "decision_date": "2026-07-07",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260717C00105000",
+          "option_type": "call",
+          "score": 0.844802,
+          "realized_after_cost_return": -0.0641
+        },
+        {
+          "decision_date": "2026-07-08",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00056000",
+          "option_type": "call",
+          "score": 0.769196,
+          "realized_after_cost_return": -0.0833
+        },
+        {
+          "decision_date": "2026-07-09",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260717C00105000",
+          "option_type": "call",
+          "score": 0.796804,
+          "realized_after_cost_return": -0.1705
+        },
+        {
+          "decision_date": "2026-07-10",
+          "symbol": "KO",
+          "contract_symbol": "KO260717C00084000",
+          "option_type": "call",
+          "score": 0.767043,
+          "realized_after_cost_return": -0.1972
+        },
+        {
+          "decision_date": "2026-07-13",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260724C00056000",
+          "option_type": "call",
+          "score": 0.826234,
+          "realized_after_cost_return": 0.04
+        },
+        {
+          "decision_date": "2026-07-14",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.752776,
+          "realized_after_cost_return": -0.7222
+        },
+        {
+          "decision_date": "2026-07-15",
+          "symbol": "WMT",
+          "contract_symbol": "WMT260724C00115000",
+          "option_type": "call",
+          "score": 0.77879,
+          "realized_after_cost_return": 0.3483
+        },
+        {
+          "decision_date": "2026-07-16",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260724C00058000",
+          "option_type": "call",
+          "score": 0.813088,
+          "realized_after_cost_return": 0.6829
+        },
+        {
+          "decision_date": "2026-07-17",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00057000",
+          "option_type": "call",
+          "score": 0.731562,
+          "realized_after_cost_return": -0.725
+        }
+      ]
+    },
+    "zero_cost_aware": {
+      "metrics": {
+        "decision_dates": 16,
+        "picks": 16,
+        "mean_after_cost_return": -0.034962,
+        "median_after_cost_return": -0.1449,
+        "sum_after_cost_return": -0.5594,
+        "win_rate": 0.3125,
+        "downside_decile": -0.76635,
+        "side_counts": {
+          "call": 16
+        }
+      },
+      "paired_lift_vs_zero_cost_aware": {
+        "paired_dates": 16,
+        "mean_lift": 0.0,
+        "ci_95": [
+          0.0,
+          0.0
+        ],
+        "probability_positive": 0.0
+      },
+      "uses_future_trained_artifact": false,
+      "picks": [
+        {
+          "decision_date": "2026-06-28",
+          "symbol": "T",
+          "contract_symbol": "T260710C00023000",
+          "option_type": "call",
+          "score": 0.870438,
+          "realized_after_cost_return": -1.0
+        },
+        {
+          "decision_date": "2026-06-29",
+          "symbol": "PG",
+          "contract_symbol": "PG260710C00150000",
+          "option_type": "call",
+          "score": 0.936685,
+          "realized_after_cost_return": 0.3351
+        },
+        {
+          "decision_date": "2026-06-30",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.919854,
+          "realized_after_cost_return": -0.2462
+        },
+        {
+          "decision_date": "2026-07-01",
+          "symbol": "COP",
+          "contract_symbol": "COP260710C00104000",
+          "option_type": "call",
+          "score": 0.860092,
+          "realized_after_cost_return": -0.0415
+        },
+        {
+          "decision_date": "2026-07-02",
+          "symbol": "HYG",
+          "contract_symbol": "HYG260710C00079500",
+          "option_type": "call",
+          "score": 0.916123,
+          "realized_after_cost_return": -0.3514
+        },
+        {
+          "decision_date": "2026-07-03",
+          "symbol": "XOM",
+          "contract_symbol": "XOM260710C00140000",
+          "option_type": "call",
+          "score": 0.864523,
+          "realized_after_cost_return": -0.0926
+        },
+        {
+          "decision_date": "2026-07-06",
+          "symbol": "CVX",
+          "contract_symbol": "CVX260717C00172500",
+          "option_type": "call",
+          "score": 0.908638,
+          "realized_after_cost_return": 2.4328
+        },
+        {
+          "decision_date": "2026-07-07",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00057500",
+          "option_type": "call",
+          "score": 0.917985,
+          "realized_after_cost_return": -0.8077
+        },
+        {
+          "decision_date": "2026-07-08",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260717C00056000",
+          "option_type": "call",
+          "score": 0.917115,
+          "realized_after_cost_return": -0.0833
+        },
+        {
+          "decision_date": "2026-07-09",
+          "symbol": "SCHW",
+          "contract_symbol": "SCHW260717C00104000",
+          "option_type": "call",
+          "score": 0.9324,
+          "realized_after_cost_return": 0.1474
+        },
+        {
+          "decision_date": "2026-07-10",
+          "symbol": "KO",
+          "contract_symbol": "KO260717C00084000",
+          "option_type": "call",
+          "score": 0.950754,
+          "realized_after_cost_return": -0.1972
+        },
+        {
+          "decision_date": "2026-07-13",
+          "symbol": "XLP",
+          "contract_symbol": "XLP260724C00084000",
+          "option_type": "call",
+          "score": 0.963869,
+          "realized_after_cost_return": -0.2388
+        },
+        {
+          "decision_date": "2026-07-14",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00056500",
+          "option_type": "call",
+          "score": 0.942662,
+          "realized_after_cost_return": -0.7222
+        },
+        {
+          "decision_date": "2026-07-15",
+          "symbol": "WMT",
+          "contract_symbol": "WMT260724C00115000",
+          "option_type": "call",
+          "score": 0.929415,
+          "realized_after_cost_return": 0.3483
+        },
+        {
+          "decision_date": "2026-07-16",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260724C00058000",
+          "option_type": "call",
+          "score": 0.914215,
+          "realized_after_cost_return": 0.6829
+        },
+        {
+          "decision_date": "2026-07-17",
+          "symbol": "XLF",
+          "contract_symbol": "XLF260724C00057000",
+          "option_type": "call",
+          "score": 0.9379,
+          "realized_after_cost_return": -0.725
+        }
+      ]
+    }
+  },
+  "next_action": "Extend strict executable history, then rerun the same frozen-fold audit."
+}

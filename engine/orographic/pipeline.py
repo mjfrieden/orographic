@@ -53,8 +53,11 @@ DEFAULT_DIAGNOSTICS_DIR = REPO_ROOT / "web" / "data" / "diagnostics"
 class PipelineConfig:
     universe: list[str]
     live_size: int = 1
-    shadow_size: int = 3
+    shadow_size: int = 0
     forge_intake: int = 12
+    counterfactual_observation_size: int = 0
+    preserve_shadow_veto_live_policy: bool = False
+    model_stack: str = "unified_rnd"
     minimum_days_to_expiry: int = 7
     maximum_days_to_expiry: int = 14
     minimum_live_score: float = 0.86
@@ -64,11 +67,43 @@ class PipelineConfig:
     moonshot_threshold: float = 0.68
     moonshot_max_cost_basis: float = 225.0
     enforce_pre_council_friction_gate: bool = False
+    paired_side_capture_enabled: bool = True
     market_shock_control_mode: str = "active"
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
     promotion_comparison_path: str | Path | None = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
 
 log = logging.getLogger(__name__)
+
+
+def _partition_shadow_veto_signals(
+    signals: list[Any],
+    scout_diagnostics: dict[str, object],
+    *,
+    include_shadow_veto: bool = True,
+) -> tuple[list[Any], list[Any]]:
+    """Preserve the legacy live veto while retaining candidates for research.
+
+    Side-model and regime holds remain excluded from Council and automatic
+    Tradier routing.  They are retained for measurement and for the explicit,
+    user-directed manual-pick surface.
+    """
+    side_rows = scout_diagnostics.get("side_aware_scores")
+    rows = side_rows if isinstance(side_rows, list) else []
+    research_symbols = {
+        str(row.get("symbol") or "").strip().upper()
+        for row in rows
+        if isinstance(row, dict)
+        and (
+            (include_shadow_veto and bool(row.get("shadow_guard_would_veto")))
+            or bool(row.get("policy_held_candidate"))
+        )
+    }
+    live: list[Any] = []
+    research: list[Any] = []
+    for signal in signals:
+        symbol = str(getattr(signal, "symbol", "") or "").strip().upper()
+        (research if symbol in research_symbols else live).append(signal)
+    return live, research
 
 
 def _normalize_timestamp(raw: object) -> datetime:
@@ -103,6 +138,44 @@ def _coerce_int(value: object) -> int:
         return int(float(str(value)))
     except (TypeError, ValueError):
         return 0
+
+
+def _manual_pick_score(row: dict[str, Any]) -> float:
+    for key in ("risk_adjusted_score", "learned_rank_score", "forge_score"):
+        value = row.get(key)
+        if isinstance(value, Number):
+            return float(value)
+    return 0.0
+
+
+def _build_manual_trade_pick(
+    *,
+    council_payload: dict[str, Any],
+    forge_candidates: list[dict[str, Any]],
+    counterfactual_candidates: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Expose the best Council-approved contract; never create another order lane.
+
+    The extra arguments remain in the function contract so older snapshot and
+    diagnostic callers keep working, but held/research candidates are never
+    eligible for preview or submission.
+    """
+    del forge_candidates, counterfactual_candidates
+    live = council_payload.get("live_board") if isinstance(council_payload.get("live_board"), list) else []
+    valid = [row for row in live if isinstance(row, dict) and str(row.get("contract_symbol") or "").strip()]
+    if not valid:
+        return None
+    candidate = max(valid, key=_manual_pick_score)
+    return {
+        "candidate": candidate,
+        "source_lane": "live",
+        "model_recommendation": "trade",
+        "manual_entry_available": True,
+        "automatic_routing_eligible": True,
+        "requires_manual_override_confirmation": False,
+        "authority": "council_approved",
+        "note": "Council approved this contract for the single production board.",
+    }
 
 
 def _coerce_float(value: object) -> float | None:
@@ -395,8 +468,13 @@ def _prospective_pick_row(
             "contract_cost": row.get("contract_cost"),
             "entry_quote_type": row.get("entry_quote_type"),
             "entry_data_source": row.get("entry_data_source"),
+            "quote_mid": row.get("quote_mid", mid),
+            "quote_spread_dollars": row.get("quote_spread_dollars"),
+            "chain_snapshot_at_utc": row.get("chain_snapshot_at_utc"),
+            "last_trade_age_seconds": row.get("last_trade_age_seconds"),
         },
         "scores": {
+            "scout_score": row.get("scout_score"),
             "forge_score": row.get("forge_score"),
             "learned_rank_score": row.get("learned_rank_score"),
             "payoff_model_score": row.get("payoff_model_score"),
@@ -407,6 +485,12 @@ def _prospective_pick_row(
             "payoff_shadow_disagreement": row.get("payoff_shadow_disagreement"),
             "payoff_shadow_mode": row.get("payoff_shadow_mode"),
             "payoff_shadow_artifact_sha256": row.get("payoff_shadow_artifact_sha256"),
+            "payoff_shadow_return_q10": row.get("payoff_shadow_return_q10"),
+            "payoff_shadow_return_q50": row.get("payoff_shadow_return_q50"),
+            "payoff_shadow_return_q90": row.get("payoff_shadow_return_q90"),
+            "payoff_shadow_prob_fill_quality": row.get("payoff_shadow_prob_fill_quality"),
+            "payoff_shadow_prob_target_before_stop": row.get("payoff_shadow_prob_target_before_stop"),
+            "payoff_shadow_conservative_utility": row.get("payoff_shadow_conservative_utility"),
             "final_candidate_score": row.get("final_candidate_score"),
             "prob_positive_option_pnl": row.get("prob_positive_option_pnl"),
             "prob_no_trade": row.get("prob_no_trade"),
@@ -418,11 +502,25 @@ def _prospective_pick_row(
             "path_holding_quality_score": row.get("path_holding_quality_score"),
             "path_early_profit_take_prob": row.get("path_early_profit_take_prob"),
             "path_decay_risk": row.get("path_decay_risk"),
+            "path_hazard_target_probability": row.get("path_hazard_target_probability"),
+            "path_hazard_stop_probability": row.get("path_hazard_stop_probability"),
+            "path_hazard_expiry_probability": row.get("path_hazard_expiry_probability"),
+            "path_exit_shadow_action": row.get("path_exit_shadow_action"),
+            "path_hazard_artifact_sha256": row.get("path_hazard_artifact_sha256"),
         },
         "risk_features": {
             "delta": row.get("delta"),
             "implied_volatility": row.get("implied_volatility"),
             "iv_rank": row.get("iv_rank"),
+            "surface_atm_iv": row.get("surface_atm_iv"),
+            "surface_skew_slope": row.get("surface_skew_slope"),
+            "surface_curvature": row.get("surface_curvature"),
+            "surface_put_call_wing_skew": row.get("surface_put_call_wing_skew"),
+            "surface_term_slope_30d": row.get("surface_term_slope_30d"),
+            "surface_fit_rmse": row.get("surface_fit_rmse"),
+            "surface_observation_count": row.get("surface_observation_count"),
+            "iv_relative_to_atm": row.get("iv_relative_to_atm"),
+            "iv_minus_realized_vol": row.get("iv_minus_realized_vol"),
             "extrinsic_ratio": row.get("extrinsic_ratio"),
             "moneyness": row.get("moneyness"),
             "premium_pct_of_spot": row.get("premium_pct_of_spot"),
@@ -459,6 +557,11 @@ def _prospective_pick_row(
             "path_model_mode": row.get("path_model_mode"),
             "path_model_artifact_sha256": row.get("path_model_artifact_sha256"),
         },
+        "paired_side_observation": (
+            row.get("paired_side_observation")
+            if isinstance(row.get("paired_side_observation"), dict)
+            else None
+        ),
         "notes": row.get("notes", []),
         "outcomes": _prospective_outcome_template(),
     }
@@ -641,6 +744,7 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
         else "heuristic_fallback"
     )
     return {
+        "product_stack": str(os.getenv("OROGRAPHIC_MODEL_STACK", "unified_rnd") or "unified_rnd"),
         "directional_scout": directional_mode,
         "side_aware_scout": _normalize_mode(
             os.getenv("OROGRAPHIC_SIDE_MODEL_MODE", "active"),
@@ -667,7 +771,7 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
         "payoff_volatility_challenger": "observation_only" if bool(payoff_shadow.get("present")) else "unavailable",
         "path_model": _normalize_mode(
             os.getenv("OROGRAPHIC_PATH_MODEL_MODE", "shadow"),
-            active_values=set(),
+            active_values={"active", "live", "on"},
             shadow_values={"shadow", "observe", "off"},
             default="shadow",
         ),
@@ -718,6 +822,44 @@ def _fail_closed_model_modes(promotion_decision: str):
     try:
         for name in names:
             os.environ[name] = "shadow"
+        yield
+    finally:
+        for name, value in prior.items():
+            if value is None:
+                os.environ.pop(name, None)
+            else:
+                os.environ[name] = value
+
+
+@contextmanager
+def _configured_model_stack(model_stack: str, promotion_decision: str):
+    """Select one product stack while retaining the old gated stack as a baseline."""
+    normalized = str(model_stack or "unified_rnd").strip().lower()
+    if normalized != "unified_rnd":
+        prior_stack = os.environ.get("OROGRAPHIC_MODEL_STACK")
+        try:
+            os.environ["OROGRAPHIC_MODEL_STACK"] = "current_gated"
+            with _fail_closed_model_modes(promotion_decision):
+                yield
+        finally:
+            if prior_stack is None:
+                os.environ.pop("OROGRAPHIC_MODEL_STACK", None)
+            else:
+                os.environ["OROGRAPHIC_MODEL_STACK"] = prior_stack
+        return
+
+    names = (
+        "OROGRAPHIC_MODEL_STACK",
+        "OROGRAPHIC_SIDE_MODEL_MODE",
+        "OROGRAPHIC_SENTINEL_MODE",
+        "OROGRAPHIC_PAYOFF_MODEL_MODE",
+        "OROGRAPHIC_PATH_MODEL_MODE",
+    )
+    prior = {name: os.environ.get(name) for name in names}
+    try:
+        os.environ["OROGRAPHIC_MODEL_STACK"] = "unified_rnd"
+        for name in names[1:]:
+            os.environ[name] = "active"
         yield
     finally:
         for name, value in prior.items():
@@ -879,6 +1021,13 @@ def _build_profitability_evidence(payload: dict[str, Any]) -> dict[str, Any]:
     payoff_challenger_evidence = _load_json_dict(
         _diagnostic_source_path(payload, "payoff_challenger_evidence", "payoff_challenger_evidence_latest.json") or Path()
     )
+    counterfactual_veto_evidence = _load_json_dict(
+        _diagnostic_source_path(
+            payload,
+            "counterfactual_veto_evidence",
+            "counterfactual_veto_evidence_latest.json",
+        ) or Path()
+    )
 
     prospective_lanes = prospective.get("lanes", {}) if isinstance(prospective.get("lanes"), dict) else {}
     live_lane = prospective_lanes.get("live", {})
@@ -929,6 +1078,7 @@ def _build_profitability_evidence(payload: dict[str, Any]) -> dict[str, Any]:
         "canonical_baseline": _canonical_performance_baseline(),
         "promotion_comparison": promotion_comparison,
         "payoff_challenger_evidence": payoff_challenger_evidence,
+        "counterfactual_veto_evidence": counterfactual_veto_evidence,
     }
 
 
@@ -995,6 +1145,17 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     forge = diagnostics.get("forge") if isinstance(diagnostics.get("forge"), dict) else {}
     council = payload.get("council") if isinstance(payload.get("council"), dict) else {}
     council_summary = council.get("summary") if isinstance(council.get("summary"), dict) else {}
+    counterfactual_lane = (
+        payload.get("counterfactual_observation_lane")
+        if isinstance(payload.get("counterfactual_observation_lane"), dict)
+        else {}
+    )
+    counterfactual_signals = (
+        counterfactual_lane.get("signals") if isinstance(counterfactual_lane.get("signals"), list) else []
+    )
+    counterfactual_candidates = (
+        counterfactual_lane.get("candidates") if isinstance(counterfactual_lane.get("candidates"), list) else []
+    )
 
     scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
     signal_direction_by_symbol = {
@@ -1072,6 +1233,11 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
     payoff_challenger_evidence = (
         profitability_evidence.get("payoff_challenger_evidence")
         if isinstance(profitability_evidence.get("payoff_challenger_evidence"), dict)
+        else {}
+    )
+    counterfactual_veto_evidence = (
+        profitability_evidence.get("counterfactual_veto_evidence")
+        if isinstance(profitability_evidence.get("counterfactual_veto_evidence"), dict)
         else {}
     )
     comparison_windows = comparison.get("windows") if isinstance(comparison.get("windows"), list) else []
@@ -1194,6 +1360,40 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
             "side_mix": side_mix,
             "model_modes": side_model_modes,
             "shadow_window_runs": shadow_window_runs,
+            "shadow_would_veto_observations": _coerce_int(scout.get("shadow_side_veto_observations")),
+            "counterfactual_signals": len(counterfactual_signals),
+            "counterfactual_candidates": len(counterfactual_candidates),
+            "execution_effect": "none_observation_only",
+            "live_policy_effect": str(
+                counterfactual_lane.get("live_policy_effect") or "legacy_compatibility_holdout"
+            ),
+            "veto_evidence_decision": counterfactual_veto_evidence.get("decision", "not_run"),
+            "veto_independent_recommendations": _coerce_int(
+                counterfactual_veto_evidence.get("coverage", {}).get("independent_recommendations")
+                if isinstance(counterfactual_veto_evidence.get("coverage"), dict)
+                else 0
+            ),
+            "veto_resolved_current_rule": _coerce_int(
+                counterfactual_veto_evidence.get("coverage", {}).get("resolved_current_rule_vetoes")
+                if isinstance(counterfactual_veto_evidence.get("coverage"), dict)
+                else 0
+            ),
+            "veto_independent_trading_days": _coerce_int(
+                counterfactual_veto_evidence.get("coverage", {}).get("independent_veto_trading_days")
+                if isinstance(counterfactual_veto_evidence.get("coverage"), dict)
+                else 0
+            ),
+            "veto_mean_avoided_net_return": (
+                counterfactual_veto_evidence.get("current_rule", {}).get("veto_benefit", {}).get("mean_avoided_net_return")
+                if isinstance(counterfactual_veto_evidence.get("current_rule"), dict)
+                and isinstance(counterfactual_veto_evidence.get("current_rule", {}).get("veto_benefit"), dict)
+                else None
+            ),
+            "veto_next_action": (
+                counterfactual_veto_evidence.get("readiness", {}).get("next_action")
+                if isinstance(counterfactual_veto_evidence.get("readiness"), dict)
+                else None
+            ),
             "promotion_step": "active" if promotion_passed and str(model_modes.get("side_aware_scout") or "").lower() == "active" else "shadow",
         },
         {
@@ -1313,6 +1513,12 @@ def build_promotion_readiness(payload: dict[str, Any]) -> dict[str, Any]:
                 if isinstance(payoff_challenger_evidence.get("coverage"), dict)
                 else 0
             ),
+            "counterfactual_veto_decision": counterfactual_veto_evidence.get("decision", "not_run"),
+            "counterfactual_veto_resolved": _coerce_int(
+                counterfactual_veto_evidence.get("coverage", {}).get("resolved_current_rule_vetoes")
+                if isinstance(counterfactual_veto_evidence.get("coverage"), dict)
+                else 0
+            ),
             "payoff_challenger_next_action": str(
                 payoff_challenger_evidence.get("readiness", {}).get("next_action") or "Collect prospective evidence."
                 if isinstance(payoff_challenger_evidence.get("readiness"), dict)
@@ -1339,8 +1545,12 @@ def build_side_aware_shadow_ledger_entry(payload: dict[str, Any]) -> dict[str, A
     shadow_symbols = {str(row.get("symbol") or "").upper() for row in shadow_board if isinstance(row, dict)}
     forge_symbols = {str(row.get("symbol") or "").upper() for row in forge_candidates if isinstance(row, dict)}
 
+    observations: list[dict[str, Any]] = []
     disagreements: list[dict[str, Any]] = []
     side_mix: dict[str, int] = {"call": 0, "put": 0, "no_trade": 0, "unknown": 0}
+    hierarchical_mix: dict[str, int] = {"call": 0, "put": 0, "no_trade": 0, "unknown": 0}
+    hierarchical_observations = 0
+    hierarchical_disagreements = 0
     mode_counts: dict[str, int] = {}
     for row in side_rows:
         if not isinstance(row, dict):
@@ -1350,11 +1560,36 @@ def build_side_aware_shadow_ledger_entry(payload: dict[str, Any]) -> dict[str, A
         model_mode = str(row.get("model_mode") or "unknown")
         mode_counts[model_mode] = mode_counts.get(model_mode, 0) + 1
         active_direction = str(row.get("active_direction") or "").lower()
+        hierarchical_preferred = str(row.get("hierarchical_preferred_side") or "unknown").lower()
+        if hierarchical_preferred not in hierarchical_mix:
+            hierarchical_preferred = "unknown"
+        hierarchical_mix[hierarchical_preferred] += 1
+        if row.get("hierarchical_mode") == "observation_only":
+            hierarchical_observations += 1
+            if active_direction in {"call", "put"} and hierarchical_preferred != active_direction:
+                hierarchical_disagreements += 1
+        symbol = str(row.get("symbol") or "").upper()
+        observation = {
+            "symbol": symbol,
+            "active_direction": active_direction if active_direction in {"call", "put"} else None,
+            "active_scout_score": row.get("active_scout_score"),
+            "call_edge": row.get("call_edge"),
+            "put_edge": row.get("put_edge"),
+            "no_trade": row.get("no_trade"),
+            "model_mode": model_mode,
+            "hierarchical_preferred_side": row.get("hierarchical_preferred_side"),
+            "hierarchical_trade_probability": row.get("hierarchical_trade_probability"),
+            "hierarchical_conditional_call_probability": row.get("hierarchical_conditional_call_probability"),
+            "hierarchical_call_edge": row.get("hierarchical_call_edge"),
+            "hierarchical_put_edge": row.get("hierarchical_put_edge"),
+            "hierarchical_no_trade": row.get("hierarchical_no_trade"),
+            "hierarchical_execution_effect": row.get("hierarchical_execution_effect"),
+        }
+        observations.append(observation)
         if active_direction not in {"call", "put"}:
             continue
         if preferred == active_direction:
             continue
-        symbol = str(row.get("symbol") or "").upper()
         disagreements.append(
             {
                 "symbol": symbol,
@@ -1365,6 +1600,10 @@ def build_side_aware_shadow_ledger_entry(payload: dict[str, Any]) -> dict[str, A
                 "put_edge": row.get("put_edge"),
                 "no_trade": row.get("no_trade"),
                 "model_mode": model_mode,
+                "hierarchical_preferred_side": row.get("hierarchical_preferred_side"),
+                "hierarchical_trade_probability": row.get("hierarchical_trade_probability"),
+                "hierarchical_conditional_call_probability": row.get("hierarchical_conditional_call_probability"),
+                "hierarchical_execution_effect": row.get("hierarchical_execution_effect"),
                 "was_forge_candidate_symbol": symbol in forge_symbols,
                 "was_live_symbol": symbol in live_symbols,
                 "was_shadow_symbol": symbol in shadow_symbols,
@@ -1388,8 +1627,12 @@ def build_side_aware_shadow_ledger_entry(payload: dict[str, Any]) -> dict[str, A
                 if row["shadow_preferred_side"] == "no_trade"
             ),
             "side_mix": side_mix,
+            "hierarchical_observations": hierarchical_observations,
+            "hierarchical_disagreements": hierarchical_disagreements,
+            "hierarchical_side_mix": hierarchical_mix,
             "model_modes": mode_counts,
         },
+        "observations": observations,
         "disagreements": disagreements,
     }
 
@@ -1474,6 +1717,26 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
     live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
     shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
     forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
+    counterfactual_lane = (
+        payload.get("counterfactual_observation_lane")
+        if isinstance(payload.get("counterfactual_observation_lane"), dict)
+        else {}
+    )
+    counterfactual_candidates = (
+        counterfactual_lane.get("candidates")
+        if isinstance(counterfactual_lane.get("candidates"), list)
+        else []
+    )
+    paired_capture = (
+        payload.get("paired_side_observation_set")
+        if isinstance(payload.get("paired_side_observation_set"), dict)
+        else {}
+    )
+    paired_contracts = (
+        paired_capture.get("contracts")
+        if isinstance(paired_capture.get("contracts"), list)
+        else []
+    )
     scout_signals = payload.get("scout_signals") if isinstance(payload.get("scout_signals"), list) else []
     scout_spots = {
         str(row.get("symbol") or "").strip().upper(): float(row["spot"])
@@ -1482,6 +1745,12 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
         and str(row.get("symbol") or "").strip()
         and isinstance(row.get("spot"), Number)
     }
+    for row in counterfactual_lane.get("signals", []):
+        if not isinstance(row, dict) or not isinstance(row.get("spot"), Number):
+            continue
+        symbol = str(row.get("symbol") or "").strip().upper()
+        if symbol:
+            scout_spots[symbol] = float(row["spot"])
     attribution = (
         payload.get("attribution")
         if isinstance(payload.get("attribution"), dict)
@@ -1539,6 +1808,42 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
             )
         )
 
+    for row in counterfactual_candidates:
+        if not isinstance(row, dict) or not str(row.get("contract_symbol") or ""):
+            continue
+        symbol = str(row.get("symbol") or "").strip().upper()
+        rows.append(
+            _prospective_pick_row(
+                row,
+                lane="counterfactual_observation",
+                lane_reason="shadow_no_trade_would_veto_research_only",
+                run_generated_at_utc=generated_at,
+                regime=payload.get("regime", {}),
+                scan_settings=payload.get("scan_settings", {}),
+                model_modes=payload.get("model_modes", {}),
+                model_artifacts=payload.get("model_artifacts", {}),
+                scout_spot=scout_spots.get(symbol),
+            )
+        )
+
+    for row in paired_contracts:
+        if not isinstance(row, dict) or not str(row.get("contract_symbol") or ""):
+            continue
+        symbol = str(row.get("symbol") or "").strip().upper()
+        rows.append(
+            _prospective_pick_row(
+                row,
+                lane="paired_side_observation",
+                lane_reason="matched_call_put_outcome_capture_research_only",
+                run_generated_at_utc=generated_at,
+                regime=payload.get("regime", {}),
+                scan_settings=payload.get("scan_settings", {}),
+                model_modes=payload.get("model_modes", {}),
+                model_artifacts=payload.get("model_artifacts", {}),
+                scout_spot=scout_spots.get(symbol),
+            )
+        )
+
     return {
         "run_generated_at_utc": generated_at,
         "regime": payload.get("regime", {}),
@@ -1550,6 +1855,17 @@ def build_prospective_pick_ledger_entry(payload: dict[str, Any]) -> dict[str, An
             "shadow": sum(1 for row in rows if row["lane"] == "shadow"),
             "council_holdout": sum(1 for row in rows if row["lane"] == "council_holdout"),
             "friction_veto": sum(1 for row in rows if row["lane"] == "friction_veto"),
+            "counterfactual_observation": sum(
+                1 for row in rows if row["lane"] == "counterfactual_observation"
+            ),
+            "paired_side_observation": sum(
+                1 for row in rows if row["lane"] == "paired_side_observation"
+            ),
+            "paired_side_pair_member": sum(
+                1
+                for row in rows
+                if isinstance(row.get("paired_side_observation"), dict)
+            ),
         },
         "picks": rows,
     }
@@ -1647,10 +1963,21 @@ def append_prospective_pick_ledger(
         "shadow": sum(_coerce_int(row.get("summary", {}).get("shadow")) for row in entries),
         "council_holdout": sum(_coerce_int(row.get("summary", {}).get("council_holdout")) for row in entries),
         "friction_veto": sum(_coerce_int(row.get("summary", {}).get("friction_veto")) for row in entries),
+        "counterfactual_observation": sum(
+            _coerce_int(row.get("summary", {}).get("counterfactual_observation")) for row in entries
+        ),
+        "paired_side_observation": sum(
+            _coerce_int(row.get("summary", {}).get("paired_side_observation"))
+            for row in entries
+        ),
+        "paired_side_pair_member": sum(
+            _coerce_int(row.get("summary", {}).get("paired_side_pair_member"))
+            for row in entries
+        ),
     }
     rendered = {
         "artifact": "prospective_pick_ledger",
-        "schema_version": 3,
+        "schema_version": 4,
         "updated_at_utc": entry["run_generated_at_utc"],
         "max_entries": max(max_entries, 1),
         "outcome_policy": {
@@ -1667,6 +1994,15 @@ def append_prospective_pick_ledger(
                 "probability_and_rank_disagreement",
                 "friday_close_net_executable_return",
             ],
+        },
+        "paired_side_capture_policy": {
+            "mode": "research_only_outcome_capture",
+            "selection_method": "same_expiry_nearest_0.35_abs_delta_then_spread",
+            "affects_forge_ranking": False,
+            "affects_council": False,
+            "affects_moonshot": False,
+            "affects_position_sizing": False,
+            "affects_tradier_routing": False,
         },
         "aggregate": aggregate,
         "outcome_summary": _prospective_outcome_summary(entries),
@@ -2016,6 +2352,14 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
     forge_candidates = payload.get("forge_candidates") if isinstance(payload.get("forge_candidates"), list) else []
     live_board = council.get("live_board") if isinstance(council.get("live_board"), list) else []
     shadow_board = council.get("shadow_board") if isinstance(council.get("shadow_board"), list) else []
+    counterfactual_lane = (
+        payload.get("counterfactual_observation_lane")
+        if isinstance(payload.get("counterfactual_observation_lane"), dict)
+        else {}
+    )
+    counterfactual_candidates = (
+        counterfactual_lane.get("candidates") if isinstance(counterfactual_lane.get("candidates"), list) else []
+    )
     friction_gate = forge.get("pre_council_gate") if isinstance(forge.get("pre_council_gate"), dict) else {}
     deduplication = forge.get("deduplication") if isinstance(forge.get("deduplication"), dict) else {}
     pre_forge_rejections = pre_forge.get("rejections") if isinstance(pre_forge.get("rejections"), list) else []
@@ -2055,6 +2399,8 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
             "forge_candidate_count": _coerce_int(summary.get("forge_candidate_count")),
             "live_count": _coerce_int(council_summary.get("live_count")),
             "shadow_count": _coerce_int(council_summary.get("shadow_count")),
+            "counterfactual_signal_count": _coerce_int(summary.get("counterfactual_signal_count")),
+            "counterfactual_candidate_count": len(counterfactual_candidates),
             "abstain": bool(council.get("abstain", False)),
             "live_side_mix": _count_side_mix(live_board, key="option_type"),
             "shadow_side_mix": _count_side_mix(shadow_board, key="option_type"),
@@ -2125,6 +2471,15 @@ def build_live_shadow_attribution_artifact(payload: dict[str, Any]) -> dict[str,
         "top_live_board": _compact_attribution_contract_view(live_board[:3]),
         "top_shadow_board": _compact_attribution_contract_view(shadow_board[:3]),
         "council_holdouts": _compact_attribution_contract_view(council_holdouts[:5]),
+        "counterfactual_observation": {
+            "execution_effect": str(counterfactual_lane.get("execution_effect") or "none_observation_only"),
+            "live_policy_effect": str(
+                counterfactual_lane.get("live_policy_effect") or "legacy_compatibility_holdout"
+            ),
+            "council_eligible": bool(counterfactual_lane.get("council_eligible", False)),
+            "tradier_routing_eligible": bool(counterfactual_lane.get("tradier_routing_eligible", False)),
+            "candidates": _compact_attribution_contract_view(counterfactual_candidates[:5]),
+        },
         "friction_vetoes": friction_rejections[:5],
         "pre_forge_rejections": pre_forge_rejections[:5],
         "profitability_evidence": promotion_readiness.get("profitability_evidence", {}),
@@ -2165,8 +2520,17 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
     log.info("Orographic pipeline started with universe of %d symbols.", len(config.universe))
     try:
         live_size = _config_int(config, "live_size", 3, minimum=1)
-        shadow_size = _config_int(config, "shadow_size", 3, minimum=1)
+        requested_shadow_size = _config_int(config, "shadow_size", 0, minimum=0)
+        shadow_size = 0
         forge_intake = _config_int(config, "forge_intake", 12, minimum=1)
+        requested_counterfactual_size = _config_int(config, "counterfactual_observation_size", 0, minimum=0)
+        requested_shadow_veto_policy = _config_bool(config, "preserve_shadow_veto_live_policy", False)
+        counterfactual_observation_size = 0
+        preserve_shadow_veto_live_policy = False
+        if requested_shadow_size or requested_counterfactual_size or requested_shadow_veto_policy:
+            log.warning(
+                "Ignoring deprecated alternate-lane settings: Orographic permits only council.live_board as the production lane."
+            )
         minimum_days_to_expiry = _config_int(config, "minimum_days_to_expiry", 7, minimum=0)
         maximum_days_to_expiry = _config_int(config, "maximum_days_to_expiry", 14, minimum=0)
         minimum_live_score = _config_float(config, "minimum_live_score", 0.86, minimum=0.0, maximum=1.0)
@@ -2176,14 +2540,30 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
         moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
+        paired_side_capture_enabled = _config_bool(
+            config, "paired_side_capture_enabled", True
+        )
+        model_stack = str(getattr(config, "model_stack", "unified_rnd") or "unified_rnd").strip().lower()
+        if model_stack not in {"unified_rnd", "current_gated"}:
+            model_stack = "unified_rnd"
         promotion_comparison_path = getattr(config, "promotion_comparison_path", None)
         if not isinstance(promotion_comparison_path, (str, os.PathLike)):
             promotion_comparison_path = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
         promotion_gate_decision = _promotion_gate_decision(promotion_comparison_path)
-        with _fail_closed_model_modes(promotion_gate_decision):
+        with _configured_model_stack(model_stack, promotion_gate_decision):
             model_artifacts = _model_artifact_status()
             model_modes = _model_mode_status(model_artifacts)
-            regime, scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(config.universe)
+            regime, all_scout_signals, scout_diagnostics = scan_symbols_with_diagnostics(
+                config.universe,
+                retain_policy_held_candidates=True,
+            )
+            scout_signals, counterfactual_scout_signals = _partition_shadow_veto_signals(
+                all_scout_signals,
+                scout_diagnostics,
+                include_shadow_veto=(
+                    preserve_shadow_veto_live_policy or counterfactual_observation_size > 0
+                ),
+            )
             market_shock = classify_current_market_shock(regime)
             market_shock_control_mode = str(
                 getattr(config, "market_shock_control_mode", os.getenv("OROGRAPHIC_MARKET_SHOCK_CONTROL_MODE", "active"))
@@ -2216,7 +2596,36 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 maximum_days_to_expiry=maximum_days_to_expiry,
                 enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
                 prior_live_board_symbols=prior_live_board_symbols,
+                capture_paired_side_observations=paired_side_capture_enabled,
             )
+            counterfactual_input_signals: list[Any] = []
+            counterfactual_candidates: list[Any] = []
+            counterfactual_forge_diagnostics: dict[str, Any] = {
+                "waterfall": {},
+                "learned_ranker": {},
+                "status": "no_shadow_veto_observations",
+            }
+            if counterfactual_observation_size > 0 and counterfactual_scout_signals:
+                counterfactual_input_signals, counterfactual_pre_forge_diagnostics = select_signals_for_forge(
+                    counterfactual_scout_signals,
+                    target_count=counterfactual_observation_size,
+                    minimum_days_to_expiry=minimum_days_to_expiry,
+                    maximum_days_to_expiry=maximum_days_to_expiry,
+                )
+                if counterfactual_input_signals:
+                    counterfactual_candidates, counterfactual_forge_diagnostics = rank_contracts_with_diagnostics(
+                        counterfactual_input_signals,
+                        regime,
+                        minimum_days_to_expiry=minimum_days_to_expiry,
+                        maximum_days_to_expiry=maximum_days_to_expiry,
+                        enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
+                        prior_live_board_symbols=prior_live_board_symbols,
+                    )
+                counterfactual_forge_diagnostics = {
+                    **counterfactual_forge_diagnostics,
+                    "pre_forge": counterfactual_pre_forge_diagnostics,
+                    "status": "observed",
+                }
         log.info("Contract ranking complete. %d candidates found.", len(forge_candidates))
 
         council = select_board(
@@ -2239,7 +2648,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             max_cost_basis=moonshot_max_cost_basis,
         )
         log.info(
-            "Moonshot lane selected %d/%d eligible candidates.",
+            "Moonshot side lane selected %d/%d eligible candidates for outcome tracking.",
             moonshot_lane["summary"]["pick_count"],
             moonshot_lane["summary"]["eligible_count"],
         )
@@ -2250,13 +2659,55 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             else 0.0
         )
 
+        council_payload = council.to_dict()
+        forge_candidate_rows = [row.to_dict() for row in forge_candidates]
+        all_paired_side_observation_rows = [
+            row
+            for row in forge_diagnostics.get("paired_side_observations", [])
+            if isinstance(row, dict)
+        ]
+        paired_by_contract = {
+            str(row.get("contract_symbol") or ""): row
+            for row in all_paired_side_observation_rows
+            if str(row.get("contract_symbol") or "")
+        }
+        paired_contracts_reused_by_forge: set[str] = set()
+        for candidate_row in forge_candidate_rows:
+            contract = str(candidate_row.get("contract_symbol") or "")
+            paired_row = paired_by_contract.get(contract)
+            if paired_row is None:
+                continue
+            candidate_row["paired_side_observation"] = paired_row.get(
+                "paired_side_observation"
+            )
+            paired_contracts_reused_by_forge.add(contract)
+        paired_side_observation_rows = [
+            row
+            for row in all_paired_side_observation_rows
+            if str(row.get("contract_symbol") or "")
+            not in paired_contracts_reused_by_forge
+        ]
+        counterfactual_candidate_rows = [row.to_dict() for row in counterfactual_candidates]
+        manual_trade_pick = _build_manual_trade_pick(
+            council_payload=council_payload,
+            forge_candidates=forge_candidate_rows,
+            counterfactual_candidates=counterfactual_candidate_rows,
+        )
         payload = {
             "generated_at_utc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
             "product": "Orographic",
             "scan_settings": {
+                "production_lane_count": 1,
+                "production_lane": "council.live_board",
+                "research_outputs_routable": False,
+                "moonshot_lane_role": "visible_experimental_side_pick",
+                "moonshot_primary_ensemble_effect": "none",
+                "moonshot_outcome_tracking": "moonshot_prospective_ledger",
                 "live_size": live_size,
                 "shadow_size": shadow_size,
                 "forge_intake": forge_intake,
+                "counterfactual_observation_size": counterfactual_observation_size,
+                "preserve_shadow_veto_live_policy": preserve_shadow_veto_live_policy,
                 "universe_size": len(config.universe),
                 "minimum_days_to_expiry": minimum_days_to_expiry,
                 "maximum_days_to_expiry": maximum_days_to_expiry,
@@ -2267,7 +2718,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_threshold": moonshot_threshold,
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
+                "paired_side_capture_enabled": paired_side_capture_enabled,
                 "market_shock_control_mode": market_shock_control_mode,
+                "model_stack": model_stack,
             },
             "diagnostic_sources": {
                 "promotion_comparison": str(promotion_comparison_path) if promotion_comparison_path else None,
@@ -2276,8 +2729,43 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             "regime": regime.to_dict(),
             "market_shock": market_shock.to_dict(),
             "scout_signals": [row.to_dict() for row in scout_signals],
-            "forge_candidates": [row.to_dict() for row in forge_candidates],
-            "council": council.to_dict(),
+            "forge_candidates": forge_candidate_rows,
+            "paired_side_observation_set": {
+                **(
+                    forge_diagnostics.get("paired_side_capture", {})
+                    if isinstance(forge_diagnostics.get("paired_side_capture"), dict)
+                    else {}
+                ),
+                "mode": (
+                    "research_only_outcome_capture"
+                    if paired_side_capture_enabled
+                    else "disabled"
+                ),
+                "enabled": paired_side_capture_enabled,
+                "execution_effect": "none",
+                "production_lane": False,
+                "contracts": paired_side_observation_rows,
+            },
+            "counterfactual_observation_lane": {
+                "mode": "deprecated_empty_schema_compatibility",
+                "execution_effect": "none_observation_only",
+                "council_eligible": False,
+                "tradier_routing_eligible": False,
+                "automatic_tradier_routing_eligible": False,
+                "manual_order_preview_eligible": False,
+                "manual_order_requires_override_confirmation": False,
+                "selection_reason": "model_policy_hold",
+                "live_policy_effect": (
+                    "legacy_compatibility_holdout"
+                    if preserve_shadow_veto_live_policy
+                    else "none"
+                ),
+                "signals": [row.to_dict() for row in counterfactual_input_signals],
+                "candidates": counterfactual_candidate_rows,
+                "diagnostics": counterfactual_forge_diagnostics,
+            },
+            "council": council_payload,
+            "manual_trade_pick": manual_trade_pick,
             "moonshot_lane": moonshot_lane,
             "diagnostics": {
                 "scout": scout_diagnostics,
@@ -2299,8 +2787,18 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout_side_aware_directional_disagreements": scout_diagnostics.get("side_aware_directional_disagreements", 0),
                 "scout_side_aware_no_trade_disagreements": scout_diagnostics.get("side_aware_no_trade_disagreements", 0),
                 "scout_shadow_side_veto_rejections": scout_diagnostics.get("shadow_side_veto_rejections", 0),
+                "scout_shadow_side_veto_observations": scout_diagnostics.get("shadow_side_veto_observations", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
+                "paired_side_observation_count": len(
+                    all_paired_side_observation_rows
+                ),
+                "paired_side_pair_count": len(all_paired_side_observation_rows) // 2,
+                "paired_side_reused_forge_contract_count": len(
+                    paired_contracts_reused_by_forge
+                ),
+                "counterfactual_signal_count": len(counterfactual_input_signals),
+                "counterfactual_candidate_count": len(counterfactual_candidates),
                 "moonshot_pick_count": moonshot_lane["summary"]["pick_count"],
                 "moonshot_eligible_count": moonshot_lane["summary"]["eligible_count"],
                 "forge_learned_ranker": forge_diagnostics.get("learned_ranker", {}),

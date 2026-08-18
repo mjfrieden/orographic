@@ -84,6 +84,20 @@ class MoonshotTests(unittest.TestCase):
         self.assertIn("moonshot", payload["picks"][0])
         self.assertIsNotNone(payload["picks"][0]["call_contract_selector_score"])
 
+    def test_moonshot_is_a_tracked_side_pick_without_order_authority(self) -> None:
+        good = _candidate("NVDA", forge_score=0.72)
+        payload = select_moonshot_lane(
+            [good],
+            MarketRegime(mode="risk_on", bias=0.3, source_symbol="SPY"),
+            slot_count=1,
+        )
+
+        self.assertEqual(good.forge_score, 0.72)
+        self.assertEqual(payload["policy"]["lane_role"], "visible_experimental_side_pick")
+        self.assertEqual(payload["policy"]["primary_ensemble_effect"], "none")
+        self.assertEqual(payload["policy"]["outcome_tracking"]["artifact"], "moonshot_prospective_ledger")
+        self.assertFalse(payload["policy"]["tradier_routing_eligible"])
+
 
 if __name__ == "__main__":
     unittest.main()

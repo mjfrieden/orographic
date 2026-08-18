@@ -1,8 +1,8 @@
 {
   "activation_policy": {
     "default": "active",
-    "reason": "The payoff ranker remains active and now operates alongside production-active Scout and Sentinel gating.",
-    "shadow_env": "OROGRAPHIC_PAYOFF_MODEL_MODE=shadow"
+    "reason": "The payoff ranker contributes to the single unified production stack alongside Scout, Sentinel, path, and cost-aware evidence.",
+    "comparison_stack": "OROGRAPHIC_MODEL_STACK=current_gated (offline comparison only)"
   },
   "artifact": "payoff_model",
   "artifacts": {
@@ -1276,7 +1276,7 @@
         "required_min_per_side": 75
       }
     },
-    "required_next_step": "Run shadow disagreement evaluation across 3/6/12-month windows and at least 30 live shadow trading days.",
+    "required_next_step": "Run leakage-safe challenger comparisons across 3/6/12-month windows and at least 30 prospective trading days without creating a second production lane.",
     "status": "hold",
     "summary": "One or more dataset-coverage or walk-forward gates remain below threshold; hold promotion and keep gathering evidence."
   },

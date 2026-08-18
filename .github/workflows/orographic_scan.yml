@@ -45,6 +45,38 @@ jobs:
           pip install -r engine/requirements.txt
           pip install pytest
 
+      - name: Set up Node for R2 evidence restore
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Restore canonical evidence from R2
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/restore_research_artifacts_from_r2.py \
+            --mode canonical \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            --output-dir output/restored_canonical_evidence \
+            --allow-missing
+
+      - name: Bootstrap pre-manifest R2 history
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          if [ ! -f output/restored_canonical_evidence/evidence_manifest.json ]; then
+            python scripts/restore_research_artifacts_from_r2.py \
+              --mode legacy \
+              --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+              --output-dir output/restored_legacy_evidence \
+              --allow-missing
+          else
+            echo "Canonical evidence restored; legacy bootstrap is not required."
+          fi
+
       - name: Run regression gates
         run: |
           python -m pytest -q engine/tests
@@ -158,7 +190,27 @@ jobs:
           python scripts/build_research_datasets.py \
             --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
             --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
+            --canonical-option-outcomes-output output/research_datasets/strict_option_outcomes.json \
             --output-dir output/research_datasets
+
+      - name: Consolidate canonical evidence
+        run: |
+          python scripts/consolidate_research_evidence.py \
+            --source-root output/restored_canonical_evidence \
+            --source-root output/restored_legacy_evidence \
+            --source-root output/research_datasets \
+            --source-root engine/data/live_options_archive \
+            --output-dir output/canonical_evidence
+
+      - name: Materialize Cirrus-compatible archive
+        run: |
+          python scripts/materialize_canonical_evidence_for_cirrus.py \
+            --canonical-dir output/canonical_evidence \
+            --output-dir engine/data/options/blended/partitioned
+
+      - name: Build matched Scout pair readiness
+        run: |
+          python scripts/build_scout_pair_readiness.py --warn-only
 
       - name: Build point-in-time event outcome coverage
         run: |
@@ -337,16 +389,22 @@ jobs:
             engine/data/live_options_archive \
             engine/data/event_observatory \
             output/research_datasets
+          python scripts/upload_research_artifacts_to_r2.py \
+            --mode canonical \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            output/canonical_evidence
 
       - name: Write scan health summary
         if: ${{ always() }}
         run: |
           python scripts/build_scan_health_summary.py \
             --output web/data/diagnostics/scan_health_summary_latest.json \
+            --canonical-manifest output/canonical_evidence/evidence_manifest.json \
             --r2-status "${{ steps.upload_r2.outcome || 'skipped' }}" \
             --dashboard-push-status "${{ steps.push_snapshot.outcome || 'skipped' }}" \
             --dashboard-deploy-status "${{ steps.deploy_pages.outcome || 'skipped' }}" \
             --warn-only
+          python scripts/build_model_governance_summary.py
 
       - name: Commit scan health summary
         id: health_summary
@@ -354,7 +412,9 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/data/diagnostics/scan_health_summary_latest.json
+          git add \
+            web/data/diagnostics/scan_health_summary_latest.json \
+            web/data/diagnostics/model_governance_summary_latest.json
           if git diff --cached --quiet; then
             echo "health_summary_changed=false" >> "$GITHUB_OUTPUT"
             echo "No scan health summary changes to commit."
@@ -402,6 +462,7 @@ jobs:
             engine/data/live_options_archive/
             engine/data/event_observatory/
             output/research_datasets/
+            output/canonical_evidence/
           retention-days: 90
 
       - name: Fail when snapshot push did not reach GitHub

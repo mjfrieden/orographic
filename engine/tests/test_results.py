@@ -135,6 +135,10 @@ class ResultsTests(unittest.TestCase):
         )
 
         self.assertEqual(results["max_drawdown"], -1.0)
+        self.assertEqual(results["capital_at_risk_max_drawdown"], -1.0)
+        self.assertEqual(results["account_max_drawdown"], -0.0198)
+        self.assertEqual(results["account_return_pct"], -0.01)
+        self.assertEqual(results["account_equity_curve"][-1]["account_equity"], 9900.0)
 
     def test_build_results_reports_put_side_breakdown(self) -> None:
         put_trade = _trade("HEDGE", "real_chain", "real_chain", 1.0, pnl=30.0, pnl_pct=0.3)
@@ -251,6 +255,31 @@ class ResultsTests(unittest.TestCase):
         self.assertEqual(summary["friction_flip_count"], 1)
         self.assertAlmostEqual(summary["positive_pnl_before_friction_rate"], 1.0, places=4)
         self.assertAlmostEqual(summary["positive_pnl_after_friction_rate"], 0.0, places=4)
+
+    def test_option_outcome_summary_reports_explicit_pair_coverage(self) -> None:
+        shared = {
+            "symbol": "AAA",
+            "entry_date": "2026-05-22",
+            "paired_observation_id": "PAIR-1",
+            "positive_pnl_after_friction": True,
+            "positive_pnl_before_friction": True,
+            "breakeven_after_friction": True,
+            "breakeven_before_friction": True,
+            "friction_flipped_winner_to_loser": False,
+            "friction_drag_pct": 0.0,
+            "total_friction_cost_usd": 0.0,
+        }
+        summary = build_option_outcome_dataset_summary(
+            [
+                {**shared, "option_type": "call"},
+                {**shared, "option_type": "put"},
+            ]
+        )
+
+        self.assertEqual(summary["explicit_paired_contract_rows"], 2)
+        self.assertEqual(summary["explicit_pair_ids"], 1)
+        self.assertEqual(summary["complete_explicit_pair_ids"], 1)
+        self.assertEqual(summary["explicit_paired_symbol_dates"], 1)
 
     def test_option_outcome_dataset_preserves_option_native_and_sentinel_fields(self) -> None:
         trade = _trade("EVNT", "real_chain", "real_chain", 1.0)

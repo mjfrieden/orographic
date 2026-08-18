@@ -28,6 +28,7 @@ from engine.orographic.schemas import ContractCandidate, MarketRegime
 log = logging.getLogger(__name__)
 
 MODEL_PATH = Path(__file__).parent / "models" / "path_model.pkl"
+HAZARD_MODEL_PATH = Path(__file__).parent / "models" / "path_hazard_challenger.pkl"
 PATH_MODEL_MODE_ENV = "OROGRAPHIC_PATH_MODEL_MODE"
 
 FEATURE_COLS = [
@@ -351,6 +352,39 @@ def score_candidates(
                 f"take-profit {float(early_take_profit[i]):.2f}, "
                 f"decay {float(decay_risk[i]):.2f}"
             )
+    if HAZARD_MODEL_PATH.exists():
+        try:
+            import joblib
+            from engine.orographic.path_hazard import cumulative_incidence
+
+            hazard_artifact = joblib.load(HAZARD_MODEL_PATH)
+            if (
+                isinstance(hazard_artifact, dict)
+                and hazard_artifact.get("mode") == "observation_only_never_used_for_orders"
+            ):
+                hazard_hash = _sha256_file(HAZARD_MODEL_PATH)
+                bundle = {
+                    "target_hazard_model": hazard_artifact["target_hazard_model"],
+                    "stop_hazard_model": hazard_artifact["stop_hazard_model"],
+                }
+                for i, candidate in enumerate(candidates):
+                    target, stop, expiry = cumulative_incidence(
+                        bundle,
+                        X_all[i],
+                        max(_days_to_expiry(candidate, as_of=as_of), 1),
+                    )
+                    action = "hold_to_planned_exit"
+                    if target >= 0.55 and target - stop >= 0.15:
+                        action = "shadow_target_harvest"
+                    elif stop >= 0.55 and stop - target >= 0.15:
+                        action = "shadow_defensive_exit"
+                    candidate.path_hazard_target_probability = round(float(target), 4)
+                    candidate.path_hazard_stop_probability = round(float(stop), 4)
+                    candidate.path_hazard_expiry_probability = round(float(expiry), 4)
+                    candidate.path_exit_shadow_action = action
+                    candidate.path_hazard_artifact_sha256 = hazard_hash
+        except Exception as exc:
+            log.warning("Competing-risk path challenger unavailable: %s", exc)
     return candidates
 
 

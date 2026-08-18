@@ -22,12 +22,15 @@ class MoonshotAssessment:
 
     def to_dict(self) -> dict[str, Any]:
         payload = self.candidate.to_dict()
-        payload["moonshot"] = {
+        payload["moonshot"] = self.metadata()
+        return payload
+
+    def metadata(self) -> dict[str, Any]:
+        return {
             "tail_upside_score": self.tail_upside_score,
             "eligible": self.eligible,
             "reasons": list(self.reasons),
         }
-        return payload
 
 
 def _clamp(value: float, lower: float = 0.0, upper: float = 1.0) -> float:
@@ -221,12 +224,23 @@ def select_moonshot_lane(
     return {
         "policy": {
             "name": "nimrod_inspired_moonshot_satellite",
+            "lane_role": "visible_experimental_side_pick",
             "slot_count": slot_count,
             "threshold": threshold,
             "max_cost_basis": max_cost_basis,
-            "capital_mode": "satellite_shadow_then_canary",
+            "capital_mode": "outcome_tracked_non_routable_experiment",
+            "execution_effect": "none",
+            "primary_ensemble_effect": "none",
+            "council_eligible": False,
+            "tradier_routing_eligible": False,
+            "outcome_tracking": {
+                "artifact": "moonshot_prospective_ledger",
+                "dataset": "moonshot_outcomes",
+                "quote_windows": "fixed prospective policy v2 windows",
+            },
             "notes": [
-                "Dedicated tail-upside lane; does not replace Council live-board picks.",
+                "Moonshot is a separate visible experiment and does not influence the primary ensemble or Council decision.",
+                "The side pick is recorded for prospective outcomes and has no order authority.",
                 "Scores cheap premium, medium delta, elevated-but-not-extreme IV, Forge quality, path quality, theme agreement, and side/regime prior.",
             ],
         },

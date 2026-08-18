@@ -34,6 +34,17 @@ def _normalize_leg(
 ) -> pd.DataFrame:
     if frame.empty:
         return pd.DataFrame()
+    raw_last_trade = frame.get("lastTradeDate")
+    last_trade = (
+        pd.to_datetime(raw_last_trade, errors="coerce", utc=True)
+        if raw_last_trade is not None
+        else pd.Series(pd.NaT, index=frame.index, dtype="datetime64[ns, UTC]")
+    )
+    captured_at = pd.Timestamp(run_started_at_utc)
+    if captured_at.tzinfo is None:
+        captured_at = captured_at.tz_localize("UTC")
+    else:
+        captured_at = captured_at.tz_convert("UTC")
     normalized = pd.DataFrame(
         {
             "quote_date": quote_date,
@@ -46,14 +57,24 @@ def _normalize_leg(
             "bid": _safe_numeric(frame.get("bid")),
             "ask": _safe_numeric(frame.get("ask")),
             "last": _safe_numeric(frame.get("lastPrice")),
+            "chain_snapshot_at_utc": run_started_at_utc,
+            "last_trade_at_utc": last_trade,
+            "last_trade_age_seconds": (captured_at - last_trade).dt.total_seconds().clip(lower=0),
             "implied_volatility": _safe_numeric(frame.get("impliedVolatility")),
             "open_interest": _safe_numeric(frame.get("openInterest")),
             "volume": _safe_numeric(frame.get("volume")),
-            "source": provider,
+            "source": frame.get("dataSource", provider),
         }
     )
     normalized = normalized.dropna(subset=["strike"])
     normalized = normalized[(normalized["bid"].fillna(0) > 0) | (normalized["ask"].fillna(0) > 0)]
+    normalized["quote_mid"] = (normalized["bid"] + normalized["ask"]) / 2.0
+    normalized["quote_spread_dollars"] = normalized["ask"] - normalized["bid"]
+    normalized["quote_spread_pct"] = normalized["quote_spread_dollars"] / normalized["quote_mid"].where(
+        normalized["quote_mid"] > 0
+    )
+    normalized["has_two_sided_quote"] = (normalized["bid"] > 0) & (normalized["ask"] > 0)
+    normalized["has_valid_iv"] = normalized["implied_volatility"].between(0.03, 5.0)
     return normalized
 
 
@@ -69,7 +90,7 @@ def archive_live_option_chains(
     min_dte: int = 1,
     max_dte: int = 45,
     max_expiries_per_symbol: int = 6,
-    provider: str = "yfinance",
+    provider: str = "configured_market_adapter",
     today: date | None = None,
     run_started_at_utc: str | None = None,
 ) -> ArchiveResult:
@@ -80,7 +101,7 @@ def archive_live_option_chains(
     cleaned_symbols = list(dict.fromkeys(symbol.strip().upper() for symbol in symbols if symbol.strip()))
     manifest: dict[str, Any] = {
         "artifact": "live_options_archive_manifest",
-        "schema_version": 1,
+        "schema_version": 2,
         "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "run_started_at_utc": run_started,
         "quote_date": quote_date.isoformat(),
@@ -98,6 +119,9 @@ def archive_live_option_chains(
             "expiries_archived": 0,
             "rows_archived": 0,
             "errors": 0,
+            "rows_with_two_sided_quotes": 0,
+            "rows_with_valid_iv": 0,
+            "rows_with_last_trade_timestamp": 0,
         },
         "symbols": {},
     }
@@ -172,6 +196,9 @@ def archive_live_option_chains(
                 manifest["summary"]["symbols_archived"] += 1
                 manifest["summary"]["expiries_archived"] += len(symbol_entry["expiries"])
                 manifest["summary"]["rows_archived"] += row_count
+                manifest["summary"]["rows_with_two_sided_quotes"] += int(symbol_frame["has_two_sided_quote"].sum())
+                manifest["summary"]["rows_with_valid_iv"] += int(symbol_frame["has_valid_iv"].sum())
+                manifest["summary"]["rows_with_last_trade_timestamp"] += int(symbol_frame["last_trade_at_utc"].notna().sum())
         except Exception as exc:
             symbol_entry["status"] = "error"
             symbol_entry["errors"].append(str(exc))

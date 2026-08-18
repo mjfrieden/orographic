@@ -6,7 +6,13 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.schemas import MarketRegime
-from engine.orographic.scout import _MODEL_PATH, _SCALER_PATH, _load_model, build_signal
+from engine.orographic.scout import (
+    _MODEL_PATH,
+    _SCALER_PATH,
+    _apply_unified_side_policy,
+    _load_model,
+    build_signal,
+)
 from engine.orographic.sentinel import SentinelScore
 
 
@@ -24,6 +30,71 @@ def _frame() -> pd.DataFrame:
 
 
 class ScoutTests(unittest.TestCase):
+    def test_unified_side_policy_keeps_direction_when_side_model_is_not_decisive(self) -> None:
+        passed, direction, score, diagnostics = _apply_unified_side_policy(
+            direction="put",
+            base_score=-0.60,
+            side_probs={"call_edge": 0.30, "put_edge": 0.10, "no_trade": 0.60},
+            side_model_mode="trained_option_payoff_three_class",
+        )
+
+        self.assertTrue(passed)
+        self.assertEqual(direction, "put")
+        self.assertLess(score, 0.0)
+        self.assertFalse(diagnostics["override_applied"])
+
+    def test_unified_side_policy_allows_high_confidence_direction_override(self) -> None:
+        _, direction, score, diagnostics = _apply_unified_side_policy(
+            direction="put",
+            base_score=-0.60,
+            side_probs={"call_edge": 0.75, "put_edge": 0.05, "no_trade": 0.20},
+            side_model_mode="trained_option_payoff_three_class",
+        )
+
+        self.assertEqual(direction, "call")
+        self.assertGreater(score, 0.0)
+        self.assertTrue(diagnostics["override_applied"])
+
+    def test_hierarchical_challenger_is_observed_without_changing_live_signal(self) -> None:
+        observation = {
+            "mode": "observation_only",
+            "execution_effect": "none_observation_only",
+            "trade_probability": 0.82,
+            "conditional_call_probability": 0.10,
+            "call_edge": 0.082,
+            "put_edge": 0.738,
+            "no_trade": 0.18,
+            "preferred_side": "put",
+            "would_abstain": False,
+        }
+        with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}, clear=True),
+            mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=({"call_edge": 0.70, "put_edge": 0.15, "no_trade": 0.15}, "trained_option_payoff_three_class"),
+            ),
+            mock.patch("engine.orographic.scout._hierarchical_side_observation", return_value=observation),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+            )
+
+        self.assertIsNotNone(signal)
+        assert signal is not None
+        self.assertEqual(signal.direction, "call")
+        self.assertEqual(signal.scout_score, 0.5)
+        self.assertEqual(diagnostics["hierarchical_side_challenger"]["preferred_side"], "put")
+        self.assertEqual(diagnostics["hierarchical_side_challenger"]["execution_effect"], "none_observation_only")
+
     def test_scout_model_loader_returns_trained_artifact_when_available(self) -> None:
         if not _MODEL_PATH.exists() or not _SCALER_PATH.exists():
             self.skipTest("Scout model artifacts are not present in this checkout.")
@@ -186,7 +257,37 @@ class ScoutTests(unittest.TestCase):
         self.assertTrue(diagnostics["side_aware"]["active_policy"]["applied"])
         self.assertFalse(diagnostics["side_aware"]["active_policy"]["passed"])
 
-    def test_option_payoff_side_model_shadow_no_trade_blocks_trade(self) -> None:
+    def test_active_no_trade_can_be_retained_for_manual_candidate_ranking(self) -> None:
+        with (
+            mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "active"}),
+            mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
+            mock.patch(
+                "engine.orographic.scout._ml_side_probabilities",
+                return_value=(
+                    {"call_edge": 0.20, "put_edge": 0.10, "no_trade": 0.70},
+                    "trained_option_payoff_three_class",
+                ),
+            ),
+            mock.patch(
+                "engine.orographic.scout.fetch_ai_multiplier",
+                return_value=SentinelScore(multiplier=1.0, catalyst="none", rationale=""),
+            ),
+        ):
+            signal, diagnostics = build_signal(
+                "TEST",
+                MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                _frame(),
+                0.0,
+                return_diagnostics=True,
+                retain_policy_held_candidate=True,
+            )
+
+        self.assertIsNotNone(signal)
+        self.assertTrue(diagnostics["policy_held_candidate"])
+        self.assertEqual(diagnostics["reason"], "scout_model_no_trade")
+        self.assertEqual(diagnostics["execution_eligibility"], "manual_only")
+
+    def test_option_payoff_side_model_shadow_no_trade_is_observation_only(self) -> None:
         with (
             mock.patch.dict("os.environ", {"OROGRAPHIC_SIDE_MODEL_MODE": "shadow"}, clear=True),
             mock.patch("engine.orographic.scout._ml_scout_signal", return_value=(0.5, 0.75)),
@@ -210,9 +311,13 @@ class ScoutTests(unittest.TestCase):
                 return_diagnostics=True,
             )
 
-        self.assertIsNone(signal)
-        self.assertEqual(diagnostics["reason"], "shadow_no_trade_veto")
-        self.assertFalse(diagnostics["side_aware"]["shadow_guard"]["passed"])
+        self.assertIsNotNone(signal)
+        self.assertEqual(diagnostics["reason"], "selected")
+        guard = diagnostics["side_aware"]["shadow_guard"]
+        self.assertTrue(guard["passed"])
+        self.assertTrue(guard["would_veto"])
+        self.assertEqual(guard["reason"], "shadow_no_trade_veto")
+        self.assertEqual(guard["execution_effect"], "none_observation_only")
 
     def test_option_payoff_side_model_shadow_allows_small_disagreement(self) -> None:
         with (

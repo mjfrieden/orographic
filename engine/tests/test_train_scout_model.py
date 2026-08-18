@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 import pandas as pd
+import numpy as np
 
 from engine.train_scout_model import (
     _balanced_sample_weights,
@@ -13,6 +14,7 @@ from engine.train_scout_model import (
     _directional_option_training_frame,
     _event_feature_activation_report,
     _infer_regime_labels,
+    _hierarchical_threshold_report,
     _load_option_outcome_labels,
     _merge_option_outcome_labels,
     _selected_event_feature_columns,
@@ -73,6 +75,70 @@ class TrainScoutModelTests(unittest.TestCase):
         self.assertEqual(metadata["labeled_symbol_dates"], 1)
         self.assertEqual(labeled.iloc[0]["side_label"], "call_edge")
         self.assertEqual(labeled.iloc[0]["label_date"], pd.Timestamp("2026-04-25"))
+        self.assertTrue(bool(labeled.iloc[0]["both_sides_observed"]))
+
+    def test_load_option_outcome_labels_prefers_explicit_matched_pair(self) -> None:
+        payload = {
+            "artifact": "option_outcome_dataset",
+            "rows": [
+                {
+                    "symbol": "AAA",
+                    "option_type": "call",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": 0.9,
+                },
+                {
+                    "symbol": "AAA",
+                    "option_type": "call",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": -0.1,
+                    "paired_observation_id": "PAIR-1",
+                },
+                {
+                    "symbol": "AAA",
+                    "option_type": "put",
+                    "entry_date": "2026-04-21",
+                    "exit_date": "2026-04-25",
+                    "pnl_pct": 0.2,
+                    "paired_observation_id": "PAIR-1",
+                },
+            ],
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "option_outcomes.json"
+            path.write_text(json.dumps(payload), encoding="utf-8")
+            labeled, metadata = _load_option_outcome_labels([path])
+
+        self.assertEqual(labeled.iloc[0]["side_label"], "put_edge")
+        self.assertAlmostEqual(float(labeled.iloc[0]["call_avg_pnl_pct"]), -0.1)
+        self.assertTrue(bool(labeled.iloc[0]["explicit_pair_observed"]))
+        self.assertEqual(labeled.iloc[0]["label_source"], "explicit_matched_call_put_pair")
+        self.assertEqual(metadata["explicit_paired_symbol_dates"], 1)
+
+    def test_hierarchical_threshold_optimizes_conservative_after_cost_utility(self) -> None:
+        rows = 60
+        trade_probs = np.array([0.8] * 40 + [0.5] * 20, dtype=float)
+        call_probs = np.array(([0.8, 0.2] * 30), dtype=float)
+        selected_call = call_probs >= 0.5
+        call_returns = np.where(selected_call, 0.20, -0.20)
+        put_returns = np.where(selected_call, -0.20, 0.20)
+        call_returns[40:] *= -1
+        put_returns[40:] *= -1
+        frame = pd.DataFrame({
+            "call_avg_pnl_pct": call_returns,
+            "put_avg_pnl_pct": put_returns,
+            "spy_mom_20d": [0.03] * 20 + [-0.03] * 20 + [0.0] * 20,
+        })
+
+        report = _hierarchical_threshold_report(trade_probs, call_probs, frame)
+
+        selected = report["selected"]
+        self.assertEqual(selected["selected_rows"], 40)
+        self.assertGreater(selected["mean_after_cost_return"], 0.0)
+        self.assertGreater(selected["downside_decile_after_cost_return"], 0.0)
+        self.assertGreaterEqual(min(selected["side_counts"].values()), 10)
 
     def test_directional_option_training_frame_filters_no_trade_rows_and_builds_binary_label(self) -> None:
         merged = pd.DataFrame(

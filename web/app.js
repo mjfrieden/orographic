@@ -7,6 +7,7 @@ const SNAPSHOT_SOURCE = "/data/latest_run.json";
 const PROSPECTIVE_LEDGER_SOURCE = "/data/diagnostics/prospective_pick_ledger.json";
 const PROMOTION_COMPARISON_SOURCE = "/data/diagnostics/promotion_shadow_active_comparison_latest.json";
 const RESEARCH_READINESS_SOURCE = "/data/diagnostics/research_readiness_health_latest.json";
+const MODEL_GOVERNANCE_SOURCE = "/data/diagnostics/model_governance_summary_latest.json";
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
 const PROSPECTIVE_RECENT_ROW_LIMIT = 24;
@@ -69,12 +70,14 @@ function toneClass(value) {
 function laneLabel(lane) {
   if (lane === "live") return "Live";
   if (lane === "moonshot") return "Moonshot";
+  if (lane === "manual_override") return "Historical Research";
   return "Shadow";
 }
 
 function laneClass(lane) {
   if (lane === "live") return "is-live";
   if (lane === "moonshot") return "is-moonshot";
+  if (lane === "manual_override") return "is-shadow";
   return "is-shadow";
 }
 
@@ -136,7 +139,127 @@ async function readBrokerJson(response, unavailableMessage = "Tradier is unavail
   return response.json();
 }
 
-let WORKBENCH_STATE = { comparison: null, readiness: null, selectedWindow: "3_month" };
+let WORKBENCH_STATE = {
+  comparison: null,
+  readiness: null,
+  governance: null,
+  selectedWindow: "3_month",
+  selectedChallenger: "scout",
+};
+
+function governanceMetricValue(metric) {
+  const value = metric?.value;
+  if (value === null || value === undefined) return "—";
+  if (metric?.format === "integer") return integer(value);
+  if (metric?.format === "decimal") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toFixed(3) : "—";
+  }
+  return String(value);
+}
+
+function renderModelGovernance() {
+  const governance = WORKBENCH_STATE.governance || {};
+  const capture = governance.data_capture || {};
+  const summary = governance.summary || {};
+  const authority = governance.live_authority || {};
+  const challengers = Array.isArray(governance.challengers) ? governance.challengers : [];
+
+  const captureTone = evidenceStatus(capture.status || "hold");
+  const captureCard = document.getElementById("governance-capture-card");
+  if (captureCard) captureCard.className = `governance-overview-card is-${captureTone}`;
+  setText("governance-capture-status", captureTone === "pass" ? "Healthy" : captureTone === "fail" ? "Action needed" : "Awaiting capture");
+  setText("governance-capture-note", capture.headline || "Trajectory health has not been published yet.");
+
+  const held = Number(summary.held || challengers.filter((item) => evidenceStatus(item.status) !== "pass").length);
+  const challengerTone = held ? "hold" : "pass";
+  const challengerCard = document.getElementById("governance-challenger-card");
+  if (challengerCard) challengerCard.className = `governance-overview-card is-${challengerTone}`;
+  setText("governance-challenger-status", held ? `${integer(held)} held` : "All gates passed");
+  setText("governance-challenger-note", held ? "No challenger has earned production authority." : "All binding research gates report pass.");
+
+  const authorityCard = document.getElementById("governance-authority-card");
+  if (authorityCard) authorityCard.className = "governance-overview-card is-pass";
+  setText("governance-authority-status", authority.challenger_order_routing === false ? "Protected" : "Review required");
+  setText("governance-authority-note", authority.summary || "Only active production models can influence Tradier execution.");
+  setText("governance-generated", governance.generated_at_utc ? `Updated ${formatTs(governance.generated_at_utc)}` : "Governance artifact unavailable");
+
+  const tabs = document.getElementById("challenger-tabs");
+  const detail = document.getElementById("challenger-detail");
+  if (!tabs || !detail) return;
+  if (!challengers.length) {
+    tabs.innerHTML = "";
+    detail.innerHTML = `<p class="drawer-note">Model-governance evidence is unavailable. All challenger authority remains disabled.</p>`;
+    return;
+  }
+
+  if (!challengers.some((item) => item.id === WORKBENCH_STATE.selectedChallenger)) {
+    WORKBENCH_STATE.selectedChallenger = challengers[0].id;
+  }
+  tabs.innerHTML = challengers.map((item) => {
+    const selected = item.id === WORKBENCH_STATE.selectedChallenger;
+    const tone = evidenceStatus(item.status);
+    return `
+      <button class="challenger-tab${selected ? " is-active" : ""}" type="button" role="tab"
+        id="challenger-tab-${escapeHtml(item.id)}" aria-selected="${selected}" aria-controls="challenger-detail"
+        data-challenger-id="${escapeHtml(item.id)}">
+        <span>${escapeHtml(item.layer)}</span>
+        <strong>${escapeHtml(item.title)}</strong>
+        <small class="is-${tone}">${evidenceStatusLabel(tone)}</small>
+      </button>`;
+  }).join("");
+
+  tabs.querySelectorAll("[data-challenger-id]").forEach((button, index, buttons) => {
+    button.addEventListener("click", () => {
+      WORKBENCH_STATE.selectedChallenger = button.dataset.challengerId;
+      renderModelGovernance();
+      document.getElementById("challenger-detail")?.focus({ preventScroll: true });
+    });
+    button.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
+      event.preventDefault();
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? buttons.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[nextIndex].click();
+      buttons[nextIndex].focus();
+    });
+  });
+
+  const selected = challengers.find((item) => item.id === WORKBENCH_STATE.selectedChallenger) || challengers[0];
+  const tone = evidenceStatus(selected.status);
+  const progress = selected.progress || {};
+  const progressPct = Math.max(0, Math.min(Number(progress.progress_pct || 0), 1));
+  const blockers = Array.isArray(selected.blockers) ? selected.blockers : [];
+  const metrics = Array.isArray(selected.metrics) ? selected.metrics : [];
+  detail.tabIndex = -1;
+  detail.innerHTML = `
+    <div class="challenger-detail-head">
+      <div>
+        <span>${escapeHtml(selected.layer || "Research model")}</span>
+        <h4>${escapeHtml(selected.title || "Challenger")}</h4>
+      </div>
+      <div class="challenger-authority">
+        <span class="evidence-pill is-${tone}">${evidenceStatusLabel(tone)}</span>
+        <span class="authority-pill"><span class="material-symbols-outlined" aria-hidden="true">lock</span>${escapeHtml(String(selected.authority || "observation_only").replaceAll("_", " "))}</span>
+      </div>
+    </div>
+    <p class="challenger-summary">${escapeHtml(selected.summary || "No summary available.")}</p>
+    <div class="evidence-progress" aria-label="${escapeHtml(progress.label || "Evidence progress")}: ${integer(progress.current)} of ${integer(progress.required)}">
+      <div><span>${escapeHtml(progress.label || "Evidence progress")}</span><strong>${integer(progress.current)} / ${integer(progress.required)}</strong></div>
+      <div class="evidence-progress-track"><span style="width:${(progressPct * 100).toFixed(1)}%"></span></div>
+      <small>${integer(progress.remaining)} remaining before this sample gate is satisfied</small>
+    </div>
+    <div class="challenger-metrics">
+      ${metrics.map((metric) => `<div><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(governanceMetricValue(metric))}</strong></div>`).join("")}
+    </div>
+    <div class="challenger-action-grid">
+      <div><span>Blocking gates</span><ul>${blockers.length ? blockers.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>No blocking gates reported</li>"}</ul></div>
+      <div class="next-evidence-action"><span>Next valid action</span><p>${escapeHtml(selected.next_action || "Continue prospective observation without changing live policy.")}</p></div>
+    </div>`;
+}
 
 function workbenchMetricRow(label, active, shadow, difference, check) {
   const status = evidenceStatus(check);
@@ -343,6 +466,7 @@ function renderResearchWorkbench() {
         <div><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></div>
       </li>`).join("");
   }
+  renderModelGovernance();
 }
 
 function renderCockpitEvidence(windowRow) {
@@ -368,9 +492,10 @@ function renderCockpitEvidence(windowRow) {
 }
 
 async function loadResearchWorkbench() {
-  const [comparisonResult, readinessResult] = await Promise.allSettled([
+  const [comparisonResult, readinessResult, governanceResult] = await Promise.allSettled([
     loadJsonArtifact(PROMOTION_COMPARISON_SOURCE),
     loadJsonArtifact(RESEARCH_READINESS_SOURCE),
+    loadJsonArtifact(MODEL_GOVERNANCE_SOURCE),
   ]);
   WORKBENCH_STATE.comparison = comparisonResult.status === "fulfilled" ? comparisonResult.value : {};
   WORKBENCH_STATE.readiness = readinessResult.status === "fulfilled"
@@ -380,6 +505,17 @@ async function loadResearchWorkbench() {
         research_claims_allowed: false,
         headline: "Research-readiness artifact is unavailable; evidence claims are blocked.",
         gates: [],
+      };
+  WORKBENCH_STATE.governance = governanceResult.status === "fulfilled"
+    ? governanceResult.value
+    : {
+        status: "hold",
+        headline: "Model-governance artifact is unavailable; challenger authority remains disabled.",
+        challengers: [],
+        live_authority: {
+          challenger_order_routing: false,
+          summary: "No research challenger can route a Tradier order.",
+        },
       };
   renderResearchWorkbench();
 
@@ -443,6 +579,7 @@ let BROKER_STATE = {
   loading: false,
   lastLoadedAt: null,
   lastError: null,
+  maxEntryCostBasisUsd: HARD_COST_CEILING_USD,
 };
 
 let POSITION_ADVICE = new Map();
@@ -629,6 +766,8 @@ async function loadAccount() {
         positions: data.positions || data.broker.positions || [],
         orders: data.orders || data.broker.orders || [],
         maxContracts: data.broker.maxContracts || 3,
+        maxEntryCostBasisUsd:
+          Number(data.broker.maxEntryCostBasisUsd) || HARD_COST_CEILING_USD,
         loading: false,
         lastLoadedAt: new Date().toISOString(),
         lastError: null,
@@ -940,14 +1079,39 @@ function renderCockpitSignalSelector() {
   });
 }
 
+function noTradeFunnelHtml(payload) {
+  const summary = payload?.summary || {};
+  const councilSummary = payload?.council?.summary || {};
+  const audit = councilSummary.abstain_audit || {};
+  const researchObservations = Number(
+    summary.counterfactual_signal_count
+    || summary.scout_side_aware_no_trade_disagreements
+    || 0,
+  );
+  const stages = [
+    { label: "Universe", value: Number(summary.universe_size || 0), note: "symbols reviewed" },
+    { label: "Scout", value: Number(summary.scout_signal_count || 0), note: "live-policy signals" },
+    { label: "Forge", value: Number(summary.forge_candidate_count || 0), note: "executable contracts" },
+    { label: "Council", value: Number(councilSummary.live_count || 0), note: "live approvals" },
+  ];
+  return `
+    <details class="no-trade-funnel" open>
+      <summary><span>Why no trade?</span><strong>${escapeHtml(audit.primary_reason_label || "No contract cleared every live gate.")}</strong></summary>
+      <div class="no-trade-stages">
+        ${stages.map((stage, index) => `
+          <div class="no-trade-stage${index > 0 && stage.value === 0 ? " is-stop" : ""}">
+            <span>${escapeHtml(stage.label)}</span><strong>${integer(stage.value)}</strong><small>${escapeHtml(stage.note)}</small>
+          </div>`).join("")}
+      </div>
+      <p><span class="material-symbols-outlined" aria-hidden="true">visibility</span>${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
+    </details>`;
+}
+
 function renderCockpitSignal(payload) {
   const root = document.getElementById("cockpit-signal");
   if (!root) return;
   const live = payload?.council?.live_board || [];
-  const shadow = payload?.council?.shadow_board || [];
-  COCKPIT_SIGNALS = live.length
-    ? live.map((candidate) => ({ candidate, lane: "live" }))
-    : shadow.map((candidate) => ({ candidate, lane: "shadow" }));
+  COCKPIT_SIGNALS = live.map((candidate) => ({ candidate, lane: "live" }));
   COCKPIT_SIGNAL_INDEX = Math.min(
     Math.max(COCKPIT_SIGNAL_INDEX, 0),
     Math.max(COCKPIT_SIGNALS.length - 1, 0),
@@ -958,6 +1122,7 @@ function renderCockpitSignal(payload) {
       <span class="signal-state is-hold">Hold</span>
       <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
       <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
+      ${noTradeFunnelHtml(payload)}
       <div class="signal-metrics">
         <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
         <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
@@ -976,9 +1141,9 @@ function renderCockpitSignal(payload) {
   const afterCostEdge = Number(candidate.expected_edge_after_friction_pct);
   const maxLoss = Number(candidate.contract_cost || ask * 100);
   const generatedAt = payload.generated_at_utc || payload.timestamp;
-  const stateLabel = lane === "live" ? "Trade ready" : "Hold · shadow only";
-  const stateClass = lane === "live" ? "is-ready" : "is-hold";
-  const previewLabel = lane === "live" ? "Preview order" : "Preview shadow order";
+  const stateLabel = "Trade ready";
+  const stateClass = "is-ready";
+  const previewLabel = "Preview order";
   const suggestedQty = suggestedEntryQuantity(
     ask,
     Number(candidate.allocation_weight || 1),
@@ -990,7 +1155,7 @@ function renderCockpitSignal(payload) {
   root.innerHTML = `
     <div class="cockpit-signal-card trade-card" data-ask="${ask}">
       <span class="signal-state ${stateClass}">${stateLabel}</span>
-      <p class="signal-lead">${lane === "live" ? "Model edge is positive after costs and the contract cleared Council risk controls." : "The strongest observed candidate remains below the live promotion threshold."}</p>
+      <p class="signal-lead">Model edge is positive after costs and the contract cleared Council risk controls.</p>
       <div class="signal-contract">
         <span>Contract thesis</span>
         <h3>${escapeHtml(candidate.contract_symbol || `${candidate.symbol} option`)}</h3>
@@ -1009,6 +1174,12 @@ function renderCockpitSignal(payload) {
           <div><span>Spread</span><strong>${pct(candidate.spread_pct)}</strong><small>Bid ${money(candidate.bid)} · ask ${money(ask)}</small></div>
           <div><span>Projected move</span><strong>${pct(candidate.projected_move_pct)}</strong><small>Breakeven move ${pct(candidate.breakeven_move_pct)}</small></div>
           <div><span>Risk controls</span><strong>${riskFlags.length ? integer(riskFlags.length) : "0"}</strong><small>${escapeHtml(riskFlags.join(" · ") || "No flagged Council exceptions")}</small></div>
+          ${candidate.payoff_shadow_return_q10 != null ? `<div><span>Research downside</span><strong>${pct(candidate.payoff_shadow_return_q10)}</strong><small>Observation-only q10 after-cost return</small></div>` : ""}
+          ${candidate.payoff_shadow_return_q50 != null ? `<div><span>Research median</span><strong>${pct(candidate.payoff_shadow_return_q50)}</strong><small>Observation-only q50 after-cost return</small></div>` : ""}
+          ${candidate.payoff_shadow_prob_fill_quality != null ? `<div><span>Research fill quality</span><strong>${pct(candidate.payoff_shadow_prob_fill_quality, 0)}</strong><small>Challenger estimate; no execution authority</small></div>` : ""}
+          ${candidate.payoff_shadow_prob_target_before_stop != null ? `<div><span>Target before stop</span><strong>${pct(candidate.payoff_shadow_prob_target_before_stop, 0)}</strong><small>Observation-only path estimate</small></div>` : ""}
+          ${candidate.path_hazard_target_probability != null ? `<div><span>Exit target incidence</span><strong>${pct(candidate.path_hazard_target_probability, 0)}</strong><small>Competing-risk research; advice only</small></div>` : ""}
+          ${candidate.path_hazard_stop_probability != null ? `<div><span>Exit stop incidence</span><strong>${pct(candidate.path_hazard_stop_probability, 0)}</strong><small>${escapeHtml(String(candidate.path_exit_shadow_action || "hold_to_planned_exit").replaceAll("_", " "))}</small></div>` : ""}
         </div>
       </details>
       <div class="signal-order-row">
@@ -1036,6 +1207,39 @@ function renderCockpitSignal(payload) {
   bindCardButtons();
   renderCockpitSignalSelector();
   syncCockpitSignalControls();
+}
+
+function renderMoonshotSidePick(payload) {
+  const root = document.getElementById("moonshot-side-pick");
+  if (!root) return;
+  const lane = payload?.moonshot_lane || {};
+  const pick = Array.isArray(lane.picks) ? lane.picks[0] : null;
+  const policy = lane.policy || {};
+  const tracking = policy.outcome_tracking || {};
+
+  if (!pick) {
+    root.className = "moonshot-side-pick is-quiet";
+    root.innerHTML = `
+      <strong>No side pick today</strong>
+      <span>No contract cleared the Moonshot tail-upside gate. The primary Council decision is unchanged.</span>`;
+    return;
+  }
+
+  const moonshot = pick.moonshot || {};
+  const reasons = Array.isArray(moonshot.reasons) ? moonshot.reasons.slice(0, 2) : [];
+  root.className = "moonshot-side-pick is-active";
+  root.innerHTML = `
+    <div class="moonshot-side-contract">
+      <span>${escapeHtml(pick.symbol || "—")} · ${escapeHtml(String(pick.option_type || "option").toUpperCase())}</span>
+      <strong>${escapeHtml(pick.contract_symbol || "Experimental contract")}</strong>
+      <small>${escapeHtml(reasons.join(" · ") || "Tail-upside experiment cleared its dedicated gate.")}</small>
+    </div>
+    <div class="moonshot-side-metrics">
+      <div><span>Tail score</span><strong>${Number(moonshot.tail_upside_score || 0).toFixed(2)}</strong></div>
+      <div><span>Ask</span><strong>${money(pick.ask ?? pick.premium)}</strong></div>
+      <div><span>Tracking</span><strong>${escapeHtml(tracking.dataset || "moonshot_outcomes")}</strong></div>
+    </div>
+    <p><span class="material-symbols-outlined" aria-hidden="true">lock</span>Visible experiment only. It does not affect the primary ensemble, Council, sizing, or Tradier routing.</p>`;
 }
 
 function syncCockpitSignalControls() {
@@ -1689,7 +1893,7 @@ function suggestedEntryQuantity(price, allocWeight) {
   const weight = Number(allocWeight) || 1.0;
   const scaledBudget = Math.min(
     BASE_BUDGET_USD * weight,
-    HARD_COST_CEILING_USD,
+    Number(BROKER_STATE.maxEntryCostBasisUsd) || HARD_COST_CEILING_USD,
   );
   const rawQty = Math.floor(scaledBudget / (contractPrice * 100.0));
   return clampQuantity(rawQty || 1, 1);
@@ -1945,11 +2149,13 @@ function buildTradeCard(candidate, regime, lane) {
           data-ask="${displayAsk || ""}"
           data-alloc="${candidate.allocation_weight || 1.0}"
           ${
-            isSpread
-              ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
+            !isLive
+              ? "disabled title='Research telemetry has no broker authority'"
+              : isSpread
+                ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
               : ""
           }
-        >${isSpread ? "Manual Spread Required" : "Preview Trade"}</button>
+        >${!isLive ? "Research Only" : isSpread ? "Manual Spread Required" : "Preview Trade"}</button>
 
         ${
           isAdmin
@@ -1963,11 +2169,13 @@ function buildTradeCard(candidate, regime, lane) {
           data-ask="${displayAsk || ""}"
           data-alloc="${candidate.allocation_weight || 1.0}"
           ${
-            isSpread
-              ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
+            !isLive
+              ? "disabled title='Research telemetry has no broker authority'"
+              : isSpread
+                ? "disabled title='Debit spread picks require manual multi-leg entry in Tradier'"
               : ""
           }
-        >${isSpread ? "Manual Spread Required" : "Execute Trade"}</button>
+        >${!isLive ? "Research Only" : isSpread ? "Manual Spread Required" : "Execute Trade"}</button>
         `
             : ""
         }
@@ -2169,6 +2377,10 @@ function renderForgeDiagnostics(payload) {
         `${integer(scoutDiag.side_aware_scores?.length)} symbols`,
       ),
       summaryItemHtml(
+        "Hierarchical Research",
+        `${integer(scoutDiag.hierarchical_challenger_observations)} observed · ${integer(scoutDiag.hierarchical_challenger_abstentions)} abstain · ${integer(scoutDiag.hierarchical_challenger_directional_disagreements)} side conflicts`,
+      ),
+      summaryItemHtml(
         "Sentinel",
         Object.entries(sentinelModes)
           .map(([mode, count]) => `${mode} ${count}`)
@@ -2353,6 +2565,30 @@ function renderPromotionModelCard(model) {
   if (model.shadow_window_runs !== undefined) {
     metricRows.push(summaryItemHtml("Shadow Runs", integer(model.shadow_window_runs)));
   }
+  if (model.shadow_would_veto_observations !== undefined) {
+    metricRows.push(summaryItemHtml("Would Veto", integer(model.shadow_would_veto_observations)));
+  }
+  if (model.counterfactual_candidates !== undefined) {
+    metricRows.push(summaryItemHtml("Research Contracts", integer(model.counterfactual_candidates)));
+  }
+  if (model.veto_evidence_decision) {
+    metricRows.push(summaryItemHtml("Veto Evidence", String(model.veto_evidence_decision).replaceAll("_", " ")));
+  }
+  if (model.veto_resolved_current_rule !== undefined) {
+    metricRows.push(summaryItemHtml("Resolved Vetoes", `${integer(model.veto_resolved_current_rule)}/100`));
+  }
+  if (model.veto_independent_trading_days !== undefined) {
+    metricRows.push(summaryItemHtml("Veto Days", `${integer(model.veto_independent_trading_days)}/30`));
+  }
+  if (model.veto_mean_avoided_net_return !== undefined && model.veto_mean_avoided_net_return !== null) {
+    metricRows.push(summaryItemHtml("Avoided Return", pctOrDash(model.veto_mean_avoided_net_return)));
+  }
+  if (model.execution_effect) {
+    metricRows.push(summaryItemHtml("Authority", String(model.execution_effect).replaceAll("_", " ")));
+  }
+  if (model.live_policy_effect) {
+    metricRows.push(summaryItemHtml("Live Policy", String(model.live_policy_effect).replaceAll("_", " ")));
+  }
   if (model.tracked_live_recommendations !== undefined) {
     metricRows.push(summaryItemHtml("Tracked Live", integer(model.tracked_live_recommendations)));
   }
@@ -2453,6 +2689,10 @@ function renderPromotionReadiness(payload) {
       ),
       summaryItemHtml("Challenger Next Step", profitability.payoff_challenger_next_action || "Collect prospective evidence."),
       summaryItemHtml(
+        "Scout Veto Evidence",
+        `${String(profitability.counterfactual_veto_decision || "not run").replaceAll("_", " ")} · ${integer(profitability.counterfactual_veto_resolved)}/100 resolved current-rule vetoes`,
+      ),
+      summaryItemHtml(
         "Outcome Capture",
         `${integer(profitability.capture_policy_v2_picks)} strict picks · ${integer(profitability.capture_windows_valid)} valid · ${integer(profitability.capture_windows_quote_missing)} retrying · ${integer(profitability.capture_windows_stale_quote)} stale · ${integer(profitability.capture_windows_missed)} missed`,
       ),
@@ -2476,6 +2716,7 @@ async function renderBoard(payload) {
   const summary = payload.council.summary || payload.summary || {};
   const abstainAudit = summary.abstain_audit || {};
   const generatedAt = payload.generated_at_utc || payload.timestamp;
+  renderMoonshotSidePick(payload);
 
   // Stale check (4 hours)
   const isStale =
@@ -2535,7 +2776,7 @@ async function renderBoard(payload) {
   }
 
   // Prefetch live quotes for all contracts
-  const allContracts = [...live, ...shadow, ...moonshotPicks]
+  const allContracts = [...live]
     .map((c) => c.contract_symbol)
     .filter(Boolean);
   await refreshQuotes(allContracts);
@@ -2582,7 +2823,7 @@ async function renderBoard(payload) {
       summaryItemHtml("Top Tail Score", moonshotSummary.top_score == null ? "—" : Number(moonshotSummary.top_score).toFixed(2)),
       summaryItemHtml("Threshold", moonshotSummary.threshold == null ? "—" : Number(moonshotSummary.threshold).toFixed(2)),
       summaryItemHtml("Cost Cap", money(moonshotSummary.max_cost_basis)),
-      summaryItemHtml("Mode", moonshotPolicy.capital_mode || "satellite_shadow_then_canary"),
+      summaryItemHtml("Mode", moonshotPolicy.capital_mode || "research_telemetry_non_routable"),
     ].join("");
   }
 
@@ -2705,10 +2946,7 @@ async function renderBoard(payload) {
 
   // Stream explanation-only AI rationale for each card asynchronously.
   // This text never participates in Scout, Forge, Council, or broker gating.
-  const allCandidates = [
-    ...live.map((c) => ({ candidate: c, lane: "live" })),
-    ...shadow.map((c) => ({ candidate: c, lane: "shadow" })),
-  ];
+  const allCandidates = live.map((c) => ({ candidate: c, lane: "live" }));
   for (const { candidate } of allCandidates) {
     loadCardRationale(candidate, payload.regime);
   }
@@ -2966,7 +3204,7 @@ async function handlePreview(
         ${summaryItemHtml("Est. Cost", estCost !== null ? money(estCost) : "—")}
         ${summaryItemHtml("Commission", commissionText)}
         ${summaryItemHtml("Mode", BROKER_STATE.mode?.toUpperCase() || "--")}
-        ${summaryItemHtml("Lane", lane)}
+        ${summaryItemHtml("Production Board", elig.lane === "live" ? "Council" : "Ineligible")}
       </div>
       ${warningHtml}
       ${submissionDetailHtml(submission, isAdmin)}
@@ -3333,7 +3571,7 @@ function renderPerformanceExplanation(bt) {
   const netReturn = Number(bt.net_return_pct || 0);
   const winRate = Number(bt.win_rate || 0);
   const sharpe = Number(bt.sharpe_ratio || 0);
-  const maxDD = Number(bt.max_drawdown || 0);
+  const maxDD = Number(bt.account_max_drawdown ?? bt.max_drawdown ?? 0);
   const avgWin = Number(bt.avg_winner_pct || 0);
   const avgLoss = Number(bt.avg_loser_pct || 0);
   const trades = Number(bt.total_trades || 0);
@@ -3419,7 +3657,7 @@ function renderBacktest(bt) {
   const totalPnl = Number(bt.total_pnl || 0);
   const netReturn = Number(bt.net_return_pct || 0);
   const sharpe = Number(bt.sharpe_ratio || 0);
-  const maxDD = Number(bt.max_drawdown || 0);
+  const maxDD = Number(bt.account_max_drawdown ?? bt.max_drawdown ?? 0);
   const winRate = Number(bt.win_rate || 0);
   const avgWin = Number(bt.avg_winner_pct || 0);
   const avgLoss = Number(bt.avg_loser_pct || 0);
@@ -3528,7 +3766,10 @@ function renderBacktest(bt) {
         "Sharpe",
         Number.isFinite(sharpe) ? sharpe.toFixed(2) : "—",
       ),
-      summaryItemHtml("Drawdown", pctOrDash(bt.max_drawdown)),
+      summaryItemHtml(
+        bt.account_max_drawdown != null ? "Account Drawdown" : "Drawdown",
+        pctOrDash(bt.account_max_drawdown ?? bt.max_drawdown),
+      ),
       summaryItemHtml(
         "Coverage Gate",
         coveragePolicy.coverage_failed ? "Failed" : "Passed",

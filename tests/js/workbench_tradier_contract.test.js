@@ -22,6 +22,7 @@ const REQUIRED_STATIC_IDS = [
   "live-picks-grid",
   "shadow-picks-grid",
   "moonshot-picks-grid",
+  "moonshot-side-pick",
   // Account positions and orders.
   "positions-sync-status",
   "positions-refresh-btn",
@@ -130,12 +131,24 @@ test("Signal & Book exposes interactive sizing, candidate, book, and evidence co
 
   for (const behavior of [
     "renderCockpitSignalSelector",
+    "noTradeFunnelHtml",
     "syncTradeCardQuantity",
     "selectedCardQuantity(btn)",
     "event.key === \"Escape\"",
   ]) {
     assert.ok(source.includes(behavior), `missing interaction behavior: ${behavior}`);
   }
+});
+
+test("Moonshot remains a visible, outcome-tracked, non-routable side experiment", async () => {
+  const html = await readFile(indexPath, "utf8");
+  const source = await readFile(appPath, "utf8");
+
+  assert.ok(html.includes("Visible side pick"));
+  assert.ok(html.includes("Tracked · non-routable"));
+  assert.ok(source.includes("renderMoonshotSidePick"));
+  assert.ok(source.includes("It does not affect the primary ensemble, Council, sizing, or Tradier routing."));
+  assert.ok(source.includes('tracking.dataset || "moonshot_outcomes"'));
 });
 
 test("Signal & Book preserves readable synchronization spacing", async () => {
@@ -149,4 +162,31 @@ test("Signal & Book preserves readable synchronization spacing", async () => {
   assert.match(styles, /\.signal-pane \.pane-heading > \.sync-line\s*\{[^}]*margin:\s*14px 0 0;/s);
   assert.match(styles, /\.positions-toolbar\s*\{[^}]*flex-direction:\s*row;/s);
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.positions-toolbar\s*\{[^}]*flex-direction:\s*column;/s);
+});
+
+test("Research drawer exposes interactive model governance without live authority", async () => {
+  const html = await readFile(indexPath, "utf8");
+  const source = await readFile(appPath, "utf8");
+
+  for (const contract of [
+    "governance-capture-status",
+    "governance-challenger-status",
+    "governance-authority-status",
+    "challenger-tabs",
+    "challenger-detail",
+    'role="tablist"',
+    'role="tabpanel"',
+  ]) {
+    assert.ok(html.includes(contract), `missing model-governance UI contract: ${contract}`);
+  }
+  for (const behavior of [
+    "MODEL_GOVERNANCE_SOURCE",
+    "renderModelGovernance",
+    "selectedChallenger",
+    'event.key === "ArrowRight"',
+    "challenger_order_routing === false",
+    "Production Board",
+  ]) {
+    assert.ok(source.includes(behavior), `missing model-governance behavior: ${behavior}`);
+  }
 });

@@ -15,6 +15,7 @@ import {
   loadLatestSnapshot,
   previewOrPlaceOrder,
   requireSession,
+  validateEntryRiskBudget,
   validateSubmission,
 } from "../../_lib/tradier.js";
 
@@ -34,10 +35,9 @@ import {
  *   price (number)               – limit price
  *   confirm_live (bool)          – must be true for live (non-sandbox) order placement
  *
- * Preview: any authenticated session, no snapshot freshness gate.
- * Placement: admin-only. New entries require a fresh snapshot, whether the
- * contract came from the live or shadow board. Manual exits stay available even
- * if the snapshot has gone stale.
+ * Preview: authenticated session; new entries must still be on a fresh Council
+ * live board. Placement: admin-only. Position-closing previews and submissions
+ * remain available even when today's recommendation has changed.
  */
 
 function buildRequestEnvelope({
@@ -237,6 +237,41 @@ export async function onRequestPost(context) {
 
   // ----- PREVIEW path (any authenticated user) -----
   if (isPreview) {
+    const previewValidation = validateSubmission({
+      config,
+      session,
+      lane,
+      snapshotInfo,
+      side,
+      requireAdmin: false,
+    });
+    if (!previewValidation.ok) {
+      const provenance = await recordBlockedAttempt({
+        context,
+        eventType: "blocked_preview_validation",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        optionSymbol,
+        underlyingSymbol,
+        side,
+        quantity,
+        orderType,
+        duration,
+        price,
+        requestedExitPolicyAction,
+        blockReason: previewValidation.error,
+        httpStatus: previewValidation.status,
+        error: previewValidation.error,
+      });
+      return jsonResponse(
+        { ok: false, error: previewValidation.error, eligibility, submission, provenance },
+        previewValidation.status,
+      );
+    }
     // Fetch a live quote so the preview price is fresh
     let liveQuote = null;
     try {
@@ -245,6 +280,7 @@ export async function onRequestPost(context) {
     } catch {
       liveQuote = null;
     }
+    const quoteCapturedAtUtc = liveQuote ? new Date().toISOString() : null;
 
     const envelope = buildOrderEnvelope(
       candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
@@ -253,9 +289,39 @@ export async function onRequestPost(context) {
       liveQuote,
       side
     );
+    const riskBudget = validateEntryRiskBudget({ config, envelope, side });
+    if (!riskBudget.ok) {
+      const provenance = await recordBlockedAttempt({
+        context,
+        eventType: "blocked_risk_budget",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        optionSymbol,
+        underlyingSymbol,
+        side,
+        quantity: envelope.quantity,
+        orderType,
+        duration,
+        price: envelope.price,
+        requestedExitPolicyAction,
+        blockReason: "entry_cost_basis_limit",
+        httpStatus: riskBudget.status,
+        error: riskBudget.error,
+      });
+      return jsonResponse(
+        { ok: false, error: riskBudget.error, risk_budget: riskBudget, eligibility, submission, provenance },
+        riskBudget.status,
+      );
+    }
 
+    const brokerRequestedAtUtc = new Date().toISOString();
     try {
       const result = await previewOrPlaceOrder(context.env, envelope, { preview: true });
+      const brokerResponseAtUtc = new Date().toISOString();
       const provenance = await safeRecordOrderProvenance(
         context.env,
         buildOrderProvenanceEvent({
@@ -270,6 +336,11 @@ export async function onRequestPost(context) {
           envelope,
           result,
           exitPolicyAction: requestedExitPolicyAction,
+          executionTiming: {
+            quote_captured_at_utc: quoteCapturedAtUtc,
+            broker_requested_at_utc: brokerRequestedAtUtc,
+            broker_response_at_utc: brokerResponseAtUtc,
+          },
         }),
       );
       return jsonResponse({
@@ -283,15 +354,43 @@ export async function onRequestPost(context) {
         rate_limits: result.rateLimits,
       });
     } catch (error) {
+      const provenance = await safeRecordOrderProvenance(
+        context.env,
+        buildOrderProvenanceEvent({
+          eventType: "preview_error",
+          config,
+          session,
+          snapshot,
+          snapshotInfo,
+          lane,
+          candidate,
+          quote: liveQuote,
+          envelope,
+          result: null,
+          exitPolicyAction: requestedExitPolicyAction,
+          error: String(error.message || error),
+          executionTiming: {
+            quote_captured_at_utc: quoteCapturedAtUtc,
+            broker_requested_at_utc: brokerRequestedAtUtc,
+            broker_response_at_utc: new Date().toISOString(),
+          },
+        }),
+      );
       return jsonResponse(
-        { ok: false, error: String(error.message || error), eligibility },
+        { ok: false, error: String(error.message || error), eligibility, provenance },
         502,
       );
     }
   }
 
   // ----- LIVE/SANDBOX PLACEMENT path (admin-only) -----
-  const validation = validateSubmission({ config, session, lane, snapshotInfo, side });
+  const validation = validateSubmission({
+    config,
+    session,
+    lane,
+    snapshotInfo,
+    side,
+  });
   if (!validation.ok) {
     const provenance = await recordBlockedAttempt({
       context,
@@ -397,6 +496,7 @@ export async function onRequestPost(context) {
   } catch {
     liveQuote = null;
   }
+  const quoteCapturedAtUtc = liveQuote ? new Date().toISOString() : null;
 
   const envelope = buildOrderEnvelope(
     candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
@@ -405,9 +505,39 @@ export async function onRequestPost(context) {
     liveQuote,
     side
   );
+  const riskBudget = validateEntryRiskBudget({ config, envelope, side });
+  if (!riskBudget.ok) {
+    const provenance = await recordBlockedAttempt({
+      context,
+      eventType: "blocked_risk_budget",
+      config,
+      session,
+      snapshot,
+      snapshotInfo,
+      lane,
+      candidate,
+      optionSymbol,
+      underlyingSymbol,
+      side,
+      quantity: envelope.quantity,
+      orderType,
+      duration,
+      price: envelope.price,
+      requestedExitPolicyAction,
+      blockReason: "entry_cost_basis_limit",
+      httpStatus: riskBudget.status,
+      error: riskBudget.error,
+    });
+    return jsonResponse(
+      { ok: false, error: riskBudget.error, risk_budget: riskBudget, eligibility, submission, provenance },
+      riskBudget.status,
+    );
+  }
 
+  const brokerRequestedAtUtc = new Date().toISOString();
   try {
     const result = await previewOrPlaceOrder(context.env, envelope, { preview: false });
+    const brokerResponseAtUtc = new Date().toISOString();
     const provenance = await safeRecordOrderProvenance(
       context.env,
       buildOrderProvenanceEvent({
@@ -422,6 +552,11 @@ export async function onRequestPost(context) {
         envelope,
         result,
         exitPolicyAction: requestedExitPolicyAction,
+        executionTiming: {
+          quote_captured_at_utc: quoteCapturedAtUtc,
+          broker_requested_at_utc: brokerRequestedAtUtc,
+          broker_response_at_utc: brokerResponseAtUtc,
+        },
       }),
     );
     return jsonResponse({
@@ -436,8 +571,30 @@ export async function onRequestPost(context) {
       rate_limits: result.rateLimits,
     });
   } catch (error) {
+    const provenance = await safeRecordOrderProvenance(
+      context.env,
+      buildOrderProvenanceEvent({
+        eventType: "submit_error",
+        config,
+        session,
+        snapshot,
+        snapshotInfo,
+        lane,
+        candidate,
+        quote: liveQuote,
+        envelope,
+        result: null,
+        exitPolicyAction: requestedExitPolicyAction,
+        error: String(error.message || error),
+        executionTiming: {
+          quote_captured_at_utc: quoteCapturedAtUtc,
+          broker_requested_at_utc: brokerRequestedAtUtc,
+          broker_response_at_utc: new Date().toISOString(),
+        },
+      }),
+    );
     return jsonResponse(
-      { ok: false, error: String(error.message || error), eligibility },
+      { ok: false, error: String(error.message || error), eligibility, provenance },
       502,
     );
   }

@@ -170,7 +170,8 @@ def side_aware_shadow_lookups(diagnostics_dir: Path) -> dict[tuple[str, str], di
         run_generated_at = str(entry.get("run_generated_at_utc") or "")
         if not run_generated_at:
             continue
-        for row in entry.get("disagreements", []):
+        observation_rows = entry.get("observations") if isinstance(entry.get("observations"), list) else entry.get("disagreements", [])
+        for row in observation_rows:
             if not isinstance(row, dict):
                 continue
             symbol = str(row.get("symbol") or "").strip().upper()
@@ -181,6 +182,13 @@ def side_aware_shadow_lookups(diagnostics_dir: Path) -> dict[tuple[str, str], di
                 "scout_put_edge_prob": _coerce_float(row.get("put_edge")),
                 "scout_no_trade_prob": _coerce_float(row.get("no_trade")),
                 "scout_model_mode": row.get("model_mode"),
+                "scout_hierarchical_trade_prob": _coerce_float(row.get("hierarchical_trade_probability")),
+                "scout_hierarchical_call_conditional_prob": _coerce_float(row.get("hierarchical_conditional_call_probability")),
+                "scout_hierarchical_call_edge_prob": _coerce_float(row.get("hierarchical_call_edge")),
+                "scout_hierarchical_put_edge_prob": _coerce_float(row.get("hierarchical_put_edge")),
+                "scout_hierarchical_no_trade_prob": _coerce_float(row.get("hierarchical_no_trade")),
+                "scout_hierarchical_preferred_side": row.get("hierarchical_preferred_side"),
+                "scout_hierarchical_execution_effect": row.get("hierarchical_execution_effect"),
             }
     return rows
 
@@ -250,9 +258,12 @@ def _apply_model_backfills(
         for key, value in side_lookup.items():
             if key == "scout_model_mode":
                 row.setdefault("scout_model_mode", value)
+            elif key in {"scout_hierarchical_preferred_side", "scout_hierarchical_execution_effect"}:
+                row.setdefault(key, value)
             elif value is not None:
                 row[key] = round(float(value), 4)
-                side_probs[key] = float(value)
+                if key in side_probs:
+                    side_probs[key] = float(value)
 
     if any(value is None for value in side_probs.values()):
         derived = _derived_side_probabilities(scout_score)
@@ -322,6 +333,11 @@ def _flatten_pick(
     risk = pick.get("risk_features") if isinstance(pick.get("risk_features"), dict) else {}
     context = pick.get("context") if isinstance(pick.get("context"), dict) else {}
     moonshot = pick.get("moonshot") if isinstance(pick.get("moonshot"), dict) else {}
+    paired_observation = (
+        pick.get("paired_side_observation")
+        if isinstance(pick.get("paired_side_observation"), dict)
+        else {}
+    )
     underlying = pick.get("underlying") if isinstance(pick.get("underlying"), dict) else {}
 
     row: dict[str, Any] = {
@@ -330,6 +346,12 @@ def _flatten_pick(
         "run_generated_at_utc": entry.get("run_generated_at_utc"),
         "lane": pick.get("lane"),
         "lane_reason": pick.get("lane_reason"),
+        "paired_observation_id": paired_observation.get("pair_id"),
+        "paired_observation_method": paired_observation.get("method"),
+        "paired_observation_target_abs_delta": paired_observation.get("target_abs_delta"),
+        "paired_observation_source_scout_direction": paired_observation.get(
+            "source_scout_direction"
+        ),
         "symbol": pick.get("symbol"),
         "contract_symbol": pick.get("contract_symbol"),
         "option_type": pick.get("option_type"),
@@ -368,12 +390,23 @@ def _flatten_pick(
         "payoff_shadow_disagreement": scores.get("payoff_shadow_disagreement"),
         "payoff_shadow_mode": scores.get("payoff_shadow_mode"),
         "payoff_shadow_artifact_sha256": scores.get("payoff_shadow_artifact_sha256"),
+        "payoff_shadow_return_q10": scores.get("payoff_shadow_return_q10"),
+        "payoff_shadow_return_q50": scores.get("payoff_shadow_return_q50"),
+        "payoff_shadow_return_q90": scores.get("payoff_shadow_return_q90"),
+        "payoff_shadow_prob_fill_quality": scores.get("payoff_shadow_prob_fill_quality"),
+        "payoff_shadow_prob_target_before_stop": scores.get("payoff_shadow_prob_target_before_stop"),
+        "payoff_shadow_conservative_utility": scores.get("payoff_shadow_conservative_utility"),
         "prob_no_trade": scores.get("prob_no_trade"),
         "prob_fill_quality_ok": scores.get("prob_fill_quality_ok"),
         "prob_exceeds_breakeven": scores.get("prob_exceeds_breakeven"),
         "path_holding_quality_score": scores.get("path_holding_quality_score"),
         "path_early_profit_take_prob": scores.get("path_early_profit_take_prob"),
         "path_decay_risk": scores.get("path_decay_risk"),
+        "path_hazard_target_probability": scores.get("path_hazard_target_probability"),
+        "path_hazard_stop_probability": scores.get("path_hazard_stop_probability"),
+        "path_hazard_expiry_probability": scores.get("path_hazard_expiry_probability"),
+        "path_exit_shadow_action": scores.get("path_exit_shadow_action"),
+        "path_hazard_artifact_sha256": scores.get("path_hazard_artifact_sha256"),
         "expected_edge_after_friction_pct": scores.get("expected_edge_after_friction_pct"),
         "scout_call_edge_prob": risk.get("scout_call_edge_prob"),
         "scout_put_edge_prob": risk.get("scout_put_edge_prob"),
@@ -388,6 +421,19 @@ def _flatten_pick(
         "delta": risk.get("delta"),
         "implied_volatility": risk.get("implied_volatility"),
         "iv_rank": risk.get("iv_rank"),
+        "surface_atm_iv": risk.get("surface_atm_iv"),
+        "surface_skew_slope": risk.get("surface_skew_slope"),
+        "surface_curvature": risk.get("surface_curvature"),
+        "surface_put_call_wing_skew": risk.get("surface_put_call_wing_skew"),
+        "surface_term_slope_30d": risk.get("surface_term_slope_30d"),
+        "surface_fit_rmse": risk.get("surface_fit_rmse"),
+        "surface_observation_count": risk.get("surface_observation_count"),
+        "iv_relative_to_atm": risk.get("iv_relative_to_atm"),
+        "iv_minus_realized_vol": risk.get("iv_minus_realized_vol"),
+        "chain_snapshot_at_utc": emission_quote.get("chain_snapshot_at_utc"),
+        "last_trade_age_seconds": emission_quote.get("last_trade_age_seconds"),
+        "quote_mid": emission_quote.get("quote_mid"),
+        "quote_spread_dollars": emission_quote.get("quote_spread_dollars"),
         "extrinsic_ratio": risk.get("extrinsic_ratio"),
         "moneyness": risk.get("moneyness"),
         "premium_pct_of_spot": risk.get("premium_pct_of_spot"),
@@ -615,6 +661,11 @@ def _option_outcome_row_from_pick(
     scores = enriched_pick.get("scores") if isinstance(enriched_pick.get("scores"), dict) else {}
     risk = enriched_pick.get("risk_features") if isinstance(enriched_pick.get("risk_features"), dict) else {}
     context = enriched_pick.get("context") if isinstance(enriched_pick.get("context"), dict) else {}
+    paired_observation = (
+        enriched_pick.get("paired_side_observation")
+        if isinstance(enriched_pick.get("paired_side_observation"), dict)
+        else {}
+    )
     archived_path = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
     path_rules = outcomes.get("path_rules") if isinstance(outcomes.get("path_rules"), dict) else {}
 
@@ -681,6 +732,19 @@ def _option_outcome_row_from_pick(
         "expected_return_pct": scores.get("expected_option_return_pct_model"),
         "extrinsic_ratio": risk.get("extrinsic_ratio"),
         "iv_rank": risk.get("iv_rank"),
+        "surface_atm_iv": risk.get("surface_atm_iv"),
+        "surface_skew_slope": risk.get("surface_skew_slope"),
+        "surface_curvature": risk.get("surface_curvature"),
+        "surface_put_call_wing_skew": risk.get("surface_put_call_wing_skew"),
+        "surface_term_slope_30d": risk.get("surface_term_slope_30d"),
+        "surface_fit_rmse": risk.get("surface_fit_rmse"),
+        "surface_observation_count": risk.get("surface_observation_count"),
+        "iv_relative_to_atm": risk.get("iv_relative_to_atm"),
+        "iv_minus_realized_vol": risk.get("iv_minus_realized_vol"),
+        "chain_snapshot_at_utc": emission_quote.get("chain_snapshot_at_utc"),
+        "last_trade_age_seconds": emission_quote.get("last_trade_age_seconds"),
+        "quote_mid": emission_quote.get("quote_mid"),
+        "quote_spread_dollars": emission_quote.get("quote_spread_dollars"),
         "allocation_weight": 1.0,
         "realized_vol_20d": risk.get("realized_vol_20d"),
         "atr_pct_14d": risk.get("atr_pct_14d"),
@@ -715,12 +779,23 @@ def _option_outcome_row_from_pick(
         "payoff_shadow_disagreement": scores.get("payoff_shadow_disagreement"),
         "payoff_shadow_mode": scores.get("payoff_shadow_mode"),
         "payoff_shadow_artifact_sha256": scores.get("payoff_shadow_artifact_sha256"),
+        "payoff_shadow_return_q10": scores.get("payoff_shadow_return_q10"),
+        "payoff_shadow_return_q50": scores.get("payoff_shadow_return_q50"),
+        "payoff_shadow_return_q90": scores.get("payoff_shadow_return_q90"),
+        "payoff_shadow_prob_fill_quality": scores.get("payoff_shadow_prob_fill_quality"),
+        "payoff_shadow_prob_target_before_stop": scores.get("payoff_shadow_prob_target_before_stop"),
+        "payoff_shadow_conservative_utility": scores.get("payoff_shadow_conservative_utility"),
         "payoff_shadow_disagreement_realized_pnl_pct": pnl_pct if scores.get("payoff_shadow_disagreement") else None,
         "final_candidate_score": scores.get("final_candidate_score"),
         "path_early_profit_take_prob": scores.get("path_early_profit_take_prob"),
         "path_expected_mfe_pct": archived_path.get("max_favorable_excursion_pct") or path_rules.get("max_favorable_excursion_pct"),
         "path_decay_risk": scores.get("path_decay_risk"),
         "path_holding_quality_score": scores.get("path_holding_quality_score"),
+        "path_hazard_target_probability": scores.get("path_hazard_target_probability"),
+        "path_hazard_stop_probability": scores.get("path_hazard_stop_probability"),
+        "path_hazard_expiry_probability": scores.get("path_hazard_expiry_probability"),
+        "path_exit_shadow_action": scores.get("path_exit_shadow_action"),
+        "path_hazard_artifact_sha256": scores.get("path_hazard_artifact_sha256"),
         "path_model_mode": model_modes.get("path_model"),
         "path_model_artifact_sha256": context.get("path_model_artifact_sha256"),
         "scout_call_edge_prob": risk.get("scout_call_edge_prob"),
@@ -742,6 +817,12 @@ def _option_outcome_row_from_pick(
         "source_artifact": outcomes.get("source_artifact", "prospective_pick_ledger"),
         "recommendation_id": enriched_pick.get("recommendation_id"),
         "lane": enriched_pick.get("lane"),
+        "paired_observation_id": paired_observation.get("pair_id"),
+        "paired_observation_method": paired_observation.get("method"),
+        "paired_observation_target_abs_delta": paired_observation.get("target_abs_delta"),
+        "paired_observation_source_scout_direction": paired_observation.get(
+            "source_scout_direction"
+        ),
         "run_generated_at_utc": enriched_pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc"),
         "fixed_exit_window": exit_window,
         "archived_quote_path": archived_path,

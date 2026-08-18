@@ -23,6 +23,7 @@ from .positions import DEFAULT_LIVE_BASE_URL, DEFAULT_SANDBOX_BASE_URL, _as_numb
 
 
 MARKET_TZ = ZoneInfo("America/Chicago")
+MARKET_OPEN_BUFFER = time(8, 30)
 MARK_CLOSE_BUFFER = time(15, 0)
 DEFAULT_TRADIER_QUOTE_BATCH_SIZE = 75
 DEFAULT_TRADIER_QUOTE_TIMEOUT_SECONDS = 20
@@ -35,6 +36,7 @@ CAPTURE_DELAY_LIMITS_SECONDS = {
     "friday_close": 30 * 60,
 }
 MAX_BROKER_QUOTE_AGE_SECONDS = 15 * 60
+MAX_TRAJECTORY_MARKS_PER_PICK = 160
 
 
 def _parse_dt(raw: object) -> datetime | None:
@@ -283,6 +285,9 @@ def _outcome_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
         "capture_windows_missed": 0,
         "legacy_capture_policy_picks": 0,
         "capture_policy_v2_picks": 0,
+        "trajectory_scored_picks": 0,
+        "trajectory_marks": 0,
+        "trajectory_picks_with_4_marks": 0,
     }
     fixed_names = ("one_hour", "end_of_day", "next_day_close", "friday_close")
     for entry in entries:
@@ -307,6 +312,12 @@ def _outcome_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
             if status in {"pending", "partial", "complete"}:
                 summary[status] += 1
             fixed_marks = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
+            trajectory_marks = outcomes.get("trajectory_marks") if isinstance(outcomes.get("trajectory_marks"), list) else []
+            if trajectory_marks:
+                summary["trajectory_scored_picks"] += 1
+                summary["trajectory_marks"] += len(trajectory_marks)
+                if len(trajectory_marks) >= 4:
+                    summary["trajectory_picks_with_4_marks"] += 1
             marked = [name for name in fixed_names if fixed_marks.get(name) is not None]
             if marked:
                 summary["with_any_mark"] += 1
@@ -379,6 +390,49 @@ def _broker_quote_age_seconds(quote: dict[str, Any], now: datetime) -> float | N
     return (now - observed).total_seconds() if observed is not None else None
 
 
+def _trajectory_capture_active(run_generated_at_utc: str, now: datetime) -> bool:
+    run_dt = _parse_dt(run_generated_at_utc)
+    targets = _fixed_exit_targets(run_generated_at_utc) or {}
+    terminal = targets.get("friday_close")
+    local_now = now.astimezone(MARKET_TZ)
+    market_session_open = (
+        local_now.weekday() < 5
+        and MARKET_OPEN_BUFFER <= local_now.time().replace(tzinfo=None) <= MARK_CLOSE_BUFFER
+    )
+    return (
+        market_session_open
+        and run_dt is not None
+        and terminal is not None
+        and run_dt <= now <= terminal
+    )
+
+
+def _append_trajectory_mark(
+    outcomes: dict[str, Any],
+    quote: dict[str, Any],
+    *,
+    captured_at_utc: str,
+    entry_mark: float | None,
+) -> bool:
+    marks = outcomes.setdefault("trajectory_marks", [])
+    if not isinstance(marks, list):
+        marks = []
+        outcomes["trajectory_marks"] = marks
+    payload = _mark_payload(quote, captured_at_utc=captured_at_utc, entry_mark=entry_mark)
+    if payload.get("mark") is None:
+        return False
+    # A retried job in the same minute must not manufacture an independent
+    # path observation from the same market snapshot.
+    minute_key = captured_at_utc[:16]
+    if any(str(mark.get("captured_at_utc") or "")[:16] == minute_key for mark in marks if isinstance(mark, dict)):
+        return False
+    marks.append(payload)
+    marks.sort(key=lambda mark: str(mark.get("captured_at_utc") or ""))
+    if len(marks) > MAX_TRAJECTORY_MARKS_PER_PICK:
+        del marks[: len(marks) - MAX_TRAJECTORY_MARKS_PER_PICK]
+    return True
+
+
 def mark_prospective_ledger(
     ledger: dict[str, Any],
     quotes_by_symbol: dict[str, dict[str, Any]],
@@ -404,7 +458,12 @@ def mark_prospective_ledger(
         "capture_windows_quote_missing": 0,
         "capture_windows_stale_quote": 0,
         "capture_windows_missed": 0,
+        "capture_windows_newly_missed": 0,
         "legacy_capture_policy_picks_skipped": 0,
+        "trajectory_marks_written": 0,
+        "trajectory_quotes_missing": 0,
+        "trajectory_quotes_stale": 0,
+        "trajectory_active_picks": 0,
         "ledger_changed": 0,
     }
     changed = False
@@ -452,6 +511,28 @@ def mark_prospective_ledger(
             executable_labels = outcomes.setdefault("executable_labels", {})
             capture_attempts = outcomes.setdefault("capture_attempts", {})
             entry_mark = _entry_mark(pick)
+            trajectory_active = _trajectory_capture_active(
+                str(pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc") or ""),
+                now,
+            )
+            if trajectory_active:
+                stats["trajectory_active_picks"] += 1
+                if quote is None:
+                    stats["trajectory_quotes_missing"] += 1
+                else:
+                    trajectory_quote_age = _broker_quote_age_seconds(quote, now)
+                    if trajectory_quote_age is not None and (
+                        trajectory_quote_age > MAX_BROKER_QUOTE_AGE_SECONDS or trajectory_quote_age < -60
+                    ):
+                        stats["trajectory_quotes_stale"] += 1
+                    elif _append_trajectory_mark(
+                        outcomes,
+                        quote,
+                        captured_at_utc=captured_at,
+                        entry_mark=entry_mark,
+                    ):
+                        stats["trajectory_marks_written"] += 1
+                        changed = True
             for window_name, is_due in due.items():
                 if not is_due:
                     continue
@@ -460,6 +541,52 @@ def mark_prospective_ledger(
                     continue
                 stats["capture_windows_due"] += 1
                 state, delay_seconds, limit_seconds = _capture_window_state(now, target, window_name)
+                existing_label = executable_labels.get(window_name)
+                if isinstance(existing_label, dict):
+                    # Executable labels are immutable facts.  A later capture run
+                    # can legitimately fail to fetch a fresh quote, but that retry
+                    # must never downgrade a window that was already captured.
+                    # Reconcile legacy contradictory attempt metadata from the
+                    # label itself before considering retryable/missed states.
+                    label_exit = (
+                        existing_label.get("exit")
+                        if isinstance(existing_label.get("exit"), dict)
+                        else {}
+                    )
+                    label_quote = (
+                        label_exit.get("quote")
+                        if isinstance(label_exit.get("quote"), dict)
+                        else {}
+                    )
+                    stored_mark = (
+                        fixed_marks.get(window_name)
+                        if isinstance(fixed_marks.get(window_name), dict)
+                        else {}
+                    )
+                    successful_at = str(
+                        existing_label.get("label_available_at_utc")
+                        or stored_mark.get("captured_at_utc")
+                        or captured_at
+                    )
+                    successful_delay = _as_number(label_quote.get("capture_delay_seconds"))
+                    if successful_delay is None:
+                        successful_delay = delay_seconds
+                    reconciled_attempt = _capture_attempt_payload(
+                        status="captured_valid",
+                        target=target,
+                        attempted_at=successful_at,
+                        delay_seconds=float(successful_delay),
+                        limit_seconds=limit_seconds,
+                        broker_quote_age_seconds=_as_number(
+                            label_quote.get("age_at_label_availability_seconds")
+                        ),
+                    )
+                    prior_attempt = capture_attempts.get(window_name)
+                    if prior_attempt != reconciled_attempt:
+                        capture_attempts[window_name] = reconciled_attempt
+                        changed = True
+                    stats["capture_windows_valid"] += 1
+                    continue
                 if state == "missed_live_window":
                     prior_attempt = capture_attempts.get(window_name)
                     prior_status = prior_attempt.get("status") if isinstance(prior_attempt, dict) else None
@@ -472,6 +599,7 @@ def mark_prospective_ledger(
                             limit_seconds=limit_seconds,
                         )
                         changed = True
+                        stats["capture_windows_newly_missed"] += 1
                     stats["capture_windows_missed"] += 1
                     continue
                 if quote is None:
@@ -555,7 +683,11 @@ def mark_prospective_ledger(
     stats["ledger_changed"] = int(changed)
     if changed:
         updated["updated_at_utc"] = captured_at
-        updated["last_mark_summary"] = stats
+    # Persist an operational heartbeat even when a retried run writes no new
+    # market mark.  Capture health must describe the latest scheduled attempt,
+    # not whichever attempt most recently changed an outcome label.
+    updated["last_capture_attempt_at_utc"] = captured_at
+    updated["last_mark_summary"] = stats
     updated["outcome_summary"] = outcome_summary
     return updated, stats
 
@@ -664,7 +796,11 @@ def mark_prospective_ledger_file(path: str | Path, *, max_symbols: int = 500) ->
                 and _capture_window_state(now, target, window_name)[0] == "capture_allowed"
                 for window_name, target in targets.items()
             )
-            if capture_is_allowed:
+            trajectory_is_active = _trajectory_capture_active(
+                str(pick.get("run_generated_at_utc") or entry.get("run_generated_at_utc") or ""),
+                now,
+            )
+            if capture_is_allowed or trajectory_is_active:
                 symbols.append(str(pick["contract_symbol"]).strip().upper())
     unique_symbols = list(dict.fromkeys(symbols))[:max(max_symbols, 1)]
     quotes = fetch_tradier_quotes(unique_symbols) if unique_symbols else {}

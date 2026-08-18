@@ -368,6 +368,32 @@ def build_option_outcome_dataset(trades: list[TradeLeg]) -> list[dict[str, Any]]
 
 
 def build_option_outcome_dataset_summary(dataset: list[dict[str, Any]]) -> dict[str, Any]:
+    pair_sides: dict[str, set[str]] = {}
+    pair_symbol_dates: set[tuple[str, str]] = set()
+    for row in dataset:
+        pair_id = str(row.get("paired_observation_id") or "").strip()
+        if not pair_id:
+            continue
+        side = str(row.get("option_type") or "").strip().lower()
+        if side in {"call", "put"}:
+            pair_sides.setdefault(pair_id, set()).add(side)
+        pair_symbol_dates.add(
+            (
+                str(row.get("symbol") or "").strip().upper(),
+                str(row.get("entry_date") or "")[:10],
+            )
+        )
+    paired_rows = sum(
+        1 for row in dataset if str(row.get("paired_observation_id") or "").strip()
+    )
+    paired_summary = {
+        "explicit_paired_contract_rows": paired_rows,
+        "explicit_pair_ids": len(pair_sides),
+        "complete_explicit_pair_ids": sum(
+            1 for sides in pair_sides.values() if sides == {"call", "put"}
+        ),
+        "explicit_paired_symbol_dates": len(pair_symbol_dates),
+    }
     if not dataset:
         return {
             "rows": 0,
@@ -378,6 +404,7 @@ def build_option_outcome_dataset_summary(dataset: list[dict[str, Any]]) -> dict[
             "friction_flip_count": 0,
             "avg_friction_drag_pct": 0.0,
             "avg_total_friction_cost_usd": 0.0,
+            **paired_summary,
         }
     rows = len(dataset)
     return {
@@ -389,6 +416,7 @@ def build_option_outcome_dataset_summary(dataset: list[dict[str, Any]]) -> dict[
         "friction_flip_count": sum(1 for row in dataset if row["friction_flipped_winner_to_loser"]),
         "avg_friction_drag_pct": round(_mean([float(row["friction_drag_pct"]) for row in dataset]), 4),
         "avg_total_friction_cost_usd": round(_mean([float(row["total_friction_cost_usd"]) for row in dataset]), 2),
+        **paired_summary,
     }
 
 
@@ -587,6 +615,7 @@ def build_results(
     *,
     budget_per_trade_usd: float = BUDGET_PER_TRADE,
     hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
+    initial_account_equity_usd: float = 10_000.0,
 ) -> dict[str, Any]:
     """
     Convert a flat list of TradeLeg records into a rich results dict suitable
@@ -598,6 +627,7 @@ def build_results(
             end_date,
             budget_per_trade_usd=budget_per_trade_usd,
             hard_cost_ceiling_usd=hard_cost_ceiling_usd,
+            initial_account_equity_usd=initial_account_equity_usd,
         )
 
     # ── Top-level stats ──
@@ -644,6 +674,23 @@ def build_results(
     compounded_equity = [1.0]
     for weekly_return in weekly_returns:
         compounded_equity.append(compounded_equity[-1] * (1.0 + weekly_return))
+    initial_equity = max(float(initial_account_equity_usd), 0.0)
+    account_equity = initial_equity
+    account_equity_values = [account_equity]
+    account_equity_curve: list[dict[str, Any]] = []
+    for row in equity_curve:
+        account_equity += float(row["pnl"])
+        account_equity_values.append(account_equity)
+        account_equity_curve.append({
+            "week": row["week"],
+            "pnl": row["pnl"],
+            "account_equity": round(account_equity, 2),
+            "account_return_pct": (
+                round((account_equity - initial_equity) / initial_equity, 4)
+                if initial_equity > 0
+                else 0.0
+            ),
+        })
 
     # ── Best / worst trades ──
     sorted_by_pnl = sorted(trades, key=lambda t: t.pnl, reverse=True)
@@ -712,6 +759,12 @@ def build_results(
         "net_return_pct": round(net_return_pct, 4),
         "sharpe_ratio": _sharpe(weekly_returns),
         "max_drawdown": _max_drawdown(compounded_equity),
+        "capital_at_risk_max_drawdown": _max_drawdown(compounded_equity),
+        "initial_account_equity_usd": round(initial_equity, 2),
+        "account_return_pct": (
+            round(total_pnl / initial_equity, 4) if initial_equity > 0 else 0.0
+        ),
+        "account_max_drawdown": _max_drawdown(account_equity_values),
         "options_data_coverage": {
             "avg_options_data_coverage_pct": round(avg_options_data_coverage_pct, 4),
             "entry_real_trade_pct": round(entry_real_trade_pct, 4),
@@ -730,6 +783,7 @@ def build_results(
         },
         "option_outcome_dataset_summary": build_option_outcome_dataset_summary(option_outcome_dataset),
         "equity_curve": equity_curve,
+        "account_equity_curve": account_equity_curve,
         "side_breakdown": side_breakdown,
         "regime_breakdown": regime_breakdown,
         "symbol_breakdown": symbol_breakdown,
@@ -745,6 +799,7 @@ def _empty_results(
     *,
     budget_per_trade_usd: float = BUDGET_PER_TRADE,
     hard_cost_ceiling_usd: float | None = HARD_COST_CEILING_USD,
+    initial_account_equity_usd: float = 10_000.0,
 ) -> dict[str, Any]:
     return {
         "generated_at": date.today().isoformat(),
@@ -772,6 +827,10 @@ def _empty_results(
         "net_return_pct": 0.0,
         "sharpe_ratio": 0.0,
         "max_drawdown": 0.0,
+        "capital_at_risk_max_drawdown": 0.0,
+        "initial_account_equity_usd": round(max(float(initial_account_equity_usd), 0.0), 2),
+        "account_return_pct": 0.0,
+        "account_max_drawdown": 0.0,
         "options_data_coverage": {
             "avg_options_data_coverage_pct": 0.0,
             "entry_real_trade_pct": 0.0,
@@ -790,6 +849,7 @@ def _empty_results(
         },
         "option_outcome_dataset_summary": build_option_outcome_dataset_summary([]),
         "equity_curve": [],
+        "account_equity_curve": [],
         "side_breakdown": [],
         "regime_breakdown": [],
         "symbol_breakdown": [],

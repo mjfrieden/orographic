@@ -2,14 +2,106 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+import json
 from math import erf, exp, log, sqrt
+import os
 from typing import Iterable
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
 
 import pandas as pd
 import yfinance as yf
 
 # Session-level cache for the risk-free rate (fetched once per process)
 _RF_RATE_CACHE: float | None = None
+
+
+def _tradier_market_settings() -> tuple[str, str] | None:
+    token = str(
+        os.getenv("TRADIER_ACCESS_TOKEN")
+        or os.getenv("OROGRAPHIC_TRADIER_ACCESS_TOKEN")
+        or ""
+    ).strip()
+    if not token:
+        return None
+    requested = str(
+        os.getenv("TRADIER_BASE_URL")
+        or os.getenv("OROGRAPHIC_TRADIER_BASE_URL")
+        or "https://api.tradier.com/v1"
+    ).strip().rstrip("/")
+    return requested, token
+
+
+def _tradier_market_get(path: str, query: dict[str, object]) -> dict[str, object]:
+    settings = _tradier_market_settings()
+    if settings is None:
+        raise RuntimeError("Tradier market data is not configured")
+    base_url, token = settings
+    url = f"{base_url}{path}?{urlencode(query)}"
+    request = Request(
+        url,
+        headers={"Accept": "application/json", "Authorization": f"Bearer {token}"},
+    )
+    with urlopen(request, timeout=20) as response:
+        payload = json.loads(response.read().decode("utf-8"))
+    if not isinstance(payload, dict):
+        raise ValueError("Tradier market data payload must be an object")
+    return payload
+
+
+def _as_list(value: object) -> list[object]:
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _timestamp_iso(value: object) -> object:
+    if value is None or value == "":
+        return None
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        numeric = None
+    try:
+        if numeric is not None:
+            unit = "ms" if numeric > 1e12 else "s"
+            return pd.to_datetime(numeric, unit=unit, utc=True).isoformat()
+        return pd.to_datetime(value, utc=True).isoformat()
+    except (TypeError, ValueError, OverflowError):
+        return value
+
+
+def _tradier_chain_frame(options: list[object]) -> pd.DataFrame:
+    rows: list[dict[str, object]] = []
+    for item in options:
+        if not isinstance(item, dict):
+            continue
+        greeks = item.get("greeks") if isinstance(item.get("greeks"), dict) else {}
+        iv = (
+            greeks.get("mid_iv")
+            or greeks.get("smv_vol")
+            or greeks.get("ask_iv")
+            or greeks.get("bid_iv")
+        )
+        rows.append({
+            "contractSymbol": item.get("symbol"),
+            "strike": item.get("strike"),
+            "bid": item.get("bid"),
+            "ask": item.get("ask"),
+            "lastPrice": item.get("last"),
+            "lastTradeDate": _timestamp_iso(item.get("trade_date") or item.get("trade_timestamp")),
+            "impliedVolatility": iv,
+            "openInterest": item.get("open_interest"),
+            "volume": item.get("volume"),
+            "optionType": item.get("option_type"),
+            "tradierDelta": greeks.get("delta"),
+            "tradierGamma": greeks.get("gamma"),
+            "tradierTheta": greeks.get("theta"),
+            "tradierVega": greeks.get("vega"),
+            "greeksUpdatedAt": greeks.get("updated_at"),
+            "dataSource": "tradier",
+        })
+    return pd.DataFrame(rows)
 
 
 def normal_cdf(x: float) -> float:
@@ -111,13 +203,45 @@ def history(symbol: str, period: str = "6mo") -> pd.DataFrame:
 
 
 def option_expiries(symbol: str) -> list[str]:
+    if _tradier_market_settings() is not None:
+        try:
+            payload = _tradier_market_get(
+                "/markets/options/expirations",
+                {"symbol": symbol.upper(), "includeAllRoots": "true", "strikes": "false"},
+            )
+            expirations = payload.get("expirations") if isinstance(payload.get("expirations"), dict) else {}
+            values = [str(value) for value in _as_list(expirations.get("date")) if value]
+            if values:
+                return values
+        except Exception:
+            pass
     expiries = list(yf.Ticker(symbol).options)
     return [value for value in expiries if value]
 
 
 def option_chain(symbol: str, expiry: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if _tradier_market_settings() is not None:
+        try:
+            payload = _tradier_market_get(
+                "/markets/options/chains",
+                {"symbol": symbol.upper(), "expiration": expiry, "greeks": "true"},
+            )
+            options = payload.get("options") if isinstance(payload.get("options"), dict) else {}
+            frame = _tradier_chain_frame(_as_list(options.get("option")))
+            if not frame.empty:
+                option_types = frame["optionType"].astype(str).str.lower()
+                return (
+                    frame[option_types.eq("call")].copy(),
+                    frame[option_types.eq("put")].copy(),
+                )
+        except Exception:
+            pass
     chain = yf.Ticker(symbol).option_chain(expiry)
-    return chain.calls.copy(), chain.puts.copy()
+    calls = chain.calls.copy()
+    puts = chain.puts.copy()
+    calls["dataSource"] = "yfinance_fallback"
+    puts["dataSource"] = "yfinance_fallback"
+    return calls, puts
 
 
 def next_expiry(
@@ -174,4 +298,3 @@ def cross_asset_snapshot() -> CrossAssetSnapshot:
         vix_level=vix_level,
         vix_change_5d=vix_change_5d,
     )
-

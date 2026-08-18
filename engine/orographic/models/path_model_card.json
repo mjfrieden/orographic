@@ -1,0 +1,591 @@
+{
+  "activation_policy": {
+    "default": "unified_rnd_active",
+    "reason": "Path quality contributes a bounded 18% inside the single unified stack; it has no independent board or routing authority."
+  },
+  "deployment_decision": {
+    "effective_date": "2026-08-12",
+    "status": "bounded_unified_input",
+    "production_default_variant": "unified_council_cost_cap",
+    "evaluated_variants": [
+      "council_cost_cap_path_tiebreaker",
+      "council_cost_cap_path_tiebreaker_loose"
+    ],
+    "decision": "Use path quality only as a bounded input inside the one unified production rank; never expose it as a separate lane.",
+    "reason": "The unified stack improved P&L, win rate, and Sharpe versus the former gated baseline, but weak path segment metrics require ablation and retraining before its weight can increase.",
+    "evidence_note_path": "docs/single-production-lane-impact-and-model-priorities-2026-08-12.md"
+  },
+  "artifact": "path_model",
+  "artifacts": {
+    "model_card_path": "engine/orographic/models/path_model_card.json",
+    "model_path": "engine/orographic/models/path_model.pkl",
+    "model_sha256": "df78e9be9525c7c8d8017c79a6f5caaedac3f44b3fad5a9aed1b2552c43c7ac9",
+    "report_path": "output/path_model_training_report_2026-05-05.json"
+  },
+  "avg_decay_risk": 0.3004,
+  "avg_expected_mfe_pct": 0.443,
+  "coverage": {
+    "entry_date_end": "2026-04-06",
+    "entry_date_start": "2025-04-21",
+    "exact_quote_marks_used": 3479,
+    "months": {
+      "2025-04": 49,
+      "2025-05": 184,
+      "2025-06": 182,
+      "2025-07": 92,
+      "2025-08": 88,
+      "2025-09": 129,
+      "2025-10": 139,
+      "2025-11": 186,
+      "2025-12": 395,
+      "2026-01": 181,
+      "2026-02": 112,
+      "2026-03": 42,
+      "2026-04": 62
+    },
+    "option_chain_coverage_ratio": 1.8897,
+    "regime_counts": {
+      "unclassified": 1841
+    },
+    "side_counts": {
+      "call": 1416,
+      "put": 425
+    }
+  },
+  "cross_validation": {
+    "by_segment": {
+      "regime": {
+        "path_early_profit_take_prob": {
+          "unclassified": {
+            "auc": 0.4901,
+            "brier": 0.2541,
+            "positive_rate": 0.332,
+            "rows": 1530
+          }
+        }
+      },
+      "side": {
+        "path_early_profit_take_prob": {
+          "call": {
+            "auc": 0.4613,
+            "brier": 0.2609,
+            "positive_rate": 0.3693,
+            "rows": 1121
+          },
+          "put": {
+            "auc": 0.4597,
+            "brier": 0.2356,
+            "positive_rate": 0.2298,
+            "rows": 409
+          }
+        }
+      }
+    },
+    "early_take_profit_auc_mean": 0.5432,
+    "early_take_profit_brier_mean": 0.2541,
+    "early_take_profit_log_loss_mean": 0.7017,
+    "family": "linear",
+    "family_bakeoff": {
+      "ensemble": {
+        "by_segment": {
+          "regime": {
+            "path_early_profit_take_prob": {
+              "unclassified": {
+                "auc": 0.4733,
+                "brier": 0.2706,
+                "positive_rate": 0.332,
+                "rows": 1530
+              }
+            }
+          },
+          "side": {
+            "path_early_profit_take_prob": {
+              "call": {
+                "auc": 0.4509,
+                "brier": 0.2748,
+                "positive_rate": 0.3693,
+                "rows": 1121
+              },
+              "put": {
+                "auc": 0.4144,
+                "brier": 0.2588,
+                "positive_rate": 0.2298,
+                "rows": 409
+              }
+            }
+          }
+        },
+        "early_take_profit_auc_mean": 0.5029,
+        "early_take_profit_brier_mean": 0.2706,
+        "early_take_profit_log_loss_mean": 0.736,
+        "family": "ensemble",
+        "folds": 5,
+        "path_decay_risk_mae_mean": 0.2567,
+        "path_expected_mfe_mae_mean": 0.6015,
+        "probability_buckets": {
+          "path_early_profit_take_prob": [
+            {
+              "bucket": "(0.254, 0.404]",
+              "mean_pred_prob": 0.3396,
+              "realized_rate": 0.349,
+              "rows": 192
+            },
+            {
+              "bucket": "(0.404, 0.455]",
+              "mean_pred_prob": 0.4314,
+              "realized_rate": 0.3979,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.455, 0.496]",
+              "mean_pred_prob": 0.4784,
+              "realized_rate": 0.2775,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.496, 0.521]",
+              "mean_pred_prob": 0.5102,
+              "realized_rate": 0.3979,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.521, 0.558]",
+              "mean_pred_prob": 0.5414,
+              "realized_rate": 0.3141,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.558, 0.594]",
+              "mean_pred_prob": 0.5756,
+              "realized_rate": 0.3037,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.594, 0.629]",
+              "mean_pred_prob": 0.6083,
+              "realized_rate": 0.2827,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.629, 0.769]",
+              "mean_pred_prob": 0.6639,
+              "realized_rate": 0.3333,
+              "rows": 192
+            }
+          ]
+        }
+      },
+      "linear": {
+        "by_segment": {
+          "regime": {
+            "path_early_profit_take_prob": {
+              "unclassified": {
+                "auc": 0.4901,
+                "brier": 0.2541,
+                "positive_rate": 0.332,
+                "rows": 1530
+              }
+            }
+          },
+          "side": {
+            "path_early_profit_take_prob": {
+              "call": {
+                "auc": 0.4613,
+                "brier": 0.2609,
+                "positive_rate": 0.3693,
+                "rows": 1121
+              },
+              "put": {
+                "auc": 0.4597,
+                "brier": 0.2356,
+                "positive_rate": 0.2298,
+                "rows": 409
+              }
+            }
+          }
+        },
+        "early_take_profit_auc_mean": 0.5432,
+        "early_take_profit_brier_mean": 0.2541,
+        "early_take_profit_log_loss_mean": 0.7017,
+        "family": "linear",
+        "folds": 5,
+        "path_decay_risk_mae_mean": 0.2559,
+        "path_expected_mfe_mae_mean": 0.6008,
+        "probability_buckets": {
+          "path_early_profit_take_prob": [
+            {
+              "bucket": "(0.352, 0.422]",
+              "mean_pred_prob": 0.4001,
+              "realized_rate": 0.3125,
+              "rows": 192
+            },
+            {
+              "bucket": "(0.422, 0.443]",
+              "mean_pred_prob": 0.4328,
+              "realized_rate": 0.3298,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.443, 0.465]",
+              "mean_pred_prob": 0.4526,
+              "realized_rate": 0.3508,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.465, 0.477]",
+              "mean_pred_prob": 0.4715,
+              "realized_rate": 0.3037,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.477, 0.506]",
+              "mean_pred_prob": 0.4903,
+              "realized_rate": 0.3613,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.506, 0.558]",
+              "mean_pred_prob": 0.5285,
+              "realized_rate": 0.4764,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.558, 0.58]",
+              "mean_pred_prob": 0.5706,
+              "realized_rate": 0.2618,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.58, 0.675]",
+              "mean_pred_prob": 0.6021,
+              "realized_rate": 0.2604,
+              "rows": 192
+            }
+          ]
+        }
+      },
+      "tree": {
+        "by_segment": {
+          "regime": {
+            "path_early_profit_take_prob": {
+              "unclassified": {
+                "auc": 0.4752,
+                "brier": 0.3006,
+                "positive_rate": 0.332,
+                "rows": 1530
+              }
+            }
+          },
+          "side": {
+            "path_early_profit_take_prob": {
+              "call": {
+                "auc": 0.4657,
+                "brier": 0.3021,
+                "positive_rate": 0.3693,
+                "rows": 1121
+              },
+              "put": {
+                "auc": 0.417,
+                "brier": 0.2965,
+                "positive_rate": 0.2298,
+                "rows": 409
+              }
+            }
+          }
+        },
+        "early_take_profit_auc_mean": 0.4935,
+        "early_take_profit_brier_mean": 0.3006,
+        "early_take_profit_log_loss_mean": 0.8168,
+        "family": "tree",
+        "folds": 5,
+        "path_decay_risk_mae_mean": 0.2605,
+        "path_expected_mfe_mae_mean": 0.6092,
+        "probability_buckets": {
+          "path_early_profit_take_prob": [
+            {
+              "bucket": "(0.0598, 0.358]",
+              "mean_pred_prob": 0.2342,
+              "realized_rate": 0.3575,
+              "rows": 193
+            },
+            {
+              "bucket": "(0.358, 0.447]",
+              "mean_pred_prob": 0.4058,
+              "realized_rate": 0.3613,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.447, 0.52]",
+              "mean_pred_prob": 0.4897,
+              "realized_rate": 0.3505,
+              "rows": 194
+            },
+            {
+              "bucket": "(0.52, 0.564]",
+              "mean_pred_prob": 0.5424,
+              "realized_rate": 0.3245,
+              "rows": 188
+            },
+            {
+              "bucket": "(0.564, 0.607]",
+              "mean_pred_prob": 0.5842,
+              "realized_rate": 0.3368,
+              "rows": 193
+            },
+            {
+              "bucket": "(0.607, 0.652]",
+              "mean_pred_prob": 0.6271,
+              "realized_rate": 0.3037,
+              "rows": 191
+            },
+            {
+              "bucket": "(0.652, 0.714]",
+              "mean_pred_prob": 0.6828,
+              "realized_rate": 0.3105,
+              "rows": 190
+            },
+            {
+              "bucket": "(0.714, 0.958]",
+              "mean_pred_prob": 0.7876,
+              "realized_rate": 0.3105,
+              "rows": 190
+            }
+          ]
+        }
+      }
+    },
+    "folds": 5,
+    "path_decay_risk_mae_mean": 0.2559,
+    "path_expected_mfe_mae_mean": 0.6008,
+    "probability_buckets": {
+      "path_early_profit_take_prob": [
+        {
+          "bucket": "(0.352, 0.422]",
+          "mean_pred_prob": 0.4001,
+          "realized_rate": 0.3125,
+          "rows": 192
+        },
+        {
+          "bucket": "(0.422, 0.443]",
+          "mean_pred_prob": 0.4328,
+          "realized_rate": 0.3298,
+          "rows": 191
+        },
+        {
+          "bucket": "(0.443, 0.465]",
+          "mean_pred_prob": 0.4526,
+          "realized_rate": 0.3508,
+          "rows": 191
+        },
+        {
+          "bucket": "(0.465, 0.477]",
+          "mean_pred_prob": 0.4715,
+          "realized_rate": 0.3037,
+          "rows": 191
+        },
+        {
+          "bucket": "(0.477, 0.506]",
+          "mean_pred_prob": 0.4903,
+          "realized_rate": 0.3613,
+          "rows": 191
+        },
+        {
+          "bucket": "(0.506, 0.558]",
+          "mean_pred_prob": 0.5285,
+          "realized_rate": 0.4764,
+          "rows": 191
+        },
+        {
+          "bucket": "(0.558, 0.58]",
+          "mean_pred_prob": 0.5706,
+          "realized_rate": 0.2618,
+          "rows": 191
+        },
+        {
+          "bucket": "(0.58, 0.675]",
+          "mean_pred_prob": 0.6021,
+          "realized_rate": 0.2604,
+          "rows": 192
+        }
+      ]
+    },
+    "selected_family": "linear"
+  },
+  "early_take_profit_rate": 0.3574,
+  "feature_cols": [
+    "option_type_is_call",
+    "premium_pct_of_spot",
+    "spread_pct",
+    "extrinsic_ratio",
+    "dte",
+    "projected_move_pct",
+    "heuristic_edge_after_friction_pct",
+    "implied_volatility",
+    "iv_rank",
+    "vrp_gap",
+    "realized_vol_20d",
+    "atr_pct_14d",
+    "regime_alignment_score",
+    "sentinel_holding_window_fit",
+    "sentinel_confidence",
+    "sentinel_side_relevance",
+    "sentinel_no_trade_relevance",
+    "sentinel_spot_effect",
+    "sentinel_iv_effect"
+  ],
+  "model_card_schema_version": 1,
+  "promotion_gates": {
+    "gates": {
+      "canonical_dataset_source": {
+        "actual": "option_outcome_dataset",
+        "passed": true,
+        "required": "option_outcome_dataset"
+      },
+      "early_take_profit_auc": {
+        "actual": 0.5432,
+        "passed": true,
+        "required_min": 0.53
+      },
+      "early_take_profit_brier_vs_baseline": {
+        "actual": 0.2541,
+        "baseline": 0.2297,
+        "passed": false
+      },
+      "minimum_training_examples": {
+        "actual": 1841,
+        "passed": true,
+        "required_min": 150
+      },
+      "quote_path_observability": {
+        "actual": 3479,
+        "passed": true,
+        "required_min": 25
+      },
+      "regime_segment_coverage": {
+        "actual_segments_with_min_rows": 1,
+        "passed": false,
+        "required_min_segments": 2
+      },
+      "side_coverage": {
+        "actual": {
+          "call": 1416,
+          "put": 425
+        },
+        "passed": true,
+        "required_min_per_side": 75
+      }
+    },
+    "required_next_step": "Run leakage-safe zero-weight and bounded-weight ablations against the unified rank.",
+    "status": "hold",
+    "summary": "One or more path-model data coverage or walk-forward gates remain below threshold; keep its unified weight bounded and prioritize retraining."
+  },
+  "selected_family": "linear",
+  "side_counts": {
+    "call": 1416,
+    "put": 425
+  },
+  "side_models_trained": [
+    "call",
+    "put"
+  ],
+  "source_metadata": {
+    "canonical_dataset_files": [
+      "output/option_outcomes_12mo.json"
+    ],
+    "dataset_summary": {
+      "avg_friction_drag_pct": 0.0,
+      "avg_total_friction_cost_usd": 0.0,
+      "breakeven_after_friction_rate": 0.2977,
+      "breakeven_before_friction_rate": 0.2977,
+      "friction_flip_count": 0,
+      "positive_pnl_after_friction_rate": 0.4742,
+      "positive_pnl_before_friction_rate": 0.4742,
+      "rows": 1841
+    },
+    "deduplicated_examples": 1841,
+    "exact_quote_marks_used": 3479,
+    "input_artifact_by_file": {
+      "output/option_outcomes_12mo.json": "option_outcome_dataset"
+    },
+    "input_artifacts": {
+      "option_outcome_dataset": 1
+    },
+    "input_files": [
+      "output/option_outcomes_12mo.json"
+    ],
+    "input_rows_by_file": {
+      "output/option_outcomes_12mo.json": 1841
+    },
+    "legacy_result_files": [],
+    "options_data_dir": "engine/data/options/blended",
+    "primary_training_source_artifact": "option_outcome_dataset",
+    "primary_training_source_files": [
+      "output/option_outcomes_12mo.json"
+    ],
+    "regime_dataset_summary": {
+      "unclassified": {
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": 0.1809,
+        "avg_return_before_friction_pct": 0.1809,
+        "breakeven_after_friction_rate": 0.2977,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.4742,
+        "rows": 1841
+      }
+    },
+    "side_dataset_summary": {
+      "call": {
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": 0.2549,
+        "avg_return_before_friction_pct": 0.2549,
+        "breakeven_after_friction_rate": 0.3242,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.5169,
+        "rows": 1416
+      },
+      "put": {
+        "avg_friction_drag_pct": 0.0,
+        "avg_return_after_friction_pct": -0.0658,
+        "avg_return_before_friction_pct": -0.0658,
+        "breakeven_after_friction_rate": 0.2094,
+        "friction_flip_count": 0,
+        "friction_flip_rate": 0.0,
+        "positive_pnl_after_friction_rate": 0.3318,
+        "rows": 425
+      }
+    }
+  },
+  "target_definitions": {
+    "path_decay_risk": "normalized adverse excursion magnitude derived from worst observed bid-mark return before expiry",
+    "path_early_profit_take_prob": "1 when max favorable excursion reaches the take-profit zone before expiry",
+    "path_expected_mfe_pct": "best observed bid-mark return before expiry when real marks exist, otherwise realized return fallback"
+  },
+  "training_data": {
+    "canonical_dataset_files": [
+      "output/option_outcomes_12mo.json"
+    ],
+    "input_artifact_by_file": {
+      "output/option_outcomes_12mo.json": "option_outcome_dataset"
+    },
+    "legacy_result_files": [],
+    "primary_artifact": "option_outcome_dataset",
+    "primary_source_files": [
+      "output/option_outcomes_12mo.json"
+    ]
+  },
+  "training_examples": 1841,
+  "training_policy": {
+    "evaluated_families": [
+      "linear",
+      "tree",
+      "ensemble"
+    ],
+    "global_fit": "side-balanced sample weights",
+    "min_side_examples": 75,
+    "selected_family": "linear",
+    "side_fit": "separate call and put bundles when side has enough examples"
+  },
+  "version": 1
+}

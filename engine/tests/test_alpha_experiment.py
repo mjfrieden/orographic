@@ -82,6 +82,36 @@ class AlphaExperimentTests(unittest.TestCase):
         self.assertIn("council_cost_cap_path_tiebreaker", names)
         self.assertIn("council_cost_cap_path_tiebreaker_loose", names)
 
+    def test_build_variants_exposes_exact_unified_ablations(self) -> None:
+        variants = build_variants(600.0, unified_ablation_only=True)
+        stacks = {row.model_stack for row in variants}
+
+        self.assertEqual(
+            stacks,
+            {
+                "current_gated",
+                "unified_rnd",
+                "unified_no_hierarchical",
+                "unified_no_path",
+                "unified_no_cost_aware",
+                "unified_primary_only",
+            },
+        )
+        self.assertTrue(all(row.council_only for row in variants))
+        self.assertTrue(all(row.shadow_size == 0 for row in variants))
+
+    def test_council_risk_ablation_includes_production_core_policy(self) -> None:
+        variants = build_variants(600.0, council_risk_ablation_only=True)
+        by_name = {row.name: row for row in variants}
+
+        production = by_name["unified_production_core_policy"]
+        self.assertEqual(production.live_size, 1)
+        self.assertEqual(production.minimum_live_score, 0.86)
+        self.assertEqual(production.minimum_put_live_score, 0.84)
+        self.assertEqual(production.max_live_extrinsic_ratio, 0.90)
+        self.assertEqual(by_name["unified_research_reference_live3_score57"].live_size, 3)
+        self.assertEqual(by_name["unified_live1_score68"].minimum_put_live_score, 0.66)
+
     def test_path_shadow_board_prefers_higher_holding_quality(self) -> None:
         live = _candidate("LIVE", forge_score=0.7)
         live.path_holding_quality_score = 0.45

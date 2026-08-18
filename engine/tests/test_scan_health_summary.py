@@ -6,7 +6,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.build_scan_health_summary import build_scan_health_summary
+from scripts.build_scan_health_summary import _ledger_health, build_scan_health_summary
 
 
 def _write_json(path: Path, payload: object) -> Path:
@@ -16,6 +16,29 @@ def _write_json(path: Path, payload: object) -> Path:
 
 
 class ScanHealthSummaryTests(unittest.TestCase):
+    def test_ledger_health_exposes_trajectory_capture_coverage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = _write_json(Path(tmpdir) / "ledger.json", {
+                "outcome_summary": {
+                    "trajectory_scored_picks": 3,
+                    "trajectory_marks": 12,
+                    "trajectory_picks_with_4_marks": 2,
+                },
+                "last_mark_summary": {
+                    "trajectory_active_picks": 3,
+                    "trajectory_marks_written": 3,
+                    "trajectory_quotes_missing": 0,
+                    "trajectory_quotes_stale": 0,
+                },
+            })
+            health = _ledger_health(ledger)
+
+        self.assertEqual(health["trajectory_scored_picks"], 3)
+        self.assertEqual(health["trajectory_marks"], 12)
+        self.assertEqual(health["trajectory_picks_with_4_marks"], 2)
+        self.assertEqual(health["trajectory_active_picks_last_run"], 3)
+        self.assertEqual(health["trajectory_marks_written_last_run"], 3)
+
     def test_build_scan_health_summary_passes_for_fresh_labeled_run(self) -> None:
         now = datetime(2026, 6, 23, 22, 0, tzinfo=UTC)
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -92,6 +115,23 @@ class ScanHealthSummaryTests(unittest.TestCase):
             recommendations = _write_json(root / "recommendations.json", [{} for _ in range(20)])
             moonshots = _write_json(root / "moonshots.json", [{} for _ in range(3)])
             combined = _write_json(root / "combined.json", [{} for _ in range(23)])
+            canonical = _write_json(
+                root / "evidence_manifest.json",
+                {
+                    "bundle_id": "bundle-1",
+                    "evidence": {
+                        "cumulative_inventory": {"primary": {"recommendations": 100}},
+                        "training_eligible": {"deduplicated_recommendation_outcomes": 20},
+                        "current_model_cohort": {"resolved_recommendations": 7},
+                    },
+                    "checks": {
+                        "recommendations_unique": True,
+                        "quotes_unique": True,
+                        "immutable_labels_preserved": True,
+                        "inputs_readable": True,
+                    },
+                },
+            )
             output = root / "health.json"
 
             report = build_scan_health_summary(
@@ -103,6 +143,7 @@ class ScanHealthSummaryTests(unittest.TestCase):
                 recommendation_dataset=recommendations,
                 moonshot_dataset=moonshots,
                 combined_dataset=combined,
+                canonical_manifest=canonical,
                 output=output,
                 now_utc=now,
                 r2_status="success",
@@ -115,6 +156,13 @@ class ScanHealthSummaryTests(unittest.TestCase):
         self.assertEqual(report["labels"]["marked_picks"], 20)
         self.assertEqual(report["labels"]["quote_coverage_pct"], 1.0)
         self.assertEqual(report["labels"]["capture_policy_v2_picks"], 23)
+        self.assertEqual(report["research"]["canonical_bundle_id"], "bundle-1")
+        self.assertEqual(
+            report["research"]["evidence_lifecycle"]["current_model_cohort"][
+                "resolved_recommendations"
+            ],
+            7,
+        )
         self.assertTrue(output_exists)
 
     def test_build_scan_health_summary_accepts_explicit_zero_signal_abstention(self) -> None:
