@@ -167,7 +167,11 @@ jobs:
           path = Path("web/data/diagnostics/outcome_capture_health_latest.json")
           report = json.loads(path.read_text(encoding="utf-8"))
           if report.get("alert_required"):
-              failed = ", ".join(row.get("name", "unknown") for row in report.get("failed_checks", []))
+              failed = ", ".join(row.get("name", "unknown") for row in report.get("alert_checks", report.get("failed_checks", [])))
               raise SystemExit(f"Outcome capture requires attention: {failed}")
-          print("Outcome capture health passed.")
+          if report.get("status") == "degraded":
+              degraded = ", ".join(row.get("name", "unknown") for row in report.get("failed_checks", []))
+              print(f"::warning::Outcome capture degraded without paging: {degraded}")
+          else:
+              print("Outcome capture health passed.")
           PY
