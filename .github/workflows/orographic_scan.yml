@@ -327,6 +327,10 @@ jobs:
               echo "Snapshot push failed after ${attempt} attempts." >&2
               exit 1
             fi
+            git fetch origin "${GITHUB_REF_NAME}"
+            # During rebase, "ours" is the updated remote branch. Preserve
+            # newer outcome-capture evidence if both jobs touched one file.
+            git rebase -X ours "origin/${GITHUB_REF_NAME}"
             sleep_seconds=$((attempt * 15))
             echo "Retrying snapshot push in ${sleep_seconds}s..."
             sleep "${sleep_seconds}"
@@ -444,6 +448,10 @@ jobs:
               echo "Scan health summary push failed after ${attempt} attempts." >&2
               exit 1
             fi
+            git fetch origin "${GITHUB_REF_NAME}"
+            # Keep concurrently published outcome evidence on conflicts while
+            # replaying the scan-only health summary commit.
+            git rebase -X ours "origin/${GITHUB_REF_NAME}"
             sleep_seconds=$((attempt * 15))
             echo "Retrying scan health summary push in ${sleep_seconds}s..."
             sleep "${sleep_seconds}"
