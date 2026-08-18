@@ -1,9 +1,15 @@
 {
   "artifact": "outcome_capture_health",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-18T16:47:11.285396Z",
+  "generated_at_utc": "2026-08-18T17:19:56.590081Z",
   "status": "passed",
   "alert_required": false,
+  "scheduler": {
+    "source": "cloudflare_cron",
+    "scheduled_at_utc": "2026-08-18T17:15:39Z",
+    "delivery_delay_seconds": 257.59,
+    "max_delivery_delay_seconds": 600
+  },
   "labels": {
     "trajectory_active_picks_last_run": 30,
     "trajectory_marks_written_last_run": 30,
@@ -11,7 +17,7 @@
     "trajectory_quotes_stale_last_run": 0,
     "fixed_capture_windows_missed_last_run": 0,
     "trajectory_scored_picks": 30,
-    "trajectory_marks": 30
+    "trajectory_marks": 60
   },
   "ledgers": [
     {
@@ -19,7 +25,7 @@
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-18T16:47:04+00:00",
+      "last_capture_attempt_at_utc": "2026-08-18T17:19:50+00:00",
       "active_picks": 21,
       "marks_written": 21,
       "quotes_missing": 0,
@@ -27,14 +33,14 @@
       "fixed_windows_valid": 47,
       "fixed_windows_newly_missed": 0,
       "trajectory_scored_picks": 21,
-      "trajectory_marks": 21
+      "trajectory_marks": 42
     },
     {
       "name": "moonshot",
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-18T16:47:05+00:00",
+      "last_capture_attempt_at_utc": "2026-08-18T17:19:51+00:00",
       "active_picks": 9,
       "marks_written": 9,
       "quotes_missing": 0,
@@ -42,10 +48,19 @@
       "fixed_windows_valid": 30,
       "fixed_windows_newly_missed": 0,
       "trajectory_scored_picks": 9,
-      "trajectory_marks": 9
+      "trajectory_marks": 18
     }
   ],
   "checks": [
+    {
+      "name": "scheduler_delivery_fresh",
+      "passed": true,
+      "scheduler": "cloudflare_cron",
+      "scheduled_at_utc": "2026-08-18T17:15:39Z",
+      "delay_seconds": 257.59,
+      "max_delay_seconds": 600,
+      "manual_dispatch": false
+    },
     {
       "name": "tradier_capture_configured",
       "passed": true
