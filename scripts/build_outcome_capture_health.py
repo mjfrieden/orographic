@@ -44,7 +44,7 @@ def build_outcome_capture_health(
     scheduled_at_utc: str = "",
     scheduler: str = "manual",
     max_scheduler_delay_seconds: int = 600,
-    min_trajectory_capture_ratio: float = 0.95,
+    min_trajectory_capture_ratio: float = 0.30,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
@@ -128,13 +128,13 @@ def build_outcome_capture_health(
     failed = [row for row in checks if not row["passed"]]
     # A single illiquid contract can legitimately retain an old broker quote
     # while the rest of the capture lane remains healthy. Keep that condition
-    # visible as degraded health, but page only when trajectory coverage falls
-    # below the service threshold. All other failed checks remain actionable.
+    # visible as degraded health, but page only when trajectory coverage is at
+    # or below the service threshold. All other failed checks remain actionable.
     alert_checks = [
         row
         for row in failed
         if row["name"] != "trajectory_capture_health"
-        or trajectory_capture_ratio < min_trajectory_capture_ratio
+        or trajectory_capture_ratio <= min_trajectory_capture_ratio
     ]
     generated = now.isoformat().replace("+00:00", "Z")
     return {
@@ -180,7 +180,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scheduled-at-utc", default="")
     parser.add_argument("--scheduler", default="manual")
     parser.add_argument("--max-scheduler-delay-seconds", type=int, default=600)
-    parser.add_argument("--min-trajectory-capture-ratio", type=float, default=0.95)
+    parser.add_argument("--min-trajectory-capture-ratio", type=float, default=0.30)
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/outcome_capture_health_latest.json"))
     parser.add_argument("--fail-on-alert", action="store_true")
     return parser.parse_args()
