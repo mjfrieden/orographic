@@ -1,25 +1,25 @@
 {
   "artifact": "outcome_capture_health",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-18T19:01:23.005437Z",
-  "status": "passed",
+  "generated_at_utc": "2026-08-18T19:06:23.087947Z",
+  "status": "degraded",
   "alert_required": false,
   "scheduler": {
     "source": "cloudflare_cron",
-    "scheduled_at_utc": "2026-08-18T19:00:39Z",
-    "delivery_delay_seconds": 44.005,
+    "scheduled_at_utc": "2026-08-18T19:05:39Z",
+    "delivery_delay_seconds": 44.088,
     "max_delivery_delay_seconds": 600
   },
   "labels": {
     "trajectory_active_picks_last_run": 61,
-    "trajectory_marks_written_last_run": 61,
+    "trajectory_marks_written_last_run": 60,
     "trajectory_quotes_missing_last_run": 0,
-    "trajectory_quotes_stale_last_run": 0,
-    "trajectory_capture_ratio_last_run": 1.0,
+    "trajectory_quotes_stale_last_run": 1,
+    "trajectory_capture_ratio_last_run": 0.9836,
     "trajectory_minimum_alert_ratio": 0.95,
     "fixed_capture_windows_missed_last_run": 0,
     "trajectory_scored_picks": 61,
-    "trajectory_marks": 1237
+    "trajectory_marks": 1297
   },
   "ledgers": [
     {
@@ -27,22 +27,22 @@
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-18T19:01:16+00:00",
+      "last_capture_attempt_at_utc": "2026-08-18T19:06:17+00:00",
       "active_picks": 48,
-      "marks_written": 48,
+      "marks_written": 47,
       "quotes_missing": 0,
-      "quotes_stale": 0,
+      "quotes_stale": 1,
       "fixed_windows_valid": 74,
       "fixed_windows_newly_missed": 0,
       "trajectory_scored_picks": 48,
-      "trajectory_marks": 958
+      "trajectory_marks": 1005
     },
     {
       "name": "moonshot",
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-18T19:01:17+00:00",
+      "last_capture_attempt_at_utc": "2026-08-18T19:06:19+00:00",
       "active_picks": 13,
       "marks_written": 13,
       "quotes_missing": 0,
@@ -50,7 +50,7 @@
       "fixed_windows_valid": 34,
       "fixed_windows_newly_missed": 0,
       "trajectory_scored_picks": 13,
-      "trajectory_marks": 279
+      "trajectory_marks": 292
     }
   ],
   "checks": [
@@ -58,8 +58,8 @@
       "name": "scheduler_delivery_fresh",
       "passed": true,
       "scheduler": "cloudflare_cron",
-      "scheduled_at_utc": "2026-08-18T19:00:39Z",
-      "delay_seconds": 44.005,
+      "scheduled_at_utc": "2026-08-18T19:05:39Z",
+      "delay_seconds": 44.088,
       "max_delay_seconds": 600,
       "manual_dispatch": false
     },
@@ -74,12 +74,12 @@
     },
     {
       "name": "trajectory_capture_health",
-      "passed": true,
+      "passed": false,
       "active_picks": 61,
-      "marks_written": 61,
+      "marks_written": 60,
       "missing_quotes": 0,
-      "stale_quotes": 0,
-      "capture_ratio": 1.0,
+      "stale_quotes": 1,
+      "capture_ratio": 0.9836,
       "minimum_alert_ratio": 0.95
     },
     {
@@ -93,6 +93,17 @@
       "actual": "success"
     }
   ],
-  "failed_checks": [],
+  "failed_checks": [
+    {
+      "name": "trajectory_capture_health",
+      "passed": false,
+      "active_picks": 61,
+      "marks_written": 60,
+      "missing_quotes": 0,
+      "stale_quotes": 1,
+      "capture_ratio": 0.9836,
+      "minimum_alert_ratio": 0.95
+    }
+  ],
   "alert_checks": []
 }
