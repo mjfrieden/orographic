@@ -44,6 +44,7 @@ def build_outcome_capture_health(
     scheduled_at_utc: str = "",
     scheduler: str = "manual",
     max_scheduler_delay_seconds: int = 600,
+    min_trajectory_capture_ratio: float = 0.95,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
@@ -82,6 +83,8 @@ def build_outcome_capture_health(
     missed = sum(row["fixed_windows_newly_missed"] for row in ledgers)
     trajectory_contracts = sum(row["trajectory_scored_picks"] for row in ledgers)
     trajectory_marks = sum(row["trajectory_marks"] for row in ledgers)
+    trajectory_capture_ratio = min(1.0, written / active) if active else 1.0
+    min_trajectory_capture_ratio = min(max(float(min_trajectory_capture_ratio), 0.0), 1.0)
     step_failures = [
         row["name"] for row in ledgers if row["step_status"] not in {"success", "skipped"}
     ]
@@ -108,6 +111,8 @@ def build_outcome_capture_health(
             "marks_written": written,
             "missing_quotes": missing,
             "stale_quotes": stale,
+            "capture_ratio": round(trajectory_capture_ratio, 4),
+            "minimum_alert_ratio": min_trajectory_capture_ratio,
         },
         {
             "name": "fixed_window_capture_health",
@@ -121,13 +126,23 @@ def build_outcome_capture_health(
         },
     ]
     failed = [row for row in checks if not row["passed"]]
+    # A single illiquid contract can legitimately retain an old broker quote
+    # while the rest of the capture lane remains healthy. Keep that condition
+    # visible as degraded health, but page only when trajectory coverage falls
+    # below the service threshold. All other failed checks remain actionable.
+    alert_checks = [
+        row
+        for row in failed
+        if row["name"] != "trajectory_capture_health"
+        or trajectory_capture_ratio < min_trajectory_capture_ratio
+    ]
     generated = now.isoformat().replace("+00:00", "Z")
     return {
         "artifact": "outcome_capture_health",
         "schema_version": 1,
         "generated_at_utc": generated,
-        "status": "passed" if not failed else "failed",
-        "alert_required": bool(failed),
+        "status": "failed" if alert_checks else ("degraded" if failed else "passed"),
+        "alert_required": bool(alert_checks),
         "scheduler": {
             "source": scheduler,
             "scheduled_at_utc": scheduled_at.isoformat().replace("+00:00", "Z")
@@ -141,6 +156,8 @@ def build_outcome_capture_health(
             "trajectory_marks_written_last_run": written,
             "trajectory_quotes_missing_last_run": missing,
             "trajectory_quotes_stale_last_run": stale,
+            "trajectory_capture_ratio_last_run": round(trajectory_capture_ratio, 4),
+            "trajectory_minimum_alert_ratio": min_trajectory_capture_ratio,
             "fixed_capture_windows_missed_last_run": missed,
             "trajectory_scored_picks": trajectory_contracts,
             "trajectory_marks": trajectory_marks,
@@ -148,6 +165,7 @@ def build_outcome_capture_health(
         "ledgers": ledgers,
         "checks": checks,
         "failed_checks": failed,
+        "alert_checks": alert_checks,
     }
 
 
@@ -162,6 +180,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--scheduled-at-utc", default="")
     parser.add_argument("--scheduler", default="manual")
     parser.add_argument("--max-scheduler-delay-seconds", type=int, default=600)
+    parser.add_argument("--min-trajectory-capture-ratio", type=float, default=0.95)
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/outcome_capture_health_latest.json"))
     parser.add_argument("--fail-on-alert", action="store_true")
     return parser.parse_args()
@@ -179,6 +198,7 @@ def main() -> int:
         scheduled_at_utc=str(args.scheduled_at_utc),
         scheduler=str(args.scheduler),
         max_scheduler_delay_seconds=max(args.max_scheduler_delay_seconds, 1),
+        min_trajectory_capture_ratio=float(args.min_trajectory_capture_ratio),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")

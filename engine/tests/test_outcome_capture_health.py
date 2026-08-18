@@ -82,6 +82,58 @@ class OutcomeCaptureHealthTests(unittest.TestCase):
         failed = {row["name"] for row in report["failed_checks"]}
         self.assertIn("trajectory_capture_health", failed)
 
+    def test_isolated_stale_quote_degrades_without_paging(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prospective = self._ledger(root, "prospective.json", {
+                "trajectory_active_picks": 61,
+                "trajectory_marks_written": 60,
+                "trajectory_quotes_stale": 1,
+            })
+            moonshot = self._ledger(root, "moonshot.json", {})
+            report = build_outcome_capture_health(
+                prospective_ledger=prospective,
+                moonshot_ledger=moonshot,
+                token_configured=True,
+                prospective_step_status="success",
+                moonshot_step_status="success",
+                evidence_step_status="success",
+            )
+
+        self.assertEqual(report["status"], "degraded")
+        self.assertFalse(report["alert_required"])
+        self.assertEqual(report["labels"]["trajectory_capture_ratio_last_run"], 0.9836)
+        self.assertEqual(
+            {row["name"] for row in report["failed_checks"]},
+            {"trajectory_capture_health"},
+        )
+        self.assertEqual(report["alert_checks"], [])
+
+    def test_broad_stale_quote_loss_still_pages(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prospective = self._ledger(root, "prospective.json", {
+                "trajectory_active_picks": 61,
+                "trajectory_marks_written": 55,
+                "trajectory_quotes_stale": 6,
+            })
+            moonshot = self._ledger(root, "moonshot.json", {})
+            report = build_outcome_capture_health(
+                prospective_ledger=prospective,
+                moonshot_ledger=moonshot,
+                token_configured=True,
+                prospective_step_status="success",
+                moonshot_step_status="success",
+                evidence_step_status="success",
+            )
+
+        self.assertEqual(report["status"], "failed")
+        self.assertTrue(report["alert_required"])
+        self.assertEqual(
+            {row["name"] for row in report["alert_checks"]},
+            {"trajectory_capture_health"},
+        )
+
     def test_missing_token_and_failed_step_are_reported(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
