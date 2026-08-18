@@ -158,8 +158,9 @@ flowchart LR
 
 Each production scan performs the following sequence:
 
-1. Restore the prior canonical bundle from R2. If none exists, optionally
-   bootstrap the legacy timestamped archive.
+1. Restore the prior canonical bundle from R2. The pre-canonical timestamped
+   archive is bootstrapped only by an explicit maintenance dispatch with
+   `bootstrap_legacy_r2=true`; routine market scans never block on that migration.
 2. Run the scan and build the current research datasets.
 3. Merge current facts with the restored canonical bundle.
 4. Validate hashes, uniqueness, row counts, and monotonic evidence counts.
