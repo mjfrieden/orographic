@@ -380,7 +380,8 @@ jobs:
         if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         continue-on-error: true
         run: |
-          npx wrangler pages deploy web \
+          python scripts/build_pages_bundle.py
+          npx wrangler pages deploy output/pages_bundle \
             --project-name orographic \
             --branch "${GITHUB_REF_NAME}" \
             --commit-hash "$(git rev-parse HEAD)" \
@@ -495,7 +496,8 @@ jobs:
         if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         continue-on-error: true
         run: |
-          npx wrangler pages deploy web \
+          python scripts/build_pages_bundle.py
+          npx wrangler pages deploy output/pages_bundle \
             --project-name orographic \
             --branch "${GITHUB_REF_NAME}" \
             --commit-hash "$(git rev-parse HEAD)" \

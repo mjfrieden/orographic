@@ -146,7 +146,8 @@ jobs:
       - name: Deploy refreshed capture evidence to Cloudflare Pages
         if: ${{ always() && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: |
-          npx wrangler pages deploy web \
+          python scripts/build_pages_bundle.py
+          npx wrangler pages deploy output/pages_bundle \
             --project-name orographic \
             --branch "${GITHUB_REF_NAME}" \
             --commit-hash "$(git rev-parse HEAD)" \
