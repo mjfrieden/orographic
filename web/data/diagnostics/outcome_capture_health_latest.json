@@ -1,25 +1,25 @@
 {
   "artifact": "outcome_capture_health",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-20T15:31:26.136756Z",
-  "status": "degraded",
+  "generated_at_utc": "2026-08-20T15:36:26.715738Z",
+  "status": "passed",
   "alert_required": false,
   "scheduler": {
     "source": "cloudflare_cron",
-    "scheduled_at_utc": "2026-08-20T15:30:39Z",
-    "delivery_delay_seconds": 47.137,
+    "scheduled_at_utc": "2026-08-20T15:35:39Z",
+    "delivery_delay_seconds": 47.716,
     "max_delivery_delay_seconds": 600
   },
   "labels": {
     "trajectory_active_picks_last_run": 210,
-    "trajectory_marks_written_last_run": 208,
+    "trajectory_marks_written_last_run": 210,
     "trajectory_quotes_missing_last_run": 0,
-    "trajectory_quotes_stale_last_run": 2,
-    "trajectory_capture_ratio_last_run": 0.9905,
+    "trajectory_quotes_stale_last_run": 0,
+    "trajectory_capture_ratio_last_run": 1.0,
     "trajectory_minimum_alert_ratio": 0.3,
     "fixed_capture_windows_missed_last_run": 0,
     "trajectory_scored_picks": 210,
-    "trajectory_marks": 17456
+    "trajectory_marks": 17666
   },
   "ledgers": [
     {
@@ -27,30 +27,30 @@
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-20T15:31:16+00:00",
+      "last_capture_attempt_at_utc": "2026-08-20T15:36:17+00:00",
       "active_picks": 177,
-      "marks_written": 176,
+      "marks_written": 177,
       "quotes_missing": 0,
-      "quotes_stale": 1,
+      "quotes_stale": 0,
       "fixed_windows_valid": 338,
       "fixed_windows_newly_missed": 0,
       "trajectory_scored_picks": 177,
-      "trajectory_marks": 14473
+      "trajectory_marks": 14650
     },
     {
       "name": "moonshot",
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-20T15:31:18+00:00",
+      "last_capture_attempt_at_utc": "2026-08-20T15:36:19+00:00",
       "active_picks": 33,
-      "marks_written": 32,
+      "marks_written": 33,
       "quotes_missing": 0,
-      "quotes_stale": 1,
+      "quotes_stale": 0,
       "fixed_windows_valid": 79,
       "fixed_windows_newly_missed": 0,
       "trajectory_scored_picks": 33,
-      "trajectory_marks": 2983
+      "trajectory_marks": 3016
     }
   ],
   "checks": [
@@ -58,8 +58,8 @@
       "name": "scheduler_delivery_fresh",
       "passed": true,
       "scheduler": "cloudflare_cron",
-      "scheduled_at_utc": "2026-08-20T15:30:39Z",
-      "delay_seconds": 47.137,
+      "scheduled_at_utc": "2026-08-20T15:35:39Z",
+      "delay_seconds": 47.716,
       "max_delay_seconds": 600,
       "manual_dispatch": false
     },
@@ -74,12 +74,12 @@
     },
     {
       "name": "trajectory_capture_health",
-      "passed": false,
+      "passed": true,
       "active_picks": 210,
-      "marks_written": 208,
+      "marks_written": 210,
       "missing_quotes": 0,
-      "stale_quotes": 2,
-      "capture_ratio": 0.9905,
+      "stale_quotes": 0,
+      "capture_ratio": 1.0,
       "minimum_alert_ratio": 0.3
     },
     {
@@ -93,17 +93,6 @@
       "actual": "success"
     }
   ],
-  "failed_checks": [
-    {
-      "name": "trajectory_capture_health",
-      "passed": false,
-      "active_picks": 210,
-      "marks_written": 208,
-      "missing_quotes": 0,
-      "stale_quotes": 2,
-      "capture_ratio": 0.9905,
-      "minimum_alert_ratio": 0.3
-    }
-  ],
+  "failed_checks": [],
   "alert_checks": []
 }
