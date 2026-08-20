@@ -1,7 +1,7 @@
 {
   "artifact": "moonshot_prospective_ledger",
   "schema_version": 2,
-  "updated_at_utc": "2026-08-20T19:56:31+00:00",
+  "updated_at_utc": "2026-08-20T20:01:19+00:00",
   "max_entries": 500,
   "outcome_policy": {
     "required_fixed_exits": [
@@ -25,17 +25,17 @@
   },
   "outcome_summary": {
     "picks": 470,
-    "pending": 8,
-    "partial": 59,
+    "pending": 4,
+    "partial": 63,
     "complete": 403,
-    "with_any_mark": 462,
+    "with_any_mark": 466,
     "with_all_fixed_marks": 403,
     "missing_outcome_quotes": 0,
     "payoff_shadow_scored": 44,
     "payoff_shadow_disagreements": 29,
     "payoff_shadow_resolved_friday": 6,
     "payoff_shadow_disagreement_net_return_sum": -2.5385,
-    "capture_windows_valid": 83,
+    "capture_windows_valid": 107,
     "capture_windows_quote_missing": 0,
     "capture_windows_stale_quote": 0,
     "capture_windows_missed": 24,
@@ -227925,7 +227925,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 14.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -227957,14 +227966,27 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.5942
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:01:05+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:14+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:01:31.965000+00:00",
+                "mark": 0.09,
+                "mark_source": "mid",
+                "bid": 0.03,
+                "ask": 0.15,
+                "last": 0.09,
+                "close": null,
+                "pnl_pct_from_emission": -0.7391
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.1449,
-              "max_adverse_excursion_pct": -0.5942,
+              "max_adverse_excursion_pct": -0.7391,
               "first_hit": {
                 "window": "end_of_day",
                 "rule": "stop_50_pct_fixed_mark_proxy"
@@ -228104,6 +228126,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -31.0,
                 "net_executable_return": -0.8611111111111112,
+                "cost_basis_usd": 36.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T14:11:31+00:00|XLF260828C00058500|moonshot_pick",
+                "symbol": "XLF",
+                "contract_symbol": "XLF260828C00058500",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T14:11:31Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 107309.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 0.33,
+                    "ask": 0.36,
+                    "observed_at_utc": "2026-08-19T14:11:31Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.36,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.03,
+                    "ask": 0.15,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.03,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -32.99999999999999,
+                "midpoint_counterfactual_cost_basis_usd": 34.5,
+                "midpoint_counterfactual_pnl_usd": -25.5,
+                "midpoint_counterfactual_return": -0.7391304347826086,
+                "total_execution_friction_usd": 7.499999999999993,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -32.99999999999999,
+                "net_executable_return": -0.9166666666666665,
                 "cost_basis_usd": 36.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -232773,7 +232860,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -232805,7 +232901,20 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.5704
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:43.617000+00:00",
+                "mark": 1.36,
+                "mark_source": "mid",
+                "bid": 1.25,
+                "ask": 1.47,
+                "last": 1.38,
+                "close": null,
+                "pnl_pct_from_emission": -0.3718
+              },
               "friday_close": null
             },
             "path_rules": {
@@ -232952,6 +233061,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -136.0,
                 "net_executable_return": -0.6098654708520179,
+                "cost_basis_usd": 223.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T14:11:31+00:00|XOM260828C00170000|moonshot_shadow",
+                "symbol": "XOM",
+                "contract_symbol": "XOM260828C00170000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T14:11:31Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 107309.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.1,
+                    "ask": 2.23,
+                    "observed_at_utc": "2026-08-19T14:11:31Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.23,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.25,
+                    "ask": 1.47,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.25,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -98.0,
+                "midpoint_counterfactual_cost_basis_usd": 216.5,
+                "midpoint_counterfactual_pnl_usd": -80.50000000000001,
+                "midpoint_counterfactual_return": -0.3718244803695151,
+                "total_execution_friction_usd": 17.499999999999986,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -98.0,
+                "net_executable_return": -0.43946188340807174,
                 "cost_basis_usd": 223.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -237591,7 +237765,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -237623,14 +237806,27 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.547
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:51:08.894000+00:00",
+                "mark": 0.175,
+                "mark_source": "mid",
+                "bid": 0.14,
+                "ask": 0.21,
+                "last": 0.2,
+                "close": null,
+                "pnl_pct_from_emission": -0.8826
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.2819,
-              "max_adverse_excursion_pct": -0.547,
+              "max_adverse_excursion_pct": -0.8826,
               "first_hit": {
                 "window": "end_of_day",
                 "rule": "stop_50_pct_fixed_mark_proxy"
@@ -237770,6 +237966,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -93.0,
                 "net_executable_return": -0.6,
+                "cost_basis_usd": 155.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T14:11:31+00:00|C260828C00138000|moonshot_shadow",
+                "symbol": "C",
+                "contract_symbol": "C260828C00138000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T14:11:31Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 107309.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.43,
+                    "ask": 1.55,
+                    "observed_at_utc": "2026-08-19T14:11:31Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.55,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.14,
+                    "ask": 0.21,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.14,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -141.0,
+                "midpoint_counterfactual_cost_basis_usd": 149.0,
+                "midpoint_counterfactual_pnl_usd": -131.5,
+                "midpoint_counterfactual_return": -0.8825503355704698,
+                "total_execution_friction_usd": 9.5,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -141.0,
+                "net_executable_return": -0.9096774193548387,
                 "cost_basis_usd": 155.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -242409,7 +242670,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -242441,13 +242711,26 @@
                 "close": null,
                 "pnl_pct_from_emission": 0.094
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:48:34.880000+00:00",
+                "mark": 1.285,
+                "mark_source": "mid",
+                "bid": 1.13,
+                "ask": 1.44,
+                "last": 1.59,
+                "close": null,
+                "pnl_pct_from_emission": 0.0983
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.094,
+              "max_favorable_excursion_pct": 0.0983,
               "max_adverse_excursion_pct": -0.2137,
               "first_hit": null
             },
@@ -242587,6 +242870,71 @@
                 "net_executable_return": 0.016806722689075647,
                 "cost_basis_usd": 119.0,
                 "is_net_profitable": true,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T14:11:31+00:00|KO260828C00090000|moonshot_shadow",
+                "symbol": "KO",
+                "contract_symbol": "KO260828C00090000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T14:11:31Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 107309.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.15,
+                    "ask": 1.19,
+                    "observed_at_utc": "2026-08-19T14:11:31Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.19,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.13,
+                    "ask": 1.44,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.13,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -6.000000000000005,
+                "midpoint_counterfactual_cost_basis_usd": 117.0,
+                "midpoint_counterfactual_pnl_usd": 11.5,
+                "midpoint_counterfactual_return": 0.09829059829059829,
+                "total_execution_friction_usd": 17.500000000000007,
+                "friction_flipped_winner_to_loser": true,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -6.000000000000005,
+                "net_executable_return": -0.050420168067226934,
+                "cost_basis_usd": 119.0,
+                "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
               }
             },
@@ -247300,7 +247648,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -247332,13 +247689,26 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.3519
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:43.617000+00:00",
+                "mark": 1.36,
+                "mark_source": "mid",
+                "bid": 1.25,
+                "ask": 1.47,
+                "last": 1.38,
+                "close": null,
+                "pnl_pct_from_emission": -0.0523
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0941,
+              "max_favorable_excursion_pct": -0.0523,
               "max_adverse_excursion_pct": -0.3519,
               "first_hit": null
             },
@@ -247476,6 +247846,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -61.0,
                 "net_executable_return": -0.41216216216216217,
+                "cost_basis_usd": 148.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T17:10:56+00:00|XOM260828C00170000|moonshot_pick",
+                "symbol": "XOM",
+                "contract_symbol": "XOM260828C00170000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T17:10:56Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 96544.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.39,
+                    "ask": 1.48,
+                    "observed_at_utc": "2026-08-19T17:10:56Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.48,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.25,
+                    "ask": 1.47,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.25,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -23.0,
+                "midpoint_counterfactual_cost_basis_usd": 143.5,
+                "midpoint_counterfactual_pnl_usd": -7.500000000000018,
+                "midpoint_counterfactual_return": -0.052264808362369464,
+                "total_execution_friction_usd": 15.499999999999982,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -23.0,
+                "net_executable_return": -0.1554054054054054,
                 "cost_basis_usd": 148.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -251073,7 +251508,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -251105,14 +251549,27 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.1773
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:57:31.883000+00:00",
+                "mark": 1.495,
+                "mark_source": "mid",
+                "bid": 1.3,
+                "ask": 1.69,
+                "last": 1.54,
+                "close": null,
+                "pnl_pct_from_emission": -0.2635
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.0394,
-              "max_adverse_excursion_pct": -0.1773,
+              "max_adverse_excursion_pct": -0.2635,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -251249,6 +251706,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -60.00000000000001,
                 "net_executable_return": -0.2727272727272727,
+                "cost_basis_usd": 220.00000000000003,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T17:10:56+00:00|CVX260828C00210000|moonshot_shadow",
+                "symbol": "CVX",
+                "contract_symbol": "CVX260828C00210000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T17:10:56Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 96544.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.86,
+                    "ask": 2.2,
+                    "observed_at_utc": "2026-08-19T17:10:56Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.2,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.3,
+                    "ask": 1.69,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.3,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -90.00000000000001,
+                "midpoint_counterfactual_cost_basis_usd": 203.00000000000003,
+                "midpoint_counterfactual_pnl_usd": -53.500000000000014,
+                "midpoint_counterfactual_return": -0.26354679802955666,
+                "total_execution_friction_usd": 36.5,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -90.00000000000001,
+                "net_executable_return": -0.4090909090909091,
                 "cost_basis_usd": 220.00000000000003,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -254871,7 +255393,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 38.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -254903,13 +255434,26 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.1118
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:00:41+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:11+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:54:07.214000+00:00",
+                "mark": 1.63,
+                "mark_source": "mid",
+                "bid": 1.0,
+                "ask": 2.26,
+                "last": 1.54,
+                "close": null,
+                "pnl_pct_from_emission": 0.0724
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0395,
+              "max_favorable_excursion_pct": 0.0724,
               "max_adverse_excursion_pct": -0.1118,
               "first_hit": null
             },
@@ -255047,6 +255591,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -57.00000000000001,
                 "net_executable_return": -0.3607594936708861,
+                "cost_basis_usd": 158.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T17:10:56+00:00|XLE260831C00063000|moonshot_shadow",
+                "symbol": "XLE",
+                "contract_symbol": "XLE260831C00063000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T17:10:56Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 96544.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.46,
+                    "ask": 1.58,
+                    "observed_at_utc": "2026-08-19T17:10:56Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.58,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.0,
+                    "ask": 2.26,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.0,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -58.00000000000001,
+                "midpoint_counterfactual_cost_basis_usd": 152.0,
+                "midpoint_counterfactual_pnl_usd": 10.999999999999988,
+                "midpoint_counterfactual_return": 0.0723684210526315,
+                "total_execution_friction_usd": 69.0,
+                "friction_flipped_winner_to_loser": true,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -58.00000000000001,
+                "net_executable_return": -0.3670886075949368,
                 "cost_basis_usd": 158.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -258670,7 +259279,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 1.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
@@ -258702,13 +259320,26 @@
                 "close": null,
                 "pnl_pct_from_emission": 0.1503
               },
-              "next_day_close": null,
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:26.209000+00:00",
+                "mark": 3.325,
+                "mark_source": "mid",
+                "bid": 3.25,
+                "ask": 3.4,
+                "last": 3.25,
+                "close": null,
+                "pnl_pct_from_emission": 0.2338
+              },
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.1503,
+              "max_favorable_excursion_pct": 0.2338,
               "max_adverse_excursion_pct": -0.0965,
               "first_hit": null
             },
@@ -258846,6 +259477,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": 25.0,
                 "net_executable_return": 0.09090909090909091,
+                "cost_basis_usd": 275.0,
+                "is_net_profitable": true,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T17:10:56+00:00|GLD260826C00420000|moonshot_shadow",
+                "symbol": "GLD",
+                "contract_symbol": "GLD260826C00420000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T17:10:56Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 96544.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.64,
+                    "ask": 2.75,
+                    "observed_at_utc": "2026-08-19T17:10:56Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.75,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 3.25,
+                    "ask": 3.4,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 3.25,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": 50.0,
+                "midpoint_counterfactual_cost_basis_usd": 269.5,
+                "midpoint_counterfactual_pnl_usd": 62.999999999999986,
+                "midpoint_counterfactual_return": 0.2337662337662337,
+                "total_execution_friction_usd": 12.999999999999986,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": 50.0,
+                "net_executable_return": 0.18181818181818182,
                 "cost_basis_usd": 275.0,
                 "is_net_profitable": true,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -262518,10 +263214,10 @@
             "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false,
+              "outcome_quotes_captured": true,
               "capture_policy_version": 2,
               "capture_integrity_passed": false
             },
@@ -262536,22 +263232,69 @@
                 "retryable_via_archive": true,
                 "broker_quote_age_seconds": null
               },
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 679.166
+              },
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 679.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
               "one_hour": null,
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:50:00+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:56+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:48.367000+00:00",
+                "mark": 0.04,
+                "mark_source": "mid",
+                "bid": 0.03,
+                "ask": 0.05,
+                "last": 0.05,
+                "close": null,
+                "pnl_pct_from_emission": -0.9802
+              },
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:50:00+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:56+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:48.367000+00:00",
+                "mark": 0.04,
+                "mark_source": "mid",
+                "bid": 0.03,
+                "ask": 0.05,
+                "last": 0.05,
+                "close": null,
+                "pnl_pct_from_emission": -0.9802
+              },
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.9802,
+              "max_adverse_excursion_pct": -0.9802,
+              "first_hit": {
+                "window": "end_of_day",
+                "rule": "stop_50_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -262560,7 +263303,138 @@
               "pnl": null,
               "pnl_pct": null
             },
-            "executable_labels": {},
+            "executable_labels": {
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|WMT260828C00117000|moonshot_pick",
+                "symbol": "WMT",
+                "contract_symbol": "WMT260828C00117000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.97,
+                    "ask": 2.07,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.07,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.03,
+                    "ask": 0.05,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.03,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -204.0,
+                "midpoint_counterfactual_cost_basis_usd": 202.0,
+                "midpoint_counterfactual_pnl_usd": -198.0,
+                "midpoint_counterfactual_return": -0.9801980198019802,
+                "total_execution_friction_usd": 6.0,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -204.0,
+                "net_executable_return": -0.9855072463768118,
+                "cost_basis_usd": 206.99999999999997,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|WMT260828C00117000|moonshot_pick",
+                "symbol": "WMT",
+                "contract_symbol": "WMT260828C00117000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.97,
+                    "ask": 2.07,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.07,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.03,
+                    "ask": 0.05,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.03,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -204.0,
+                "midpoint_counterfactual_cost_basis_usd": 202.0,
+                "midpoint_counterfactual_pnl_usd": -198.0,
+                "midpoint_counterfactual_return": -0.9801980198019802,
+                "total_execution_friction_usd": 6.0,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -204.0,
+                "net_executable_return": -0.9855072463768118,
+                "cost_basis_usd": 206.99999999999997,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              }
+            },
             "archived_quote_path": {
               "status": "observed",
               "entry_mark": 2.02,
@@ -265138,10 +266012,10 @@
             "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false,
+              "outcome_quotes_captured": true,
               "capture_policy_version": 2,
               "capture_integrity_passed": false
             },
@@ -265156,21 +266030,65 @@
                 "retryable_via_archive": true,
                 "broker_quote_age_seconds": null
               },
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
               "one_hour": null,
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:58+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:53:45.430000+00:00",
+                "mark": 2.095,
+                "mark_source": "mid",
+                "bid": 2.01,
+                "ask": 2.18,
+                "last": 2.3,
+                "close": null,
+                "pnl_pct_from_emission": -0.3074
+              },
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:58+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:53:45.430000+00:00",
+                "mark": 2.095,
+                "mark_source": "mid",
+                "bid": 2.01,
+                "ask": 2.18,
+                "last": 2.3,
+                "close": null,
+                "pnl_pct_from_emission": -0.3074
+              },
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.3074,
+              "max_adverse_excursion_pct": -0.3074,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -265180,7 +266098,138 @@
               "pnl": null,
               "pnl_pct": null
             },
-            "executable_labels": {},
+            "executable_labels": {
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|MSFT260828C00497500|moonshot_shadow",
+                "symbol": "MSFT",
+                "contract_symbol": "MSFT260828C00497500",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.85,
+                    "ask": 3.2,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 3.2,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 2.01,
+                    "ask": 2.18,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.01,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -119.00000000000004,
+                "midpoint_counterfactual_cost_basis_usd": 302.50000000000006,
+                "midpoint_counterfactual_pnl_usd": -93.00000000000006,
+                "midpoint_counterfactual_return": -0.3074380165289258,
+                "total_execution_friction_usd": 25.999999999999986,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -119.00000000000004,
+                "net_executable_return": -0.3718750000000001,
+                "cost_basis_usd": 320.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|MSFT260828C00497500|moonshot_shadow",
+                "symbol": "MSFT",
+                "contract_symbol": "MSFT260828C00497500",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.85,
+                    "ask": 3.2,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 3.2,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 2.01,
+                    "ask": 2.18,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.01,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -119.00000000000004,
+                "midpoint_counterfactual_cost_basis_usd": 302.50000000000006,
+                "midpoint_counterfactual_pnl_usd": -93.00000000000006,
+                "midpoint_counterfactual_return": -0.3074380165289258,
+                "total_execution_friction_usd": 25.999999999999986,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -119.00000000000004,
+                "net_executable_return": -0.3718750000000001,
+                "cost_basis_usd": 320.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              }
+            },
             "archived_quote_path": {
               "status": "observed",
               "entry_mark": 3.025,
@@ -267783,10 +268832,10 @@
             "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false,
+              "outcome_quotes_captured": true,
               "capture_policy_version": 2,
               "capture_integrity_passed": false
             },
@@ -267801,22 +268850,69 @@
                 "retryable_via_archive": true,
                 "broker_quote_age_seconds": null
               },
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
               "one_hour": null,
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:58+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:57:29.340000+00:00",
+                "mark": 0.765,
+                "mark_source": "mid",
+                "bid": 0.73,
+                "ask": 0.8,
+                "last": 0.75,
+                "close": null,
+                "pnl_pct_from_emission": -0.6928
+              },
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:58+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:57:29.340000+00:00",
+                "mark": 0.765,
+                "mark_source": "mid",
+                "bid": 0.73,
+                "ask": 0.8,
+                "last": 0.75,
+                "close": null,
+                "pnl_pct_from_emission": -0.6928
+              },
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
-              "first_hit": null
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.6928,
+              "max_adverse_excursion_pct": -0.6928,
+              "first_hit": {
+                "window": "end_of_day",
+                "rule": "stop_50_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -267825,7 +268921,138 @@
               "pnl": null,
               "pnl_pct": null
             },
-            "executable_labels": {},
+            "executable_labels": {
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|AMZN260826C00270000|moonshot_shadow",
+                "symbol": "AMZN",
+                "contract_symbol": "AMZN260826C00270000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.35,
+                    "ask": 2.63,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.63,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.73,
+                    "ask": 0.8,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.73,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -190.0,
+                "midpoint_counterfactual_cost_basis_usd": 249.00000000000003,
+                "midpoint_counterfactual_pnl_usd": -172.5,
+                "midpoint_counterfactual_return": -0.6927710843373494,
+                "total_execution_friction_usd": 17.5,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -190.0,
+                "net_executable_return": -0.7224334600760456,
+                "cost_basis_usd": 263.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|AMZN260826C00270000|moonshot_shadow",
+                "symbol": "AMZN",
+                "contract_symbol": "AMZN260826C00270000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.35,
+                    "ask": 2.63,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.63,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.73,
+                    "ask": 0.8,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.73,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -190.0,
+                "midpoint_counterfactual_cost_basis_usd": 249.00000000000003,
+                "midpoint_counterfactual_pnl_usd": -172.5,
+                "midpoint_counterfactual_return": -0.6927710843373494,
+                "total_execution_friction_usd": 17.5,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -190.0,
+                "net_executable_return": -0.7224334600760456,
+                "cost_basis_usd": 263.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              }
+            },
             "archived_quote_path": {
               "status": "observed",
               "entry_mark": 2.49,
@@ -270431,10 +271658,10 @@
             "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
           ],
           "outcomes": {
-            "status": "pending",
+            "status": "partial",
             "quote_verification": {
               "emission_quote_captured": true,
-              "outcome_quotes_captured": false,
+              "outcome_quotes_captured": true,
               "capture_policy_version": 2,
               "capture_integrity_passed": false
             },
@@ -270449,21 +271676,65 @@
                 "retryable_via_archive": true,
                 "broker_quote_age_seconds": null
               },
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
+              "next_day_close": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "friday_close": null
             },
             "fixed_exit_marks": {
               "one_hour": null,
-              "end_of_day": null,
-              "next_day_close": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:56:13.349000+00:00",
+                "mark": 0.3,
+                "mark_source": "mid",
+                "bid": 0.27,
+                "ask": 0.33,
+                "last": 0.3,
+                "close": null,
+                "pnl_pct_from_emission": -0.4828
+              },
+              "next_day_close": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:56:13.349000+00:00",
+                "mark": 0.3,
+                "mark_source": "mid",
+                "bid": 0.27,
+                "ask": 0.33,
+                "last": 0.3,
+                "close": null,
+                "pnl_pct_from_emission": -0.4828
+              },
               "friday_close": null
             },
             "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": null,
-              "take_profit_25_pct_before_stop_50_pct": null,
-              "max_favorable_excursion_pct": null,
-              "max_adverse_excursion_pct": null,
+              "take_profit_40_pct_before_stop_50_pct": false,
+              "take_profit_25_pct_before_stop_50_pct": false,
+              "max_favorable_excursion_pct": -0.4828,
+              "max_adverse_excursion_pct": -0.4828,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -270473,7 +271744,138 @@
               "pnl": null,
               "pnl_pct": null
             },
-            "executable_labels": {},
+            "executable_labels": {
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|PFE260828C00028000|moonshot_shadow",
+                "symbol": "PFE",
+                "contract_symbol": "PFE260828C00028000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 0.55,
+                    "ask": 0.61,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.61,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.27,
+                    "ask": 0.33,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.27,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -34.0,
+                "midpoint_counterfactual_cost_basis_usd": 58.00000000000001,
+                "midpoint_counterfactual_pnl_usd": -28.000000000000004,
+                "midpoint_counterfactual_return": -0.4827586206896552,
+                "total_execution_friction_usd": 5.9999999999999964,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -34.0,
+                "net_executable_return": -0.5573770491803278,
+                "cost_basis_usd": 61.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "next_day_close": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-19T20:10:53+00:00|PFE260828C00028000|moonshot_shadow",
+                "symbol": "PFE",
+                "contract_symbol": "PFE260828C00028000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-19T20:10:53Z",
+                "horizon": {
+                  "name": "next_day_close",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 85747.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 0.55,
+                    "ask": 0.61,
+                    "observed_at_utc": "2026-08-19T20:10:53Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.61,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.27,
+                    "ask": 0.33,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.27,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -34.0,
+                "midpoint_counterfactual_cost_basis_usd": 58.00000000000001,
+                "midpoint_counterfactual_pnl_usd": -28.000000000000004,
+                "midpoint_counterfactual_return": -0.4827586206896552,
+                "total_execution_friction_usd": 5.9999999999999964,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -34.0,
+                "net_executable_return": -0.5573770491803278,
+                "cost_basis_usd": 61.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              }
+            },
             "archived_quote_path": {
               "status": "observed",
               "entry_mark": 0.58,
@@ -273143,7 +274545,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 1.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -273162,7 +274573,20 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.2291
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:32.894000+00:00",
+                "mark": 0.865,
+                "mark_source": "mid",
+                "bid": 0.85,
+                "ask": 0.88,
+                "last": 0.88,
+                "close": null,
+                "pnl_pct_from_emission": -0.2379
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -273170,7 +274594,7 @@
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.2291,
-              "max_adverse_excursion_pct": -0.2291,
+              "max_adverse_excursion_pct": -0.2379,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -273238,6 +274662,71 @@
                 "midpoint_counterfactual_pnl_usd": -26.0,
                 "midpoint_counterfactual_return": -0.2290748898678414,
                 "total_execution_friction_usd": 4.999999999999993,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -30.999999999999993,
+                "net_executable_return": -0.2672413793103448,
+                "cost_basis_usd": 115.99999999999999,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T14:10:40+00:00|SLV260828P00060000|moonshot_pick",
+                "symbol": "SLV",
+                "contract_symbol": "SLV260828P00060000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T14:10:40Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 20960.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.11,
+                    "ask": 1.16,
+                    "observed_at_utc": "2026-08-20T14:10:40Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.16,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.85,
+                    "ask": 0.88,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.85,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -30.999999999999993,
+                "midpoint_counterfactual_cost_basis_usd": 113.5,
+                "midpoint_counterfactual_pnl_usd": -27.0,
+                "midpoint_counterfactual_return": -0.23788546255506607,
+                "total_execution_friction_usd": 3.999999999999993,
                 "friction_flipped_winner_to_loser": false,
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -30.999999999999993,
@@ -275604,7 +277093,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -275623,7 +277121,20 @@
                 "close": null,
                 "pnl_pct_from_emission": 0.037
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:46:57.990000+00:00",
+                "mark": 0.27,
+                "mark_source": "mid",
+                "bid": 0.25,
+                "ask": 0.29,
+                "last": 0.26,
+                "close": null,
+                "pnl_pct_from_emission": 0.0
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -275631,7 +277142,7 @@
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": 0.037,
-              "max_adverse_excursion_pct": 0.037,
+              "max_adverse_excursion_pct": 0.0,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -275703,6 +277214,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -2.0000000000000018,
                 "net_executable_return": -0.07142857142857148,
+                "cost_basis_usd": 28.000000000000004,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T14:10:40+00:00|T260828P00025000|moonshot_shadow",
+                "symbol": "T",
+                "contract_symbol": "T260828P00025000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T14:10:40Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 20960.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 0.26,
+                    "ask": 0.28,
+                    "observed_at_utc": "2026-08-20T14:10:40Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.28,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 0.25,
+                    "ask": 0.29,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 0.25,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -3.0000000000000027,
+                "midpoint_counterfactual_cost_basis_usd": 27.0,
+                "midpoint_counterfactual_pnl_usd": 0.0,
+                "midpoint_counterfactual_return": 0.0,
+                "total_execution_friction_usd": 3.0000000000000027,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -3.0000000000000027,
+                "net_executable_return": -0.10714285714285722,
                 "cost_basis_usd": 28.000000000000004,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -278064,7 +279640,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 1.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -278083,7 +279668,20 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.0616
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:58:35.748000+00:00",
+                "mark": 1.68,
+                "mark_source": "mid",
+                "bid": 1.67,
+                "ask": 1.69,
+                "last": 1.62,
+                "close": null,
+                "pnl_pct_from_emission": -0.4085
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -278091,7 +279689,7 @@
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.0616,
-              "max_adverse_excursion_pct": -0.0616,
+              "max_adverse_excursion_pct": -0.4085,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -278163,6 +279761,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -20.000000000000018,
                 "net_executable_return": -0.0701754385964913,
+                "cost_basis_usd": 285.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T14:10:40+00:00|SPY260828C00773000|moonshot_shadow",
+                "symbol": "SPY",
+                "contract_symbol": "SPY260828C00773000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T14:10:40Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 20960.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.83,
+                    "ask": 2.85,
+                    "observed_at_utc": "2026-08-20T14:10:40Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.85,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.67,
+                    "ask": 1.69,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.67,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -118.00000000000001,
+                "midpoint_counterfactual_cost_basis_usd": 284.0,
+                "midpoint_counterfactual_pnl_usd": -115.99999999999999,
+                "midpoint_counterfactual_return": -0.40845070422535207,
+                "total_execution_friction_usd": 2.0000000000000284,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -118.00000000000001,
+                "net_executable_return": -0.4140350877192983,
                 "cost_basis_usd": 285.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -280525,7 +282188,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -280544,16 +282216,32 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.0482
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:15.112000+00:00",
+                "mark": 3.95,
+                "mark_source": "mid",
+                "bid": 3.85,
+                "ask": 4.05,
+                "last": 3.94,
+                "close": null,
+                "pnl_pct_from_emission": 0.8119
+              },
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0482,
+              "max_favorable_excursion_pct": 0.8119,
               "max_adverse_excursion_pct": -0.0482,
-              "first_hit": null
+              "first_hit": {
+                "window": "end_of_day",
+                "rule": "take_profit_40_pct_fixed_mark_proxy"
+              }
             },
             "realized_if_traded": {
               "entry_fill": null,
@@ -280626,6 +282314,71 @@
                 "net_executable_return": -0.0896860986547086,
                 "cost_basis_usd": 223.0,
                 "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T14:10:40+00:00|AAPL260828P00310000|moonshot_shadow",
+                "symbol": "AAPL",
+                "contract_symbol": "AAPL260828P00310000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T14:10:40Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 20960.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.13,
+                    "ask": 2.23,
+                    "observed_at_utc": "2026-08-20T14:10:40Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.23,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 3.85,
+                    "ask": 4.05,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 3.85,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": 162.0,
+                "midpoint_counterfactual_cost_basis_usd": 217.99999999999997,
+                "midpoint_counterfactual_pnl_usd": 177.00000000000006,
+                "midpoint_counterfactual_return": 0.8119266055045875,
+                "total_execution_friction_usd": 15.000000000000057,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": 162.0,
+                "net_executable_return": 0.726457399103139,
+                "cost_basis_usd": 223.0,
+                "is_net_profitable": true,
                 "total_signed_adverse_slippage_usd": 0.0
               }
             },
@@ -283066,7 +284819,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 80.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -283085,7 +284847,20 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.1063
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:27:55.969000+00:00",
+                "mark": 1.615,
+                "mark_source": "mid",
+                "bid": 1.48,
+                "ask": 1.75,
+                "last": 1.55,
+                "close": null,
+                "pnl_pct_from_emission": -0.1199
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -283093,7 +284868,7 @@
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.1063,
-              "max_adverse_excursion_pct": -0.1063,
+              "max_adverse_excursion_pct": -0.1199,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -283165,6 +284940,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -38.99999999999999,
                 "net_executable_return": -0.19897959183673466,
+                "cost_basis_usd": 196.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T17:10:45+00:00|USO260828P00130000|moonshot_pick",
+                "symbol": "USO",
+                "contract_symbol": "USO260828P00130000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T17:10:45Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 10155.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.71,
+                    "ask": 1.96,
+                    "observed_at_utc": "2026-08-20T17:10:45Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.96,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.48,
+                    "ask": 1.75,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.48,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -48.0,
+                "midpoint_counterfactual_cost_basis_usd": 183.5,
+                "midpoint_counterfactual_pnl_usd": -21.999999999999996,
+                "midpoint_counterfactual_return": -0.1198910081743869,
+                "total_execution_friction_usd": 26.000000000000004,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -48.0,
+                "net_executable_return": -0.24489795918367346,
                 "cost_basis_usd": 196.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -284366,7 +286206,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 1.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -284385,14 +286234,27 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.0726
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:35.194000+00:00",
+                "mark": 2.365,
+                "mark_source": "mid",
+                "bid": 2.34,
+                "ask": 2.39,
+                "last": 2.34,
+                "close": null,
+                "pnl_pct_from_emission": 0.0107
+              },
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0726,
+              "max_favorable_excursion_pct": 0.0107,
               "max_adverse_excursion_pct": -0.0726,
               "first_hit": null
             },
@@ -284465,6 +286327,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -22.00000000000002,
                 "net_executable_return": -0.09282700421940937,
+                "cost_basis_usd": 237.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T17:10:45+00:00|IWM260828C00299000|moonshot_shadow",
+                "symbol": "IWM",
+                "contract_symbol": "IWM260828C00299000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T17:10:45Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 10155.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.31,
+                    "ask": 2.37,
+                    "observed_at_utc": "2026-08-20T17:10:45Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.37,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 2.34,
+                    "ask": 2.39,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.34,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -3.000000000000025,
+                "midpoint_counterfactual_cost_basis_usd": 234.0,
+                "midpoint_counterfactual_pnl_usd": 2.5000000000000355,
+                "midpoint_counterfactual_return": 0.010683760683760835,
+                "total_execution_friction_usd": 5.50000000000006,
+                "friction_flipped_winner_to_loser": true,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -3.000000000000025,
+                "net_executable_return": -0.012658227848101371,
                 "cost_basis_usd": 237.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -285754,7 +287681,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 79.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -285773,14 +287709,27 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.0147
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:00:00+00:00",
+                "ask_observed_at_utc": "2026-08-20T19:59:59+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:59:12.465000+00:00",
+                "mark": 1.965,
+                "mark_source": "mid",
+                "bid": 1.9,
+                "ask": 2.03,
+                "last": 1.94,
+                "close": null,
+                "pnl_pct_from_emission": 0.1559
+              },
               "next_day_close": null,
               "friday_close": null
             },
             "path_rules": {
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0147,
+              "max_favorable_excursion_pct": 0.1559,
               "max_adverse_excursion_pct": -0.0147,
               "first_hit": null
             },
@@ -285855,6 +287804,71 @@
                 "net_executable_return": -0.040462427745664775,
                 "cost_basis_usd": 173.0,
                 "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T17:10:45+00:00|NFLX260828P00081000|moonshot_shadow",
+                "symbol": "NFLX",
+                "contract_symbol": "NFLX260828P00081000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T17:10:45Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 10155.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 1.67,
+                    "ask": 1.73,
+                    "observed_at_utc": "2026-08-20T17:10:45Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.73,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.9,
+                    "ask": 2.03,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.9,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": 16.999999999999993,
+                "midpoint_counterfactual_cost_basis_usd": 170.0,
+                "midpoint_counterfactual_pnl_usd": 26.49999999999999,
+                "midpoint_counterfactual_return": 0.15588235294117642,
+                "total_execution_friction_usd": 9.499999999999996,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": 16.999999999999993,
+                "net_executable_return": 0.09826589595375719,
+                "cost_basis_usd": 173.0,
+                "is_net_profitable": true,
                 "total_signed_adverse_slippage_usd": 0.0
               }
             },
@@ -287140,7 +289154,16 @@
                 "retryable_via_archive": false,
                 "broker_quote_age_seconds": 0.0
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "status": "captured_valid",
+                "target_at_utc": "2026-08-20T20:00:00+00:00",
+                "attempted_at_utc": "2026-08-20T20:01:19+00:00",
+                "capture_delay_seconds": 79.166,
+                "max_capture_delay_seconds": 1800.0,
+                "retryable_live": false,
+                "retryable_via_archive": false,
+                "broker_quote_age_seconds": 1.166
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -287159,7 +289182,20 @@
                 "close": null,
                 "pnl_pct_from_emission": -0.2152
               },
-              "end_of_day": null,
+              "end_of_day": {
+                "captured_at_utc": "2026-08-20T20:01:19+00:00",
+                "retrieved_at_utc": "2026-08-20T20:01:19+00:00",
+                "bid_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "ask_observed_at_utc": "2026-08-20T20:01:18+00:00",
+                "trade_observed_at_utc": "2026-08-20T19:58:35.748000+00:00",
+                "mark": 1.68,
+                "mark_source": "mid",
+                "bid": 1.67,
+                "ask": 1.69,
+                "last": 1.62,
+                "close": null,
+                "pnl_pct_from_emission": -0.2911
+              },
               "next_day_close": null,
               "friday_close": null
             },
@@ -287167,7 +289203,7 @@
               "take_profit_40_pct_before_stop_50_pct": false,
               "take_profit_25_pct_before_stop_50_pct": false,
               "max_favorable_excursion_pct": -0.2152,
-              "max_adverse_excursion_pct": -0.2152,
+              "max_adverse_excursion_pct": -0.2911,
               "first_hit": null
             },
             "realized_if_traded": {
@@ -287239,6 +289275,71 @@
                 "total_fees_usd": 0.0,
                 "net_executable_pnl_usd": -52.99999999999998,
                 "net_executable_return": -0.222689075630252,
+                "cost_basis_usd": 238.0,
+                "is_net_profitable": false,
+                "total_signed_adverse_slippage_usd": 0.0
+              },
+              "end_of_day": {
+                "label_contract": {
+                  "id": "orographic.executable_option_outcome.v2",
+                  "name": "orographic.executable_option_outcome",
+                  "version": 2
+                },
+                "recommendation_id": "2026-08-20T17:10:45+00:00|SPY260828C00773000|moonshot_shadow",
+                "symbol": "SPY",
+                "contract_symbol": "SPY260828C00773000",
+                "position_side": "long",
+                "contracts": 1,
+                "contract_multiplier": 100.0,
+                "decision_at_utc": "2026-08-20T17:10:45Z",
+                "horizon": {
+                  "name": "end_of_day",
+                  "target_at_utc": "2026-08-20T20:00:00Z",
+                  "elapsed_seconds": 10155.0
+                },
+                "label_available_at_utc": "2026-08-20T20:01:19Z",
+                "entry": {
+                  "quote": {
+                    "bid": 2.36,
+                    "ask": 2.38,
+                    "observed_at_utc": "2026-08-20T17:10:45Z",
+                    "age_at_decision_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 2.38,
+                  "execution_price_source": "entry_ask_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "exit": {
+                  "quote": {
+                    "bid": 1.67,
+                    "ask": 1.69,
+                    "observed_at_utc": "2026-08-20T20:01:19Z",
+                    "capture_delay_seconds": 79.0,
+                    "age_at_label_availability_seconds": 0.0,
+                    "source": "tradier"
+                  },
+                  "execution_price": 1.67,
+                  "execution_price_source": "exit_bid_proxy",
+                  "fill_at_utc": null,
+                  "quote_age_at_execution_seconds": 0.0,
+                  "execution_id": null,
+                  "fees_usd": 0.0,
+                  "signed_adverse_slippage_usd": 0.0
+                },
+                "gross_executable_pnl_usd": -71.0,
+                "midpoint_counterfactual_cost_basis_usd": 237.0,
+                "midpoint_counterfactual_pnl_usd": -69.00000000000001,
+                "midpoint_counterfactual_return": -0.29113924050632917,
+                "total_execution_friction_usd": 1.9999999999999858,
+                "friction_flipped_winner_to_loser": false,
+                "total_fees_usd": 0.0,
+                "net_executable_pnl_usd": -71.0,
+                "net_executable_return": -0.29831932773109243,
                 "cost_basis_usd": 238.0,
                 "is_net_profitable": false,
                 "total_signed_adverse_slippage_usd": 0.0
@@ -288281,28 +290382,28 @@
       ]
     }
   ],
-  "last_capture_attempt_at_utc": "2026-08-20T19:56:31+00:00",
+  "last_capture_attempt_at_utc": "2026-08-20T20:01:19+00:00",
   "last_mark_summary": {
     "entries_seen": 155,
     "picks_seen": 470,
-    "marks_written": 0,
-    "executable_labels_written": 0,
+    "marks_written": 24,
+    "executable_labels_written": 24,
     "executable_labels_skipped": 1423,
     "quotes_missing": 0,
     "picks_completed": 403,
-    "picks_partial": 59,
-    "picks_pending": 8,
-    "capture_windows_due": 107,
-    "capture_windows_valid": 83,
+    "picks_partial": 63,
+    "picks_pending": 4,
+    "capture_windows_due": 131,
+    "capture_windows_valid": 107,
     "capture_windows_quote_missing": 0,
     "capture_windows_stale_quote": 0,
     "capture_windows_missed": 24,
     "capture_windows_newly_missed": 0,
     "legacy_capture_policy_picks_skipped": 426,
-    "trajectory_marks_written": 36,
+    "trajectory_marks_written": 0,
     "trajectory_quotes_missing": 0,
-    "trajectory_quotes_stale": 1,
-    "trajectory_active_picks": 37,
+    "trajectory_quotes_stale": 0,
+    "trajectory_active_picks": 0,
     "ledger_changed": 1
   },
   "archived_quote_path_summary": {
