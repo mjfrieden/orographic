@@ -1,25 +1,25 @@
 {
   "artifact": "outcome_capture_health",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-20T13:26:21.433982Z",
-  "status": "failed",
-  "alert_required": true,
+  "generated_at_utc": "2026-08-20T13:31:21.977506Z",
+  "status": "degraded",
+  "alert_required": false,
   "scheduler": {
     "source": "cloudflare_cron",
-    "scheduled_at_utc": "2026-08-20T13:25:39Z",
-    "delivery_delay_seconds": 42.434,
+    "scheduled_at_utc": "2026-08-20T13:30:39Z",
+    "delivery_delay_seconds": 42.978,
     "max_delivery_delay_seconds": 600
   },
   "labels": {
-    "trajectory_active_picks_last_run": 0,
-    "trajectory_marks_written_last_run": 0,
+    "trajectory_active_picks_last_run": 179,
+    "trajectory_marks_written_last_run": 153,
     "trajectory_quotes_missing_last_run": 0,
-    "trajectory_quotes_stale_last_run": 0,
-    "trajectory_capture_ratio_last_run": 1.0,
+    "trajectory_quotes_stale_last_run": 26,
+    "trajectory_capture_ratio_last_run": 0.8547,
     "trajectory_minimum_alert_ratio": 0.3,
-    "fixed_capture_windows_missed_last_run": 27,
-    "trajectory_scored_picks": 152,
-    "trajectory_marks": 12329
+    "fixed_capture_windows_missed_last_run": 0,
+    "trajectory_scored_picks": 174,
+    "trajectory_marks": 12482
   },
   "ledgers": [
     {
@@ -27,30 +27,30 @@
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-20T13:26:14+00:00",
-      "active_picks": 0,
-      "marks_written": 0,
+      "last_capture_attempt_at_utc": "2026-08-20T13:31:14+00:00",
+      "active_picks": 150,
+      "marks_written": 130,
       "quotes_missing": 0,
-      "quotes_stale": 0,
+      "quotes_stale": 20,
       "fixed_windows_valid": 311,
-      "fixed_windows_newly_missed": 23,
-      "trajectory_scored_picks": 127,
-      "trajectory_marks": 10150
+      "fixed_windows_newly_missed": 0,
+      "trajectory_scored_picks": 146,
+      "trajectory_marks": 10280
     },
     {
       "name": "moonshot",
       "path": "web/data/diagnostics/moonshot_prospective_ledger.json",
       "exists": true,
       "step_status": "success",
-      "last_capture_attempt_at_utc": "2026-08-20T13:26:15+00:00",
-      "active_picks": 0,
-      "marks_written": 0,
+      "last_capture_attempt_at_utc": "2026-08-20T13:31:16+00:00",
+      "active_picks": 29,
+      "marks_written": 23,
       "quotes_missing": 0,
-      "quotes_stale": 0,
+      "quotes_stale": 6,
       "fixed_windows_valid": 75,
-      "fixed_windows_newly_missed": 4,
-      "trajectory_scored_picks": 25,
-      "trajectory_marks": 2179
+      "fixed_windows_newly_missed": 0,
+      "trajectory_scored_picks": 28,
+      "trajectory_marks": 2202
     }
   ],
   "checks": [
@@ -58,8 +58,8 @@
       "name": "scheduler_delivery_fresh",
       "passed": true,
       "scheduler": "cloudflare_cron",
-      "scheduled_at_utc": "2026-08-20T13:25:39Z",
-      "delay_seconds": 42.434,
+      "scheduled_at_utc": "2026-08-20T13:30:39Z",
+      "delay_seconds": 42.978,
       "max_delay_seconds": 600,
       "manual_dispatch": false
     },
@@ -74,18 +74,18 @@
     },
     {
       "name": "trajectory_capture_health",
-      "passed": true,
-      "active_picks": 0,
-      "marks_written": 0,
+      "passed": false,
+      "active_picks": 179,
+      "marks_written": 153,
       "missing_quotes": 0,
-      "stale_quotes": 0,
-      "capture_ratio": 1.0,
+      "stale_quotes": 26,
+      "capture_ratio": 0.8547,
       "minimum_alert_ratio": 0.3
     },
     {
       "name": "fixed_window_capture_health",
-      "passed": false,
-      "missed_windows": 27
+      "passed": true,
+      "missed_windows": 0
     },
     {
       "name": "evidence_refresh_completed",
@@ -95,16 +95,15 @@
   ],
   "failed_checks": [
     {
-      "name": "fixed_window_capture_health",
+      "name": "trajectory_capture_health",
       "passed": false,
-      "missed_windows": 27
+      "active_picks": 179,
+      "marks_written": 153,
+      "missing_quotes": 0,
+      "stale_quotes": 26,
+      "capture_ratio": 0.8547,
+      "minimum_alert_ratio": 0.3
     }
   ],
-  "alert_checks": [
-    {
-      "name": "fixed_window_capture_health",
-      "passed": false,
-      "missed_windows": 27
-    }
-  ]
+  "alert_checks": []
 }
