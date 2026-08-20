@@ -4,7 +4,7 @@
  */
 
 const SNAPSHOT_SOURCE = "/data/latest_run.json";
-const PROSPECTIVE_LEDGER_SOURCE = "/data/diagnostics/prospective_pick_ledger.json";
+const PROSPECTIVE_LEDGER_SOURCE = "/data/diagnostics/prospective_dashboard_summary_latest.json";
 const PROMOTION_COMPARISON_SOURCE = "/data/diagnostics/promotion_shadow_active_comparison_latest.json";
 const RESEARCH_READINESS_SOURCE = "/data/diagnostics/research_readiness_health_latest.json";
 const MODEL_GOVERNANCE_SOURCE = "/data/diagnostics/model_governance_summary_latest.json";
@@ -1642,6 +1642,23 @@ function summarizeProspectivePicks(picks) {
 }
 
 function summarizeProspectiveLedger(ledger) {
+  const published = ledger?.dashboard_summary;
+  if (published && typeof published === "object") {
+    return {
+      runs: Number(published.runs || 0),
+      picks: Number(published.picks || 0),
+      marked: Number(published.marked || 0),
+      complete: Number(published.complete || 0),
+      pending: Number(published.pending || 0),
+      live: Number(published.live || 0),
+      shadow: Number(published.shadow || 0),
+      takeProfitHits: Number(published.take_profit_hits || 0),
+      stopHits: Number(published.stop_hits || 0),
+      latestRun: published.latest_run || null,
+      avgBest: published.avg_best ?? null,
+      avgWorst: published.avg_worst ?? null,
+    };
+  }
   const entries = Array.isArray(ledger?.entries) ? ledger.entries : [];
   const picks = allProspectivePicks(ledger);
   const live = picks.filter((pick) => pick.lane === "live");

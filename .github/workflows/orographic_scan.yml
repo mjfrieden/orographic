@@ -51,8 +51,14 @@ jobs:
           pip install -r engine/requirements.txt
           pip install pytest
 
+      - name: Require durable operational storage
+        run: |
+          if [ -z "${OROGRAPHIC_RESEARCH_R2_BUCKET}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ] || [ -z "${CLOUDFLARE_R2_API_TOKEN}" ]; then
+            echo "Live scans require OROGRAPHIC_RESEARCH_R2_BUCKET, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_R2_API_TOKEN." >&2
+            exit 1
+          fi
+
       - name: Set up Node for R2 evidence restore
-        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
         uses: actions/setup-node@v6
         with:
           node-version: "22"
@@ -66,6 +72,14 @@ jobs:
             --mode canonical \
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
             --output-dir output/restored_canonical_evidence \
+            --allow-missing
+
+      - name: Restore mutable research ledgers from R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/sync_operational_ledgers_r2.py pull \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
             --allow-missing
 
       - name: Bootstrap pre-manifest R2 history
@@ -261,6 +275,10 @@ jobs:
         run: |
           python scripts/sync_dashboard_artifacts.py
 
+      - name: Build compact dashboard prospective summary
+        run: |
+          python scripts/build_dashboard_prospective_summary.py
+
       - name: Validate refreshed snapshot
         run: |
           python scripts/validate_model_artifacts.py
@@ -299,12 +317,27 @@ jobs:
           print("Production snapshot artifacts passed.")
           PY
 
+      - name: Publish mutable research ledgers to R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/sync_operational_ledgers_r2.py push \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
+
       - name: Commit refreshed snapshot
         id: snapshot
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add web/data/latest_run.json web/data/diagnostics/ web/data/walk_forward_results.json web/data/backtest_results.json
+          git add -- \
+            web/data/latest_run.json \
+            web/data/diagnostics/ \
+            web/data/walk_forward_results.json \
+            web/data/backtest_results.json \
+            ':(exclude)web/data/diagnostics/prospective_pick_ledger.json' \
+            ':(exclude)web/data/diagnostics/moonshot_prospective_ledger.json' \
+            ':(exclude)web/data/diagnostics/research_run_ledger.json' \
+            ':(exclude)web/data/diagnostics/side_aware_scout_shadow_ledger.json'
           if git diff --cached --quiet; then
             echo "snapshot_changed=false" >> "$GITHUB_OUTPUT"
             echo "No snapshot changes to commit."

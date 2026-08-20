@@ -20,7 +20,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   capture:
@@ -28,6 +28,8 @@ jobs:
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
       TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
       OROGRAPHIC_TRADIER_ACCESS_TOKEN: ${{ secrets.OROGRAPHIC_TRADIER_ACCESS_TOKEN }}
       TRADIER_BASE_URL: ${{ secrets.TRADIER_BASE_URL }}
@@ -51,6 +53,26 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r engine/requirements.txt
+
+      - name: Require durable operational storage
+        run: |
+          if [ -z "${OROGRAPHIC_RESEARCH_R2_BUCKET}" ] || [ -z "${CLOUDFLARE_ACCOUNT_ID}" ] || [ -z "${CLOUDFLARE_R2_API_TOKEN}" ]; then
+            echo "Operational capture requires OROGRAPHIC_RESEARCH_R2_BUCKET, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_R2_API_TOKEN." >&2
+            exit 1
+          fi
+
+      - name: Set up Node for R2 and Pages
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Restore mutable research ledgers from R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/sync_operational_ledgers_r2.py pull \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            --allow-missing
 
       - name: Check Tradier capture configuration
         id: capture_config
@@ -108,48 +130,21 @@ jobs:
           python scripts/build_model_governance_summary.py \
             --capture-health web/data/diagnostics/outcome_capture_health_latest.json
 
-      - name: Persist new research evidence
-        id: persist_evidence
+      - name: Build compact dashboard prospective summary
         if: ${{ always() }}
         run: |
-          git config user.name "orographic-research-bot"
-          git config user.email "orographic-research-bot@users.noreply.github.com"
-          git add \
-            web/data/diagnostics/prospective_pick_ledger.json \
-            web/data/diagnostics/moonshot_prospective_ledger.json \
-            web/data/diagnostics/scout_pair_readiness_latest.json \
-            web/data/diagnostics/payoff_challenger_evidence_latest.json \
-            web/data/diagnostics/counterfactual_veto_evidence_latest.json \
-            web/data/diagnostics/outcome_capture_health_latest.json \
-            web/data/diagnostics/model_governance_summary_latest.json
-          if git diff --cached --quiet; then
-            echo "No capture state changed."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            git commit -m "data: capture prospective option outcomes"
-            for attempt in 1 2 3; do
-              if git push origin "HEAD:${GITHUB_REF_NAME}"; then
-                break
-              fi
-              git fetch origin "${GITHUB_REF_NAME}"
-              git rebase "origin/${GITHUB_REF_NAME}"
-              if [ "$attempt" -eq 3 ]; then
-                echo "Capture evidence push failed after ${attempt} attempts." >&2
-                exit 1
-              fi
-            done
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-          fi
+          python scripts/build_dashboard_prospective_summary.py
 
-      - name: Set up Node for refreshed dashboard deploy
-        if: ${{ always() && steps.persist_evidence.outputs.changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
-        uses: actions/setup-node@v6
-        with:
-          node-version: "22"
+      - name: Publish mutable research ledgers to R2
+        if: ${{ always() }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/sync_operational_ledgers_r2.py push \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
 
       - name: Deploy refreshed capture evidence to Cloudflare Pages
-        if: ${{ always() && steps.persist_evidence.outputs.changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
-        continue-on-error: true
+        if: ${{ always() && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           npx wrangler pages deploy web \
             --project-name orographic \
