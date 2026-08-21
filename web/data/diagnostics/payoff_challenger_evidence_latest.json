@@ -1,7 +1,7 @@
 {
   "artifact": "payoff_challenger_prospective_evidence",
   "schema_version": 2,
-  "generated_at_utc": "2026-08-21T17:10:58+00:00",
+  "generated_at_utc": "2026-08-21T20:11:55+00:00",
   "decision": "collecting_evidence",
   "execution_effect": "none_observation_only",
   "policy": {
@@ -19,75 +19,161 @@
     }
   },
   "coverage": {
-    "scored_recommendations": 73,
+    "scored_recommendations": 84,
     "older_model_scored_recommendations_excluded": 16,
-    "resolved_recommendations": 0,
-    "resolved_runs": 0,
-    "decision_disagreements": 0,
-    "stored_broad_disagreements": 0,
-    "unresolved_scored_recommendations": 73,
-    "friday_capture_valid": 0,
+    "resolved_recommendations": 72,
+    "resolved_runs": 10,
+    "decision_disagreements": 43,
+    "stored_broad_disagreements": 58,
+    "unresolved_scored_recommendations": 12,
+    "friday_capture_valid": 72,
     "friday_capture_missed": 0,
     "friday_capture_quote_missing_retryable": 0,
-    "friday_capture_integrity_pct": null
+    "friday_capture_integrity_pct": 1.0
   },
   "overall": {
     "active": {
-      "observations": 0,
-      "positive_rate": null,
-      "auc": null,
-      "brier": null,
-      "log_loss": null
+      "observations": 72,
+      "positive_rate": 0.2222,
+      "auc": 0.3119,
+      "brier": 0.5043,
+      "log_loss": 1.4203
     },
     "challenger": {
-      "observations": 0,
-      "positive_rate": null,
-      "auc": null,
-      "brier": null,
-      "log_loss": null
+      "observations": 72,
+      "positive_rate": 0.2222,
+      "auc": 0.4531,
+      "brier": 0.228,
+      "log_loss": 0.652
     },
     "baseline": {
-      "positive_rate": null,
-      "brier": null
+      "positive_rate": 0.2222,
+      "brier": 0.1728
     }
   },
   "disagreement_cohort": {
-    "rows": 0,
-    "active_accuracy": null,
-    "challenger_accuracy": null,
-    "avg_net_executable_return": null
+    "rows": 43,
+    "active_accuracy": 0.2326,
+    "challenger_accuracy": 0.7674,
+    "avg_net_executable_return": -0.2155
   },
   "rank_replay": {
-    "eligible_complete_runs": 0,
-    "incomplete_runs_excluded": 10,
+    "eligible_complete_runs": 9,
+    "incomplete_runs_excluded": 2,
     "single_candidate_runs_excluded": 0,
-    "selection_disagreements": 0,
-    "active_top1_avg_net_return": null,
-    "shadow_top1_avg_net_return": null,
+    "selection_disagreements": 7,
+    "active_top1_avg_net_return": -0.3332,
+    "shadow_top1_avg_net_return": -0.3485,
     "paired_inference": {
-      "observations": 0,
-      "mean_lift": null,
+      "observations": 9,
+      "mean_lift": -0.015348,
       "confidence_interval_95": {
-        "lower": null,
-        "upper": null
+        "lower": -0.285958,
+        "upper": 0.282512
       },
-      "probability_positive": null,
+      "probability_positive": 0.4467,
       "method": "paired-run nonparametric bootstrap",
       "resamples": 4000
     },
     "selection_policy": "top one active-payoff versus challenger probability per run from the identical fully resolved, post-friction candidate set"
   },
-  "by_side": {},
-  "by_regime": {},
+  "by_side": {
+    "call": {
+      "rows": 26,
+      "active": {
+        "observations": 26,
+        "positive_rate": 0.1923,
+        "auc": 0.3143,
+        "brier": 0.4353,
+        "log_loss": 1.2167
+      },
+      "challenger": {
+        "observations": 26,
+        "positive_rate": 0.1923,
+        "auc": 0.4762,
+        "brier": 0.228,
+        "log_loss": 0.6502
+      },
+      "baseline": {
+        "positive_rate": 0.1923,
+        "brier": 0.1553
+      }
+    },
+    "put": {
+      "rows": 46,
+      "active": {
+        "observations": 46,
+        "positive_rate": 0.2391,
+        "auc": 0.287,
+        "brier": 0.5433,
+        "log_loss": 1.5353
+      },
+      "challenger": {
+        "observations": 46,
+        "positive_rate": 0.2391,
+        "auc": 0.4494,
+        "brier": 0.228,
+        "log_loss": 0.653
+      },
+      "baseline": {
+        "positive_rate": 0.2391,
+        "brier": 0.1819
+      }
+    }
+  },
+  "by_regime": {
+    "neutral": {
+      "rows": 57,
+      "active": {
+        "observations": 57,
+        "positive_rate": 0.2807,
+        "auc": 0.3163,
+        "brier": 0.4839,
+        "log_loss": 1.3768
+      },
+      "challenger": {
+        "observations": 57,
+        "positive_rate": 0.2807,
+        "auc": 0.5,
+        "brier": 0.231,
+        "log_loss": 0.6617
+      },
+      "baseline": {
+        "positive_rate": 0.2807,
+        "brier": 0.2019
+      }
+    },
+    "risk_on": {
+      "rows": 15,
+      "active": {
+        "observations": 15,
+        "positive_rate": 0,
+        "auc": null,
+        "brier": 0.5815,
+        "log_loss": 1.5854
+      },
+      "challenger": {
+        "observations": 15,
+        "positive_rate": 0,
+        "auc": null,
+        "brier": 0.2167,
+        "log_loss": 0.6152
+      },
+      "baseline": {
+        "positive_rate": 0,
+        "brier": 0
+      }
+    }
+  },
   "gates": {
     "sample": {
       "resolved_recommendations": false,
       "resolved_runs": false,
-      "decision_disagreements": false,
+      "decision_disagreements": true,
       "side_coverage": false,
       "regime_coverage": false,
       "complete_rank_replay_runs": false,
-      "friday_capture_integrity": false
+      "friday_capture_integrity": true
     },
     "performance": {
       "discrimination_non_worse": false,
@@ -102,71 +188,69 @@
     "blocking_sample_gates": [
       "resolved_recommendations",
       "resolved_runs",
-      "decision_disagreements",
       "side_coverage",
       "regime_coverage",
-      "complete_rank_replay_runs",
-      "friday_capture_integrity"
+      "complete_rank_replay_runs"
     ],
     "progress": {
       "resolved_recommendations": {
-        "current": 0,
+        "current": 72,
         "required": 100,
-        "remaining": 100,
-        "progress_pct": 0.0
+        "remaining": 28,
+        "progress_pct": 0.72
       },
       "resolved_runs": {
-        "current": 0,
+        "current": 10,
         "required": 30,
-        "remaining": 30,
-        "progress_pct": 0.0
+        "remaining": 20,
+        "progress_pct": 0.3333
       },
       "decision_disagreements": {
-        "current": 0,
+        "current": 43,
         "required": 30,
-        "remaining": 30,
-        "progress_pct": 0.0
+        "remaining": 0,
+        "progress_pct": 1.0
       },
       "call_rows": {
-        "current": 0,
+        "current": 26,
         "required": 30,
-        "remaining": 30,
-        "progress_pct": 0.0
+        "remaining": 4,
+        "progress_pct": 0.8667
       },
       "put_rows": {
-        "current": 0,
+        "current": 46,
         "required": 30,
-        "remaining": 30,
-        "progress_pct": 0.0
+        "remaining": 0,
+        "progress_pct": 1.0
       },
       "qualified_regimes": {
-        "current": 0,
+        "current": 1,
         "required": 2,
-        "remaining": 2,
-        "progress_pct": 0.0
+        "remaining": 1,
+        "progress_pct": 0.5
       },
       "complete_rank_replay_runs": {
-        "current": 0,
+        "current": 9,
         "required": 30,
-        "remaining": 30,
-        "progress_pct": 0.0
+        "remaining": 21,
+        "progress_pct": 0.3
       }
     },
     "capture_integrity": {
-      "valid": 0,
+      "valid": 72,
       "missed": 0,
       "quote_missing_retryable": 0,
-      "observed_windows": 0,
-      "actual_pct": null,
+      "observed_windows": 72,
+      "actual_pct": 1.0,
       "required_pct": 0.95,
-      "passed": false
+      "passed": true
     },
     "next_action": "Capture strict Friday-close executable labels for the current challenger cohort."
   },
   "source": {
     "artifact": "prospective_pick_ledger",
     "schema_version": 4,
-    "updated_at_utc": "2026-08-21T17:10:55+00:00"
+    "updated_at_utc": "2026-08-21T20:11:53+00:00"
   },
   "model_cohort": {
     "artifact_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",

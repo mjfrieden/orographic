@@ -1,7 +1,7 @@
 {
   "artifact": "counterfactual_scout_veto_evidence",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-21T17:10:58+00:00",
+  "generated_at_utc": "2026-08-21T20:11:56+00:00",
   "decision": "collecting_evidence",
   "execution_effect": "none_advisory_only",
   "policy": {
@@ -18,15 +18,15 @@
     "authority": "May recommend a policy review only; cannot alter thresholds, Council eligibility, or Tradier routing."
   },
   "coverage": {
-    "raw_scored_recommendations": 460,
-    "independent_recommendations": 341,
-    "repeated_scan_rows_excluded": 119,
+    "raw_scored_recommendations": 471,
+    "independent_recommendations": 348,
+    "repeated_scan_rows_excluded": 123,
     "older_side_model_rows_excluded": 0,
-    "resolved_recommendations": 6,
-    "current_rule_vetoes": 34,
-    "resolved_current_rule_vetoes": 0,
-    "independent_veto_trading_days": 0,
-    "friday_capture_valid": 6,
+    "resolved_recommendations": 77,
+    "current_rule_vetoes": 39,
+    "resolved_current_rule_vetoes": 34,
+    "independent_veto_trading_days": 4,
+    "friday_capture_valid": 77,
     "friday_capture_missed": 0,
     "friday_capture_quote_missing_retryable": 0,
     "friday_capture_integrity_pct": 1.0
@@ -35,33 +35,34 @@
     "no_trade_threshold": 0.7,
     "margin_threshold": 0.2,
     "vetoed": {
-      "observations": 34,
-      "resolved": 0,
-      "trading_days": 0,
-      "mean_net_executable_return": null,
-      "median_net_executable_return": null,
-      "positive_rate": null,
-      "mean_net_executable_pnl_usd": null
+      "observations": 39,
+      "resolved": 34,
+      "trading_days": 4,
+      "mean_net_executable_return": -0.116125,
+      "median_net_executable_return": -0.096616,
+      "positive_rate": 0.2353,
+      "mean_net_executable_pnl_usd": -22.7647
     },
     "retained": {
-      "observations": 307,
-      "resolved": 6,
-      "trading_days": 3,
-      "mean_net_executable_return": -0.413745,
-      "median_net_executable_return": -0.469486,
-      "positive_rate": 0.1667,
-      "mean_net_executable_pnl_usd": -84.6667
+      "observations": 309,
+      "resolved": 43,
+      "trading_days": 8,
+      "mean_net_executable_return": -0.202392,
+      "median_net_executable_return": -0.367089,
+      "positive_rate": 0.2093,
+      "mean_net_executable_pnl_usd": -48.4419
     },
     "veto_benefit": {
-      "trading_days": 0,
-      "mean_avoided_net_return": null,
+      "trading_days": 4,
+      "mean_avoided_net_return": 0.156289,
       "confidence_interval_95": {
-        "lower": null,
-        "upper": null
+        "lower": -0.0245,
+        "upper": 0.333407
       },
-      "probability_positive": null,
+      "probability_positive": 0.9627,
       "method": "market-day clustered nonparametric bootstrap",
-      "resamples": 4000
+      "resamples": 4000,
+      "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
     }
   },
   "threshold_frontier": [
@@ -69,31 +70,31 @@
       "no_trade_threshold": 0.5,
       "margin_threshold": 0.0,
       "vetoed": {
-        "observations": 38,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 45,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
         "observations": 303,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -103,31 +104,31 @@
       "no_trade_threshold": 0.5,
       "margin_threshold": 0.1,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 44,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
         "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -137,31 +138,31 @@
       "no_trade_threshold": 0.5,
       "margin_threshold": 0.2,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 44,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
         "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -171,31 +172,31 @@
       "no_trade_threshold": 0.5,
       "margin_threshold": 0.3,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 44,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
         "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -205,31 +206,31 @@
       "no_trade_threshold": 0.6,
       "margin_threshold": 0.0,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 43,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
-        "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "observations": 305,
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -239,31 +240,31 @@
       "no_trade_threshold": 0.6,
       "margin_threshold": 0.1,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 43,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
-        "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "observations": 305,
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -273,31 +274,31 @@
       "no_trade_threshold": 0.6,
       "margin_threshold": 0.2,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 43,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
-        "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "observations": 305,
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -307,31 +308,31 @@
       "no_trade_threshold": 0.6,
       "margin_threshold": 0.3,
       "vetoed": {
-        "observations": 37,
-        "resolved": 1,
-        "trading_days": 1,
-        "mean_net_executable_return": -0.08,
-        "median_net_executable_return": -0.08,
-        "positive_rate": 0,
-        "mean_net_executable_pnl_usd": -2.0
+        "observations": 43,
+        "resolved": 37,
+        "trading_days": 5,
+        "mean_net_executable_return": -0.126583,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2162,
+        "mean_net_executable_pnl_usd": -26.7838
       },
       "retained": {
-        "observations": 304,
-        "resolved": 5,
-        "trading_days": 2,
-        "mean_net_executable_return": -0.480494,
-        "median_net_executable_return": -0.734426,
-        "positive_rate": 0.2,
-        "mean_net_executable_pnl_usd": -101.2
+        "observations": 305,
+        "resolved": 40,
+        "trading_days": 7,
+        "mean_net_executable_return": -0.199188,
+        "median_net_executable_return": -0.367876,
+        "positive_rate": 0.225,
+        "mean_net_executable_pnl_usd": -46.65
       },
       "veto_benefit": {
-        "trading_days": 1,
-        "mean_avoided_net_return": 0.08,
+        "trading_days": 5,
+        "mean_avoided_net_return": 0.145248,
         "confidence_interval_95": {
-          "lower": 0.08,
-          "upper": 0.08
+          "lower": 0.006063,
+          "upper": 0.291508
         },
-        "probability_positive": 1.0,
+        "probability_positive": 0.982,
         "method": "market-day clustered nonparametric bootstrap",
         "resamples": 4000,
         "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -341,396 +342,408 @@
       "no_trade_threshold": 0.7,
       "margin_threshold": 0.0,
       "vetoed": {
-        "observations": 34,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 39,
+        "resolved": 34,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.116125,
+        "median_net_executable_return": -0.096616,
+        "positive_rate": 0.2353,
+        "mean_net_executable_pnl_usd": -22.7647
       },
       "retained": {
-        "observations": 307,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 309,
+        "resolved": 43,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.202392,
+        "median_net_executable_return": -0.367089,
+        "positive_rate": 0.2093,
+        "mean_net_executable_pnl_usd": -48.4419
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.156289,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.0245,
+          "upper": 0.333407
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.7,
       "margin_threshold": 0.1,
       "vetoed": {
-        "observations": 34,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 39,
+        "resolved": 34,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.116125,
+        "median_net_executable_return": -0.096616,
+        "positive_rate": 0.2353,
+        "mean_net_executable_pnl_usd": -22.7647
       },
       "retained": {
-        "observations": 307,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 309,
+        "resolved": 43,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.202392,
+        "median_net_executable_return": -0.367089,
+        "positive_rate": 0.2093,
+        "mean_net_executable_pnl_usd": -48.4419
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.156289,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.0245,
+          "upper": 0.333407
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.7,
       "margin_threshold": 0.2,
       "vetoed": {
-        "observations": 34,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 39,
+        "resolved": 34,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.116125,
+        "median_net_executable_return": -0.096616,
+        "positive_rate": 0.2353,
+        "mean_net_executable_pnl_usd": -22.7647
       },
       "retained": {
-        "observations": 307,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 309,
+        "resolved": 43,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.202392,
+        "median_net_executable_return": -0.367089,
+        "positive_rate": 0.2093,
+        "mean_net_executable_pnl_usd": -48.4419
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.156289,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.0245,
+          "upper": 0.333407
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.7,
       "margin_threshold": 0.3,
       "vetoed": {
-        "observations": 34,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 39,
+        "resolved": 34,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.116125,
+        "median_net_executable_return": -0.096616,
+        "positive_rate": 0.2353,
+        "mean_net_executable_pnl_usd": -22.7647
       },
       "retained": {
-        "observations": 307,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 309,
+        "resolved": 43,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.202392,
+        "median_net_executable_return": -0.367089,
+        "positive_rate": 0.2093,
+        "mean_net_executable_pnl_usd": -48.4419
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.156289,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.0245,
+          "upper": 0.333407
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.8,
       "margin_threshold": 0.0,
       "vetoed": {
-        "observations": 28,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 32,
+        "resolved": 28,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.098766,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.25,
+        "mean_net_executable_pnl_usd": -21.9286
       },
       "retained": {
-        "observations": 313,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 316,
+        "resolved": 49,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201748,
+        "median_net_executable_return": -0.366667,
+        "positive_rate": 0.2041,
+        "mean_net_executable_pnl_usd": -45.7755
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.14991,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.023676,
+          "upper": 0.326203
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.8,
       "margin_threshold": 0.1,
       "vetoed": {
-        "observations": 28,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 32,
+        "resolved": 28,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.098766,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.25,
+        "mean_net_executable_pnl_usd": -21.9286
       },
       "retained": {
-        "observations": 313,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 316,
+        "resolved": 49,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201748,
+        "median_net_executable_return": -0.366667,
+        "positive_rate": 0.2041,
+        "mean_net_executable_pnl_usd": -45.7755
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.14991,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.023676,
+          "upper": 0.326203
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.8,
       "margin_threshold": 0.2,
       "vetoed": {
-        "observations": 28,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 32,
+        "resolved": 28,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.098766,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.25,
+        "mean_net_executable_pnl_usd": -21.9286
       },
       "retained": {
-        "observations": 313,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 316,
+        "resolved": 49,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201748,
+        "median_net_executable_return": -0.366667,
+        "positive_rate": 0.2041,
+        "mean_net_executable_pnl_usd": -45.7755
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.14991,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.023676,
+          "upper": 0.326203
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.8,
       "margin_threshold": 0.3,
       "vetoed": {
-        "observations": 28,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 32,
+        "resolved": 28,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.098766,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.25,
+        "mean_net_executable_pnl_usd": -21.9286
       },
       "retained": {
-        "observations": 313,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 316,
+        "resolved": 49,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201748,
+        "median_net_executable_return": -0.366667,
+        "positive_rate": 0.2041,
+        "mean_net_executable_pnl_usd": -45.7755
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.14991,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.023676,
+          "upper": 0.326203
         },
-        "probability_positive": null,
+        "probability_positive": 0.9627,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.9,
       "margin_threshold": 0.0,
       "vetoed": {
-        "observations": 18,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 21,
+        "resolved": 18,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.042616,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.2222,
+        "mean_net_executable_pnl_usd": -17.1667
       },
       "retained": {
-        "observations": 323,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 327,
+        "resolved": 59,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201424,
+        "median_net_executable_return": -0.347619,
+        "positive_rate": 0.2203,
+        "mean_net_executable_pnl_usd": -43.1864
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.068721,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.269695,
+          "upper": 0.326027
         },
-        "probability_positive": null,
+        "probability_positive": 0.6713,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.9,
       "margin_threshold": 0.1,
       "vetoed": {
-        "observations": 18,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 21,
+        "resolved": 18,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.042616,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.2222,
+        "mean_net_executable_pnl_usd": -17.1667
       },
       "retained": {
-        "observations": 323,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 327,
+        "resolved": 59,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201424,
+        "median_net_executable_return": -0.347619,
+        "positive_rate": 0.2203,
+        "mean_net_executable_pnl_usd": -43.1864
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.068721,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.269695,
+          "upper": 0.326027
         },
-        "probability_positive": null,
+        "probability_positive": 0.6713,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.9,
       "margin_threshold": 0.2,
       "vetoed": {
-        "observations": 18,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 21,
+        "resolved": 18,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.042616,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.2222,
+        "mean_net_executable_pnl_usd": -17.1667
       },
       "retained": {
-        "observations": 323,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 327,
+        "resolved": 59,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201424,
+        "median_net_executable_return": -0.347619,
+        "positive_rate": 0.2203,
+        "mean_net_executable_pnl_usd": -43.1864
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.068721,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.269695,
+          "upper": 0.326027
         },
-        "probability_positive": null,
+        "probability_positive": 0.6713,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     },
     {
       "no_trade_threshold": 0.9,
       "margin_threshold": 0.3,
       "vetoed": {
-        "observations": 18,
-        "resolved": 0,
-        "trading_days": 0,
-        "mean_net_executable_return": null,
-        "median_net_executable_return": null,
-        "positive_rate": null,
-        "mean_net_executable_pnl_usd": null
+        "observations": 21,
+        "resolved": 18,
+        "trading_days": 4,
+        "mean_net_executable_return": -0.042616,
+        "median_net_executable_return": -0.095616,
+        "positive_rate": 0.2222,
+        "mean_net_executable_pnl_usd": -17.1667
       },
       "retained": {
-        "observations": 323,
-        "resolved": 6,
-        "trading_days": 3,
-        "mean_net_executable_return": -0.413745,
-        "median_net_executable_return": -0.469486,
-        "positive_rate": 0.1667,
-        "mean_net_executable_pnl_usd": -84.6667
+        "observations": 327,
+        "resolved": 59,
+        "trading_days": 8,
+        "mean_net_executable_return": -0.201424,
+        "median_net_executable_return": -0.347619,
+        "positive_rate": 0.2203,
+        "mean_net_executable_pnl_usd": -43.1864
       },
       "veto_benefit": {
-        "trading_days": 0,
-        "mean_avoided_net_return": null,
+        "trading_days": 4,
+        "mean_avoided_net_return": 0.068721,
         "confidence_interval_95": {
-          "lower": null,
-          "upper": null
+          "lower": -0.269695,
+          "upper": 0.326027
         },
-        "probability_positive": null,
+        "probability_positive": 0.6713,
         "method": "market-day clustered nonparametric bootstrap",
-        "resamples": 4000
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
       }
     }
   ],
@@ -759,21 +772,115 @@
     },
     "method": "five-block expanding walk-forward; one trading-day embargo; threshold selected on training dates only"
   },
-  "current_rule_by_side": {},
-  "current_rule_by_regime": {},
+  "current_rule_by_side": {
+    "call": {
+      "outcomes": {
+        "observations": 3,
+        "resolved": 3,
+        "trading_days": 2,
+        "mean_net_executable_return": -0.149612,
+        "median_net_executable_return": -0.066667,
+        "positive_rate": 0.3333,
+        "mean_net_executable_pnl_usd": -47.3333
+      },
+      "veto_benefit": {
+        "trading_days": 2,
+        "mean_avoided_net_return": 0.211428,
+        "confidence_interval_95": {
+          "lower": 0.02598,
+          "upper": 0.396875
+        },
+        "probability_positive": 1.0,
+        "method": "market-day clustered nonparametric bootstrap",
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+      }
+    },
+    "put": {
+      "outcomes": {
+        "observations": 31,
+        "resolved": 31,
+        "trading_days": 3,
+        "mean_net_executable_return": -0.112885,
+        "median_net_executable_return": -0.113043,
+        "positive_rate": 0.2258,
+        "mean_net_executable_pnl_usd": -20.3871
+      },
+      "veto_benefit": {
+        "trading_days": 3,
+        "mean_avoided_net_return": 0.084479,
+        "confidence_interval_95": {
+          "lower": -0.09164,
+          "upper": 0.202074
+        },
+        "probability_positive": 0.8475,
+        "method": "market-day clustered nonparametric bootstrap",
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+      }
+    }
+  },
+  "current_rule_by_regime": {
+    "neutral": {
+      "outcomes": {
+        "observations": 33,
+        "resolved": 33,
+        "trading_days": 3,
+        "mean_net_executable_return": -0.107618,
+        "median_net_executable_return": -0.080189,
+        "positive_rate": 0.2424,
+        "mean_net_executable_pnl_usd": -19.6061
+      },
+      "veto_benefit": {
+        "trading_days": 3,
+        "mean_avoided_net_return": 0.076093,
+        "confidence_interval_95": {
+          "lower": -0.09164,
+          "upper": 0.176918
+        },
+        "probability_positive": 0.737,
+        "method": "market-day clustered nonparametric bootstrap",
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+      }
+    },
+    "risk_on": {
+      "outcomes": {
+        "observations": 1,
+        "resolved": 1,
+        "trading_days": 1,
+        "mean_net_executable_return": -0.396875,
+        "median_net_executable_return": -0.396875,
+        "positive_rate": 0,
+        "mean_net_executable_pnl_usd": -127.0
+      },
+      "veto_benefit": {
+        "trading_days": 1,
+        "mean_avoided_net_return": 0.396875,
+        "confidence_interval_95": {
+          "lower": 0.396875,
+          "upper": 0.396875
+        },
+        "probability_positive": 1.0,
+        "method": "market-day clustered nonparametric bootstrap",
+        "resamples": 4000,
+        "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+      }
+    }
+  },
   "gates": {
     "sample": {
       "resolved_current_rule_vetoes": false,
       "independent_trading_days": false,
       "call_coverage": false,
-      "put_coverage": false,
+      "put_coverage": true,
       "regime_coverage": false,
       "friday_capture_integrity": true,
       "walk_forward_folds": false
     },
     "performance": {
       "current_rule_avoids_losses": false,
-      "bootstrap_probability_positive": false,
+      "bootstrap_probability_positive": true,
       "walk_forward_out_of_fold_positive": false
     }
   },
@@ -783,40 +890,39 @@
       "resolved_current_rule_vetoes",
       "independent_trading_days",
       "call_coverage",
-      "put_coverage",
       "regime_coverage",
       "walk_forward_folds"
     ],
     "progress": {
       "resolved_current_rule_vetoes": {
-        "current": 0,
+        "current": 34,
         "required": 100,
-        "remaining": 100,
-        "progress_pct": 0.0
+        "remaining": 66,
+        "progress_pct": 0.34
       },
       "independent_trading_days": {
-        "current": 0,
+        "current": 4,
         "required": 30,
-        "remaining": 30,
-        "progress_pct": 0.0
+        "remaining": 26,
+        "progress_pct": 0.1333
       },
       "call_rows": {
-        "current": 0,
+        "current": 3,
         "required": 20,
-        "remaining": 20,
-        "progress_pct": 0.0
+        "remaining": 17,
+        "progress_pct": 0.15
       },
       "put_rows": {
-        "current": 0,
+        "current": 31,
         "required": 20,
-        "remaining": 20,
-        "progress_pct": 0.0
+        "remaining": 0,
+        "progress_pct": 1.0
       },
       "qualified_regimes": {
-        "current": 0,
+        "current": 1,
         "required": 2,
-        "remaining": 2,
-        "progress_pct": 0.0
+        "remaining": 1,
+        "progress_pct": 0.5
       },
       "walk_forward_folds": {
         "current": 0,
@@ -834,7 +940,7 @@
   "source": {
     "artifact": "prospective_pick_ledger",
     "schema_version": 4,
-    "updated_at_utc": "2026-08-21T17:10:55+00:00"
+    "updated_at_utc": "2026-08-21T20:11:53+00:00"
   },
   "replay_command": "python scripts/build_counterfactual_veto_evidence.py"
 }

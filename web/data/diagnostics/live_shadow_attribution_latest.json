@@ -1,7 +1,7 @@
 {
   "artifact": "live_shadow_attribution",
   "product": "Orographic",
-  "generated_at_utc": "2026-08-21T17:10:55+00:00",
+  "generated_at_utc": "2026-08-21T20:11:53+00:00",
   "trading_day": "2026-08-21",
   "timezone": "America/Chicago",
   "scan_settings": {
@@ -106,15 +106,15 @@
   "summary": {
     "scout_signal_count": 100,
     "pre_forge_signal_count": 12,
-    "forge_candidate_count": 11,
-    "live_count": 0,
+    "forge_candidate_count": 12,
+    "live_count": 1,
     "shadow_count": 0,
     "counterfactual_signal_count": 0,
     "counterfactual_candidate_count": 0,
-    "abstain": true,
+    "abstain": false,
     "live_side_mix": {
       "call": 0,
-      "put": 0
+      "put": 1
     },
     "shadow_side_mix": {
       "call": 0,
@@ -122,42 +122,42 @@
     },
     "forge_candidate_side_mix": {
       "call": 0,
-      "put": 11
+      "put": 12
     },
-    "friction_veto_count": 11,
-    "dedupe_removed_count": 14,
-    "pre_forge_rejection_count": 16,
+    "friction_veto_count": 9,
+    "dedupe_removed_count": 15,
+    "pre_forge_rejection_count": 29,
     "council_holdout_count": 11,
-    "live_avg_forge_score": null,
+    "live_avg_forge_score": 0.8092,
     "shadow_avg_forge_score": null,
-    "live_avg_policy_score": null,
+    "live_avg_policy_score": 0.8815,
     "shadow_avg_policy_score": null,
-    "live_avg_edge_after_friction_pct": null,
+    "live_avg_edge_after_friction_pct": 1.0263,
     "shadow_avg_edge_after_friction_pct": null,
-    "live_avg_fill_quality_ok": null,
+    "live_avg_fill_quality_ok": 1.0,
     "shadow_avg_fill_quality_ok": null,
-    "live_avg_no_trade_prob": null,
+    "live_avg_no_trade_prob": 0.1112,
     "shadow_avg_no_trade_prob": null,
-    "live_avg_path_holding_quality_score": null,
+    "live_avg_path_holding_quality_score": 0.9866,
     "shadow_avg_path_holding_quality_score": null,
-    "side_aware_directional_disagreements": 9,
-    "side_aware_no_trade_disagreements": 73,
+    "side_aware_directional_disagreements": 8,
+    "side_aware_no_trade_disagreements": 69,
     "shadow_side_veto_rejections": 0,
-    "abstain_primary_reason": "mixed_core_filters"
+    "abstain_primary_reason": "live_board_available"
   },
   "layer_breakdown": {
     "scout": {
       "pre_veto_direction_counts": {
-        "call": 29,
-        "put": 71
+        "call": 36,
+        "put": 64
       },
       "final_direction_counts": {
-        "call": 29,
-        "put": 71
+        "call": 36,
+        "put": 64
       },
       "counter_regime_survivors": 0,
-      "side_aware_directional_disagreements": 9,
-      "side_aware_no_trade_disagreements": 73,
+      "side_aware_directional_disagreements": 8,
+      "side_aware_no_trade_disagreements": 69,
       "shadow_side_veto_rejections": 0
     },
     "forge": {
@@ -165,35 +165,35 @@
         "signals_considered": 12,
         "signals_with_expiry": 12,
         "signals_with_chain": 12,
-        "rows_after_basic": 824,
-        "rows_positive_bid_ask": 549,
-        "rows_within_long_leg_cap": 218,
-        "rows_within_spread_cap": 92,
-        "rows_passing_liquidity": 65,
-        "rows_passing_moneyness": 33,
-        "rows_passing_delta": 25,
-        "rows_passing_net_debit": 25,
-        "final_candidates": 25,
-        "candidates_after_friction_gate": 14,
-        "candidates_after_deduplication": 11
+        "rows_after_basic": 871,
+        "rows_positive_bid_ask": 634,
+        "rows_within_long_leg_cap": 208,
+        "rows_within_spread_cap": 91,
+        "rows_passing_liquidity": 79,
+        "rows_passing_moneyness": 32,
+        "rows_passing_delta": 27,
+        "rows_passing_net_debit": 27,
+        "final_candidates": 27,
+        "candidates_after_friction_gate": 18,
+        "candidates_after_deduplication": 12
       },
       "path_model": {
         "mode_counts": {
-          "unified_rnd": 25
+          "unified_rnd": 27
         },
-        "scored_candidates": 25,
-        "avg_holding_quality_score": 0.6374,
-        "avg_early_profit_take_prob": 0.426,
-        "avg_decay_risk": 0.2601
+        "scored_candidates": 27,
+        "avg_holding_quality_score": 0.7251,
+        "avg_early_profit_take_prob": 0.4854,
+        "avg_decay_risk": 0.2046
       },
       "pre_council_gate": {
-        "kept": 14,
-        "dropped": 11,
+        "kept": 18,
+        "dropped": 9,
         "min_expected_edge_after_friction_pct": 0.05
       },
       "deduplication": {
-        "removed_candidates": 14,
-        "kept_candidates": 11,
+        "removed_candidates": 15,
+        "kept_candidates": 12,
         "max_structures_per_symbol_side": 2,
         "min_moneyness_gap": 0.01,
         "max_structures_per_symbol": 1,
@@ -204,19 +204,19 @@
       }
     },
     "council": {
-      "candidate_count": 11,
-      "live_count": 0,
+      "candidate_count": 12,
+      "live_count": 1,
       "shadow_count": 0,
       "avg_pairwise_correlation": null,
       "abstain_audit": {
-        "primary_reason": "mixed_core_filters",
-        "primary_reason_label": "Candidates were blocked by a mix of score and extrinsic gates.",
+        "primary_reason": "live_board_available",
+        "primary_reason_label": "Council abstained after applying the live-board filters.",
         "requested_live_size": 1,
-        "candidate_count": 11,
-        "core_filter_pass_count": 0,
-        "unique_eligible_count": 0,
-        "score_only_fail_count": 1,
-        "extrinsic_only_fail_count": 0,
+        "candidate_count": 12,
+        "core_filter_pass_count": 1,
+        "unique_eligible_count": 1,
+        "score_only_fail_count": 0,
+        "extrinsic_only_fail_count": 1,
         "score_and_extrinsic_fail_count": 0,
         "model_no_trade_fail_count": 8,
         "fill_quality_fail_count": 0,
@@ -226,22 +226,22 @@
         "side_balance_rejections": 0,
         "side_balance_demotions": 0,
         "blocked_symbols": {
-          "score_only": [
-            "XLE"
+          "score_only": [],
+          "extrinsic_only": [
+            "AAPL"
           ],
-          "extrinsic_only": [],
           "score_and_extrinsic": [],
           "model_no_trade": [
-            "MSFT",
-            "SLV",
-            "AAPL"
+            "BA",
+            "META",
+            "MSFT"
           ],
           "fill_quality": [],
           "sentinel_no_trade_pressure": [],
           "mixed_policy": [
-            "MSFT",
-            "SLV",
-            "AAPL"
+            "BA",
+            "META",
+            "MSFT"
           ],
           "symbol_probation": [
             "NFLX",
@@ -249,187 +249,187 @@
           ]
         },
         "best_rejected_candidates": {
-          "score_only": [
-            {
-              "symbol": "XLE",
-              "contract_symbol": "XLE260828P00065000",
-              "option_type": "put",
-              "expiry": "2026-08-28",
-              "strike": 65.0,
-              "forge_score": 0.3835,
-              "effective_candidate_score": 0.3571,
-              "learned_rank_score": 0.3835,
-              "final_candidate_score": 0.3835,
-              "risk_adjusted_score": 0.3571,
-              "utility_after_friction_score": 0.0,
-              "expected_edge_after_friction_pct": -0.3416,
-              "friction_buffer_pct": 0.091,
-              "prob_no_trade": 0.4836,
-              "scout_no_trade_prob": 0.3896,
-              "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 0.2704,
-              "contract_cost": 159.0,
-              "spread_pct": 0.0516,
-              "delta": -0.6986,
-              "iv_rank": 0.6019,
-              "council_risk_flags": []
-            }
-          ],
-          "extrinsic_only": [],
-          "score_and_extrinsic": [],
-          "model_no_trade": [
-            {
-              "symbol": "MSFT",
-              "contract_symbol": "MSFT260828P00475000",
-              "option_type": "put",
-              "expiry": "2026-08-28",
-              "strike": 475.0,
-              "forge_score": 0.847,
-              "effective_candidate_score": 0.8246,
-              "learned_rank_score": 0.847,
-              "final_candidate_score": 0.847,
-              "risk_adjusted_score": 0.8246,
-              "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.6291,
-              "friction_buffer_pct": 0.3638,
-              "prob_no_trade": 0.0793,
-              "scout_no_trade_prob": 0.9592,
-              "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 1.0,
-              "contract_cost": 335.0,
-              "spread_pct": 0.0938,
-              "delta": -0.2851,
-              "iv_rank": 0.272,
-              "council_risk_flags": [
-                "high_extrinsic",
-                "model_no_trade"
-              ]
-            },
-            {
-              "symbol": "SLV",
-              "contract_symbol": "SLV260828P00064000",
-              "option_type": "put",
-              "expiry": "2026-08-28",
-              "strike": 64.0,
-              "forge_score": 0.8228,
-              "effective_candidate_score": 0.8374,
-              "learned_rank_score": 0.8228,
-              "final_candidate_score": 0.8228,
-              "risk_adjusted_score": 0.8374,
-              "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.7776,
-              "friction_buffer_pct": 0.1426,
-              "prob_no_trade": 0.0827,
-              "scout_no_trade_prob": 0.8332,
-              "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 0.5833,
-              "contract_cost": 216.0,
-              "spread_pct": 0.0377,
-              "delta": -0.5729,
-              "iv_rank": 0.1967,
-              "council_risk_flags": [
-                "model_no_trade"
-              ]
-            },
+          "score_only": [],
+          "extrinsic_only": [
             {
               "symbol": "AAPL",
               "contract_symbol": "AAPL260828P00307500",
               "option_type": "put",
               "expiry": "2026-08-28",
               "strike": 307.5,
-              "forge_score": 0.7992,
-              "effective_candidate_score": 0.8264,
-              "learned_rank_score": 0.7992,
-              "final_candidate_score": 0.7992,
-              "risk_adjusted_score": 0.8264,
+              "forge_score": 0.7968,
+              "effective_candidate_score": 0.8467,
+              "learned_rank_score": 0.7968,
+              "final_candidate_score": 0.7968,
+              "risk_adjusted_score": 0.8467,
               "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.6403,
-              "friction_buffer_pct": 0.3253,
-              "prob_no_trade": 0.2035,
-              "scout_no_trade_prob": 0.7556,
+              "expected_edge_after_friction_pct": 0.8536,
+              "friction_buffer_pct": 0.3469,
+              "prob_no_trade": 0.1464,
+              "scout_no_trade_prob": 0.5161,
               "prob_fill_quality_ok": 1.0,
               "sentinel_confidence": 0.437,
               "sentinel_no_trade_relevance": 0.6666,
               "sentinel_no_trade_pressure": 0.2913,
               "extrinsic_ratio": 1.0,
-              "contract_cost": 240.0,
-              "spread_pct": 0.0296,
-              "delta": -0.3322,
-              "iv_rank": 0.495,
+              "contract_cost": 315.0,
+              "spread_pct": 0.0656,
+              "delta": -0.4104,
+              "iv_rank": 0.4607,
+              "council_risk_flags": [
+                "high_extrinsic"
+              ]
+            }
+          ],
+          "score_and_extrinsic": [],
+          "model_no_trade": [
+            {
+              "symbol": "BA",
+              "contract_symbol": "BA260828P00212500",
+              "option_type": "put",
+              "expiry": "2026-08-28",
+              "strike": 212.5,
+              "forge_score": 0.8551,
+              "effective_candidate_score": 0.838,
+              "learned_rank_score": 0.8551,
+              "final_candidate_score": 0.8551,
+              "risk_adjusted_score": 0.838,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 1.0479,
+              "friction_buffer_pct": 0.3677,
+              "prob_no_trade": 0.0659,
+              "scout_no_trade_prob": 0.9353,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.437,
+              "sentinel_no_trade_relevance": 0.6666,
+              "sentinel_no_trade_pressure": 0.2913,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 251.0,
+              "spread_pct": 0.1004,
+              "delta": -0.4002,
+              "iv_rank": 0.3049,
               "council_risk_flags": [
                 "high_extrinsic",
                 "model_no_trade"
               ]
             },
             {
-              "symbol": "BRK-B",
-              "contract_symbol": "BRKB260828P00495000",
+              "symbol": "META",
+              "contract_symbol": "META260828P00535000",
               "option_type": "put",
               "expiry": "2026-08-28",
-              "strike": 495.0,
-              "forge_score": 0.786,
-              "effective_candidate_score": 0.8371,
-              "learned_rank_score": 0.786,
-              "final_candidate_score": 0.786,
-              "risk_adjusted_score": 0.8371,
+              "strike": 535.0,
+              "forge_score": 0.8193,
+              "effective_candidate_score": 0.8124,
+              "learned_rank_score": 0.8193,
+              "final_candidate_score": 0.8193,
+              "risk_adjusted_score": 0.8124,
               "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.6584,
-              "friction_buffer_pct": 0.4247,
-              "prob_no_trade": 0.2032,
-              "scout_no_trade_prob": 0.608,
+              "expected_edge_after_friction_pct": 0.8941,
+              "friction_buffer_pct": 0.3503,
+              "prob_no_trade": 0.1074,
+              "scout_no_trade_prob": 0.9432,
               "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
+              "sentinel_confidence": 0.623,
+              "sentinel_no_trade_relevance": 0.4755,
+              "sentinel_no_trade_pressure": 0.2962,
               "extrinsic_ratio": 1.0,
-              "contract_cost": 264.0,
-              "spread_pct": 0.1954,
-              "delta": -0.3771,
-              "iv_rank": 0.2658,
+              "contract_cost": 435.0,
+              "spread_pct": 0.0714,
+              "delta": -0.264,
+              "iv_rank": 0.4099,
               "council_risk_flags": [
                 "high_extrinsic",
-                "model_no_trade",
-                "wide_spread"
+                "model_no_trade"
               ]
             },
             {
-              "symbol": "PG",
-              "contract_symbol": "PG260828P00145000",
+              "symbol": "MSFT",
+              "contract_symbol": "MSFT260828P00475000",
               "option_type": "put",
               "expiry": "2026-08-28",
-              "strike": 145.0,
-              "forge_score": 0.6907,
-              "effective_candidate_score": 0.7799,
-              "learned_rank_score": 0.6907,
-              "final_candidate_score": 0.6907,
-              "risk_adjusted_score": 0.7799,
+              "strike": 475.0,
+              "forge_score": 0.8074,
+              "effective_candidate_score": 0.8064,
+              "learned_rank_score": 0.8074,
+              "final_candidate_score": 0.8074,
+              "risk_adjusted_score": 0.8064,
               "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.4047,
-              "friction_buffer_pct": 0.4149,
-              "prob_no_trade": 0.1992,
-              "scout_no_trade_prob": 0.8565,
+              "expected_edge_after_friction_pct": 0.6128,
+              "friction_buffer_pct": 0.3526,
+              "prob_no_trade": 0.0811,
+              "scout_no_trade_prob": 0.9537,
               "prob_fill_quality_ok": 1.0,
               "sentinel_confidence": 0.437,
               "sentinel_no_trade_relevance": 0.6666,
               "sentinel_no_trade_pressure": 0.2913,
               "extrinsic_ratio": 1.0,
-              "contract_cost": 140.0,
-              "spread_pct": 0.179,
-              "delta": -0.4653,
-              "iv_rank": 0.3518,
+              "contract_cost": 345.0,
+              "spread_pct": 0.0752,
+              "delta": -0.3051,
+              "iv_rank": 0.2641,
               "council_risk_flags": [
                 "high_extrinsic",
-                "model_no_trade",
-                "wide_spread"
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "UBER",
+              "contract_symbol": "UBER260828P00079000",
+              "option_type": "put",
+              "expiry": "2026-08-28",
+              "strike": 79.0,
+              "forge_score": 0.7491,
+              "effective_candidate_score": 0.8264,
+              "learned_rank_score": 0.7491,
+              "final_candidate_score": 0.7491,
+              "risk_adjusted_score": 0.8264,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 0.6,
+              "friction_buffer_pct": 0.2846,
+              "prob_no_trade": 0.0433,
+              "scout_no_trade_prob": 0.6675,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.437,
+              "sentinel_no_trade_relevance": 0.6666,
+              "sentinel_no_trade_pressure": 0.2913,
+              "extrinsic_ratio": 0.8719,
+              "contract_cost": 160.0,
+              "spread_pct": 0.0579,
+              "delta": -0.5069,
+              "iv_rank": 0.314,
+              "council_risk_flags": [
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "SLV",
+              "contract_symbol": "SLV260828P00062000",
+              "option_type": "put",
+              "expiry": "2026-08-28",
+              "strike": 62.0,
+              "forge_score": 0.6852,
+              "effective_candidate_score": 0.618,
+              "learned_rank_score": 0.6852,
+              "final_candidate_score": 0.6852,
+              "risk_adjusted_score": 0.618,
+              "utility_after_friction_score": 0.5212,
+              "expected_edge_after_friction_pct": 0.0085,
+              "friction_buffer_pct": 0.3341,
+              "prob_no_trade": 0.1413,
+              "scout_no_trade_prob": 0.839,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.437,
+              "sentinel_no_trade_relevance": 0.6666,
+              "sentinel_no_trade_pressure": 0.2913,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 115.0,
+              "spread_pct": 0.0444,
+              "delta": -0.4064,
+              "iv_rank": 0.1746,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "model_no_trade"
               ]
             }
           ],
@@ -437,154 +437,152 @@
           "sentinel_no_trade_pressure": [],
           "mixed_policy": [
             {
+              "symbol": "BA",
+              "contract_symbol": "BA260828P00212500",
+              "option_type": "put",
+              "expiry": "2026-08-28",
+              "strike": 212.5,
+              "forge_score": 0.8551,
+              "effective_candidate_score": 0.838,
+              "learned_rank_score": 0.8551,
+              "final_candidate_score": 0.8551,
+              "risk_adjusted_score": 0.838,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 1.0479,
+              "friction_buffer_pct": 0.3677,
+              "prob_no_trade": 0.0659,
+              "scout_no_trade_prob": 0.9353,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.437,
+              "sentinel_no_trade_relevance": 0.6666,
+              "sentinel_no_trade_pressure": 0.2913,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 251.0,
+              "spread_pct": 0.1004,
+              "delta": -0.4002,
+              "iv_rank": 0.3049,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "META",
+              "contract_symbol": "META260828P00535000",
+              "option_type": "put",
+              "expiry": "2026-08-28",
+              "strike": 535.0,
+              "forge_score": 0.8193,
+              "effective_candidate_score": 0.8124,
+              "learned_rank_score": 0.8193,
+              "final_candidate_score": 0.8193,
+              "risk_adjusted_score": 0.8124,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 0.8941,
+              "friction_buffer_pct": 0.3503,
+              "prob_no_trade": 0.1074,
+              "scout_no_trade_prob": 0.9432,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.623,
+              "sentinel_no_trade_relevance": 0.4755,
+              "sentinel_no_trade_pressure": 0.2962,
+              "extrinsic_ratio": 1.0,
+              "contract_cost": 435.0,
+              "spread_pct": 0.0714,
+              "delta": -0.264,
+              "iv_rank": 0.4099,
+              "council_risk_flags": [
+                "high_extrinsic",
+                "model_no_trade"
+              ]
+            },
+            {
               "symbol": "MSFT",
               "contract_symbol": "MSFT260828P00475000",
               "option_type": "put",
               "expiry": "2026-08-28",
               "strike": 475.0,
-              "forge_score": 0.847,
-              "effective_candidate_score": 0.8246,
-              "learned_rank_score": 0.847,
-              "final_candidate_score": 0.847,
-              "risk_adjusted_score": 0.8246,
+              "forge_score": 0.8074,
+              "effective_candidate_score": 0.8064,
+              "learned_rank_score": 0.8074,
+              "final_candidate_score": 0.8074,
+              "risk_adjusted_score": 0.8064,
               "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.6291,
-              "friction_buffer_pct": 0.3638,
-              "prob_no_trade": 0.0793,
-              "scout_no_trade_prob": 0.9592,
+              "expected_edge_after_friction_pct": 0.6128,
+              "friction_buffer_pct": 0.3526,
+              "prob_no_trade": 0.0811,
+              "scout_no_trade_prob": 0.9537,
               "prob_fill_quality_ok": 1.0,
               "sentinel_confidence": 0.437,
               "sentinel_no_trade_relevance": 0.6666,
               "sentinel_no_trade_pressure": 0.2913,
               "extrinsic_ratio": 1.0,
-              "contract_cost": 335.0,
-              "spread_pct": 0.0938,
-              "delta": -0.2851,
-              "iv_rank": 0.272,
+              "contract_cost": 345.0,
+              "spread_pct": 0.0752,
+              "delta": -0.3051,
+              "iv_rank": 0.2641,
               "council_risk_flags": [
                 "high_extrinsic",
+                "model_no_trade"
+              ]
+            },
+            {
+              "symbol": "UBER",
+              "contract_symbol": "UBER260828P00079000",
+              "option_type": "put",
+              "expiry": "2026-08-28",
+              "strike": 79.0,
+              "forge_score": 0.7491,
+              "effective_candidate_score": 0.8264,
+              "learned_rank_score": 0.7491,
+              "final_candidate_score": 0.7491,
+              "risk_adjusted_score": 0.8264,
+              "utility_after_friction_score": 1.0,
+              "expected_edge_after_friction_pct": 0.6,
+              "friction_buffer_pct": 0.2846,
+              "prob_no_trade": 0.0433,
+              "scout_no_trade_prob": 0.6675,
+              "prob_fill_quality_ok": 1.0,
+              "sentinel_confidence": 0.437,
+              "sentinel_no_trade_relevance": 0.6666,
+              "sentinel_no_trade_pressure": 0.2913,
+              "extrinsic_ratio": 0.8719,
+              "contract_cost": 160.0,
+              "spread_pct": 0.0579,
+              "delta": -0.5069,
+              "iv_rank": 0.314,
+              "council_risk_flags": [
                 "model_no_trade"
               ]
             },
             {
               "symbol": "SLV",
-              "contract_symbol": "SLV260828P00064000",
+              "contract_symbol": "SLV260828P00062000",
               "option_type": "put",
               "expiry": "2026-08-28",
-              "strike": 64.0,
-              "forge_score": 0.8228,
-              "effective_candidate_score": 0.8374,
-              "learned_rank_score": 0.8228,
-              "final_candidate_score": 0.8228,
-              "risk_adjusted_score": 0.8374,
-              "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.7776,
-              "friction_buffer_pct": 0.1426,
-              "prob_no_trade": 0.0827,
-              "scout_no_trade_prob": 0.8332,
-              "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 0.5833,
-              "contract_cost": 216.0,
-              "spread_pct": 0.0377,
-              "delta": -0.5729,
-              "iv_rank": 0.1967,
-              "council_risk_flags": [
-                "model_no_trade"
-              ]
-            },
-            {
-              "symbol": "AAPL",
-              "contract_symbol": "AAPL260828P00307500",
-              "option_type": "put",
-              "expiry": "2026-08-28",
-              "strike": 307.5,
-              "forge_score": 0.7992,
-              "effective_candidate_score": 0.8264,
-              "learned_rank_score": 0.7992,
-              "final_candidate_score": 0.7992,
-              "risk_adjusted_score": 0.8264,
-              "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.6403,
-              "friction_buffer_pct": 0.3253,
-              "prob_no_trade": 0.2035,
-              "scout_no_trade_prob": 0.7556,
+              "strike": 62.0,
+              "forge_score": 0.6852,
+              "effective_candidate_score": 0.618,
+              "learned_rank_score": 0.6852,
+              "final_candidate_score": 0.6852,
+              "risk_adjusted_score": 0.618,
+              "utility_after_friction_score": 0.5212,
+              "expected_edge_after_friction_pct": 0.0085,
+              "friction_buffer_pct": 0.3341,
+              "prob_no_trade": 0.1413,
+              "scout_no_trade_prob": 0.839,
               "prob_fill_quality_ok": 1.0,
               "sentinel_confidence": 0.437,
               "sentinel_no_trade_relevance": 0.6666,
               "sentinel_no_trade_pressure": 0.2913,
               "extrinsic_ratio": 1.0,
-              "contract_cost": 240.0,
-              "spread_pct": 0.0296,
-              "delta": -0.3322,
-              "iv_rank": 0.495,
+              "contract_cost": 115.0,
+              "spread_pct": 0.0444,
+              "delta": -0.4064,
+              "iv_rank": 0.1746,
               "council_risk_flags": [
                 "high_extrinsic",
                 "model_no_trade"
-              ]
-            },
-            {
-              "symbol": "BRK-B",
-              "contract_symbol": "BRKB260828P00495000",
-              "option_type": "put",
-              "expiry": "2026-08-28",
-              "strike": 495.0,
-              "forge_score": 0.786,
-              "effective_candidate_score": 0.8371,
-              "learned_rank_score": 0.786,
-              "final_candidate_score": 0.786,
-              "risk_adjusted_score": 0.8371,
-              "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.6584,
-              "friction_buffer_pct": 0.4247,
-              "prob_no_trade": 0.2032,
-              "scout_no_trade_prob": 0.608,
-              "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 1.0,
-              "contract_cost": 264.0,
-              "spread_pct": 0.1954,
-              "delta": -0.3771,
-              "iv_rank": 0.2658,
-              "council_risk_flags": [
-                "high_extrinsic",
-                "model_no_trade",
-                "wide_spread"
-              ]
-            },
-            {
-              "symbol": "PG",
-              "contract_symbol": "PG260828P00145000",
-              "option_type": "put",
-              "expiry": "2026-08-28",
-              "strike": 145.0,
-              "forge_score": 0.6907,
-              "effective_candidate_score": 0.7799,
-              "learned_rank_score": 0.6907,
-              "final_candidate_score": 0.6907,
-              "risk_adjusted_score": 0.7799,
-              "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.4047,
-              "friction_buffer_pct": 0.4149,
-              "prob_no_trade": 0.1992,
-              "scout_no_trade_prob": 0.8565,
-              "prob_fill_quality_ok": 1.0,
-              "sentinel_confidence": 0.437,
-              "sentinel_no_trade_relevance": 0.6666,
-              "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 1.0,
-              "contract_cost": 140.0,
-              "spread_pct": 0.179,
-              "delta": -0.4653,
-              "iv_rank": 0.3518,
-              "council_risk_flags": [
-                "high_extrinsic",
-                "model_no_trade",
-                "wide_spread"
               ]
             }
           ],
@@ -595,25 +593,25 @@
               "option_type": "put",
               "expiry": "2026-08-28",
               "strike": 81.0,
-              "forge_score": 0.7185,
-              "effective_candidate_score": 0.7827,
-              "learned_rank_score": 0.7185,
-              "final_candidate_score": 0.7185,
-              "risk_adjusted_score": 0.7827,
+              "forge_score": 0.74,
+              "effective_candidate_score": 0.8001,
+              "learned_rank_score": 0.74,
+              "final_candidate_score": 0.74,
+              "risk_adjusted_score": 0.8001,
               "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.3865,
-              "friction_buffer_pct": 0.1554,
+              "expected_edge_after_friction_pct": 0.7802,
+              "friction_buffer_pct": 0.0802,
               "prob_no_trade": 0.167,
-              "scout_no_trade_prob": 0.8973,
+              "scout_no_trade_prob": 0.9783,
               "prob_fill_quality_ok": 1.0,
               "sentinel_confidence": 0.437,
               "sentinel_no_trade_relevance": 0.6666,
               "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 0.6295,
-              "contract_cost": 166.0,
-              "spread_pct": 0.0244,
-              "delta": -0.5579,
-              "iv_rank": 0.3125,
+              "extrinsic_ratio": 0.3349,
+              "contract_cost": 212.0,
+              "spread_pct": 0.0336,
+              "delta": -0.6488,
+              "iv_rank": 0.3171,
               "council_risk_flags": [
                 "model_no_trade",
                 "symbol_probation"
@@ -625,25 +623,25 @@
               "option_type": "put",
               "expiry": "2026-09-04",
               "strike": 83.0,
-              "forge_score": 0.6361,
-              "effective_candidate_score": 0.7749,
-              "learned_rank_score": 0.6361,
-              "final_candidate_score": 0.6361,
-              "risk_adjusted_score": 0.7749,
+              "forge_score": 0.6218,
+              "effective_candidate_score": 0.7699,
+              "learned_rank_score": 0.6218,
+              "final_candidate_score": 0.6218,
+              "risk_adjusted_score": 0.7699,
               "utility_after_friction_score": 1.0,
-              "expected_edge_after_friction_pct": 0.4112,
-              "friction_buffer_pct": 0.0722,
+              "expected_edge_after_friction_pct": 0.4068,
+              "friction_buffer_pct": 0.0766,
               "prob_no_trade": 0.2319,
-              "scout_no_trade_prob": 0.8589,
+              "scout_no_trade_prob": 0.8616,
               "prob_fill_quality_ok": 1.0,
               "sentinel_confidence": 0.437,
               "sentinel_no_trade_relevance": 0.6666,
               "sentinel_no_trade_pressure": 0.2913,
-              "extrinsic_ratio": 0.3489,
-              "contract_cost": 149.0,
-              "spread_pct": 0.0203,
-              "delta": -0.6618,
-              "iv_rank": 0.8303,
+              "extrinsic_ratio": 0.3537,
+              "contract_cost": 147.0,
+              "spread_pct": 0.0276,
+              "delta": -0.6612,
+              "iv_rank": 0.7955,
               "council_risk_flags": [
                 "model_no_trade",
                 "symbol_probation"
@@ -653,81 +651,155 @@
         }
       },
       "notes": [
-        "Council abstained because no contract cleared the live board threshold.",
+        "Side-balance guard demoted an over-concentrated position to shadow.",
         "Council is operating under a neutral market regime."
       ]
     }
   },
-  "top_live_board": [],
+  "top_live_board": [
+    {
+      "symbol": "WMT",
+      "contract_symbol": "WMT260828P00105000",
+      "option_type": "put",
+      "expiry": "2026-08-28",
+      "strike": 105.0,
+      "forge_score": 0.8092,
+      "policy_score": 0.8815,
+      "risk_adjusted_score": 0.8815,
+      "final_candidate_score": 0.8092,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.8888,
+      "expected_edge_after_friction_pct": 1.0263,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.1112,
+      "scout_no_trade_prob": 0.548,
+      "no_trade_pressure": 0.548,
+      "sentinel_confidence": 0.437,
+      "sentinel_no_trade_relevance": 0.6666,
+      "sentinel_no_trade_pressure": 0.2913,
+      "path_holding_quality_score": 0.9866,
+      "path_early_profit_take_prob": 0.9665,
+      "path_decay_risk": 0.0,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 221.0,
+      "council_risk_flags": [],
+      "notes": [
+        "projected payoff is asymmetric",
+        "time-value burden is acceptable",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.11, fill 1.00, path 0.99",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    }
+  ],
   "top_shadow_board": [],
   "council_holdouts": [
+    {
+      "symbol": "BA",
+      "contract_symbol": "BA260828P00212500",
+      "option_type": "put",
+      "expiry": "2026-08-28",
+      "strike": 212.5,
+      "forge_score": 0.8551,
+      "policy_score": 0.838,
+      "risk_adjusted_score": 0.838,
+      "final_candidate_score": 0.8551,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.9341,
+      "expected_edge_after_friction_pct": 1.0479,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.0659,
+      "scout_no_trade_prob": 0.9353,
+      "no_trade_pressure": 0.9353,
+      "sentinel_confidence": 0.437,
+      "sentinel_no_trade_relevance": 0.6666,
+      "sentinel_no_trade_pressure": 0.2913,
+      "path_holding_quality_score": 0.9935,
+      "path_early_profit_take_prob": 0.9838,
+      "path_decay_risk": 0.0,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 251.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "model_no_trade"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.07, fill 1.00, path 0.99",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
+    {
+      "symbol": "META",
+      "contract_symbol": "META260828P00535000",
+      "option_type": "put",
+      "expiry": "2026-08-28",
+      "strike": 535.0,
+      "forge_score": 0.8193,
+      "policy_score": 0.8124,
+      "risk_adjusted_score": 0.8124,
+      "final_candidate_score": 0.8193,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.8926,
+      "expected_edge_after_friction_pct": 0.8941,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.1074,
+      "scout_no_trade_prob": 0.9432,
+      "no_trade_pressure": 0.9432,
+      "sentinel_confidence": 0.623,
+      "sentinel_no_trade_relevance": 0.4755,
+      "sentinel_no_trade_pressure": 0.2962,
+      "path_holding_quality_score": 0.7917,
+      "path_early_profit_take_prob": 0.5538,
+      "path_decay_risk": 0.1192,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 435.0,
+      "council_risk_flags": [
+        "high_extrinsic",
+        "model_no_trade"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Sentinel shadow mismatch: one_day catalyst vs 7 DTE",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.11, fill 1.00, path 0.79",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
     {
       "symbol": "MSFT",
       "contract_symbol": "MSFT260828P00475000",
       "option_type": "put",
       "expiry": "2026-08-28",
       "strike": 475.0,
-      "forge_score": 0.847,
-      "policy_score": 0.8246,
-      "risk_adjusted_score": 0.8246,
-      "final_candidate_score": 0.847,
+      "forge_score": 0.8074,
+      "policy_score": 0.8064,
+      "risk_adjusted_score": 0.8064,
+      "final_candidate_score": 0.8074,
       "utility_after_friction_score": 1.0,
-      "payoff_edge_score": 0.9207,
-      "expected_edge_after_friction_pct": 0.6291,
+      "payoff_edge_score": 0.9189,
+      "expected_edge_after_friction_pct": 0.6128,
       "prob_fill_quality_ok": 1.0,
-      "prob_no_trade": 0.0793,
-      "scout_no_trade_prob": 0.9592,
-      "no_trade_pressure": 0.9592,
+      "prob_no_trade": 0.0811,
+      "scout_no_trade_prob": 0.9537,
+      "no_trade_pressure": 0.9537,
       "sentinel_confidence": 0.437,
       "sentinel_no_trade_relevance": 0.6666,
       "sentinel_no_trade_pressure": 0.2913,
-      "path_holding_quality_score": 0.9038,
-      "path_early_profit_take_prob": 0.9033,
+      "path_holding_quality_score": 0.8352,
+      "path_early_profit_take_prob": 0.7319,
       "path_decay_risk": 0.2301,
       "path_model_mode": "unified_rnd",
-      "contract_cost": 335.0,
+      "contract_cost": 345.0,
       "council_risk_flags": [
         "high_extrinsic",
         "model_no_trade"
       ],
       "notes": [
         "delta sits in the preferred weekly range",
-        "Payoff model ranker active",
-        "Forge multi-head active: no-trade 0.08, fill 1.00, path 0.90",
-        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
-      ]
-    },
-    {
-      "symbol": "SLV",
-      "contract_symbol": "SLV260828P00064000",
-      "option_type": "put",
-      "expiry": "2026-08-28",
-      "strike": 64.0,
-      "forge_score": 0.8228,
-      "policy_score": 0.8374,
-      "risk_adjusted_score": 0.8374,
-      "final_candidate_score": 0.8228,
-      "utility_after_friction_score": 1.0,
-      "payoff_edge_score": 0.9173,
-      "expected_edge_after_friction_pct": 0.7776,
-      "prob_fill_quality_ok": 1.0,
-      "prob_no_trade": 0.0827,
-      "scout_no_trade_prob": 0.8332,
-      "no_trade_pressure": 0.8332,
-      "sentinel_confidence": 0.437,
-      "sentinel_no_trade_relevance": 0.6666,
-      "sentinel_no_trade_pressure": 0.2913,
-      "path_holding_quality_score": 0.839,
-      "path_early_profit_take_prob": 0.6446,
-      "path_decay_risk": 0.0752,
-      "path_model_mode": "unified_rnd",
-      "contract_cost": 216.0,
-      "council_risk_flags": [
-        "model_no_trade"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "time-value burden is acceptable",
         "Payoff model ranker active",
         "Forge multi-head active: no-trade 0.08, fill 1.00, path 0.84",
         "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
@@ -739,110 +811,69 @@
       "option_type": "put",
       "expiry": "2026-08-28",
       "strike": 307.5,
-      "forge_score": 0.7992,
-      "policy_score": 0.8264,
-      "risk_adjusted_score": 0.8264,
-      "final_candidate_score": 0.7992,
+      "forge_score": 0.7968,
+      "policy_score": 0.8467,
+      "risk_adjusted_score": 0.8467,
+      "final_candidate_score": 0.7968,
       "utility_after_friction_score": 1.0,
-      "payoff_edge_score": 0.7965,
-      "expected_edge_after_friction_pct": 0.6403,
+      "payoff_edge_score": 0.8536,
+      "expected_edge_after_friction_pct": 0.8536,
       "prob_fill_quality_ok": 1.0,
-      "prob_no_trade": 0.2035,
-      "scout_no_trade_prob": 0.7556,
-      "no_trade_pressure": 0.7556,
+      "prob_no_trade": 0.1464,
+      "scout_no_trade_prob": 0.5161,
+      "no_trade_pressure": 0.5161,
       "sentinel_confidence": 0.437,
       "sentinel_no_trade_relevance": 0.6666,
       "sentinel_no_trade_pressure": 0.2913,
-      "path_holding_quality_score": 0.872,
-      "path_early_profit_take_prob": 0.7319,
-      "path_decay_risk": 0.0832,
+      "path_holding_quality_score": 0.8514,
+      "path_early_profit_take_prob": 0.6343,
+      "path_decay_risk": 0.0092,
       "path_model_mode": "unified_rnd",
-      "contract_cost": 240.0,
+      "contract_cost": 315.0,
       "council_risk_flags": [
-        "high_extrinsic",
+        "high_extrinsic"
+      ],
+      "notes": [
+        "projected payoff is asymmetric",
+        "delta sits in the preferred weekly range",
+        "Payoff model ranker active",
+        "Forge multi-head active: no-trade 0.15, fill 1.00, path 0.85",
+        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
+      ]
+    },
+    {
+      "symbol": "UBER",
+      "contract_symbol": "UBER260828P00079000",
+      "option_type": "put",
+      "expiry": "2026-08-28",
+      "strike": 79.0,
+      "forge_score": 0.7491,
+      "policy_score": 0.8264,
+      "risk_adjusted_score": 0.8264,
+      "final_candidate_score": 0.7491,
+      "utility_after_friction_score": 1.0,
+      "payoff_edge_score": 0.9567,
+      "expected_edge_after_friction_pct": 0.6,
+      "prob_fill_quality_ok": 1.0,
+      "prob_no_trade": 0.0433,
+      "scout_no_trade_prob": 0.6675,
+      "no_trade_pressure": 0.6675,
+      "sentinel_confidence": 0.437,
+      "sentinel_no_trade_relevance": 0.6666,
+      "sentinel_no_trade_pressure": 0.2913,
+      "path_holding_quality_score": 0.8985,
+      "path_early_profit_take_prob": 0.7654,
+      "path_decay_risk": 0.0308,
+      "path_model_mode": "unified_rnd",
+      "contract_cost": 160.0,
+      "council_risk_flags": [
         "model_no_trade"
       ],
       "notes": [
-        "delta sits in the preferred weekly range",
-        "Payoff model ranker active",
-        "Forge multi-head active: no-trade 0.20, fill 1.00, path 0.87",
-        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
-      ]
-    },
-    {
-      "symbol": "BRK-B",
-      "contract_symbol": "BRKB260828P00495000",
-      "option_type": "put",
-      "expiry": "2026-08-28",
-      "strike": 495.0,
-      "forge_score": 0.786,
-      "policy_score": 0.8371,
-      "risk_adjusted_score": 0.8371,
-      "final_candidate_score": 0.786,
-      "utility_after_friction_score": 1.0,
-      "payoff_edge_score": 0.7968,
-      "expected_edge_after_friction_pct": 0.6584,
-      "prob_fill_quality_ok": 1.0,
-      "prob_no_trade": 0.2032,
-      "scout_no_trade_prob": 0.608,
-      "no_trade_pressure": 0.608,
-      "sentinel_confidence": 0.437,
-      "sentinel_no_trade_relevance": 0.6666,
-      "sentinel_no_trade_pressure": 0.2913,
-      "path_holding_quality_score": 0.8781,
-      "path_early_profit_take_prob": 0.7927,
-      "path_decay_risk": 0.1559,
-      "path_model_mode": "unified_rnd",
-      "contract_cost": 264.0,
-      "council_risk_flags": [
-        "high_extrinsic",
-        "model_no_trade",
-        "wide_spread"
-      ],
-      "notes": [
         "projected payoff is asymmetric",
-        "delta sits in the preferred weekly range",
         "Payoff model ranker active",
-        "Forge multi-head active: no-trade 0.20, fill 1.00, path 0.88",
+        "Forge multi-head active: no-trade 0.04, fill 1.00, path 0.90",
         "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)"
-      ]
-    },
-    {
-      "symbol": "NFLX",
-      "contract_symbol": "NFLX260828P00081000",
-      "option_type": "put",
-      "expiry": "2026-08-28",
-      "strike": 81.0,
-      "forge_score": 0.7185,
-      "policy_score": 0.7827,
-      "risk_adjusted_score": 0.7827,
-      "final_candidate_score": 0.7185,
-      "utility_after_friction_score": 1.0,
-      "payoff_edge_score": 0.833,
-      "expected_edge_after_friction_pct": 0.3865,
-      "prob_fill_quality_ok": 1.0,
-      "prob_no_trade": 0.167,
-      "scout_no_trade_prob": 0.8973,
-      "no_trade_pressure": 0.8973,
-      "sentinel_confidence": 0.437,
-      "sentinel_no_trade_relevance": 0.6666,
-      "sentinel_no_trade_pressure": 0.2913,
-      "path_holding_quality_score": 0.6927,
-      "path_early_profit_take_prob": 0.4074,
-      "path_decay_risk": 0.2812,
-      "path_model_mode": "unified_rnd",
-      "contract_cost": 166.0,
-      "council_risk_flags": [
-        "model_no_trade",
-        "symbol_probation"
-      ],
-      "notes": [
-        "projected payoff is asymmetric",
-        "time-value burden is acceptable",
-        "Payoff model ranker active",
-        "Forge multi-head active: no-trade 0.17, fill 1.00, path 0.69",
-        "Unified rank active (unified_rnd: primary=0.600, path=0.180, cost_rank=0.140, conservative=0.080)",
-        "symbol_probation: insufficient/negative realized option-outcome evidence for live promotion"
       ]
     }
   ],
@@ -855,76 +886,76 @@
   },
   "friction_vetoes": [
     {
-      "symbol": "XLK",
-      "contract_symbol": "XLK260828P00180000",
-      "reason": "friction_gate",
-      "expected_edge_after_friction_pct": 0.0123,
-      "friction_buffer_pct": 0.4134,
-      "extrinsic_ratio": 1.0,
-      "forge_score": 0.6732,
-      "learned_rank_score": 0.6732,
-      "contract_cost": 148.0,
-      "spread_pct": 0.1765,
-      "delta": -0.2926
-    },
-    {
       "symbol": "SLV",
       "contract_symbol": "SLV260828P00062000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.4609,
-      "friction_buffer_pct": 0.3301,
+      "expected_edge_after_friction_pct": 0.0085,
+      "friction_buffer_pct": 0.3341,
       "extrinsic_ratio": 1.0,
-      "forge_score": 0.4861,
-      "learned_rank_score": 0.4861,
-      "contract_cost": 108.0,
-      "spread_pct": 0.0377,
-      "delta": -0.3683
+      "forge_score": 0.6852,
+      "learned_rank_score": 0.6852,
+      "contract_cost": 115.0,
+      "spread_pct": 0.0444,
+      "delta": -0.4064
     },
     {
-      "symbol": "ARKK",
-      "contract_symbol": "ARKK260828P00084500",
+      "symbol": "WMT",
+      "contract_symbol": "WMT260828P00102000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.2523,
-      "friction_buffer_pct": 0.352,
+      "expected_edge_after_friction_pct": -0.0926,
+      "friction_buffer_pct": 0.3496,
       "extrinsic_ratio": 1.0,
-      "forge_score": 0.4814,
-      "learned_rank_score": 0.4814,
-      "contract_cost": 98.0,
-      "spread_pct": 0.0741,
-      "delta": -0.3273
+      "forge_score": 0.5418,
+      "learned_rank_score": 0.5418,
+      "contract_cost": 59.0,
+      "spread_pct": 0.0702,
+      "delta": -0.2802
     },
     {
       "symbol": "NFLX",
-      "contract_symbol": "NFLX260828P00079000",
+      "contract_symbol": "NFLX260828P00078000",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.416,
-      "friction_buffer_pct": 0.3239,
+      "expected_edge_after_friction_pct": -0.3697,
+      "friction_buffer_pct": 0.3269,
       "extrinsic_ratio": 1.0,
-      "forge_score": 0.4021,
-      "learned_rank_score": 0.4021,
-      "contract_cost": 74.0,
-      "spread_pct": 0.0274,
-      "delta": -0.3235
+      "forge_score": 0.4213,
+      "learned_rank_score": 0.4213,
+      "contract_cost": 63.0,
+      "spread_pct": 0.0323,
+      "delta": -0.3005
+    },
+    {
+      "symbol": "NKE",
+      "contract_symbol": "NKE260828P00041000",
+      "reason": "friction_gate",
+      "expected_edge_after_friction_pct": -0.0576,
+      "friction_buffer_pct": 0.2284,
+      "extrinsic_ratio": 0.7083,
+      "forge_score": 0.4103,
+      "learned_rank_score": 0.4103,
+      "contract_cost": 84.0,
+      "spread_pct": 0.087,
+      "delta": -0.5417
     },
     {
       "symbol": "TLT",
-      "contract_symbol": "TLT260904P00081000",
+      "contract_symbol": "TLT260904P00081500",
       "reason": "friction_gate",
-      "expected_edge_after_friction_pct": -0.1068,
-      "friction_buffer_pct": 0.3227,
+      "expected_edge_after_friction_pct": 0.0429,
+      "friction_buffer_pct": 0.3185,
       "extrinsic_ratio": 1.0,
-      "forge_score": 0.3996,
-      "learned_rank_score": 0.3996,
-      "contract_cost": 40.0,
-      "spread_pct": 0.0253,
-      "delta": -0.2673
+      "forge_score": 0.398,
+      "learned_rank_score": 0.398,
+      "contract_cost": 55.0,
+      "spread_pct": 0.0183,
+      "delta": -0.3543
     }
   ],
   "pre_forge_rejections": [
     {
       "symbol": "NVDA",
       "reason": "liquidity_gate",
-      "expiry": "2026-08-28",
+      "expiry": "2026-09-04",
       "long_leg_cap": 2.75,
       "spread_cap": 0.18,
       "expiry_attempts": [
@@ -932,9 +963,9 @@
           "expiry": "2026-08-28",
           "reason": "moneyness",
           "rows_after_basic": 81,
-          "rows_positive_bid_ask": 70,
-          "rows_within_long_leg_cap": 25,
-          "rows_within_spread_cap": 15,
+          "rows_positive_bid_ask": 68,
+          "rows_within_long_leg_cap": 24,
+          "rows_within_spread_cap": 16,
           "rows_passing_liquidity": 14,
           "rows_passing_moneyness": 0
         },
@@ -942,30 +973,30 @@
           "expiry": "2026-08-31",
           "reason": "moneyness",
           "rows_after_basic": 64,
-          "rows_positive_bid_ask": 63,
-          "rows_within_long_leg_cap": 22,
-          "rows_within_spread_cap": 9,
-          "rows_passing_liquidity": 4,
+          "rows_positive_bid_ask": 57,
+          "rows_within_long_leg_cap": 25,
+          "rows_within_spread_cap": 13,
+          "rows_passing_liquidity": 9,
           "rows_passing_moneyness": 0
         },
         {
           "expiry": "2026-09-02",
           "reason": "moneyness",
           "rows_after_basic": 65,
-          "rows_positive_bid_ask": 63,
-          "rows_within_long_leg_cap": 22,
-          "rows_within_spread_cap": 6,
-          "rows_passing_liquidity": 2,
+          "rows_positive_bid_ask": 58,
+          "rows_within_long_leg_cap": 24,
+          "rows_within_spread_cap": 9,
+          "rows_passing_liquidity": 3,
           "rows_passing_moneyness": 0
         },
         {
           "expiry": "2026-09-04",
           "reason": "moneyness",
           "rows_after_basic": 83,
-          "rows_positive_bid_ask": 78,
-          "rows_within_long_leg_cap": 30,
-          "rows_within_spread_cap": 17,
-          "rows_passing_liquidity": 12,
+          "rows_positive_bid_ask": 77,
+          "rows_within_long_leg_cap": 31,
+          "rows_within_spread_cap": 18,
+          "rows_passing_liquidity": 15,
           "rows_passing_moneyness": 0
         }
       ]
@@ -981,9 +1012,9 @@
           "expiry": "2026-08-28",
           "reason": "moneyness",
           "rows_after_basic": 200,
-          "rows_positive_bid_ask": 151,
+          "rows_positive_bid_ask": 150,
           "rows_within_long_leg_cap": 43,
-          "rows_within_spread_cap": 20,
+          "rows_within_spread_cap": 21,
           "rows_passing_liquidity": 12,
           "rows_passing_moneyness": 0
         },
@@ -991,9 +1022,9 @@
           "expiry": "2026-08-31",
           "reason": "liquidity",
           "rows_after_basic": 137,
-          "rows_positive_bid_ask": 136,
+          "rows_positive_bid_ask": 135,
           "rows_within_long_leg_cap": 37,
-          "rows_within_spread_cap": 4,
+          "rows_within_spread_cap": 6,
           "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         },
@@ -1001,8 +1032,8 @@
           "expiry": "2026-09-02",
           "reason": "spread_cap",
           "rows_after_basic": 141,
-          "rows_positive_bid_ask": 127,
-          "rows_within_long_leg_cap": 19,
+          "rows_positive_bid_ask": 136,
+          "rows_within_long_leg_cap": 30,
           "rows_within_spread_cap": 0,
           "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
@@ -1011,10 +1042,39 @@
           "expiry": "2026-09-04",
           "reason": "moneyness",
           "rows_after_basic": 212,
-          "rows_positive_bid_ask": 173,
-          "rows_within_long_leg_cap": 48,
+          "rows_positive_bid_ask": 170,
+          "rows_within_long_leg_cap": 46,
           "rows_within_spread_cap": 19,
-          "rows_passing_liquidity": 5,
+          "rows_passing_liquidity": 8,
+          "rows_passing_moneyness": 0
+        }
+      ]
+    },
+    {
+      "symbol": "LOW",
+      "reason": "liquidity_gate",
+      "expiry": "2026-08-28",
+      "long_leg_cap": 2.75,
+      "spread_cap": 0.18,
+      "expiry_attempts": [
+        {
+          "expiry": "2026-08-28",
+          "reason": "spread_cap",
+          "rows_after_basic": 49,
+          "rows_positive_bid_ask": 34,
+          "rows_within_long_leg_cap": 6,
+          "rows_within_spread_cap": 0,
+          "rows_passing_liquidity": 0,
+          "rows_passing_moneyness": 0
+        },
+        {
+          "expiry": "2026-09-04",
+          "reason": "spread_cap",
+          "rows_after_basic": 46,
+          "rows_positive_bid_ask": 33,
+          "rows_within_long_leg_cap": 5,
+          "rows_within_spread_cap": 0,
+          "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         }
       ]
@@ -1028,140 +1088,91 @@
       "expiry_attempts": [
         {
           "expiry": "2026-08-28",
-          "reason": "liquidity",
+          "reason": "spread_cap",
           "rows_after_basic": 49,
-          "rows_positive_bid_ask": 37,
-          "rows_within_long_leg_cap": 5,
-          "rows_within_spread_cap": 1,
+          "rows_positive_bid_ask": 21,
+          "rows_within_long_leg_cap": 3,
+          "rows_within_spread_cap": 0,
           "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         },
         {
           "expiry": "2026-09-04",
-          "reason": "liquidity",
+          "reason": "spread_cap",
           "rows_after_basic": 50,
-          "rows_positive_bid_ask": 38,
-          "rows_within_long_leg_cap": 6,
-          "rows_within_spread_cap": 1,
+          "rows_positive_bid_ask": 26,
+          "rows_within_long_leg_cap": 3,
+          "rows_within_spread_cap": 0,
           "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         }
       ]
     },
     {
-      "symbol": "LOW",
+      "symbol": "GS",
       "reason": "liquidity_gate",
       "expiry": "2026-09-04",
-      "long_leg_cap": 2.75,
-      "spread_cap": 0.18,
-      "expiry_attempts": [
-        {
-          "expiry": "2026-08-28",
-          "reason": "spread_cap",
-          "rows_after_basic": 49,
-          "rows_positive_bid_ask": 35,
-          "rows_within_long_leg_cap": 7,
-          "rows_within_spread_cap": 0,
-          "rows_passing_liquidity": 0,
-          "rows_passing_moneyness": 0
-        },
-        {
-          "expiry": "2026-09-04",
-          "reason": "spread_cap",
-          "rows_after_basic": 46,
-          "rows_positive_bid_ask": 34,
-          "rows_within_long_leg_cap": 8,
-          "rows_within_spread_cap": 0,
-          "rows_passing_liquidity": 0,
-          "rows_passing_moneyness": 0
-        }
-      ]
-    },
-    {
-      "symbol": "META",
-      "reason": "liquidity_gate",
-      "expiry": "2026-08-28",
       "long_leg_cap": 4.5,
       "spread_cap": 0.28,
       "expiry_attempts": [
         {
           "expiry": "2026-08-28",
-          "reason": "moneyness",
-          "rows_after_basic": 189,
-          "rows_positive_bid_ask": 159,
-          "rows_within_long_leg_cap": 37,
-          "rows_within_spread_cap": 20,
-          "rows_passing_liquidity": 11,
-          "rows_passing_moneyness": 0
-        },
-        {
-          "expiry": "2026-08-31",
-          "reason": "moneyness",
-          "rows_after_basic": 130,
-          "rows_positive_bid_ask": 117,
-          "rows_within_long_leg_cap": 23,
-          "rows_within_spread_cap": 14,
-          "rows_passing_liquidity": 1,
-          "rows_passing_moneyness": 0
-        },
-        {
-          "expiry": "2026-09-02",
-          "reason": "liquidity",
-          "rows_after_basic": 132,
-          "rows_positive_bid_ask": 119,
-          "rows_within_long_leg_cap": 22,
-          "rows_within_spread_cap": 10,
+          "reason": "spread_cap",
+          "rows_after_basic": 149,
+          "rows_positive_bid_ask": 86,
+          "rows_within_long_leg_cap": 19,
+          "rows_within_spread_cap": 0,
           "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         },
         {
           "expiry": "2026-09-04",
-          "reason": "moneyness",
-          "rows_after_basic": 198,
-          "rows_positive_bid_ask": 169,
-          "rows_within_long_leg_cap": 36,
-          "rows_within_spread_cap": 20,
-          "rows_passing_liquidity": 4,
+          "reason": "liquidity",
+          "rows_after_basic": 149,
+          "rows_positive_bid_ask": 93,
+          "rows_within_long_leg_cap": 16,
+          "rows_within_spread_cap": 1,
+          "rows_passing_liquidity": 0,
           "rows_passing_moneyness": 0
         }
       ]
     }
   ],
   "profitability_evidence": {
-    "shadow_window_runs": 255,
-    "disagreement_observations": 9837,
-    "directional_disagreements": 2929,
-    "tracked_recommendation_runs": 200,
-    "tracked_recommendations": 1946,
-    "tracked_live_recommendations": 21,
+    "shadow_window_runs": 256,
+    "disagreement_observations": 9914,
+    "directional_disagreements": 2937,
+    "tracked_recommendation_runs": 201,
+    "tracked_recommendations": 1976,
+    "tracked_live_recommendations": 22,
     "tracked_shadow_recommendations": 473,
-    "tracked_holdouts": 320,
-    "tracked_friction_vetoes": 985,
-    "outcomes_complete": 962,
-    "outcomes_partial": 261,
-    "outcomes_pending": 723,
-    "capture_policy_v2_picks": 298,
-    "capture_windows_valid": 543,
+    "tracked_holdouts": 330,
+    "tracked_friction_vetoes": 986,
+    "outcomes_complete": 1094,
+    "outcomes_partial": 186,
+    "outcomes_pending": 696,
+    "capture_policy_v2_picks": 328,
+    "capture_windows_valid": 1021,
     "capture_windows_quote_missing": 0,
-    "capture_windows_stale_quote": 0,
+    "capture_windows_stale_quote": 5,
     "capture_windows_missed": 113,
     "quote_coverage_pct": 1.0,
     "live_realized_trades": 0,
     "live_realized_pnl": 0.0,
     "live_realized_avg_pnl_pct": null,
-    "live_friday_close_avg_pnl_pct": 0.1337,
+    "live_friday_close_avg_pnl_pct": 0.2051,
     "shadow_realized_trades": 0,
     "shadow_realized_pnl": 0.0,
     "shadow_realized_avg_pnl_pct": null,
-    "shadow_friday_close_avg_pnl_pct": 0.1891,
-    "holdout_friday_close_avg_pnl_pct": 0.0636,
-    "friction_veto_friday_close_avg_pnl_pct": 0.2785,
-    "research_runs": 200,
+    "shadow_friday_close_avg_pnl_pct": 0.2119,
+    "holdout_friday_close_avg_pnl_pct": 0.0176,
+    "friction_veto_friday_close_avg_pnl_pct": 0.243,
+    "research_runs": 201,
     "research_abstain_runs": 179,
-    "board_runs": 249,
+    "board_runs": 250,
     "board_abstain_runs": 211,
-    "moonshot_tracked_candidates": 482,
-    "moonshot_friday_close_avg_pnl_pct": -0.0256,
+    "moonshot_tracked_candidates": 486,
+    "moonshot_friday_close_avg_pnl_pct": -0.0554,
     "canonical_baseline": {
       "backtest": {
         "generated_at": "2026-04-17",
@@ -1181,8 +1192,8 @@
     "promotion_comparison": {
       "artifact": "promotion_shadow_active_comparison",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-21T17:10:59+00:00",
-      "as_of_utc": "2026-08-14T17:09:13+00:00",
+      "generated_at_utc": "2026-08-21T20:11:57+00:00",
+      "as_of_utc": "2026-08-19T17:10:56+00:00",
       "decision": "not_ready",
       "replay_command": "python scripts/build_promotion_comparison.py",
       "policy": {
@@ -1210,17 +1221,17 @@
         "uncertainty": "paired market-day return lift must have a positive 95% nonparametric bootstrap lower bound and at least 95% bootstrap probability of improvement"
       },
       "source_summary": {
-        "prospective_ledger_updated_at_utc": "2026-08-21T17:10:55+00:00",
-        "eligible_marked_recommendations": 293,
-        "shadow_ledger_updated_at_utc": "2026-08-21T17:10:55+00:00",
-        "shadow_runs": 255,
-        "shadow_disagreements": 9837
+        "prospective_ledger_updated_at_utc": "2026-08-21T20:11:53+00:00",
+        "eligible_marked_recommendations": 300,
+        "shadow_ledger_updated_at_utc": "2026-08-21T20:11:53+00:00",
+        "shadow_runs": 256,
+        "shadow_disagreements": 9914
       },
       "windows": [
         {
           "window": "3_month",
-          "start_utc": "2026-05-15T09:41:55+00:00",
-          "end_utc": "2026-08-14T17:09:13+00:00",
+          "start_utc": "2026-05-20T09:43:38+00:00",
+          "end_utc": "2026-08-19T17:10:56+00:00",
           "coverage_complete": true,
           "coverage_by_lane": {
             "active": true,
@@ -1228,104 +1239,104 @@
           },
           "status": "fail",
           "active": {
-            "trades": 8,
-            "trading_days": 7,
-            "cost_basis": 632.0,
-            "gross_pnl": 197.5,
-            "spread_cost": 128.5,
-            "net_pnl": 69.0,
-            "net_return_pct": 0.1092,
-            "win_rate": 0.375,
-            "sharpe_ratio": 4.5966,
-            "max_drawdown": -0.8015,
+            "trades": 10,
+            "trading_days": 9,
+            "cost_basis": 1043.0,
+            "gross_pnl": 354.0,
+            "spread_cost": 606.0,
+            "net_pnl": -252.0,
+            "net_return_pct": -0.2416,
+            "win_rate": 0.3,
+            "sharpe_ratio": -1.6452,
+            "max_drawdown": -0.9977,
             "calibration": {
-              "observations": 8,
-              "brier_score": 0.4132,
-              "expected_calibration_error": 0.4207
+              "observations": 10,
+              "brier_score": 0.4769,
+              "expected_calibration_error": 0.5079
             }
           },
           "shadow": {
-            "trades": 262,
-            "trading_days": 35,
-            "cost_basis": 27208.0,
-            "gross_pnl": 3902.0,
-            "spread_cost": 3988.0,
-            "net_pnl": -86.0,
-            "net_return_pct": -0.0032,
-            "win_rate": 0.3893,
-            "sharpe_ratio": -0.4941,
-            "max_drawdown": -0.9971,
+            "trades": 230,
+            "trading_days": 33,
+            "cost_basis": 25148.0,
+            "gross_pnl": 2244.5,
+            "spread_cost": 3635.5,
+            "net_pnl": -1391.0,
+            "net_return_pct": -0.0553,
+            "win_rate": 0.3304,
+            "sharpe_ratio": -2.0378,
+            "max_drawdown": -0.9977,
             "calibration": {
-              "observations": 262,
-              "brier_score": 0.339,
-              "expected_calibration_error": 0.2973
+              "observations": 230,
+              "brier_score": 0.3609,
+              "expected_calibration_error": 0.3553
             }
           },
           "cluster_adjusted": {
             "active": {
-              "trades": 7,
-              "trading_days": 7,
-              "cost_basis": 596.0,
-              "gross_pnl": 196.0,
-              "spread_cost": 115.0,
-              "net_pnl": 81.0,
-              "net_return_pct": 0.1359,
-              "win_rate": 0.4286,
-              "sharpe_ratio": 4.5582,
-              "max_drawdown": -0.8042,
+              "trades": 9,
+              "trading_days": 9,
+              "cost_basis": 1007.0,
+              "gross_pnl": 352.5,
+              "spread_cost": 592.5,
+              "net_pnl": -240.0,
+              "net_return_pct": -0.2383,
+              "win_rate": 0.3333,
+              "sharpe_ratio": -1.6652,
+              "max_drawdown": -0.9977,
               "calibration": {
-                "observations": 7,
-                "brier_score": 0.3964,
-                "expected_calibration_error": 0.3767
+                "observations": 9,
+                "brier_score": 0.4709,
+                "expected_calibration_error": 0.4834
               }
             },
             "shadow": {
-              "trades": 206,
-              "trading_days": 35,
-              "cost_basis": 22394.0,
-              "gross_pnl": 2236.5,
-              "spread_cost": 3192.5,
-              "net_pnl": -956.0,
-              "net_return_pct": -0.0427,
-              "win_rate": 0.3835,
-              "sharpe_ratio": -1.2547,
-              "max_drawdown": -0.9977,
+              "trades": 185,
+              "trading_days": 33,
+              "cost_basis": 21021.0,
+              "gross_pnl": 1355.0,
+              "spread_cost": 3006.0,
+              "net_pnl": -1651.0,
+              "net_return_pct": -0.0785,
+              "win_rate": 0.3351,
+              "sharpe_ratio": -2.0006,
+              "max_drawdown": -0.998,
               "calibration": {
-                "observations": 206,
-                "brier_score": 0.3396,
-                "expected_calibration_error": 0.3076
+                "observations": 185,
+                "brier_score": 0.3564,
+                "expected_calibration_error": 0.3609
               }
             },
-            "raw_recommendations": 270,
-            "independent_daily_contracts": 213
+            "raw_recommendations": 240,
+            "independent_daily_contracts": 194
           },
           "paired_day_inference": {
             "paired_days": 7,
-            "mean_return_lift": -0.173094,
+            "mean_return_lift": 0.174157,
             "confidence_interval_95": {
-              "lower": -0.772286,
-              "upper": 0.508466
+              "lower": -0.691572,
+              "upper": 1.150819
             },
-            "probability_positive": 0.3068,
-            "positive_paired_day_rate": 0.4286,
+            "probability_positive": 0.6458,
+            "positive_paired_day_rate": 0.5714,
             "method": "paired-day nonparametric bootstrap",
             "resamples": 4000
           },
           "checks": {
             "minimum_evidence": false,
-            "after_cost_pnl_lift": false,
+            "after_cost_pnl_lift": true,
             "absolute_profitability": false,
             "calibration_non_worse": true,
             "sharpe_non_worse": false,
-            "drawdown_non_worse": false,
+            "drawdown_non_worse": true,
             "cluster_robustness": false,
             "uncertainty_robustness": false
           }
         },
         {
           "window": "6_month",
-          "start_utc": "2026-02-13T02:14:37+00:00",
-          "end_utc": "2026-08-14T17:09:13+00:00",
+          "start_utc": "2026-02-18T02:16:20+00:00",
+          "end_utc": "2026-08-19T17:10:56+00:00",
           "coverage_complete": false,
           "coverage_by_lane": {
             "active": false,
@@ -1333,86 +1344,86 @@
           },
           "status": "insufficient_data",
           "active": {
-            "trades": 10,
-            "trading_days": 8,
-            "cost_basis": 792.0,
-            "gross_pnl": 70.5,
-            "spread_cost": 132.5,
-            "net_pnl": -62.0,
-            "net_return_pct": -0.0783,
-            "win_rate": 0.3,
-            "sharpe_ratio": 1.4828,
-            "max_drawdown": -0.8475,
+            "trades": 13,
+            "trading_days": 11,
+            "cost_basis": 1255.0,
+            "gross_pnl": 229.5,
+            "spread_cost": 614.5,
+            "net_pnl": -385.0,
+            "net_return_pct": -0.3068,
+            "win_rate": 0.2308,
+            "sharpe_ratio": -3.176,
+            "max_drawdown": -0.9978,
             "calibration": {
-              "observations": 10,
-              "brier_score": 0.4491,
-              "expected_calibration_error": 0.4906
+              "observations": 13,
+              "brier_score": 0.5004,
+              "expected_calibration_error": 0.5663
             }
           },
           "shadow": {
-            "trades": 283,
-            "trading_days": 37,
-            "cost_basis": 29056.0,
-            "gross_pnl": 4023.0,
-            "spread_cost": 4234.0,
-            "net_pnl": -211.0,
-            "net_return_pct": -0.0073,
-            "win_rate": 0.3781,
-            "sharpe_ratio": -0.1875,
+            "trades": 287,
+            "trading_days": 38,
+            "cost_basis": 29280.0,
+            "gross_pnl": 4437.0,
+            "spread_cost": 4309.0,
+            "net_pnl": 128.0,
+            "net_return_pct": 0.0044,
+            "win_rate": 0.3833,
+            "sharpe_ratio": 1.1356,
             "max_drawdown": -0.9971,
             "calibration": {
-              "observations": 283,
-              "brier_score": 0.342,
-              "expected_calibration_error": 0.3041
+              "observations": 287,
+              "brier_score": 0.3424,
+              "expected_calibration_error": 0.3034
             }
           },
           "cluster_adjusted": {
             "active": {
-              "trades": 9,
-              "trading_days": 8,
-              "cost_basis": 756.0,
-              "gross_pnl": 69.0,
-              "spread_cost": 119.0,
-              "net_pnl": -50.0,
-              "net_return_pct": -0.0661,
-              "win_rate": 0.3333,
-              "sharpe_ratio": 1.4566,
-              "max_drawdown": -0.8475,
+              "trades": 12,
+              "trading_days": 11,
+              "cost_basis": 1219.0,
+              "gross_pnl": 228.0,
+              "spread_cost": 601.0,
+              "net_pnl": -373.0,
+              "net_return_pct": -0.306,
+              "win_rate": 0.25,
+              "sharpe_ratio": -3.1929,
+              "max_drawdown": -0.9979,
               "calibration": {
-                "observations": 9,
-                "brier_score": 0.4401,
-                "expected_calibration_error": 0.4642
+                "observations": 12,
+                "brier_score": 0.4979,
+                "expected_calibration_error": 0.5527
               }
             },
             "shadow": {
-              "trades": 221,
-              "trading_days": 37,
-              "cost_basis": 23836.0,
-              "gross_pnl": 2302.5,
-              "spread_cost": 3383.5,
-              "net_pnl": -1081.0,
-              "net_return_pct": -0.0454,
-              "win_rate": 0.3756,
-              "sharpe_ratio": -0.9499,
+              "trades": 225,
+              "trading_days": 38,
+              "cost_basis": 24060.0,
+              "gross_pnl": 2716.5,
+              "spread_cost": 3458.5,
+              "net_pnl": -742.0,
+              "net_return_pct": -0.0308,
+              "win_rate": 0.3822,
+              "sharpe_ratio": 0.5205,
               "max_drawdown": -0.9977,
               "calibration": {
-                "observations": 221,
-                "brier_score": 0.3409,
-                "expected_calibration_error": 0.3105
+                "observations": 225,
+                "brier_score": 0.3414,
+                "expected_calibration_error": 0.3095
               }
             },
-            "raw_recommendations": 293,
-            "independent_daily_contracts": 230
+            "raw_recommendations": 300,
+            "independent_daily_contracts": 237
           },
           "paired_day_inference": {
-            "paired_days": 8,
-            "mean_return_lift": -0.07131,
+            "paired_days": 9,
+            "mean_return_lift": 0.196886,
             "confidence_interval_95": {
-              "lower": -0.675597,
-              "upper": 0.543776
+              "lower": -0.481273,
+              "upper": 0.956987
             },
-            "probability_positive": 0.3985,
-            "positive_paired_day_rate": 0.5,
+            "probability_positive": 0.6883,
+            "positive_paired_day_rate": 0.5556,
             "method": "paired-day nonparametric bootstrap",
             "resamples": 4000
           },
@@ -1421,16 +1432,16 @@
             "after_cost_pnl_lift": true,
             "absolute_profitability": false,
             "calibration_non_worse": true,
-            "sharpe_non_worse": false,
-            "drawdown_non_worse": false,
-            "cluster_robustness": false,
+            "sharpe_non_worse": true,
+            "drawdown_non_worse": true,
+            "cluster_robustness": true,
             "uncertainty_robustness": false
           }
         },
         {
           "window": "12_month",
-          "start_utc": "2025-08-14T11:20:01+00:00",
-          "end_utc": "2026-08-14T17:09:13+00:00",
+          "start_utc": "2025-08-19T11:21:44+00:00",
+          "end_utc": "2026-08-19T17:10:56+00:00",
           "coverage_complete": false,
           "coverage_by_lane": {
             "active": false,
@@ -1438,86 +1449,86 @@
           },
           "status": "insufficient_data",
           "active": {
-            "trades": 10,
-            "trading_days": 8,
-            "cost_basis": 792.0,
-            "gross_pnl": 70.5,
-            "spread_cost": 132.5,
-            "net_pnl": -62.0,
-            "net_return_pct": -0.0783,
-            "win_rate": 0.3,
-            "sharpe_ratio": 1.4828,
-            "max_drawdown": -0.8475,
+            "trades": 13,
+            "trading_days": 11,
+            "cost_basis": 1255.0,
+            "gross_pnl": 229.5,
+            "spread_cost": 614.5,
+            "net_pnl": -385.0,
+            "net_return_pct": -0.3068,
+            "win_rate": 0.2308,
+            "sharpe_ratio": -3.176,
+            "max_drawdown": -0.9978,
             "calibration": {
-              "observations": 10,
-              "brier_score": 0.4491,
-              "expected_calibration_error": 0.4906
+              "observations": 13,
+              "brier_score": 0.5004,
+              "expected_calibration_error": 0.5663
             }
           },
           "shadow": {
-            "trades": 283,
-            "trading_days": 37,
-            "cost_basis": 29056.0,
-            "gross_pnl": 4023.0,
-            "spread_cost": 4234.0,
-            "net_pnl": -211.0,
-            "net_return_pct": -0.0073,
-            "win_rate": 0.3781,
-            "sharpe_ratio": -0.1875,
+            "trades": 287,
+            "trading_days": 38,
+            "cost_basis": 29280.0,
+            "gross_pnl": 4437.0,
+            "spread_cost": 4309.0,
+            "net_pnl": 128.0,
+            "net_return_pct": 0.0044,
+            "win_rate": 0.3833,
+            "sharpe_ratio": 1.1356,
             "max_drawdown": -0.9971,
             "calibration": {
-              "observations": 283,
-              "brier_score": 0.342,
-              "expected_calibration_error": 0.3041
+              "observations": 287,
+              "brier_score": 0.3424,
+              "expected_calibration_error": 0.3034
             }
           },
           "cluster_adjusted": {
             "active": {
-              "trades": 9,
-              "trading_days": 8,
-              "cost_basis": 756.0,
-              "gross_pnl": 69.0,
-              "spread_cost": 119.0,
-              "net_pnl": -50.0,
-              "net_return_pct": -0.0661,
-              "win_rate": 0.3333,
-              "sharpe_ratio": 1.4566,
-              "max_drawdown": -0.8475,
+              "trades": 12,
+              "trading_days": 11,
+              "cost_basis": 1219.0,
+              "gross_pnl": 228.0,
+              "spread_cost": 601.0,
+              "net_pnl": -373.0,
+              "net_return_pct": -0.306,
+              "win_rate": 0.25,
+              "sharpe_ratio": -3.1929,
+              "max_drawdown": -0.9979,
               "calibration": {
-                "observations": 9,
-                "brier_score": 0.4401,
-                "expected_calibration_error": 0.4642
+                "observations": 12,
+                "brier_score": 0.4979,
+                "expected_calibration_error": 0.5527
               }
             },
             "shadow": {
-              "trades": 221,
-              "trading_days": 37,
-              "cost_basis": 23836.0,
-              "gross_pnl": 2302.5,
-              "spread_cost": 3383.5,
-              "net_pnl": -1081.0,
-              "net_return_pct": -0.0454,
-              "win_rate": 0.3756,
-              "sharpe_ratio": -0.9499,
+              "trades": 225,
+              "trading_days": 38,
+              "cost_basis": 24060.0,
+              "gross_pnl": 2716.5,
+              "spread_cost": 3458.5,
+              "net_pnl": -742.0,
+              "net_return_pct": -0.0308,
+              "win_rate": 0.3822,
+              "sharpe_ratio": 0.5205,
               "max_drawdown": -0.9977,
               "calibration": {
-                "observations": 221,
-                "brier_score": 0.3409,
-                "expected_calibration_error": 0.3105
+                "observations": 225,
+                "brier_score": 0.3414,
+                "expected_calibration_error": 0.3095
               }
             },
-            "raw_recommendations": 293,
-            "independent_daily_contracts": 230
+            "raw_recommendations": 300,
+            "independent_daily_contracts": 237
           },
           "paired_day_inference": {
-            "paired_days": 8,
-            "mean_return_lift": -0.07131,
+            "paired_days": 9,
+            "mean_return_lift": 0.196886,
             "confidence_interval_95": {
-              "lower": -0.657052,
-              "upper": 0.543776
+              "lower": -0.50171,
+              "upper": 0.951592
             },
-            "probability_positive": 0.3972,
-            "positive_paired_day_rate": 0.5,
+            "probability_positive": 0.687,
+            "positive_paired_day_rate": 0.5556,
             "method": "paired-day nonparametric bootstrap",
             "resamples": 4000
           },
@@ -1526,9 +1537,9 @@
             "after_cost_pnl_lift": true,
             "absolute_profitability": false,
             "calibration_non_worse": true,
-            "sharpe_non_worse": false,
-            "drawdown_non_worse": false,
-            "cluster_robustness": false,
+            "sharpe_non_worse": true,
+            "drawdown_non_worse": true,
+            "cluster_robustness": true,
             "uncertainty_robustness": false
           }
         }
@@ -1537,7 +1548,7 @@
     "payoff_challenger_evidence": {
       "artifact": "payoff_challenger_prospective_evidence",
       "schema_version": 2,
-      "generated_at_utc": "2026-08-21T17:10:58+00:00",
+      "generated_at_utc": "2026-08-21T20:11:55+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_observation_only",
       "policy": {
@@ -1555,75 +1566,161 @@
         }
       },
       "coverage": {
-        "scored_recommendations": 73,
+        "scored_recommendations": 84,
         "older_model_scored_recommendations_excluded": 16,
-        "resolved_recommendations": 0,
-        "resolved_runs": 0,
-        "decision_disagreements": 0,
-        "stored_broad_disagreements": 0,
-        "unresolved_scored_recommendations": 73,
-        "friday_capture_valid": 0,
+        "resolved_recommendations": 72,
+        "resolved_runs": 10,
+        "decision_disagreements": 43,
+        "stored_broad_disagreements": 58,
+        "unresolved_scored_recommendations": 12,
+        "friday_capture_valid": 72,
         "friday_capture_missed": 0,
         "friday_capture_quote_missing_retryable": 0,
-        "friday_capture_integrity_pct": null
+        "friday_capture_integrity_pct": 1.0
       },
       "overall": {
         "active": {
-          "observations": 0,
-          "positive_rate": null,
-          "auc": null,
-          "brier": null,
-          "log_loss": null
+          "observations": 72,
+          "positive_rate": 0.2222,
+          "auc": 0.3119,
+          "brier": 0.5043,
+          "log_loss": 1.4203
         },
         "challenger": {
-          "observations": 0,
-          "positive_rate": null,
-          "auc": null,
-          "brier": null,
-          "log_loss": null
+          "observations": 72,
+          "positive_rate": 0.2222,
+          "auc": 0.4531,
+          "brier": 0.228,
+          "log_loss": 0.652
         },
         "baseline": {
-          "positive_rate": null,
-          "brier": null
+          "positive_rate": 0.2222,
+          "brier": 0.1728
         }
       },
       "disagreement_cohort": {
-        "rows": 0,
-        "active_accuracy": null,
-        "challenger_accuracy": null,
-        "avg_net_executable_return": null
+        "rows": 43,
+        "active_accuracy": 0.2326,
+        "challenger_accuracy": 0.7674,
+        "avg_net_executable_return": -0.2155
       },
       "rank_replay": {
-        "eligible_complete_runs": 0,
-        "incomplete_runs_excluded": 10,
+        "eligible_complete_runs": 9,
+        "incomplete_runs_excluded": 2,
         "single_candidate_runs_excluded": 0,
-        "selection_disagreements": 0,
-        "active_top1_avg_net_return": null,
-        "shadow_top1_avg_net_return": null,
+        "selection_disagreements": 7,
+        "active_top1_avg_net_return": -0.3332,
+        "shadow_top1_avg_net_return": -0.3485,
         "paired_inference": {
-          "observations": 0,
-          "mean_lift": null,
+          "observations": 9,
+          "mean_lift": -0.015348,
           "confidence_interval_95": {
-            "lower": null,
-            "upper": null
+            "lower": -0.285958,
+            "upper": 0.282512
           },
-          "probability_positive": null,
+          "probability_positive": 0.4467,
           "method": "paired-run nonparametric bootstrap",
           "resamples": 4000
         },
         "selection_policy": "top one active-payoff versus challenger probability per run from the identical fully resolved, post-friction candidate set"
       },
-      "by_side": {},
-      "by_regime": {},
+      "by_side": {
+        "call": {
+          "rows": 26,
+          "active": {
+            "observations": 26,
+            "positive_rate": 0.1923,
+            "auc": 0.3143,
+            "brier": 0.4353,
+            "log_loss": 1.2167
+          },
+          "challenger": {
+            "observations": 26,
+            "positive_rate": 0.1923,
+            "auc": 0.4762,
+            "brier": 0.228,
+            "log_loss": 0.6502
+          },
+          "baseline": {
+            "positive_rate": 0.1923,
+            "brier": 0.1553
+          }
+        },
+        "put": {
+          "rows": 46,
+          "active": {
+            "observations": 46,
+            "positive_rate": 0.2391,
+            "auc": 0.287,
+            "brier": 0.5433,
+            "log_loss": 1.5353
+          },
+          "challenger": {
+            "observations": 46,
+            "positive_rate": 0.2391,
+            "auc": 0.4494,
+            "brier": 0.228,
+            "log_loss": 0.653
+          },
+          "baseline": {
+            "positive_rate": 0.2391,
+            "brier": 0.1819
+          }
+        }
+      },
+      "by_regime": {
+        "neutral": {
+          "rows": 57,
+          "active": {
+            "observations": 57,
+            "positive_rate": 0.2807,
+            "auc": 0.3163,
+            "brier": 0.4839,
+            "log_loss": 1.3768
+          },
+          "challenger": {
+            "observations": 57,
+            "positive_rate": 0.2807,
+            "auc": 0.5,
+            "brier": 0.231,
+            "log_loss": 0.6617
+          },
+          "baseline": {
+            "positive_rate": 0.2807,
+            "brier": 0.2019
+          }
+        },
+        "risk_on": {
+          "rows": 15,
+          "active": {
+            "observations": 15,
+            "positive_rate": 0,
+            "auc": null,
+            "brier": 0.5815,
+            "log_loss": 1.5854
+          },
+          "challenger": {
+            "observations": 15,
+            "positive_rate": 0,
+            "auc": null,
+            "brier": 0.2167,
+            "log_loss": 0.6152
+          },
+          "baseline": {
+            "positive_rate": 0,
+            "brier": 0
+          }
+        }
+      },
       "gates": {
         "sample": {
           "resolved_recommendations": false,
           "resolved_runs": false,
-          "decision_disagreements": false,
+          "decision_disagreements": true,
           "side_coverage": false,
           "regime_coverage": false,
           "complete_rank_replay_runs": false,
-          "friday_capture_integrity": false
+          "friday_capture_integrity": true
         },
         "performance": {
           "discrimination_non_worse": false,
@@ -1638,71 +1735,69 @@
         "blocking_sample_gates": [
           "resolved_recommendations",
           "resolved_runs",
-          "decision_disagreements",
           "side_coverage",
           "regime_coverage",
-          "complete_rank_replay_runs",
-          "friday_capture_integrity"
+          "complete_rank_replay_runs"
         ],
         "progress": {
           "resolved_recommendations": {
-            "current": 0,
+            "current": 72,
             "required": 100,
-            "remaining": 100,
-            "progress_pct": 0.0
+            "remaining": 28,
+            "progress_pct": 0.72
           },
           "resolved_runs": {
-            "current": 0,
+            "current": 10,
             "required": 30,
-            "remaining": 30,
-            "progress_pct": 0.0
+            "remaining": 20,
+            "progress_pct": 0.3333
           },
           "decision_disagreements": {
-            "current": 0,
+            "current": 43,
             "required": 30,
-            "remaining": 30,
-            "progress_pct": 0.0
+            "remaining": 0,
+            "progress_pct": 1.0
           },
           "call_rows": {
-            "current": 0,
+            "current": 26,
             "required": 30,
-            "remaining": 30,
-            "progress_pct": 0.0
+            "remaining": 4,
+            "progress_pct": 0.8667
           },
           "put_rows": {
-            "current": 0,
+            "current": 46,
             "required": 30,
-            "remaining": 30,
-            "progress_pct": 0.0
+            "remaining": 0,
+            "progress_pct": 1.0
           },
           "qualified_regimes": {
-            "current": 0,
+            "current": 1,
             "required": 2,
-            "remaining": 2,
-            "progress_pct": 0.0
+            "remaining": 1,
+            "progress_pct": 0.5
           },
           "complete_rank_replay_runs": {
-            "current": 0,
+            "current": 9,
             "required": 30,
-            "remaining": 30,
-            "progress_pct": 0.0
+            "remaining": 21,
+            "progress_pct": 0.3
           }
         },
         "capture_integrity": {
-          "valid": 0,
+          "valid": 72,
           "missed": 0,
           "quote_missing_retryable": 0,
-          "observed_windows": 0,
-          "actual_pct": null,
+          "observed_windows": 72,
+          "actual_pct": 1.0,
           "required_pct": 0.95,
-          "passed": false
+          "passed": true
         },
         "next_action": "Capture strict Friday-close executable labels for the current challenger cohort."
       },
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 4,
-        "updated_at_utc": "2026-08-21T17:10:55+00:00"
+        "updated_at_utc": "2026-08-21T20:11:53+00:00"
       },
       "model_cohort": {
         "artifact_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
@@ -1713,7 +1808,7 @@
     "counterfactual_veto_evidence": {
       "artifact": "counterfactual_scout_veto_evidence",
       "schema_version": 1,
-      "generated_at_utc": "2026-08-21T17:10:58+00:00",
+      "generated_at_utc": "2026-08-21T20:11:56+00:00",
       "decision": "collecting_evidence",
       "execution_effect": "none_advisory_only",
       "policy": {
@@ -1730,15 +1825,15 @@
         "authority": "May recommend a policy review only; cannot alter thresholds, Council eligibility, or Tradier routing."
       },
       "coverage": {
-        "raw_scored_recommendations": 460,
-        "independent_recommendations": 341,
-        "repeated_scan_rows_excluded": 119,
+        "raw_scored_recommendations": 471,
+        "independent_recommendations": 348,
+        "repeated_scan_rows_excluded": 123,
         "older_side_model_rows_excluded": 0,
-        "resolved_recommendations": 6,
-        "current_rule_vetoes": 34,
-        "resolved_current_rule_vetoes": 0,
-        "independent_veto_trading_days": 0,
-        "friday_capture_valid": 6,
+        "resolved_recommendations": 77,
+        "current_rule_vetoes": 39,
+        "resolved_current_rule_vetoes": 34,
+        "independent_veto_trading_days": 4,
+        "friday_capture_valid": 77,
         "friday_capture_missed": 0,
         "friday_capture_quote_missing_retryable": 0,
         "friday_capture_integrity_pct": 1.0
@@ -1747,33 +1842,34 @@
         "no_trade_threshold": 0.7,
         "margin_threshold": 0.2,
         "vetoed": {
-          "observations": 34,
-          "resolved": 0,
-          "trading_days": 0,
-          "mean_net_executable_return": null,
-          "median_net_executable_return": null,
-          "positive_rate": null,
-          "mean_net_executable_pnl_usd": null
+          "observations": 39,
+          "resolved": 34,
+          "trading_days": 4,
+          "mean_net_executable_return": -0.116125,
+          "median_net_executable_return": -0.096616,
+          "positive_rate": 0.2353,
+          "mean_net_executable_pnl_usd": -22.7647
         },
         "retained": {
-          "observations": 307,
-          "resolved": 6,
-          "trading_days": 3,
-          "mean_net_executable_return": -0.413745,
-          "median_net_executable_return": -0.469486,
-          "positive_rate": 0.1667,
-          "mean_net_executable_pnl_usd": -84.6667
+          "observations": 309,
+          "resolved": 43,
+          "trading_days": 8,
+          "mean_net_executable_return": -0.202392,
+          "median_net_executable_return": -0.367089,
+          "positive_rate": 0.2093,
+          "mean_net_executable_pnl_usd": -48.4419
         },
         "veto_benefit": {
-          "trading_days": 0,
-          "mean_avoided_net_return": null,
+          "trading_days": 4,
+          "mean_avoided_net_return": 0.156289,
           "confidence_interval_95": {
-            "lower": null,
-            "upper": null
+            "lower": -0.0245,
+            "upper": 0.333407
           },
-          "probability_positive": null,
+          "probability_positive": 0.9627,
           "method": "market-day clustered nonparametric bootstrap",
-          "resamples": 4000
+          "resamples": 4000,
+          "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
         }
       },
       "threshold_frontier": [
@@ -1781,31 +1877,31 @@
           "no_trade_threshold": 0.5,
           "margin_threshold": 0.0,
           "vetoed": {
-            "observations": 38,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 45,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
             "observations": 303,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -1815,31 +1911,31 @@
           "no_trade_threshold": 0.5,
           "margin_threshold": 0.1,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 44,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
             "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -1849,31 +1945,31 @@
           "no_trade_threshold": 0.5,
           "margin_threshold": 0.2,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 44,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
             "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -1883,31 +1979,31 @@
           "no_trade_threshold": 0.5,
           "margin_threshold": 0.3,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 44,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
             "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -1917,31 +2013,31 @@
           "no_trade_threshold": 0.6,
           "margin_threshold": 0.0,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 43,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
-            "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "observations": 305,
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -1951,31 +2047,31 @@
           "no_trade_threshold": 0.6,
           "margin_threshold": 0.1,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 43,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
-            "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "observations": 305,
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -1985,31 +2081,31 @@
           "no_trade_threshold": 0.6,
           "margin_threshold": 0.2,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 43,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
-            "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "observations": 305,
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -2019,31 +2115,31 @@
           "no_trade_threshold": 0.6,
           "margin_threshold": 0.3,
           "vetoed": {
-            "observations": 37,
-            "resolved": 1,
-            "trading_days": 1,
-            "mean_net_executable_return": -0.08,
-            "median_net_executable_return": -0.08,
-            "positive_rate": 0,
-            "mean_net_executable_pnl_usd": -2.0
+            "observations": 43,
+            "resolved": 37,
+            "trading_days": 5,
+            "mean_net_executable_return": -0.126583,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2162,
+            "mean_net_executable_pnl_usd": -26.7838
           },
           "retained": {
-            "observations": 304,
-            "resolved": 5,
-            "trading_days": 2,
-            "mean_net_executable_return": -0.480494,
-            "median_net_executable_return": -0.734426,
-            "positive_rate": 0.2,
-            "mean_net_executable_pnl_usd": -101.2
+            "observations": 305,
+            "resolved": 40,
+            "trading_days": 7,
+            "mean_net_executable_return": -0.199188,
+            "median_net_executable_return": -0.367876,
+            "positive_rate": 0.225,
+            "mean_net_executable_pnl_usd": -46.65
           },
           "veto_benefit": {
-            "trading_days": 1,
-            "mean_avoided_net_return": 0.08,
+            "trading_days": 5,
+            "mean_avoided_net_return": 0.145248,
             "confidence_interval_95": {
-              "lower": 0.08,
-              "upper": 0.08
+              "lower": 0.006063,
+              "upper": 0.291508
             },
-            "probability_positive": 1.0,
+            "probability_positive": 0.982,
             "method": "market-day clustered nonparametric bootstrap",
             "resamples": 4000,
             "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
@@ -2053,396 +2149,408 @@
           "no_trade_threshold": 0.7,
           "margin_threshold": 0.0,
           "vetoed": {
-            "observations": 34,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 39,
+            "resolved": 34,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.116125,
+            "median_net_executable_return": -0.096616,
+            "positive_rate": 0.2353,
+            "mean_net_executable_pnl_usd": -22.7647
           },
           "retained": {
-            "observations": 307,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 309,
+            "resolved": 43,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.202392,
+            "median_net_executable_return": -0.367089,
+            "positive_rate": 0.2093,
+            "mean_net_executable_pnl_usd": -48.4419
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.156289,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.0245,
+              "upper": 0.333407
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.7,
           "margin_threshold": 0.1,
           "vetoed": {
-            "observations": 34,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 39,
+            "resolved": 34,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.116125,
+            "median_net_executable_return": -0.096616,
+            "positive_rate": 0.2353,
+            "mean_net_executable_pnl_usd": -22.7647
           },
           "retained": {
-            "observations": 307,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 309,
+            "resolved": 43,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.202392,
+            "median_net_executable_return": -0.367089,
+            "positive_rate": 0.2093,
+            "mean_net_executable_pnl_usd": -48.4419
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.156289,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.0245,
+              "upper": 0.333407
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.7,
           "margin_threshold": 0.2,
           "vetoed": {
-            "observations": 34,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 39,
+            "resolved": 34,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.116125,
+            "median_net_executable_return": -0.096616,
+            "positive_rate": 0.2353,
+            "mean_net_executable_pnl_usd": -22.7647
           },
           "retained": {
-            "observations": 307,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 309,
+            "resolved": 43,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.202392,
+            "median_net_executable_return": -0.367089,
+            "positive_rate": 0.2093,
+            "mean_net_executable_pnl_usd": -48.4419
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.156289,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.0245,
+              "upper": 0.333407
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.7,
           "margin_threshold": 0.3,
           "vetoed": {
-            "observations": 34,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 39,
+            "resolved": 34,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.116125,
+            "median_net_executable_return": -0.096616,
+            "positive_rate": 0.2353,
+            "mean_net_executable_pnl_usd": -22.7647
           },
           "retained": {
-            "observations": 307,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 309,
+            "resolved": 43,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.202392,
+            "median_net_executable_return": -0.367089,
+            "positive_rate": 0.2093,
+            "mean_net_executable_pnl_usd": -48.4419
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.156289,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.0245,
+              "upper": 0.333407
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.8,
           "margin_threshold": 0.0,
           "vetoed": {
-            "observations": 28,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 32,
+            "resolved": 28,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.098766,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.25,
+            "mean_net_executable_pnl_usd": -21.9286
           },
           "retained": {
-            "observations": 313,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 316,
+            "resolved": 49,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201748,
+            "median_net_executable_return": -0.366667,
+            "positive_rate": 0.2041,
+            "mean_net_executable_pnl_usd": -45.7755
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.14991,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.023676,
+              "upper": 0.326203
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.8,
           "margin_threshold": 0.1,
           "vetoed": {
-            "observations": 28,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 32,
+            "resolved": 28,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.098766,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.25,
+            "mean_net_executable_pnl_usd": -21.9286
           },
           "retained": {
-            "observations": 313,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 316,
+            "resolved": 49,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201748,
+            "median_net_executable_return": -0.366667,
+            "positive_rate": 0.2041,
+            "mean_net_executable_pnl_usd": -45.7755
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.14991,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.023676,
+              "upper": 0.326203
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.8,
           "margin_threshold": 0.2,
           "vetoed": {
-            "observations": 28,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 32,
+            "resolved": 28,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.098766,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.25,
+            "mean_net_executable_pnl_usd": -21.9286
           },
           "retained": {
-            "observations": 313,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 316,
+            "resolved": 49,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201748,
+            "median_net_executable_return": -0.366667,
+            "positive_rate": 0.2041,
+            "mean_net_executable_pnl_usd": -45.7755
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.14991,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.023676,
+              "upper": 0.326203
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.8,
           "margin_threshold": 0.3,
           "vetoed": {
-            "observations": 28,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 32,
+            "resolved": 28,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.098766,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.25,
+            "mean_net_executable_pnl_usd": -21.9286
           },
           "retained": {
-            "observations": 313,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 316,
+            "resolved": 49,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201748,
+            "median_net_executable_return": -0.366667,
+            "positive_rate": 0.2041,
+            "mean_net_executable_pnl_usd": -45.7755
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.14991,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.023676,
+              "upper": 0.326203
             },
-            "probability_positive": null,
+            "probability_positive": 0.9627,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.9,
           "margin_threshold": 0.0,
           "vetoed": {
-            "observations": 18,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 21,
+            "resolved": 18,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.042616,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.2222,
+            "mean_net_executable_pnl_usd": -17.1667
           },
           "retained": {
-            "observations": 323,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 327,
+            "resolved": 59,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201424,
+            "median_net_executable_return": -0.347619,
+            "positive_rate": 0.2203,
+            "mean_net_executable_pnl_usd": -43.1864
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.068721,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.269695,
+              "upper": 0.326027
             },
-            "probability_positive": null,
+            "probability_positive": 0.6713,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.9,
           "margin_threshold": 0.1,
           "vetoed": {
-            "observations": 18,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 21,
+            "resolved": 18,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.042616,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.2222,
+            "mean_net_executable_pnl_usd": -17.1667
           },
           "retained": {
-            "observations": 323,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 327,
+            "resolved": 59,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201424,
+            "median_net_executable_return": -0.347619,
+            "positive_rate": 0.2203,
+            "mean_net_executable_pnl_usd": -43.1864
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.068721,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.269695,
+              "upper": 0.326027
             },
-            "probability_positive": null,
+            "probability_positive": 0.6713,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.9,
           "margin_threshold": 0.2,
           "vetoed": {
-            "observations": 18,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 21,
+            "resolved": 18,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.042616,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.2222,
+            "mean_net_executable_pnl_usd": -17.1667
           },
           "retained": {
-            "observations": 323,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 327,
+            "resolved": 59,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201424,
+            "median_net_executable_return": -0.347619,
+            "positive_rate": 0.2203,
+            "mean_net_executable_pnl_usd": -43.1864
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.068721,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.269695,
+              "upper": 0.326027
             },
-            "probability_positive": null,
+            "probability_positive": 0.6713,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         },
         {
           "no_trade_threshold": 0.9,
           "margin_threshold": 0.3,
           "vetoed": {
-            "observations": 18,
-            "resolved": 0,
-            "trading_days": 0,
-            "mean_net_executable_return": null,
-            "median_net_executable_return": null,
-            "positive_rate": null,
-            "mean_net_executable_pnl_usd": null
+            "observations": 21,
+            "resolved": 18,
+            "trading_days": 4,
+            "mean_net_executable_return": -0.042616,
+            "median_net_executable_return": -0.095616,
+            "positive_rate": 0.2222,
+            "mean_net_executable_pnl_usd": -17.1667
           },
           "retained": {
-            "observations": 323,
-            "resolved": 6,
-            "trading_days": 3,
-            "mean_net_executable_return": -0.413745,
-            "median_net_executable_return": -0.469486,
-            "positive_rate": 0.1667,
-            "mean_net_executable_pnl_usd": -84.6667
+            "observations": 327,
+            "resolved": 59,
+            "trading_days": 8,
+            "mean_net_executable_return": -0.201424,
+            "median_net_executable_return": -0.347619,
+            "positive_rate": 0.2203,
+            "mean_net_executable_pnl_usd": -43.1864
           },
           "veto_benefit": {
-            "trading_days": 0,
-            "mean_avoided_net_return": null,
+            "trading_days": 4,
+            "mean_avoided_net_return": 0.068721,
             "confidence_interval_95": {
-              "lower": null,
-              "upper": null
+              "lower": -0.269695,
+              "upper": 0.326027
             },
-            "probability_positive": null,
+            "probability_positive": 0.6713,
             "method": "market-day clustered nonparametric bootstrap",
-            "resamples": 4000
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
           }
         }
       ],
@@ -2471,21 +2579,115 @@
         },
         "method": "five-block expanding walk-forward; one trading-day embargo; threshold selected on training dates only"
       },
-      "current_rule_by_side": {},
-      "current_rule_by_regime": {},
+      "current_rule_by_side": {
+        "call": {
+          "outcomes": {
+            "observations": 3,
+            "resolved": 3,
+            "trading_days": 2,
+            "mean_net_executable_return": -0.149612,
+            "median_net_executable_return": -0.066667,
+            "positive_rate": 0.3333,
+            "mean_net_executable_pnl_usd": -47.3333
+          },
+          "veto_benefit": {
+            "trading_days": 2,
+            "mean_avoided_net_return": 0.211428,
+            "confidence_interval_95": {
+              "lower": 0.02598,
+              "upper": 0.396875
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        "put": {
+          "outcomes": {
+            "observations": 31,
+            "resolved": 31,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.112885,
+            "median_net_executable_return": -0.113043,
+            "positive_rate": 0.2258,
+            "mean_net_executable_pnl_usd": -20.3871
+          },
+          "veto_benefit": {
+            "trading_days": 3,
+            "mean_avoided_net_return": 0.084479,
+            "confidence_interval_95": {
+              "lower": -0.09164,
+              "upper": 0.202074
+            },
+            "probability_positive": 0.8475,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        }
+      },
+      "current_rule_by_regime": {
+        "neutral": {
+          "outcomes": {
+            "observations": 33,
+            "resolved": 33,
+            "trading_days": 3,
+            "mean_net_executable_return": -0.107618,
+            "median_net_executable_return": -0.080189,
+            "positive_rate": 0.2424,
+            "mean_net_executable_pnl_usd": -19.6061
+          },
+          "veto_benefit": {
+            "trading_days": 3,
+            "mean_avoided_net_return": 0.076093,
+            "confidence_interval_95": {
+              "lower": -0.09164,
+              "upper": 0.176918
+            },
+            "probability_positive": 0.737,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        },
+        "risk_on": {
+          "outcomes": {
+            "observations": 1,
+            "resolved": 1,
+            "trading_days": 1,
+            "mean_net_executable_return": -0.396875,
+            "median_net_executable_return": -0.396875,
+            "positive_rate": 0,
+            "mean_net_executable_pnl_usd": -127.0
+          },
+          "veto_benefit": {
+            "trading_days": 1,
+            "mean_avoided_net_return": 0.396875,
+            "confidence_interval_95": {
+              "lower": 0.396875,
+              "upper": 0.396875
+            },
+            "probability_positive": 1.0,
+            "method": "market-day clustered nonparametric bootstrap",
+            "resamples": 4000,
+            "estimand": "equal-weight daily mean return avoided by abstaining; positive values support the veto"
+          }
+        }
+      },
       "gates": {
         "sample": {
           "resolved_current_rule_vetoes": false,
           "independent_trading_days": false,
           "call_coverage": false,
-          "put_coverage": false,
+          "put_coverage": true,
           "regime_coverage": false,
           "friday_capture_integrity": true,
           "walk_forward_folds": false
         },
         "performance": {
           "current_rule_avoids_losses": false,
-          "bootstrap_probability_positive": false,
+          "bootstrap_probability_positive": true,
           "walk_forward_out_of_fold_positive": false
         }
       },
@@ -2495,40 +2697,39 @@
           "resolved_current_rule_vetoes",
           "independent_trading_days",
           "call_coverage",
-          "put_coverage",
           "regime_coverage",
           "walk_forward_folds"
         ],
         "progress": {
           "resolved_current_rule_vetoes": {
-            "current": 0,
+            "current": 34,
             "required": 100,
-            "remaining": 100,
-            "progress_pct": 0.0
+            "remaining": 66,
+            "progress_pct": 0.34
           },
           "independent_trading_days": {
-            "current": 0,
+            "current": 4,
             "required": 30,
-            "remaining": 30,
-            "progress_pct": 0.0
+            "remaining": 26,
+            "progress_pct": 0.1333
           },
           "call_rows": {
-            "current": 0,
+            "current": 3,
             "required": 20,
-            "remaining": 20,
-            "progress_pct": 0.0
+            "remaining": 17,
+            "progress_pct": 0.15
           },
           "put_rows": {
-            "current": 0,
+            "current": 31,
             "required": 20,
-            "remaining": 20,
-            "progress_pct": 0.0
+            "remaining": 0,
+            "progress_pct": 1.0
           },
           "qualified_regimes": {
-            "current": 0,
+            "current": 1,
             "required": 2,
-            "remaining": 2,
-            "progress_pct": 0.0
+            "remaining": 1,
+            "progress_pct": 0.5
           },
           "walk_forward_folds": {
             "current": 0,
@@ -2546,7 +2747,7 @@
       "source": {
         "artifact": "prospective_pick_ledger",
         "schema_version": 4,
-        "updated_at_utc": "2026-08-21T17:10:55+00:00"
+        "updated_at_utc": "2026-08-21T20:11:53+00:00"
       },
       "replay_command": "python scripts/build_counterfactual_veto_evidence.py"
     }
