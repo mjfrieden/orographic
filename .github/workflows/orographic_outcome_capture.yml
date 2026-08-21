@@ -11,8 +11,8 @@ on:
         description: "Dispatch authority"
         required: false
         type: string
-  # Cloudflare's durable cron dispatcher invokes this workflow every five
-  # minutes during the Chicago market session. Keeping a single timing
+  # Cloudflare's durable cron dispatcher invokes this workflow hourly at :10
+  # during the Chicago market session. Keeping a single timing
   # authority avoids duplicate jobs and GitHub schedule jitter.
 
 concurrency:

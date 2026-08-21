@@ -16,10 +16,10 @@
   },
   "triggers": {
     "crons": [
-      // One per-minute trigger stays within the Workers Free account limit.
-      // The handler filters this UTC range into five-minute Chicago outcome
-      // captures and full scans at 09:07, 12:07, and 15:07 Chicago time.
-      "* 13-22 * * MON-FRI"
+      // The broad UTC range covers both Chicago daylight and standard time.
+      // The handler dispatches hourly captures at 09:10-15:10 Chicago and
+      // full scans at 09:07, 12:07, and 15:07 Chicago.
+      "7,10 13-22 * * MON-FRI"
     ]
   }
 }

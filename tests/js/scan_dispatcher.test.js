@@ -16,12 +16,14 @@ test("recognizes Chicago scan slots across daylight saving time", () => {
   assert.equal(isChicagoScanSlot(Date.parse("2026-08-02T14:07:00Z")), false);
 });
 
-test("recognizes five-minute Chicago outcome capture slots", () => {
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T13:30:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T14:30:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T13:27:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T20:15:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T13:30:00Z")), false);
+test("recognizes hourly Chicago outcome capture slots across daylight saving time", () => {
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:10:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T20:10:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T15:10:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T21:10:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:05:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T21:10:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T14:10:00Z")), false);
 });
 
 test("does not dispatch for paired UTC hours outside a Chicago scan slot", async () => {
@@ -69,12 +71,12 @@ test("dispatches the configured outcome workflow", async () => {
       captured = { url, init };
       return new Response(null, { status: 204 });
     },
-    "2026-08-03T13:30:00.000Z"
+    "2026-08-03T14:10:00.000Z"
   );
 
   assert.match(captured.url, /workflows\/capture\.yml\/dispatches$/);
   assert.deepEqual(JSON.parse(captured.init.body).inputs, {
-    scheduled_time_utc: "2026-08-03T13:30:00.000Z",
+    scheduled_time_utc: "2026-08-03T14:10:00.000Z",
     scheduler: "cloudflare_cron",
   });
 });
