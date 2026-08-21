@@ -32,6 +32,32 @@ class OutcomeCaptureHealthTests(unittest.TestCase):
         self.assertIn("scheduler_delivery_fresh", failed)
         self.assertEqual(report["scheduler"]["delivery_delay_seconds"], 660.0)
 
+    def test_scheduler_delivery_uses_workflow_start_not_health_build_time(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            prospective = self._ledger(root, "prospective.json", {})
+            moonshot = self._ledger(root, "moonshot.json", {})
+            report = build_outcome_capture_health(
+                prospective_ledger=prospective,
+                moonshot_ledger=moonshot,
+                token_configured=True,
+                prospective_step_status="success",
+                moonshot_step_status="success",
+                evidence_step_status="success",
+                scheduled_at_utc="2026-08-21T14:10:45Z",
+                workflow_started_at_utc="2026-08-21T14:20:24Z",
+                scheduler="cloudflare_cron",
+                max_scheduler_delay_seconds=600,
+                now_utc=datetime(2026, 8, 21, 14, 21, 25, tzinfo=UTC),
+            )
+
+        self.assertEqual(report["status"], "passed")
+        self.assertEqual(report["scheduler"]["delivery_delay_seconds"], 579.0)
+        self.assertEqual(
+            report["scheduler"]["workflow_started_at_utc"],
+            "2026-08-21T14:20:24Z",
+        )
+
     def _ledger(self, root: Path, name: str, stats: dict) -> Path:
         path = root / name
         path.write_text(json.dumps({"last_capture_attempt_at_utc": "2026-08-12T15:15:00Z", "last_mark_summary": stats}))

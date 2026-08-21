@@ -36,6 +36,10 @@ jobs:
       TRADIER_SANDBOX_MODE: ${{ secrets.TRADIER_SANDBOX_MODE }}
       PYTHONPATH: .
     steps:
+      - name: Record capture start time
+        id: capture_start
+        run: echo "started_at_utc=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> "$GITHUB_OUTPUT"
+
       - name: Checkout
         uses: actions/checkout@v6
 
@@ -125,6 +129,7 @@ jobs:
             --moonshot-step-status "${{ steps.capture_moonshot.outcome }}" \
             --evidence-step-status "${{ steps.refresh_evidence.outcome }}" \
             --scheduled-at-utc "${{ inputs.scheduled_time_utc }}" \
+            --workflow-started-at-utc "${{ steps.capture_start.outputs.started_at_utc }}" \
             --scheduler "${{ inputs.scheduler || 'manual' }}" \
             --output web/data/diagnostics/outcome_capture_health_latest.json
           python scripts/build_model_governance_summary.py \

@@ -42,6 +42,7 @@ def build_outcome_capture_health(
     moonshot_step_status: str,
     evidence_step_status: str = "unknown",
     scheduled_at_utc: str = "",
+    workflow_started_at_utc: str = "",
     scheduler: str = "manual",
     max_scheduler_delay_seconds: int = 600,
     min_trajectory_capture_ratio: float = 0.30,
@@ -49,8 +50,12 @@ def build_outcome_capture_health(
 ) -> dict[str, Any]:
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
     scheduled_at = _parse_utc(scheduled_at_utc)
+    workflow_started_at = _parse_utc(workflow_started_at_utc)
+    delivery_observed_at = workflow_started_at or now
     scheduler_delay_seconds = (
-        max(0.0, (now - scheduled_at).total_seconds()) if scheduled_at is not None else None
+        max(0.0, (delivery_observed_at - scheduled_at).total_seconds())
+        if scheduled_at is not None
+        else None
     )
     ledgers = []
     for name, path, step_status in (
@@ -97,6 +102,8 @@ def build_outcome_capture_health(
             "scheduler": scheduler,
             "scheduled_at_utc": scheduled_at.isoformat().replace("+00:00", "Z")
             if scheduled_at is not None else None,
+            "workflow_started_at_utc": workflow_started_at.isoformat().replace("+00:00", "Z")
+            if workflow_started_at is not None else None,
             "delay_seconds": round(scheduler_delay_seconds, 3)
             if scheduler_delay_seconds is not None else None,
             "max_delay_seconds": max_scheduler_delay_seconds,
@@ -147,6 +154,8 @@ def build_outcome_capture_health(
             "source": scheduler,
             "scheduled_at_utc": scheduled_at.isoformat().replace("+00:00", "Z")
             if scheduled_at is not None else None,
+            "workflow_started_at_utc": workflow_started_at.isoformat().replace("+00:00", "Z")
+            if workflow_started_at is not None else None,
             "delivery_delay_seconds": round(scheduler_delay_seconds, 3)
             if scheduler_delay_seconds is not None else None,
             "max_delivery_delay_seconds": max_scheduler_delay_seconds,
@@ -178,6 +187,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--moonshot-step-status", default="unknown")
     parser.add_argument("--evidence-step-status", default="unknown")
     parser.add_argument("--scheduled-at-utc", default="")
+    parser.add_argument("--workflow-started-at-utc", default="")
     parser.add_argument("--scheduler", default="manual")
     parser.add_argument("--max-scheduler-delay-seconds", type=int, default=600)
     parser.add_argument("--min-trajectory-capture-ratio", type=float, default=0.30)
@@ -196,6 +206,7 @@ def main() -> int:
         moonshot_step_status=str(args.moonshot_step_status),
         evidence_step_status=str(args.evidence_step_status),
         scheduled_at_utc=str(args.scheduled_at_utc),
+        workflow_started_at_utc=str(args.workflow_started_at_utc),
         scheduler=str(args.scheduler),
         max_scheduler_delay_seconds=max(args.max_scheduler_delay_seconds, 1),
         min_trajectory_capture_ratio=float(args.min_trajectory_capture_ratio),
