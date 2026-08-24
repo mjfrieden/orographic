@@ -140,3 +140,26 @@ Mart `bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64` was publ
 6. Retain the existing canonical Parquet manifests until Iceberg restore and time-travel drills pass.
 
 No production selector, model, trade gate, or execution setting is changed by the mart.
+
+## Orographic consumer rollout
+
+Orographic materializes five versioned views from one validated local mart snapshot:
+
+| View | Purpose | Initial authority |
+| --- | --- | --- |
+| `orographic_training_v1` | Point-in-time Orographic features joined to executable labels | Observation only |
+| `orographic_execution_quality_v1` | Spread, liquidity, quote, feature, and outcome coverage | Research; later shadow veto |
+| `orographic_exit_replay_v1` | Executable ask-to-bid quote paths for frozen exit-policy replay | Shadow only |
+| `cirrus_orographic_disagreement_v1` | One top daily recommendation per system and symbol | Research only |
+| `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
+
+Build them with `scripts/build_shared_mart_consumers.py`. The generated consumer manifest pins the
+source `mart_id`, requires both systems, hashes every output, and grants no scoring, Council, sizing,
+or order-routing authority. `scripts/build_rebuild_readiness.py` treats this bundle as a required
+fail-closed gate before a fold-frozen challenger can become eligible for promotion review.
+
+`scripts/build_shared_mart_shadow_evidence.py` turns the five views into one compact diagnostic.
+It requires 30 paired executable cross-system outcomes and 30 independent paired market dates
+before recommending that a single liquidity veto enter shadow evaluation. Passing those entry gates
+still grants no production authority; production promotion remains governed by the stricter rebuild
+readiness and paired-day comparison gates.

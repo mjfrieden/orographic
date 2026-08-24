@@ -15,16 +15,29 @@ def _read(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _read_optional(path: Path) -> dict:
+    return _read(path) if path.exists() else {}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build fail-closed Orographic rebuild readiness.")
     parser.add_argument("--pair-readiness", type=Path, default=Path("web/data/diagnostics/scout_pair_readiness_latest.json"))
     parser.add_argument("--exit-shadow", type=Path, default=Path("web/data/diagnostics/exit_policy_shadow_latest.json"))
     parser.add_argument("--promotion", type=Path, default=Path("web/data/diagnostics/promotion_shadow_active_comparison_latest.json"))
     parser.add_argument("--scan-health", type=Path, default=Path("web/data/diagnostics/scan_health_summary_latest.json"))
+    parser.add_argument(
+        "--mart-consumer-manifest",
+        type=Path,
+        default=Path("output/shared_mart_consumers/consumer_manifest.json"),
+    )
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/orographic_rebuild_readiness_latest.json"))
     args = parser.parse_args()
     artifact = build_rebuild_readiness(
-        _read(args.pair_readiness), _read(args.exit_shadow), _read(args.promotion), _read(args.scan_health)
+        _read(args.pair_readiness),
+        _read(args.exit_shadow),
+        _read(args.promotion),
+        _read(args.scan_health),
+        _read_optional(args.mart_consumer_manifest),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(artifact, indent=2), encoding="utf-8")

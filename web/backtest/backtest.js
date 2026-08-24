@@ -1,5 +1,6 @@
 const MEGA_CAPS = "AAPL,MSFT,NVDA,AMZN,GOOGL,META,BRK.B,LLY,AVGO,JPM,V,TSM,WMT,XOM,UNH,MA,COST,ORCL,HD,PG";
 const VARIANT_LABELS = { baseline_all_candidates: "All Forge Candidates", council_only: "Council Only", council_cost_cap: "Council + Cost Cap", council_cost_cap_symbol_priors: "Council + Cost Cap + Symbol Priors" };
+const SHARED_MART_EVIDENCE_SOURCE = "/data/diagnostics/shared_mart_shadow_evidence_latest.json";
 
 export function buildBacktestCommand(config) {
   const parts = [
@@ -198,6 +199,34 @@ async function loadArtifacts() {
   renderArtifact();
 }
 
+function renderSharedMartEvidence(data) {
+  const gates = data.shadow_entry_gates || {};
+  const dates = gates.paired_market_dates || {};
+  const outcomes = gates.paired_executable_outcomes || {};
+  const execution = data.execution_quality || {};
+  const exits = data.exit_replay || {};
+  const training = data.training_evidence || {};
+  const ready = data.status === "shadow_evidence_ready";
+  const status = byId("mart-research-status");
+  status.textContent = ready ? "Shadow ready" : "Collecting evidence";
+  status.classList.toggle("is-ready", ready);
+  byId("mart-research-summary").innerHTML = [
+    ["Paired market dates", `${Number(dates.actual || 0).toLocaleString()} / ${Number(dates.required || 0).toLocaleString()}`, "Independent comparison dates"],
+    ["Paired outcomes", `${Number(outcomes.actual || 0).toLocaleString()} / ${Number(outcomes.required || 0).toLocaleString()}`, "Both systems executable"],
+    ["Training rows", Number(training.training_rows || 0).toLocaleString(), "Pre-decision features + labels"],
+    ["Executable coverage", pct(Number(execution.executable_recommendations || 0) / Math.max(Number(execution.recommendations || 0), 1)), `${Number(execution.executable_recommendations || 0).toLocaleString()} of ${Number(execution.recommendations || 0).toLocaleString()} recommendations`],
+    ["Executable return", pct(execution.avg_executable_return), `${pct(execution.executable_win_rate)} win rate`],
+    ["Exit-path signal", pct(exits.touched_25_rate), `Touched +25%; ${pct(exits.touched_negative_15_rate)} touched −15%`],
+  ].map(([label, value, note]) => `<article><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(note)}</small></article>`).join("");
+  byId("mart-research-next").textContent = `${data.next_action || "Continue evidence collection."} Mart ${String(data.mart_id || "unknown").slice(0, 12)}…`;
+}
+
+async function loadSharedMartEvidence() {
+  const response = await fetch(SHARED_MART_EVIDENCE_SOURCE, { cache: "no-store" });
+  if (!response.ok) throw new Error("Shared-mart evidence is unavailable.");
+  renderSharedMartEvidence(await response.json());
+}
+
 function bindEvents() {
   byId("run-form").addEventListener("input", updateCommand);
   byId("run-form").addEventListener("submit", async (event) => { event.preventDefault(); try { await copyCommand(); byId("run-status").textContent = "Run prepared and copied. Execute it locally, then run scripts/sync_dashboard_artifacts.py to publish the result."; } catch { byId("run-status").textContent = "Run prepared. Copy the command above and execute it from the repository root."; } });
@@ -212,6 +241,7 @@ function bindEvents() {
 async function main() {
   updateCommand(); bindEvents();
   try { await loadArtifacts(); } catch (error) { byId("artifact-meta").textContent = error.message; byId("quality-banner").classList.add("is-warning"); byId("quality-banner").querySelector("strong").textContent = "No validated artifact loaded"; }
+  try { await loadSharedMartEvidence(); } catch (error) { byId("mart-research-status").textContent = "Unavailable"; byId("mart-research-next").textContent = error.message; }
 }
 
 if (typeof document !== "undefined") main();

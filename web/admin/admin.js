@@ -24,6 +24,11 @@ function integer(value) {
   return Number.isFinite(amount) ? String(Math.round(amount)) : "--";
 }
 
+function percent(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? `${(amount * 100).toFixed(1)}%` : "--";
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => {
     switch (char) {
@@ -282,6 +287,58 @@ async function loadOrderLedger() {
   return Array.isArray(payload.events) ? payload.events : [];
 }
 
+async function loadMartAudit() {
+  const response = await fetch("/data/diagnostics/shared_mart_shadow_evidence_latest.json", {
+    cache: "no-store",
+  });
+  if (!response.ok) throw new Error("Shared-mart audit artifact is unavailable.");
+  renderMartAudit(await response.json());
+}
+
+function renderMartAudit(payload) {
+  const bundle = payload.consumer_bundle || {};
+  const views = bundle.views || {};
+  const gates = payload.shadow_entry_gates || {};
+  const execution = payload.execution_quality || {};
+  const status = document.getElementById("admin-mart-status");
+  if (status) {
+    status.textContent = bundle.status === "ready" ? "Validated · observation only" : "Audit required";
+    status.classList.toggle("is-ready", bundle.status === "ready");
+  }
+  const summary = document.getElementById("admin-mart-summary");
+  if (summary) {
+    const pairedDates = gates.paired_market_dates || {};
+    const coverage = Number(execution.executable_recommendations || 0) / Math.max(Number(execution.recommendations || 0), 1);
+    summary.innerHTML = [
+      ["Mart ID", payload.mart_id || "--"],
+      ["Source systems", (bundle.source_systems || []).join(" + ") || "--"],
+      ["Consumer schema", payload.consumer_schema_version || "--"],
+      ["Generated", formatDateTime(payload.generated_at_utc)],
+      ["Paired-date gate", `${integer(pairedDates.actual)} / ${integer(pairedDates.required)}`],
+      ["Executable coverage", percent(coverage)],
+    ].map(([label, value]) => `<article class="summary-item admin-card"><span class="summary-label">${escapeHtml(label)}</span><span class="summary-value">${escapeHtml(value)}</span></article>`).join("");
+  }
+  const tbody = document.getElementById("admin-mart-views-tbody");
+  if (tbody) {
+    const rows = Object.entries(views);
+    tbody.innerHTML = rows.length ? rows.map(([name, view]) => `
+      <tr>
+        <td><strong>${escapeHtml(name)}</strong></td>
+        <td class="is-num">${escapeHtml(Number(view.rows || 0).toLocaleString())}</td>
+        <td>${escapeHtml((view.primary_key || []).join(" + ") || "--")}</td>
+        <td class="admin-mart-hash">${escapeHtml(view.sha256 || "--")}</td>
+      </tr>`).join("") : `<tr><td colspan="4" class="admin-history-loading">No validated consumer views found.</td></tr>`;
+  }
+}
+
+function renderMartAuditError(error) {
+  const message = escapeHtml(String(error?.message || error || "Unable to load mart audit."));
+  const status = document.getElementById("admin-mart-status");
+  const tbody = document.getElementById("admin-mart-views-tbody");
+  if (status) status.textContent = "Unavailable";
+  if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="admin-history-loading">${message}</td></tr>`;
+}
+
 function renderOrderLedger(events) {
   const tbody = document.getElementById("admin-order-ledger-tbody");
   if (!tbody) return;
@@ -339,6 +396,7 @@ function renderOrderLedger(events) {
 }
 
 async function initAdminHistory() {
+  loadMartAudit().catch(renderMartAuditError);
   try {
     const [snapshots, orderEvents] = await Promise.all([
       loadHistory(),

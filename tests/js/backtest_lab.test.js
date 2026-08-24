@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { buildBacktestCommand, filterTrades, summarizeTrades } from "../../web/backtest/backtest.js";
 
 test("buildBacktestCommand preserves reproducible research controls", () => {
@@ -27,4 +28,21 @@ test("summarizeTrades recalculates the filtered observation set", () => {
   assert.equal(summary.pnl, 40);
   assert.equal(summary.winRate, 0.5);
   assert.equal(summary.returnPct, 0.2);
+});
+
+test("shared mart tooling is confined to research and admin surfaces", async () => {
+  const [backtestHtml, backtestSource, adminHtml, adminSource, cockpitHtml, cockpitSource] = await Promise.all([
+    readFile(new URL("../../web/backtest/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../../web/backtest/backtest.js", import.meta.url), "utf8"),
+    readFile(new URL("../../web/admin/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../../web/admin/admin.js", import.meta.url), "utf8"),
+    readFile(new URL("../../web/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../../web/app.js", import.meta.url), "utf8"),
+  ]);
+  assert.ok(backtestHtml.includes("mart-research-summary"));
+  assert.ok(backtestSource.includes("SHARED_MART_EVIDENCE_SOURCE"));
+  assert.ok(adminHtml.includes("shared-mart-audit"));
+  assert.ok(adminSource.includes("renderMartAudit"));
+  assert.ok(!cockpitHtml.includes("governance-mart-status"));
+  assert.ok(!cockpitSource.includes("SHARED_MART_SHADOW_SOURCE"));
 });

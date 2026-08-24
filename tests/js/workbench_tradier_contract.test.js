@@ -189,4 +189,6 @@ test("Research drawer exposes interactive model governance without live authorit
   ]) {
     assert.ok(source.includes(behavior), `missing model-governance behavior: ${behavior}`);
   }
+  assert.ok(!html.includes("governance-mart-status"), "live cockpit must not expose mart tooling");
+  assert.ok(!source.includes("SHARED_MART_SHADOW_SOURCE"), "live cockpit must not fetch mart diagnostics");
 });

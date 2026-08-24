@@ -1,17 +1,18 @@
 {
   "artifact": "orographic_rebuild_readiness",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-24T02:39:32+00:00",
+  "generated_at_utc": "2026-08-24T03:25:27+00:00",
   "status": "hold_collecting_executable_evidence",
   "production_model_change_allowed": false,
   "preferred_training_source": {
     "interface": "shared research mart",
     "tables": [
       "recommendations",
-      "recommendation_outcomes",
+      "execution_outcomes",
       "option_quotes",
-      "features"
+      "feature_snapshots"
     ],
+    "consumer_view": "orographic_training_v1",
     "fallback": "canonical executable outcome artifacts",
     "required_semantics": [
       "entry ask or actual fill",
@@ -21,7 +22,24 @@
       "side, regime, and contract liquidity fields"
     ]
   },
+  "rollout": {
+    "p0_consumer_contract": "ready",
+    "p1_research_views": {
+      "cirrus_orographic_disagreement_v1": 840,
+      "orographic_execution_quality_v1": 2192,
+      "orographic_exit_replay_v1": 340,
+      "orographic_model_monitoring_v1": 24,
+      "orographic_training_v1": 0
+    },
+    "p2_shadow_authority": "observation_only_never_used_for_routing",
+    "p3_promotion": "blocked_by_gates"
+  },
   "gates": {
+    "shared_mart_consumer": {
+      "passed": true,
+      "actual": "ready",
+      "required": "ready_observation_only"
+    },
     "matched_side_pairs": {
       "passed": false,
       "actual": 0,
