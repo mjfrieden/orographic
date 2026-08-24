@@ -17,14 +17,15 @@ test("recognizes Chicago scan slots across daylight saving time", () => {
 });
 
 test("recognizes hourly Chicago outcome capture slots across daylight saving time", () => {
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:25:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T20:25:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T15:25:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T21:25:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:18:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T20:18:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T15:18:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T21:18:00Z")), true);
   assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:05:00Z")), false);
   assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:10:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T21:25:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T14:25:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:25:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T21:18:00Z")), false);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T14:18:00Z")), false);
 });
 
 test("does not dispatch for paired UTC hours outside a Chicago scan slot", async () => {
@@ -72,12 +73,12 @@ test("dispatches the configured outcome workflow", async () => {
       captured = { url, init };
       return new Response(null, { status: 204 });
     },
-    "2026-08-03T14:25:00.000Z"
+    "2026-08-03T14:18:00.000Z"
   );
 
   assert.match(captured.url, /workflows\/capture\.yml\/dispatches$/);
   assert.deepEqual(JSON.parse(captured.init.body).inputs, {
-    scheduled_time_utc: "2026-08-03T14:25:00.000Z",
+    scheduled_time_utc: "2026-08-03T14:18:00.000Z",
     scheduler: "cloudflare_cron",
   });
 });
