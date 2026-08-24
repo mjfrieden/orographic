@@ -32,7 +32,7 @@ export function isChicagoOutcomeCaptureSlot(scheduledTime) {
   const { weekday, hour, minute } = chicagoTimeParts(scheduledTime);
   return (
     ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) &&
-    minute === "10" &&
+    minute === "25" &&
     CHICAGO_OUTCOME_CAPTURE_HOURS.has(Number(hour))
   );
 }
