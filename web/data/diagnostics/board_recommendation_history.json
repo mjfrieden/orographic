@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-08-24T19:04:11+00:00",
+  "updated_at_utc": "2026-08-24T20:10:13+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 251,
+    "runs": 252,
     "live_picks_emitted": 45,
     "shadow_picks_emitted": 555,
-    "abstain_runs": 212,
+    "abstain_runs": 213,
     "abstain_primary_reasons": [
       {
         "reason": "mixed_core_filters",
@@ -35,7 +35,7 @@
       },
       {
         "reason": "model_no_trade",
-        "count": 3
+        "count": 4
       },
       {
         "reason": "symbol_probation",
@@ -94958,6 +94958,256 @@
                 ]
               }
             ]
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": []
+    },
+    {
+      "run_generated_at_utc": "2026-08-24T20:10:13+00:00",
+      "regime": {
+        "mode": "neutral",
+        "bias": 0.142,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "production_lane_count": 1,
+        "production_lane": "council.live_board",
+        "research_outputs_routable": false,
+        "moonshot_lane_role": "visible_experimental_side_pick",
+        "moonshot_primary_ensemble_effect": "none",
+        "moonshot_outcome_tracking": "moonshot_prospective_ledger",
+        "live_size": 1,
+        "shadow_size": 0,
+        "forge_intake": 12,
+        "counterfactual_observation_size": 0,
+        "preserve_shadow_veto_live_policy": false,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.86,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 0.9,
+        "moonshot_size": 1,
+        "moonshot_threshold": 0.68,
+        "moonshot_max_cost_basis": 225.0,
+        "enforce_pre_council_friction_gate": false,
+        "live_execution_policy_enabled": true,
+        "same_contract_cooldown_hours": 72.0,
+        "max_entry_spread_pct": 0.12,
+        "min_execution_open_interest": 200,
+        "min_execution_volume": 25,
+        "min_execution_edge_after_friction_pct": 0.05,
+        "paired_side_capture_enabled": true,
+        "market_shock_control_mode": "active",
+        "model_stack": "unified_rnd"
+      },
+      "model_modes": {
+        "product_stack": "unified_rnd",
+        "directional_scout": "artifact",
+        "side_aware_scout": "active",
+        "sentinel": "active",
+        "payoff_ranker": "active",
+        "payoff_volatility_challenger": "observation_only",
+        "path_model": "active",
+        "side_model_source": "artifact",
+        "path_model_source": "artifact"
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 100,
+        "pre_forge_signal_count": 1,
+        "forge_candidate_count": 1,
+        "live_count": 0,
+        "shadow_count": 0,
+        "abstain_audit": {
+          "primary_reason": "model_no_trade",
+          "primary_reason_label": "Model no-trade discipline blocked every live candidate.",
+          "requested_live_size": 1,
+          "candidate_count": 1,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 0,
+          "model_no_trade_fail_count": 1,
+          "fill_quality_fail_count": 0,
+          "execution_policy_fail_count": 1,
+          "sentinel_no_trade_pressure_fail_count": 0,
+          "mixed_policy_fail_count": 1,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "model_no_trade": [
+              "BRK-B"
+            ],
+            "fill_quality": [],
+            "execution_policy": [
+              "BRK-B"
+            ],
+            "sentinel_no_trade_pressure": [],
+            "mixed_policy": [
+              "BRK-B"
+            ],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "model_no_trade": [
+              {
+                "symbol": "BRK-B",
+                "contract_symbol": "BRKB260904P00500000",
+                "option_type": "put",
+                "expiry": "2026-09-04",
+                "strike": 500.0,
+                "forge_score": 0.7039,
+                "effective_candidate_score": 0.8099,
+                "learned_rank_score": 0.7039,
+                "final_candidate_score": 0.7039,
+                "risk_adjusted_score": 0.8099,
+                "utility_after_friction_score": 1.0,
+                "expected_edge_after_friction_pct": 0.7057,
+                "friction_buffer_pct": 0.3665,
+                "prob_no_trade": 0.1973,
+                "scout_no_trade_prob": 0.6353,
+                "prob_fill_quality_ok": 1.0,
+                "execution_policy_passed": false,
+                "execution_policy_reasons": [
+                  "open_interest",
+                  "stale_last_trade"
+                ],
+                "conservative_exit_bid": 2.9,
+                "round_trip_spread_drag_pct": 0.0938,
+                "reentry_blocked": false,
+                "prior_entry_ask": null,
+                "sentinel_confidence": 0.437,
+                "sentinel_no_trade_relevance": 0.6666,
+                "sentinel_no_trade_pressure": 0.2913,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 320.0,
+                "spread_pct": 0.0984,
+                "delta": -0.3371,
+                "iv_rank": 0.3563,
+                "council_risk_flags": [
+                  "execution:open_interest",
+                  "execution:stale_last_trade",
+                  "execution_policy",
+                  "high_extrinsic",
+                  "model_no_trade",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "fill_quality": [],
+            "execution_policy": [
+              {
+                "symbol": "BRK-B",
+                "contract_symbol": "BRKB260904P00500000",
+                "option_type": "put",
+                "expiry": "2026-09-04",
+                "strike": 500.0,
+                "forge_score": 0.7039,
+                "effective_candidate_score": 0.8099,
+                "learned_rank_score": 0.7039,
+                "final_candidate_score": 0.7039,
+                "risk_adjusted_score": 0.8099,
+                "utility_after_friction_score": 1.0,
+                "expected_edge_after_friction_pct": 0.7057,
+                "friction_buffer_pct": 0.3665,
+                "prob_no_trade": 0.1973,
+                "scout_no_trade_prob": 0.6353,
+                "prob_fill_quality_ok": 1.0,
+                "execution_policy_passed": false,
+                "execution_policy_reasons": [
+                  "open_interest",
+                  "stale_last_trade"
+                ],
+                "conservative_exit_bid": 2.9,
+                "round_trip_spread_drag_pct": 0.0938,
+                "reentry_blocked": false,
+                "prior_entry_ask": null,
+                "sentinel_confidence": 0.437,
+                "sentinel_no_trade_relevance": 0.6666,
+                "sentinel_no_trade_pressure": 0.2913,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 320.0,
+                "spread_pct": 0.0984,
+                "delta": -0.3371,
+                "iv_rank": 0.3563,
+                "council_risk_flags": [
+                  "execution:open_interest",
+                  "execution:stale_last_trade",
+                  "execution_policy",
+                  "high_extrinsic",
+                  "model_no_trade",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "sentinel_no_trade_pressure": [],
+            "mixed_policy": [
+              {
+                "symbol": "BRK-B",
+                "contract_symbol": "BRKB260904P00500000",
+                "option_type": "put",
+                "expiry": "2026-09-04",
+                "strike": 500.0,
+                "forge_score": 0.7039,
+                "effective_candidate_score": 0.8099,
+                "learned_rank_score": 0.7039,
+                "final_candidate_score": 0.7039,
+                "risk_adjusted_score": 0.8099,
+                "utility_after_friction_score": 1.0,
+                "expected_edge_after_friction_pct": 0.7057,
+                "friction_buffer_pct": 0.3665,
+                "prob_no_trade": 0.1973,
+                "scout_no_trade_prob": 0.6353,
+                "prob_fill_quality_ok": 1.0,
+                "execution_policy_passed": false,
+                "execution_policy_reasons": [
+                  "open_interest",
+                  "stale_last_trade"
+                ],
+                "conservative_exit_bid": 2.9,
+                "round_trip_spread_drag_pct": 0.0938,
+                "reentry_blocked": false,
+                "prior_entry_ask": null,
+                "sentinel_confidence": 0.437,
+                "sentinel_no_trade_relevance": 0.6666,
+                "sentinel_no_trade_pressure": 0.2913,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 320.0,
+                "spread_pct": 0.0984,
+                "delta": -0.3371,
+                "iv_rank": 0.3563,
+                "council_risk_flags": [
+                  "execution:open_interest",
+                  "execution:stale_last_trade",
+                  "execution_policy",
+                  "high_extrinsic",
+                  "model_no_trade",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "symbol_probation": []
           }
         },
         "live_side_mix": {
