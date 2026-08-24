@@ -1,0 +1,52 @@
+{
+  "artifact": "orographic_rebuild_readiness",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-24T02:39:32+00:00",
+  "status": "hold_collecting_executable_evidence",
+  "production_model_change_allowed": false,
+  "preferred_training_source": {
+    "interface": "shared research mart",
+    "tables": [
+      "recommendations",
+      "recommendation_outcomes",
+      "option_quotes",
+      "features"
+    ],
+    "fallback": "canonical executable outcome artifacts",
+    "required_semantics": [
+      "entry ask or actual fill",
+      "exit bid or actual fill",
+      "label availability timestamp",
+      "recommendation-time feature availability",
+      "side, regime, and contract liquidity fields"
+    ]
+  },
+  "gates": {
+    "matched_side_pairs": {
+      "passed": false,
+      "actual": 0,
+      "required": 150
+    },
+    "fold_frozen_validation": {
+      "passed": false,
+      "actual": 0,
+      "required": 3
+    },
+    "current_model_resolutions": {
+      "passed": false,
+      "actual": 0,
+      "required": 100
+    },
+    "exit_policy_coverage": {
+      "passed": false,
+      "actual": 0.1429,
+      "required": 0.6
+    },
+    "baseline_promotion_ready": {
+      "passed": false,
+      "actual": "not_ready",
+      "required": "ready"
+    }
+  },
+  "next_action": "Keep production frozen; collect matched-side and executable exit evidence."
+}

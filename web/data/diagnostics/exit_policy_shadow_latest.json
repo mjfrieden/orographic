@@ -1,0 +1,92 @@
+{
+  "artifact": "orographic_exit_policy_shadow",
+  "schema_version": 1,
+  "generated_at_utc": "2026-08-24T02:39:32+00:00",
+  "mode": "shadow_only",
+  "production_effect": "none",
+  "fill_policy": "standing limits require recorded bid at or above limit; midpoint touches never count",
+  "row_contract": {
+    "primary_key": [
+      "recommendation_id",
+      "policy_id"
+    ],
+    "foreign_key": {
+      "recommendation_id": "recommendations.source_recommendation_id"
+    },
+    "time_semantics": "label_available_at_utc is the earliest safe training availability timestamp"
+  },
+  "summary": {
+    "recommendations": 1893,
+    "policy_rows": 7572,
+    "by_policy": {
+      "standing_limit_25": {
+        "recommendations": 1893,
+        "resolved": 225,
+        "coverage_pct": 0.1189,
+        "win_rate": 0.4622,
+        "mean_net_executable_return": -0.146164,
+        "net_executable_pnl_usd": -5740.25
+      },
+      "standing_limit_40": {
+        "recommendations": 1893,
+        "resolved": 225,
+        "coverage_pct": 0.1189,
+        "win_rate": 0.4222,
+        "mean_net_executable_return": -0.12067,
+        "net_executable_pnl_usd": -4768.8
+      },
+      "next_day_time_stop": {
+        "recommendations": 1893,
+        "resolved": 160,
+        "coverage_pct": 0.0845,
+        "win_rate": 0.3,
+        "mean_net_executable_return": -0.130583,
+        "net_executable_pnl_usd": -3620.0
+      },
+      "eod_spread_guard_10": {
+        "recommendations": 1893,
+        "resolved": 122,
+        "coverage_pct": 0.0644,
+        "win_rate": 0.3689,
+        "mean_net_executable_return": -0.008302,
+        "net_executable_pnl_usd": -720.0
+      }
+    },
+    "live_by_policy": {
+      "standing_limit_25": {
+        "recommendations": 21,
+        "resolved": 3,
+        "coverage_pct": 0.1429,
+        "win_rate": 1.0,
+        "mean_net_executable_return": 0.25,
+        "net_executable_pnl_usd": 115.75
+      },
+      "standing_limit_40": {
+        "recommendations": 21,
+        "resolved": 3,
+        "coverage_pct": 0.1429,
+        "win_rate": 0.6667,
+        "mean_net_executable_return": 0.144304,
+        "net_executable_pnl_usd": 64.0
+      },
+      "next_day_time_stop": {
+        "recommendations": 21,
+        "resolved": 3,
+        "coverage_pct": 0.1429,
+        "win_rate": 0.3333,
+        "mean_net_executable_return": -0.195452,
+        "net_executable_pnl_usd": -115.0
+      },
+      "eod_spread_guard_10": {
+        "recommendations": 21,
+        "resolved": 0,
+        "coverage_pct": 0.0,
+        "win_rate": null,
+        "mean_net_executable_return": null,
+        "net_executable_pnl_usd": 0
+      }
+    }
+  },
+  "rows_artifact": "output/research_datasets/exit_policy_shadow_rows.json",
+  "row_count": 7572
+}
