@@ -111,6 +111,12 @@ class ContractCandidate:
     stability_adjustment: float | None = None
     turnover_risk_penalty: float | None = None
     prior_live_board_symbol: bool | None = None
+    execution_policy_passed: bool | None = None
+    execution_policy_reasons: list[str] = field(default_factory=list)
+    conservative_exit_bid: float | None = None
+    round_trip_spread_drag_pct: float | None = None
+    reentry_blocked: bool | None = None
+    prior_entry_ask: float | None = None
     payoff_model_score: float | None = None
     payoff_shadow_prob_positive: float | None = None
     payoff_shadow_rank: float | None = None

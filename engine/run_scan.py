@@ -212,6 +212,17 @@ def parse_args() -> argparse.Namespace:
         help="Research-only: drop contracts that fail the pre-Council friction gate before Council selection.",
     )
     parser.add_argument(
+        "--live-execution-policy",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Apply executable-liquidity and same-contract cooldown vetoes to the live Council board.",
+    )
+    parser.add_argument("--same-contract-cooldown-hours", type=float, default=72.0)
+    parser.add_argument("--max-entry-spread-pct", type=float, default=0.12)
+    parser.add_argument("--min-execution-open-interest", type=int, default=200)
+    parser.add_argument("--min-execution-volume", type=int, default=25)
+    parser.add_argument("--min-execution-edge-after-friction-pct", type=float, default=0.05)
+    parser.add_argument(
         "--no-paired-side-capture",
         action="store_true",
         help="Disable research-only matched call/put outcome capture for this scan.",
@@ -225,6 +236,11 @@ def main() -> int:
         universe = [item.strip().upper() for item in args.symbols.split(",") if item.strip()]
     else:
         universe = load_universe(args.universe_file)
+    board_history_path = (
+        Path(args.board_history_output)
+        if args.board_history_output.strip()
+        else Path(args.output).parent / "diagnostics" / "board_recommendation_history.json"
+    )
 
     payload = run_scan(
         PipelineConfig(
@@ -244,7 +260,14 @@ def main() -> int:
             moonshot_threshold=max(min(float(args.moonshot_threshold), 1.0), 0.0),
             moonshot_max_cost_basis=max(float(args.moonshot_max_cost_basis), 0.0),
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
+            live_execution_policy_enabled=bool(args.live_execution_policy),
+            same_contract_cooldown_hours=max(float(args.same_contract_cooldown_hours), 0.0),
+            max_entry_spread_pct=max(min(float(args.max_entry_spread_pct), 1.0), 0.0),
+            min_execution_open_interest=max(int(args.min_execution_open_interest), 0),
+            min_execution_volume=max(int(args.min_execution_volume), 0),
+            min_execution_edge_after_friction_pct=float(args.min_execution_edge_after_friction_pct),
             paired_side_capture_enabled=not bool(args.no_paired_side_capture),
+            board_history_path=board_history_path,
         )
     )
     diagnostic_sources: dict[str, str] = {}

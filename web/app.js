@@ -1172,6 +1172,8 @@ function renderCockpitSignal(payload) {
         <div class="signal-evidence-grid">
           <div><span>Liquidity</span><strong>${pct(candidate.liquidity_score)}</strong><small>${integer(candidate.volume)} volume · ${integer(candidate.open_interest)} open interest</small></div>
           <div><span>Spread</span><strong>${pct(candidate.spread_pct)}</strong><small>Bid ${money(candidate.bid)} · ask ${money(ask)}</small></div>
+          <div><span>Execution guard</span><strong>${candidate.execution_policy_passed === false ? "Blocked" : "Passed"}</strong><small>Conservative exit ${money(candidate.conservative_exit_bid ?? candidate.bid)} · round-trip drag ${pct(candidate.round_trip_spread_drag_pct)}</small></div>
+          <div><span>Repeat entry</span><strong>${candidate.reentry_blocked ? "Blocked" : "Clear"}</strong><small>${candidate.prior_entry_ask != null ? `Prior ask ${money(candidate.prior_entry_ask)}` : "No recent matching live contract"}</small></div>
           <div><span>Projected move</span><strong>${pct(candidate.projected_move_pct)}</strong><small>Breakeven move ${pct(candidate.breakeven_move_pct)}</small></div>
           <div><span>Risk controls</span><strong>${riskFlags.length ? integer(riskFlags.length) : "0"}</strong><small>${escapeHtml(riskFlags.join(" · ") || "No flagged Council exceptions")}</small></div>
           ${candidate.payoff_shadow_return_q10 != null ? `<div><span>Research downside</span><strong>${pct(candidate.payoff_shadow_return_q10)}</strong><small>Observation-only q10 after-cost return</small></div>` : ""}
@@ -2488,6 +2490,7 @@ function coreFilterAuditSummary(audit) {
     `${integer(audit.score_and_extrinsic_fail_count)} both`,
     `${integer(audit.model_no_trade_fail_count)} no-trade`,
     `${integer(audit.fill_quality_fail_count)} fill`,
+    `${integer(audit.execution_policy_fail_count)} execution`,
   ].join(" · ");
 }
 
@@ -2912,7 +2915,7 @@ async function renderBoard(payload) {
         .map((row, i) =>
           rowHtml(
             `${row.symbol} ${String(row.option_type).toUpperCase()} · ${row.forge_score}`,
-            `ask ${money(row.ask ?? row.premium)} · edge ${pct(row.payoff_edge_score ?? row.prob_positive_option_pnl, 0)} · policy ${Number(policyScore(row)).toFixed(2)}`,
+            `ask ${money(row.ask ?? row.premium)} · edge ${pct(row.payoff_edge_score ?? row.prob_positive_option_pnl, 0)} · execution ${row.execution_policy_passed === false ? "blocked" : "pass"} · policy ${Number(policyScore(row)).toFixed(2)}`,
             toneClass(row.option_type),
             `Forge ${String(i + 1).padStart(2, "0")}`,
           ),

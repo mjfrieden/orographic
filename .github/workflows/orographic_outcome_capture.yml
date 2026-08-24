@@ -114,6 +114,7 @@ jobs:
             python scripts/build_scout_pair_readiness.py --warn-only
             python scripts/build_payoff_challenger_evidence.py
             python scripts/build_counterfactual_veto_evidence.py
+            python scripts/evaluate_exit_policy_shadow.py
             python scripts/mark_path_outcomes_from_archive.py \
               --archive-dir engine/data/live_options_archive \
               --ledger web/data/diagnostics/prospective_pick_ledger.json \
@@ -134,6 +135,7 @@ jobs:
             --output web/data/diagnostics/outcome_capture_health_latest.json
           python scripts/build_model_governance_summary.py \
             --capture-health web/data/diagnostics/outcome_capture_health_latest.json
+          python scripts/build_rebuild_readiness.py
 
       - name: Build compact dashboard prospective summary
         if: ${{ always() }}

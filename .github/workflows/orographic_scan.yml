@@ -232,6 +232,10 @@ jobs:
         run: |
           python scripts/build_scout_pair_readiness.py --warn-only
 
+      - name: Evaluate executable shadow exit policies
+        run: |
+          python scripts/evaluate_exit_policy_shadow.py
+
       - name: Build point-in-time event outcome coverage
         run: |
           python scripts/build_event_outcome_coverage.py \
@@ -450,6 +454,7 @@ jobs:
             --dashboard-deploy-status "${{ steps.deploy_pages.outcome || 'skipped' }}" \
             --warn-only
           python scripts/build_model_governance_summary.py
+          python scripts/build_rebuild_readiness.py
 
       - name: Commit scan health summary
         id: health_summary
@@ -459,7 +464,9 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
             web/data/diagnostics/scan_health_summary_latest.json \
-            web/data/diagnostics/model_governance_summary_latest.json
+            web/data/diagnostics/model_governance_summary_latest.json \
+            web/data/diagnostics/exit_policy_shadow_latest.json \
+            web/data/diagnostics/orographic_rebuild_readiness_latest.json
           if git diff --cached --quiet; then
             echo "health_summary_changed=false" >> "$GITHUB_OUTPUT"
             echo "No scan health summary changes to commit."

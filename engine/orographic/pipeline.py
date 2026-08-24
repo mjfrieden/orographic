@@ -12,6 +12,7 @@ import json
 from zoneinfo import ZoneInfo
 
 from .council import select_board
+from .execution_policy import LiveExecutionPolicy, apply_live_execution_policy, load_recent_live_exposures
 from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
 from .market_shock import classify_current_market_shock
 from .moonshot import select_moonshot_lane
@@ -67,6 +68,12 @@ class PipelineConfig:
     moonshot_threshold: float = 0.68
     moonshot_max_cost_basis: float = 225.0
     enforce_pre_council_friction_gate: bool = False
+    live_execution_policy_enabled: bool = True
+    same_contract_cooldown_hours: float = 72.0
+    max_entry_spread_pct: float = 0.12
+    min_execution_open_interest: int = 200
+    min_execution_volume: int = 25
+    min_execution_edge_after_friction_pct: float = 0.05
     paired_side_capture_enabled: bool = True
     market_shock_control_mode: str = "active"
     board_history_path: str | Path | None = Path("web/data/diagnostics/board_recommendation_history.json")
@@ -374,6 +381,17 @@ def _compact_attribution_contract_view(rows: list[dict[str, Any]]) -> list[dict[
                 "path_decay_risk": row.get("path_decay_risk"),
                 "path_model_mode": row.get("path_model_mode"),
                 "contract_cost": row.get("contract_cost"),
+                "bid": row.get("bid"),
+                "ask": row.get("ask"),
+                "spread_pct": row.get("spread_pct"),
+                "open_interest": row.get("open_interest"),
+                "volume": row.get("volume"),
+                "execution_policy_passed": row.get("execution_policy_passed"),
+                "execution_policy_reasons": row.get("execution_policy_reasons", []),
+                "conservative_exit_bid": row.get("conservative_exit_bid"),
+                "round_trip_spread_drag_pct": row.get("round_trip_spread_drag_pct"),
+                "reentry_blocked": row.get("reentry_blocked"),
+                "prior_entry_ask": row.get("prior_entry_ask"),
                 "council_risk_flags": row.get("council_risk_flags", []),
                 "notes": row.get("notes", []),
             }
@@ -2540,6 +2558,20 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
         moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
+        live_execution_policy_enabled = _config_bool(config, "live_execution_policy_enabled", True)
+        same_contract_cooldown_hours = _config_float(
+            config, "same_contract_cooldown_hours", 72.0, minimum=0.0
+        )
+        max_entry_spread_pct = _config_float(
+            config, "max_entry_spread_pct", 0.12, minimum=0.0, maximum=1.0
+        )
+        min_execution_open_interest = _config_int(
+            config, "min_execution_open_interest", 200, minimum=0
+        )
+        min_execution_volume = _config_int(config, "min_execution_volume", 25, minimum=0)
+        min_execution_edge_after_friction_pct = _config_float(
+            config, "min_execution_edge_after_friction_pct", 0.05, minimum=-1.0, maximum=10.0
+        )
         paired_side_capture_enabled = _config_bool(
             config, "paired_side_capture_enabled", True
         )
@@ -2597,6 +2629,26 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 enforce_pre_council_friction_gate=enforce_pre_council_friction_gate,
                 prior_live_board_symbols=prior_live_board_symbols,
                 capture_paired_side_observations=paired_side_capture_enabled,
+            )
+            execution_policy = LiveExecutionPolicy(
+                enabled=live_execution_policy_enabled,
+                same_contract_cooldown_hours=same_contract_cooldown_hours,
+                max_entry_spread_pct=max_entry_spread_pct,
+                min_open_interest=min_execution_open_interest,
+                min_volume=min_execution_volume,
+                min_expected_edge_after_friction_pct=min_execution_edge_after_friction_pct,
+            )
+            execution_policy_as_of = datetime.now(timezone.utc)
+            prior_live_exposures = load_recent_live_exposures(
+                getattr(config, "board_history_path", None),
+                as_of_utc=execution_policy_as_of,
+                lookback_hours=same_contract_cooldown_hours,
+            )
+            execution_policy_diagnostics = apply_live_execution_policy(
+                forge_candidates,
+                prior_exposures=prior_live_exposures,
+                as_of_utc=execution_policy_as_of,
+                policy=execution_policy,
             )
             counterfactual_input_signals: list[Any] = []
             counterfactual_candidates: list[Any] = []
@@ -2718,6 +2770,12 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "moonshot_threshold": moonshot_threshold,
                 "moonshot_max_cost_basis": moonshot_max_cost_basis,
                 "enforce_pre_council_friction_gate": enforce_pre_council_friction_gate,
+                "live_execution_policy_enabled": live_execution_policy_enabled,
+                "same_contract_cooldown_hours": same_contract_cooldown_hours,
+                "max_entry_spread_pct": max_entry_spread_pct,
+                "min_execution_open_interest": min_execution_open_interest,
+                "min_execution_volume": min_execution_volume,
+                "min_execution_edge_after_friction_pct": min_execution_edge_after_friction_pct,
                 "paired_side_capture_enabled": paired_side_capture_enabled,
                 "market_shock_control_mode": market_shock_control_mode,
                 "model_stack": model_stack,
@@ -2771,6 +2829,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout": scout_diagnostics,
                 "pre_forge": pre_forge_diagnostics,
                 "forge": forge_diagnostics,
+                "live_execution_policy": execution_policy_diagnostics,
                 "market_shock": {
                     "mode": market_shock_control_mode,
                     "applied": market_shock_control_mode == "active",
@@ -2790,6 +2849,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "scout_shadow_side_veto_observations": scout_diagnostics.get("shadow_side_veto_observations", 0),
                 "pre_forge_signal_count": len(forge_input_signals),
                 "forge_candidate_count": len(forge_candidates),
+                "execution_policy_veto_count": execution_policy_diagnostics.get("dropped", 0),
                 "paired_side_observation_count": len(
                     all_paired_side_observation_rows
                 ),
