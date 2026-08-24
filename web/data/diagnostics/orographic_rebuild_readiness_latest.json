@@ -1,7 +1,7 @@
 {
   "artifact": "orographic_rebuild_readiness",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-24T03:41:39+00:00",
+  "generated_at_utc": "2026-08-24T14:08:31+00:00",
   "status": "hold_collecting_executable_evidence",
   "production_model_change_allowed": false,
   "preferred_training_source": {
@@ -23,21 +23,21 @@
     ]
   },
   "rollout": {
-    "p0_consumer_contract": "ready",
+    "p0_consumer_contract": "blocked",
     "p1_research_views": {
-      "cirrus_orographic_disagreement_v1": 840,
-      "orographic_execution_quality_v1": 2192,
-      "orographic_exit_replay_v1": 340,
-      "orographic_model_monitoring_v1": 24,
+      "cirrus_orographic_disagreement_v1": 0,
+      "orographic_execution_quality_v1": 0,
+      "orographic_exit_replay_v1": 0,
+      "orographic_model_monitoring_v1": 0,
       "orographic_training_v1": 0
     },
-    "p2_shadow_authority": "observation_only_never_used_for_routing",
+    "p2_shadow_authority": "not_available",
     "p3_promotion": "blocked_by_gates"
   },
   "gates": {
     "shared_mart_consumer": {
-      "passed": true,
-      "actual": "ready",
+      "passed": false,
+      "actual": "missing_or_invalid",
       "required": "ready_observation_only"
     },
     "matched_side_pairs": {
@@ -52,7 +52,7 @@
     },
     "current_model_resolutions": {
       "passed": false,
-      "actual": 72,
+      "actual": 0,
       "required": 100
     },
     "exit_policy_coverage": {
@@ -66,5 +66,5 @@
       "required": "ready"
     }
   },
-  "next_action": "Keep production frozen; collect matched-side and executable exit evidence."
+  "next_action": "Build and validate the shared mart consumer bundle."
 }
