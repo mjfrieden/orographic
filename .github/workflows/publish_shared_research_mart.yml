@@ -1,9 +1,6 @@
 name: Publish shared research mart
 
 on:
-  push:
-    branches:
-      - codex/shared-research-mart
   workflow_dispatch:
     inputs:
       mart_object_key:
@@ -45,7 +42,7 @@ jobs:
 
       - name: Download validated mart archive
         env:
-          MART_OBJECT_KEY: ${{ inputs.mart_object_key || 'shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz' }}
+          MART_OBJECT_KEY: ${{ inputs.mart_object_key }}
         run: |
           mkdir -p /tmp/shared-research-mart
           npx wrangler@4 r2 object get \
