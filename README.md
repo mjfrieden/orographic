@@ -205,6 +205,29 @@ python scripts/materialize_canonical_evidence_for_cirrus.py \
   --output-dir engine/data/options/blended/partitioned
 ```
 
+### Shared Cirrus + Orographic research mart
+
+The shared research mart conforms Orographic canonical evidence and Cirrus's neutral research
+export into versioned analytical tables for point-in-time backtests and paired model comparisons.
+It preserves source system, cohort, model version, label contract, and exit policy rather than
+blending the two systems into an untraceable result.
+
+```bash
+python scripts/build_shared_research_mart.py \
+  --orographic-canonical-dir output/canonical_evidence \
+  --cirrus-export-dir ../Cirrus/analysis/output/options_research_bundle \
+  --output-dir output/shared_research_mart
+
+# Validate the complete publication plan; this does not write to Cloudflare.
+python scripts/publish_shared_research_mart.py \
+  --mart-dir output/shared_research_mart
+```
+
+The optional Iceberg publisher requires `engine/requirements-mart.txt` and explicit
+`OROGRAPHIC_R2_DATA_CATALOG_*` credentials. It will not publish a partial one-system mart.
+Architecture, table grains, safety rules, and rollout gates are documented in
+[`docs/shared-research-mart.md`](docs/shared-research-mart.md).
+
 The committed `data/evidence_seed/strict_option_outcomes.json.gz` preserves the
 740-row strict executable-label v2 dataset that predated R2 manifests. It is a
 one-time immutable migration input, not a second production lane or a file to

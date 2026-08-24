@@ -1,0 +1,63 @@
+name: Publish shared research mart
+
+on:
+  workflow_dispatch:
+    inputs:
+      mart_object_key:
+        description: R2 object key containing a validated shared-mart tar.gz archive
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+      OROGRAPHIC_R2_DATA_CATALOG_URI: https://catalog.cloudflarestorage.com/fb7bb10f51e3f6c0fe572d28a3a7e1f4/orographic-research-data
+      OROGRAPHIC_R2_DATA_CATALOG_WAREHOUSE: fb7bb10f51e3f6c0fe572d28a3a7e1f4_orographic-research-data
+      OROGRAPHIC_R2_DATA_CATALOG_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements-mart.txt
+
+      - name: Validate required configuration
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$OROGRAPHIC_RESEARCH_R2_BUCKET"
+
+      - name: Install mart dependencies
+        run: python -m pip install -r engine/requirements-mart.txt
+
+      - name: Download validated mart archive
+        env:
+          MART_OBJECT_KEY: ${{ inputs.mart_object_key }}
+        run: |
+          mkdir -p /tmp/shared-research-mart
+          npx wrangler@4 r2 object get \
+            "$OROGRAPHIC_RESEARCH_R2_BUCKET/$MART_OBJECT_KEY" \
+            --file=/tmp/shared-research-mart.tar.gz \
+            --remote
+          tar -xzf /tmp/shared-research-mart.tar.gz -C /tmp/shared-research-mart
+
+      - name: Validate and publish Iceberg tables
+        run: |
+          python scripts/publish_shared_research_mart.py \
+            --mart-dir /tmp/shared-research-mart \
+            --apply
+
+      - name: Verify published row counts
+        run: |
+          python scripts/verify_shared_research_mart.py \
+            --mart-dir /tmp/shared-research-mart
