@@ -1,6 +1,6 @@
 # Cirrus + Orographic shared research mart
 
-Status: local pilot implemented; R2 Iceberg catalog enabled; production publication is token-gated.
+Status: production pilot published and independently row-count verified on 2026-08-24.
 
 ## Decision
 
@@ -86,8 +86,10 @@ The Data Catalog is enabled on the existing `orographic-research-data` bucket:
 - Warehouse: `fb7bb10f51e3f6c0fe572d28a3a7e1f4_orographic-research-data`
 - Namespace: `research_mart`
 
-Create a bucket-scoped token with both R2 object and R2 Data Catalog read/write permissions, then
-provide it outside Git:
+Create an **R2 Account API Token** with Cloudflare's **Admin Read & Write** R2 permission. That
+permission includes both object access and Data Catalog table/metadata access. Cloudflare's current
+dashboard applies this permission at the account's R2 scope rather than to one bucket, so store it
+only as the encrypted `CLOUDFLARE_R2_API_TOKEN` repository secret and provide it outside Git:
 
 ```bash
 export OROGRAPHIC_R2_DATA_CATALOG_URI="https://catalog.cloudflarestorage.com/fb7bb10f51e3f6c0fe572d28a3a7e1f4/orographic-research-data"
@@ -114,6 +116,19 @@ Install the optional publisher dependency and publish only after reviewing the p
 Publication refuses an Orographic-only or Cirrus-only mart. It merges all six data tables and
 commits `mart_publications` last so a consumer can distinguish a completed publication from an
 interrupted one.
+
+### Initial production publication
+
+Mart `bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64` was published to
+`research_mart` and verified against its manifest:
+
+- 395 model runs
+- 2,596 recommendations
+- 1,246 execution outcomes
+- 836,413 option quotes
+- 103 feature snapshots
+- 4 path exclusions
+- 1 final `mart_publications` record
 
 ## Production rollout gates
 
