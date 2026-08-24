@@ -1,7 +1,7 @@
 {
   "artifact": "scout_pair_readiness",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-21T14:13:56.205223Z",
+  "generated_at_utc": "2026-08-21T20:15:49.037660Z",
   "status": "hold_collecting_pairs",
   "execution_effect": "none_research_only",
   "active_model_change_allowed": false,
@@ -11,18 +11,26 @@
     "label_policy": "strict_executable_quote_or_fill_v2"
   },
   "coverage": {
-    "input_rows": 10,
-    "explicit_pair_rows": 0,
-    "strict_executable_pair_rows": 0,
-    "pair_ids_with_strict_rows": 0,
-    "rejected_pair_ids": 0,
-    "complete_explicit_pairs": 0,
-    "decision_dates": 0,
-    "first_decision_date": null,
-    "last_decision_date": null,
-    "label_counts": {},
-    "regime_counts": {},
-    "evidence_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945"
+    "input_rows": 293,
+    "explicit_pair_rows": 191,
+    "strict_executable_pair_rows": 191,
+    "pair_ids_with_strict_rows": 96,
+    "rejected_pair_ids": 1,
+    "rejected_not_exactly_one_contract_per_side": 1,
+    "complete_explicit_pairs": 95,
+    "decision_dates": 4,
+    "first_decision_date": "2026-08-18",
+    "last_decision_date": "2026-08-21",
+    "label_counts": {
+      "call_edge": 19,
+      "no_trade": 51,
+      "put_edge": 25
+    },
+    "regime_counts": {
+      "neutral": 60,
+      "risk_on": 35
+    },
+    "evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309"
   },
   "historical_archive": {
     "symbols": 1,
@@ -37,30 +45,33 @@
   "promotion_gates": {
     "strict_executable_labels": {
       "passed": true,
-      "explicit_rows": 0,
-      "strict_v2_rows": 0
+      "explicit_rows": 191,
+      "strict_v2_rows": 191
     },
     "minimum_complete_pairs": {
       "passed": false,
-      "actual": 0,
+      "actual": 95,
       "required": 150
     },
     "minimum_call_put_edges": {
       "passed": false,
       "actual": {
-        "call_edge": 0,
-        "put_edge": 0
+        "call_edge": 19,
+        "put_edge": 25
       },
       "required_each": 50
     },
     "independent_decision_dates": {
       "passed": false,
-      "actual": 0,
+      "actual": 4,
       "required": 30
     },
     "regime_coverage": {
-      "passed": false,
-      "actual": {},
+      "passed": true,
+      "actual": {
+        "neutral": 60,
+        "risk_on": 35
+      },
       "required_regimes": 2,
       "required_pairs_per_regime": 25
     },
@@ -72,9 +83,15 @@
   },
   "fold_frozen_evaluation_plan": {
     "method": "expanding walk-forward grouped by decision date; labels purged by availability date",
+    "artifact_policy": "one immutable model/scaler/calibrator bundle per fold; never reuse future-fold artifacts",
     "folds": [],
     "ready_folds": 0,
-    "required_ready_folds": 3
+    "required_ready_folds": 3,
+    "requirements_per_ready_fold": {
+      "minimum_train_pairs": 80,
+      "minimum_validation_pairs": 20,
+      "minimum_train_edges_per_side": 20
+    }
   },
   "next_action": "Continue prospective matched-pair outcome capture; historical archive coverage is insufficient for a credible backfill."
 }

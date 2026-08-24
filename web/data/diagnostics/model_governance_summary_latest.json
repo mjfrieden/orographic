@@ -1,9 +1,9 @@
 {
   "artifact": "model_governance_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-21T14:20:03.896780Z",
-  "status": "fail",
-  "headline": "Research data capture needs attention; challenger authority remains disabled.",
+  "generated_at_utc": "2026-08-21T20:20:44.862975Z",
+  "status": "hold",
+  "headline": "Production policy is unchanged while challengers collect binding evidence.",
   "live_authority": {
     "policy": "active_production_models_only",
     "challenger_order_routing": false,
@@ -12,48 +12,48 @@
     "summary": "No research challenger can size, select, or transmit a Tradier order."
   },
   "data_capture": {
-    "status": "fail",
-    "headline": "Active contracts are missing fresh, timestamp-valid path evidence.",
-    "active_contracts_last_run": 307,
-    "marks_written_last_run": 304,
-    "trajectory_contracts": 307,
-    "trajectory_marks": 28456,
+    "status": "pass",
+    "headline": "No contracts are currently due for path capture.",
+    "active_contracts_last_run": 0,
+    "marks_written_last_run": 0,
+    "trajectory_contracts": 337,
+    "trajectory_marks": 30489,
     "missing_quotes_last_run": 0,
-    "stale_quotes_last_run": 3,
+    "stale_quotes_last_run": 0,
     "evidence_inventory": {
       "cumulative_inventory": {
         "moonshot": {
-          "recommendations": 482,
-          "runs": 158,
-          "strict_capture_policy_v2": 56,
-          "with_any_executable_label": 150,
-          "with_any_fixed_mark": 466,
-          "with_friday_executable_label": 63
+          "recommendations": 490,
+          "runs": 160,
+          "strict_capture_policy_v2": 64,
+          "with_any_executable_label": 162,
+          "with_any_fixed_mark": 478,
+          "with_friday_executable_label": 110
         },
-        "option_quote_rows": 674540,
+        "option_quote_rows": 835986,
         "primary": {
-          "recommendations": 1947,
-          "runs": 200,
-          "strict_capture_policy_v2": 299,
-          "with_any_executable_label": 225,
-          "with_any_fixed_mark": 1196,
-          "with_friday_executable_label": 10
+          "recommendations": 2003,
+          "runs": 202,
+          "strict_capture_policy_v2": 355,
+          "with_any_executable_label": 309,
+          "with_any_fixed_mark": 1280,
+          "with_friday_executable_label": 293
         },
-        "recommendation_outcome_rows": 813
+        "recommendation_outcome_rows": 1143
       },
       "current_model_cohort": {
         "artifact_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
-        "resolved_recommendations": 0,
-        "resolved_runs": 0,
-        "scored_recommendations": 65
+        "resolved_recommendations": 72,
+        "resolved_runs": 10,
+        "scored_recommendations": 84
       },
       "training_eligible": {
-        "deduplicated_recommendation_outcomes": 813,
-        "primary_recommendations_with_executable_label": 225,
-        "strict_capture_policy_v2_primary_recommendations": 299
+        "deduplicated_recommendation_outcomes": 1143,
+        "primary_recommendations_with_executable_label": 309,
+        "strict_capture_policy_v2_primary_recommendations": 355
       }
     },
-    "canonical_bundle_id": "d78ea8a1ea0045bdfb75"
+    "canonical_bundle_id": "992f6aa17aed6c1be31f"
   },
   "challengers": [
     {
@@ -65,16 +65,16 @@
       "execution_effect": "none",
       "summary": "Two-stage challenger learns trade-versus-abstain before call-versus-put.",
       "progress": {
-        "current": 0,
+        "current": 95,
         "required": 150,
-        "remaining": 150,
-        "progress_pct": 0.0,
+        "remaining": 55,
+        "progress_pct": 0.6333,
         "label": "complete matched call/put pairs"
       },
       "metrics": [
         {
           "label": "Complete matched pairs",
-          "value": 0,
+          "value": 95,
           "format": "integer"
         },
         {
@@ -84,7 +84,7 @@
         },
         {
           "label": "Call-edge / put-edge",
-          "value": "0 / 0",
+          "value": "19 / 25",
           "format": "text"
         },
         {
@@ -97,7 +97,7 @@
         "minimum complete pairs",
         "minimum call put edges",
         "independent decision dates",
-        "regime coverage"
+        "fold frozen plan"
       ],
       "next_action": "Continue prospective matched-pair outcome capture; historical archive coverage is insufficient for a credible backfill."
     },
@@ -110,10 +110,10 @@
       "execution_effect": "none",
       "summary": "Predicts after-cost return quantiles, breakeven probability, and fill quality.",
       "progress": {
-        "current": 0,
+        "current": 72,
         "required": 100,
-        "remaining": 100,
-        "progress_pct": 0.0,
+        "remaining": 28,
+        "progress_pct": 0.72,
         "label": "resolved prospective recommendations"
       },
       "metrics": [
@@ -159,26 +159,26 @@
       "execution_effect": "none",
       "summary": "Measures whether Scout's no-trade preference avoids losses without suppressing profitable trades.",
       "progress": {
-        "current": 0,
+        "current": 34,
         "required": 100,
-        "remaining": 100,
-        "progress_pct": 0.0,
+        "remaining": 66,
+        "progress_pct": 0.34,
         "label": "resolved independent vetoes"
       },
       "metrics": [
         {
           "label": "Independent scored",
-          "value": 334,
+          "value": 348,
           "format": "integer"
         },
         {
           "label": "Resolved vetoes",
-          "value": 0,
+          "value": 34,
           "format": "integer"
         },
         {
           "label": "Trading days",
-          "value": 0,
+          "value": 4,
           "format": "integer"
         }
       ],
@@ -186,7 +186,7 @@
         "resolved current rule vetoes",
         "independent trading days",
         "call coverage",
-        "put coverage"
+        "regime coverage"
       ],
       "next_action": "Capture more strict Friday-close outcomes for independent current-rule veto observations."
     },
