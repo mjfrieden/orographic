@@ -1,7 +1,7 @@
 {
   "artifact": "scout_pair_readiness",
   "schema_version": 1,
-  "generated_at_utc": "2026-08-28T17:18:44.509031Z",
+  "generated_at_utc": "2026-08-28T20:11:06.920570Z",
   "status": "hold_collecting_pairs",
   "execution_effect": "none_research_only",
   "active_model_change_allowed": false,
@@ -11,26 +11,26 @@
     "label_policy": "strict_executable_quote_or_fill_v2"
   },
   "coverage": {
-    "input_rows": 293,
-    "explicit_pair_rows": 191,
-    "strict_executable_pair_rows": 191,
-    "pair_ids_with_strict_rows": 96,
-    "rejected_pair_ids": 1,
-    "rejected_not_exactly_one_contract_per_side": 1,
-    "complete_explicit_pairs": 95,
-    "decision_dates": 4,
+    "input_rows": 595,
+    "explicit_pair_rows": 398,
+    "strict_executable_pair_rows": 398,
+    "pair_ids_with_strict_rows": 203,
+    "rejected_pair_ids": 8,
+    "rejected_not_exactly_one_contract_per_side": 8,
+    "complete_explicit_pairs": 195,
+    "decision_dates": 9,
     "first_decision_date": "2026-08-18",
-    "last_decision_date": "2026-08-21",
+    "last_decision_date": "2026-08-28",
     "label_counts": {
-      "call_edge": 19,
-      "no_trade": 51,
-      "put_edge": 25
+      "call_edge": 33,
+      "no_trade": 110,
+      "put_edge": 52
     },
     "regime_counts": {
-      "neutral": 60,
-      "risk_on": 35
+      "neutral": 77,
+      "risk_on": 118
     },
-    "evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309"
+    "evidence_sha256": "8caef9381831feba169967711982ccfc9287ae258c2af57b816aedfefd3fe0ee"
   },
   "historical_archive": {
     "symbols": 1,
@@ -45,32 +45,32 @@
   "promotion_gates": {
     "strict_executable_labels": {
       "passed": true,
-      "explicit_rows": 191,
-      "strict_v2_rows": 191
+      "explicit_rows": 398,
+      "strict_v2_rows": 398
     },
     "minimum_complete_pairs": {
-      "passed": false,
-      "actual": 95,
+      "passed": true,
+      "actual": 195,
       "required": 150
     },
     "minimum_call_put_edges": {
       "passed": false,
       "actual": {
-        "call_edge": 19,
-        "put_edge": 25
+        "call_edge": 33,
+        "put_edge": 52
       },
       "required_each": 50
     },
     "independent_decision_dates": {
       "passed": false,
-      "actual": 4,
+      "actual": 9,
       "required": 30
     },
     "regime_coverage": {
       "passed": true,
       "actual": {
-        "neutral": 60,
-        "risk_on": 35
+        "neutral": 77,
+        "risk_on": 118
       },
       "required_regimes": 2,
       "required_pairs_per_regime": 25
@@ -84,7 +84,112 @@
   "fold_frozen_evaluation_plan": {
     "method": "expanding walk-forward grouped by decision date; labels purged by availability date",
     "artifact_policy": "one immutable model/scaler/calibrator bundle per fold; never reuse future-fold artifacts",
-    "folds": [],
+    "folds": [
+      {
+        "fold": 1,
+        "ready": false,
+        "train_pairs": 95,
+        "validation_pairs": 13,
+        "train_label_counts": {
+          "call_edge": 19,
+          "no_trade": 51,
+          "put_edge": 25
+        },
+        "validation_label_counts": {
+          "call_edge": 1,
+          "no_trade": 8,
+          "put_edge": 4
+        },
+        "training_labels_available_through": "2026-08-21",
+        "validation_start": "2026-08-24",
+        "training_evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309",
+        "validation_evidence_sha256": "c16b1fef86f269e952ab02b8e2c050356164ff93ac8bb73f9dd8a4e6f513040b",
+        "artifact_policy": "retrain and freeze Scout artifacts on this fold's training rows before scoring validation dates"
+      },
+      {
+        "fold": 2,
+        "ready": false,
+        "train_pairs": 95,
+        "validation_pairs": 17,
+        "train_label_counts": {
+          "call_edge": 19,
+          "no_trade": 51,
+          "put_edge": 25
+        },
+        "validation_label_counts": {
+          "no_trade": 10,
+          "put_edge": 7
+        },
+        "training_labels_available_through": "2026-08-21",
+        "validation_start": "2026-08-25",
+        "training_evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309",
+        "validation_evidence_sha256": "75884c9f3cd63fb79a109c01e043f3fe6a6d56d4f0d44e74555f2f3da03f1cdd",
+        "artifact_policy": "retrain and freeze Scout artifacts on this fold's training rows before scoring validation dates"
+      },
+      {
+        "fold": 3,
+        "ready": false,
+        "train_pairs": 95,
+        "validation_pairs": 26,
+        "train_label_counts": {
+          "call_edge": 19,
+          "no_trade": 51,
+          "put_edge": 25
+        },
+        "validation_label_counts": {
+          "call_edge": 2,
+          "no_trade": 15,
+          "put_edge": 9
+        },
+        "training_labels_available_through": "2026-08-21",
+        "validation_start": "2026-08-26",
+        "training_evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309",
+        "validation_evidence_sha256": "e342a1f63f3c833fe71e97a30027fe7bc1188cc7d90024f88b45f3241696dcae",
+        "artifact_policy": "retrain and freeze Scout artifacts on this fold's training rows before scoring validation dates"
+      },
+      {
+        "fold": 4,
+        "ready": false,
+        "train_pairs": 95,
+        "validation_pairs": 17,
+        "train_label_counts": {
+          "call_edge": 19,
+          "no_trade": 51,
+          "put_edge": 25
+        },
+        "validation_label_counts": {
+          "call_edge": 3,
+          "no_trade": 11,
+          "put_edge": 3
+        },
+        "training_labels_available_through": "2026-08-21",
+        "validation_start": "2026-08-27",
+        "training_evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309",
+        "validation_evidence_sha256": "75f8330a0ce8c9e61a700893ac6aaa7cd73b0fffb6917b9d5384a07abf5dd6cc",
+        "artifact_policy": "retrain and freeze Scout artifacts on this fold's training rows before scoring validation dates"
+      },
+      {
+        "fold": 5,
+        "ready": false,
+        "train_pairs": 95,
+        "validation_pairs": 23,
+        "train_label_counts": {
+          "call_edge": 19,
+          "no_trade": 51,
+          "put_edge": 25
+        },
+        "validation_label_counts": {
+          "call_edge": 5,
+          "no_trade": 14,
+          "put_edge": 4
+        },
+        "training_labels_available_through": "2026-08-21",
+        "validation_start": "2026-08-28",
+        "training_evidence_sha256": "85a3b37f2a4adabf25bb0e5d0b0ff2eac4c61ee0be580d9053ae37b764602309",
+        "validation_evidence_sha256": "9e7becd737642634809906b80c29dafe4263d8e795e241218770da4dfc8ee734",
+        "artifact_policy": "retrain and freeze Scout artifacts on this fold's training rows before scoring validation dates"
+      }
+    ],
     "ready_folds": 0,
     "required_ready_folds": 3,
     "requirements_per_ready_fold": {
