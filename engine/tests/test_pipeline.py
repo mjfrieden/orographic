@@ -81,20 +81,22 @@ def _chain(*, bid: float, ask: float, open_interest: int, volume: int) -> pd.Dat
     )
 
 
-class UnifiedModelStackTests(unittest.TestCase):
-    def test_pipeline_defaults_to_one_unified_lane(self) -> None:
+class ProductionModelStackTests(unittest.TestCase):
+    def test_pipeline_defaults_to_one_production_lane(self) -> None:
         config = PipelineConfig(universe=["AAPL"])
-        self.assertEqual(config.model_stack, "unified_rnd")
+        self.assertEqual(config.model_stack, "production_v2")
         self.assertEqual(config.shadow_size, 0)
         self.assertEqual(config.counterfactual_observation_size, 0)
         self.assertFalse(config.preserve_shadow_veto_live_policy)
         self.assertTrue(config.paired_side_capture_enabled)
 
-    def test_current_gated_context_overrides_and_restores_external_stack(self) -> None:
+    def test_legacy_stack_request_is_ignored_and_environment_is_restored(self) -> None:
         with mock.patch.dict(os.environ, {"OROGRAPHIC_MODEL_STACK": "unified_rnd"}, clear=False):
             with _configured_model_stack("current_gated", "not_ready"):
-                self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "current_gated")
-                self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
+                self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "production_v2")
+                self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "active")
+                self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "shadow")
+                self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "off")
             self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "unified_rnd")
 
 
@@ -124,16 +126,13 @@ class PipelineTests(unittest.TestCase):
         )
         self.assertIsNone(pick)
 
-    def test_payoff_volatility_challenger_is_optional_and_observation_only(self) -> None:
+    def test_production_ranker_is_required_and_active(self) -> None:
         artifacts = _model_artifact_status()
 
-        self.assertTrue(artifacts["payoff_volatility_shadow"]["present"])
-        self.assertFalse(artifacts["payoff_volatility_shadow"]["required"])
-        self.assertFalse(artifacts["payoff_volatility_shadow_card"]["required"])
-        self.assertEqual(
-            _model_mode_status(artifacts)["payoff_volatility_challenger"],
-            "observation_only",
-        )
+        self.assertTrue(artifacts["production_payoff_ranker"]["present"])
+        self.assertTrue(artifacts["production_payoff_ranker"]["required"])
+        self.assertEqual(_model_mode_status(artifacts)["payoff_ranker"], "active")
+        self.assertEqual(_model_mode_status(artifacts)["path_model"], "retired")
 
     def test_canonical_promotion_gate_requires_exact_pass_decision(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -166,7 +165,7 @@ class PipelineTests(unittest.TestCase):
             self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "active")
             self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "active")
 
-    def test_run_scan_restores_requested_active_modes_after_fail_closed_scan(self) -> None:
+    def test_run_scan_forces_production_v2_and_restores_external_modes(self) -> None:
         comparison = {"artifact": "promotion_shadow_active_comparison", "decision": "not_ready", "windows": []}
         council_payload = {
             "live_board": [],
@@ -175,10 +174,11 @@ class PipelineTests(unittest.TestCase):
             "summary": {"candidate_count": 0, "live_count": 0, "shadow_count": 0, "notes": []},
         }
 
-        def scan_in_shadow(_universe, **_kwargs):
-            self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "shadow")
+        def scan_in_production(_universe, **_kwargs):
+            self.assertEqual(os.environ["OROGRAPHIC_MODEL_STACK"], "production_v2")
+            self.assertEqual(os.environ["OROGRAPHIC_SIDE_MODEL_MODE"], "active")
             self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "shadow")
-            self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "shadow")
+            self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "off")
             return (
                 MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
                 [],
@@ -198,7 +198,7 @@ class PipelineTests(unittest.TestCase):
                     },
                     clear=False,
                 ),
-                mock.patch("engine.orographic.pipeline.scan_symbols_with_diagnostics", side_effect=scan_in_shadow),
+                mock.patch("engine.orographic.pipeline.scan_symbols_with_diagnostics", side_effect=scan_in_production),
                 mock.patch("engine.orographic.pipeline.select_signals_for_forge", return_value=([], {})),
                 mock.patch("engine.orographic.pipeline.rank_contracts_with_diagnostics", return_value=([], {"waterfall": {}, "learned_ranker": {}})),
                 mock.patch(
@@ -216,10 +216,10 @@ class PipelineTests(unittest.TestCase):
                 self.assertEqual(os.environ["OROGRAPHIC_SENTINEL_MODE"], "active")
                 self.assertEqual(os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"], "active")
 
-        self.assertEqual(payload["model_modes"]["side_aware_scout"], "shadow")
-        self.assertEqual(payload["model_modes"]["sentinel"], "shadow")
-        self.assertEqual(payload["model_modes"]["payoff_ranker"], "shadow")
-        self.assertEqual(payload["promotion_readiness"]["decision"], "promotion_hold")
+        self.assertEqual(payload["scan_settings"]["model_stack"], "production_v2")
+        self.assertEqual(payload["model_modes"]["side_aware_scout"], "active")
+        self.assertEqual(payload["model_modes"]["sentinel"], "retired")
+        self.assertEqual(payload["model_modes"]["payoff_ranker"], "active")
 
     def setUp(self) -> None:
         self.market_shock = MarketShockRegime(
@@ -343,10 +343,6 @@ class PipelineTests(unittest.TestCase):
             ),
             mock.patch("engine.orographic.pipeline.rank_contracts_with_diagnostics", side_effect=rank),
             mock.patch("engine.orographic.pipeline.select_board", side_effect=council),
-            mock.patch(
-                "engine.orographic.pipeline.select_moonshot_lane",
-                return_value={"picks": [], "shadow": [], "summary": {"pick_count": 0, "eligible_count": 0}},
-            ),
         ):
             payload = run_scan(
                 PipelineConfig(
@@ -412,12 +408,13 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["scan_settings"]["minimum_live_score"], 0.86)
         self.assertEqual(payload["scan_settings"]["minimum_put_live_score"], 0.84)
         self.assertEqual(payload["scan_settings"]["max_live_extrinsic_ratio"], 0.90)
-        self.assertEqual(payload["scan_settings"]["moonshot_size"], 1)
-        self.assertEqual(payload["scan_settings"]["moonshot_threshold"], 0.68)
-        self.assertEqual(payload["scan_settings"]["moonshot_max_cost_basis"], 225.0)
-        self.assertEqual(payload["scan_settings"]["moonshot_lane_role"], "visible_experimental_side_pick")
+        self.assertEqual(payload["scan_settings"]["moonshot_size"], 0)
+        self.assertEqual(payload["moonshot_lane"]["policy"]["mode"], "retired")
+        self.assertEqual(payload["scan_settings"]["moonshot_threshold"], 1.0)
+        self.assertEqual(payload["scan_settings"]["moonshot_max_cost_basis"], 0.0)
+        self.assertEqual(payload["scan_settings"]["moonshot_lane_role"], "retired")
         self.assertEqual(payload["scan_settings"]["moonshot_primary_ensemble_effect"], "none")
-        self.assertEqual(payload["scan_settings"]["moonshot_outcome_tracking"], "moonshot_prospective_ledger")
+        self.assertEqual(payload["scan_settings"]["moonshot_outcome_tracking"], "historical_ledger_only")
         self.assertTrue(payload["scan_settings"]["paired_side_capture_enabled"])
         self.assertEqual(payload["moonshot_lane"]["summary"]["pick_count"], 0)
         self.assertEqual(select_signals_mock.call_args.kwargs["target_count"], 12)
@@ -509,14 +506,6 @@ class PipelineTests(unittest.TestCase):
                     live_board=[candidate],
                     abstain=False,
                 ),
-            ),
-            mock.patch(
-                "engine.orographic.pipeline.select_moonshot_lane",
-                return_value={
-                    "picks": [],
-                    "shadow": [],
-                    "summary": {"pick_count": 0, "eligible_count": 0},
-                },
             ),
         ):
             payload = run_scan(PipelineConfig(universe=["AAA"], board_history_path=None))
@@ -1406,13 +1395,11 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(payload["summary"]["forge_candidate_count"], len(payload["forge_candidates"]))
         self.assertEqual(payload["council"]["summary"]["candidate_count"], len(payload["forge_candidates"]))
         self.assertEqual(payload["council"]["summary"]["live_count"], len(payload["council"]["live_board"]))
-        self.assertEqual(payload["attribution"]["artifact"], "live_shadow_attribution")
+        self.assertNotIn("attribution", payload)
         self.assertEqual(payload["scan_settings"]["live_size"], 1)
         self.assertEqual(payload["scan_settings"]["forge_intake"], 1)
         self.assertIn("directional_scout", payload["model_modes"])
         self.assertIn("payoff_ranker", payload["model_modes"])
-        self.assertIn("model_artifacts", payload["attribution"])
-        self.assertEqual(payload["attribution"]["scan_settings"]["shadow_size"], 0)
         self.assertEqual(payload["scan_settings"]["production_lane_count"], 1)
         self.assertEqual(payload["scan_settings"]["production_lane"], "council.live_board")
 

@@ -36,10 +36,10 @@ def _parse_utc(value: object) -> datetime | None:
 def build_outcome_capture_health(
     *,
     prospective_ledger: Path,
-    moonshot_ledger: Path,
     token_configured: bool,
     prospective_step_status: str,
-    moonshot_step_status: str,
+    moonshot_ledger: Path | None = None,
+    moonshot_step_status: str = "skipped",
     evidence_step_status: str = "unknown",
     scheduled_at_utc: str = "",
     workflow_started_at_utc: str = "",
@@ -48,6 +48,9 @@ def build_outcome_capture_health(
     min_trajectory_capture_ratio: float = 0.30,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
+    # Retired keyword arguments remain accepted for callers rolling forward
+    # across the production-v2 release, but they have no health authority.
+    del moonshot_ledger, moonshot_step_status
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
     scheduled_at = _parse_utc(scheduled_at_utc)
     workflow_started_at = _parse_utc(workflow_started_at_utc)
@@ -59,8 +62,7 @@ def build_outcome_capture_health(
     )
     ledgers = []
     for name, path, step_status in (
-        ("prospective", prospective_ledger, prospective_step_status),
-        ("moonshot", moonshot_ledger, moonshot_step_status),
+        ("production", prospective_ledger, prospective_step_status),
     ):
         ledger = _load(path)
         last = ledger.get("last_mark_summary") if isinstance(ledger.get("last_mark_summary"), dict) else {}
@@ -181,10 +183,8 @@ def build_outcome_capture_health(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build the scheduled Tradier outcome-capture health artifact.")
     parser.add_argument("--prospective-ledger", type=Path, default=Path("web/data/diagnostics/prospective_pick_ledger.json"))
-    parser.add_argument("--moonshot-ledger", type=Path, default=Path("web/data/diagnostics/moonshot_prospective_ledger.json"))
     parser.add_argument("--token-configured", default="false")
     parser.add_argument("--prospective-step-status", default="unknown")
-    parser.add_argument("--moonshot-step-status", default="unknown")
     parser.add_argument("--evidence-step-status", default="unknown")
     parser.add_argument("--scheduled-at-utc", default="")
     parser.add_argument("--workflow-started-at-utc", default="")
@@ -200,10 +200,8 @@ def main() -> int:
     args = parse_args()
     report = build_outcome_capture_health(
         prospective_ledger=args.prospective_ledger,
-        moonshot_ledger=args.moonshot_ledger,
         token_configured=str(args.token_configured).strip().lower() in {"1", "true", "yes"},
         prospective_step_status=str(args.prospective_step_status),
-        moonshot_step_status=str(args.moonshot_step_status),
         evidence_step_status=str(args.evidence_step_status),
         scheduled_at_utc=str(args.scheduled_at_utc),
         workflow_started_at_utc=str(args.workflow_started_at_utc),

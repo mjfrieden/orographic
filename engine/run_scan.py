@@ -9,24 +9,16 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from engine.orographic.pipeline import (
-    append_moonshot_prospective_ledger,
     append_research_run_ledger,
     append_board_recommendation_history,
     append_prospective_pick_ledger,
-    build_live_shadow_attribution_artifact,
-    build_promotion_readiness,
     PipelineConfig,
-    append_side_aware_shadow_ledger,
     load_universe,
     run_scan,
     write_forge_rejection_waterfall_artifacts,
-    write_live_shadow_attribution_artifacts,
     write_snapshot,
 )
 from engine.orographic.positions import append_position_history, fetch_position_snapshot
-from engine.orographic.payoff_challenger_evidence import write_payoff_challenger_evidence
-from engine.orographic.counterfactual_veto_evidence import write_counterfactual_veto_evidence
-from engine.orographic.promotion_comparison import write_promotion_comparison
 
 logging.basicConfig(
     level=logging.INFO,
@@ -98,38 +90,6 @@ def parse_args() -> argparse.Namespace:
         help="Disable writing the prospective pick ledger.",
     )
     parser.add_argument(
-        "--moonshot-ledger-output",
-        default="",
-        help="Optional path for the dedicated moonshot prospective ledger. Defaults beside the snapshot diagnostics.",
-    )
-    parser.add_argument(
-        "--moonshot-ledger-max-entries",
-        type=int,
-        default=500,
-        help="Maximum number of scan entries to retain in the moonshot prospective ledger.",
-    )
-    parser.add_argument(
-        "--no-moonshot-ledger",
-        action="store_true",
-        help="Disable writing the dedicated moonshot prospective ledger.",
-    )
-    parser.add_argument(
-        "--shadow-ledger-output",
-        default="",
-        help="Optional path for the side-aware Scout shadow disagreement ledger. Defaults beside the snapshot diagnostics.",
-    )
-    parser.add_argument(
-        "--shadow-ledger-max-entries",
-        type=int,
-        default=500,
-        help="Maximum number of scan entries to retain in the side-aware Scout shadow ledger.",
-    )
-    parser.add_argument(
-        "--no-shadow-ledger",
-        action="store_true",
-        help="Disable writing the side-aware Scout shadow disagreement ledger.",
-    )
-    parser.add_argument(
         "--board-history-output",
         default="",
         help="Optional path for a rolling live/shadow board recommendation history. Defaults beside the snapshot diagnostics.",
@@ -148,9 +108,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--live-size", type=int, default=1)
     parser.add_argument(
         "--model-stack",
-        choices=("unified_rnd", "current_gated"),
-        default="unified_rnd",
-        help="Unified R&D runs all integrated models in one lane; current_gated preserves the old promotion-gated baseline.",
+        choices=("production_v2",),
+        default="production_v2",
+        help="Single production Scout, volatility/contract ranker, and Council path.",
     )
     parser.add_argument(
         "--forge-intake",
@@ -187,24 +147,6 @@ def parse_args() -> argparse.Namespace:
         type=float,
         default=0.90,
         help="Maximum extrinsic ratio allowed on live-board candidates.",
-    )
-    parser.add_argument(
-        "--moonshot-size",
-        type=int,
-        default=1,
-        help="Number of Nimrod-inspired tail-upside satellite picks to emit.",
-    )
-    parser.add_argument(
-        "--moonshot-threshold",
-        type=float,
-        default=0.68,
-        help="Minimum tail-upside score for the dedicated moonshot lane.",
-    )
-    parser.add_argument(
-        "--moonshot-max-cost-basis",
-        type=float,
-        default=225.0,
-        help="Maximum premium cost basis for moonshot satellite eligibility.",
     )
     parser.add_argument(
         "--enforce-pre-council-friction-gate",
@@ -256,9 +198,9 @@ def main() -> int:
             minimum_live_score=max(min(float(args.minimum_live_score), 1.0), 0.0),
             minimum_put_live_score=max(min(float(args.minimum_put_live_score), 1.0), 0.0),
             max_live_extrinsic_ratio=max(min(float(args.max_live_extrinsic_ratio), 1.0), 0.0),
-            moonshot_size=max(int(args.moonshot_size), 0),
-            moonshot_threshold=max(min(float(args.moonshot_threshold), 1.0), 0.0),
-            moonshot_max_cost_basis=max(float(args.moonshot_max_cost_basis), 0.0),
+            moonshot_size=0,
+            moonshot_threshold=1.0,
+            moonshot_max_cost_basis=0.0,
             enforce_pre_council_friction_gate=bool(args.enforce_pre_council_friction_gate),
             live_execution_policy_enabled=bool(args.live_execution_policy),
             same_contract_cooldown_hours=max(float(args.same_contract_cooldown_hours), 0.0),
@@ -297,19 +239,6 @@ def main() -> int:
         )
         diagnostic_sources["prospective_ledger"] = str(written)
         log.info("Updated prospective pick ledger at %s.", written)
-    if not args.no_moonshot_ledger:
-        moonshot_ledger_path = (
-            Path(args.moonshot_ledger_output)
-            if args.moonshot_ledger_output.strip()
-            else Path(args.output).parent / "diagnostics" / "moonshot_prospective_ledger.json"
-        )
-        written = append_moonshot_prospective_ledger(
-            moonshot_ledger_path,
-            payload,
-            max_entries=max(int(args.moonshot_ledger_max_entries), 1),
-        )
-        diagnostic_sources["moonshot_ledger"] = str(written)
-        log.info("Updated moonshot prospective ledger at %s.", written)
     if not args.no_board_history:
         board_history_path = (
             Path(args.board_history_output)
@@ -323,54 +252,8 @@ def main() -> int:
         )
         diagnostic_sources["board_history"] = str(written)
         log.info("Updated board recommendation history at %s.", written)
-    if not args.no_shadow_ledger:
-        ledger_path = (
-            Path(args.shadow_ledger_output)
-            if args.shadow_ledger_output.strip()
-            else Path(args.output).parent / "diagnostics" / "side_aware_scout_shadow_ledger.json"
-        )
-        written = append_side_aware_shadow_ledger(
-            ledger_path,
-            payload,
-            max_entries=max(int(args.shadow_ledger_max_entries), 1),
-        )
-        diagnostic_sources["shadow_ledger"] = str(written)
-        log.info("Updated side-aware Scout shadow ledger at %s.", written)
-
     if diagnostic_sources:
-        prospective_source = diagnostic_sources.get("prospective_ledger")
-        shadow_source = diagnostic_sources.get("shadow_ledger")
-        if prospective_source:
-            challenger_evidence_path = Path(args.output).parent / "diagnostics" / "payoff_challenger_evidence_latest.json"
-            challenger_evidence = write_payoff_challenger_evidence(
-                Path(prospective_source),
-                challenger_evidence_path,
-            )
-            diagnostic_sources["payoff_challenger_evidence"] = str(challenger_evidence_path)
-            log.info(
-                "Updated payoff challenger prospective evidence at %s (%s).",
-                challenger_evidence_path,
-                challenger_evidence["decision"],
-            )
-            veto_evidence_path = Path(args.output).parent / "diagnostics" / "counterfactual_veto_evidence_latest.json"
-            veto_evidence = write_counterfactual_veto_evidence(
-                Path(prospective_source),
-                veto_evidence_path,
-            )
-            diagnostic_sources["counterfactual_veto_evidence"] = str(veto_evidence_path)
-            log.info(
-                "Updated advisory Scout veto evidence at %s (%s).",
-                veto_evidence_path,
-                veto_evidence["decision"],
-            )
-        if prospective_source and shadow_source:
-            comparison_path = Path(args.output).parent / "diagnostics" / "promotion_shadow_active_comparison_latest.json"
-            comparison = write_promotion_comparison(Path(prospective_source), Path(shadow_source), comparison_path)
-            diagnostic_sources["promotion_comparison"] = str(comparison_path)
-            log.info("Updated promotion shadow/active comparison at %s (%s).", comparison_path, comparison["decision"])
         payload["diagnostic_sources"] = diagnostic_sources
-        payload["promotion_readiness"] = build_promotion_readiness(payload)
-        payload["attribution"] = build_live_shadow_attribution_artifact(payload)
 
     write_snapshot(args.output, payload)
     diagnostic_paths = write_forge_rejection_waterfall_artifacts(args.output, payload)
@@ -378,12 +261,6 @@ def main() -> int:
         "Wrote Forge rejection waterfall artifacts to %s and %s.",
         diagnostic_paths[0],
         diagnostic_paths[1],
-    )
-    attribution_paths = write_live_shadow_attribution_artifacts(args.output, payload)
-    log.info(
-        "Wrote live/shadow attribution artifacts to %s and %s.",
-        attribution_paths[0],
-        attribution_paths[1],
     )
 
     if args.positions_log_output.strip():

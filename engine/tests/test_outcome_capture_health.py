@@ -217,7 +217,7 @@ class OutcomeCaptureHealthTests(unittest.TestCase):
         failed = {row["name"] for row in report["failed_checks"]}
         self.assertEqual(report["status"], "failed")
         self.assertIn("tradier_capture_configured", failed)
-        self.assertIn("capture_steps_completed", failed)
+        self.assertNotIn("capture_steps_completed", failed)
 
 
 if __name__ == "__main__":

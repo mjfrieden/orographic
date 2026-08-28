@@ -911,7 +911,6 @@ def write_dataset(rows: list[dict[str, Any]], path: Path) -> None:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build canonical Orographic research datasets from prospective ledgers.")
     parser.add_argument("--prospective-ledger", type=Path, default=Path("web/data/diagnostics/prospective_pick_ledger.json"))
-    parser.add_argument("--moonshot-ledger", type=Path, default=Path("web/data/diagnostics/moonshot_prospective_ledger.json"))
     parser.add_argument("--output-dir", type=Path, default=Path("output/research_datasets"))
     parser.add_argument("--diagnostics-dir", type=Path, default=Path("web/data/diagnostics"))
     parser.add_argument("--archive-dir", type=Path, default=Path("engine/data/live_options_archive"))
@@ -943,39 +942,19 @@ def main() -> int:
         spot_by_date=spot_by_date,
         side_aware_by_run=side_aware_by_run,
     )
-    moonshot_rows = ledger_rows_with_spots(
-        args.moonshot_ledger,
-        source_artifact="moonshot_prospective_ledger",
-        spot_by_run=spot_by_run,
-        spot_by_date=spot_by_date,
-        side_aware_by_run=side_aware_by_run,
-    )
-
     recommendation_path = args.output_dir / f"option_recommendation_outcomes{suffix}"
-    moonshot_path = args.output_dir / f"moonshot_outcomes{suffix}"
     combined_path = args.output_dir / f"all_recommendation_outcomes{suffix}"
     write_dataset(recommendation_rows, recommendation_path)
-    write_dataset(moonshot_rows, moonshot_path)
-    write_dataset([*recommendation_rows, *moonshot_rows], combined_path)
+    write_dataset(recommendation_rows, combined_path)
     canonical_rows = canonicalize_option_outcome_dataset(
-        [
-            *canonical_option_outcome_rows(
-                args.prospective_ledger,
-                source_artifact="prospective_pick_ledger",
-                exit_window=args.canonical_exit_window,
-                archive_dir=args.archive_dir,
-                side_aware_by_run=side_aware_by_run,
-                require_executable_label=True,
-            ),
-            *canonical_option_outcome_rows(
-                args.moonshot_ledger,
-                source_artifact="moonshot_prospective_ledger",
-                exit_window=args.canonical_exit_window,
-                archive_dir=args.archive_dir,
-                side_aware_by_run=side_aware_by_run,
-                require_executable_label=True,
-            ),
-        ]
+        canonical_option_outcome_rows(
+            args.prospective_ledger,
+            source_artifact="prospective_pick_ledger",
+            exit_window=args.canonical_exit_window,
+            archive_dir=args.archive_dir,
+            side_aware_by_run=side_aware_by_run,
+            require_executable_label=True,
+        )
     )
     if args.canonical_option_outcomes_output:
         args.canonical_option_outcomes_output.parent.mkdir(parents=True, exist_ok=True)
@@ -993,7 +972,6 @@ def main() -> int:
         json.dumps(
             {
                 "option_recommendation_rows": len(recommendation_rows),
-                "moonshot_rows": len(moonshot_rows),
                 "canonical_option_outcome_rows": len(canonical_rows),
                 "canonical_option_outcomes_output": str(args.canonical_option_outcomes_output) if args.canonical_option_outcomes_output else None,
                 "output_dir": str(args.output_dir),

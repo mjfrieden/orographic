@@ -93,7 +93,7 @@ class CouncilTests(unittest.TestCase):
             ["AAPL"],
         )
 
-    def test_council_blocks_high_model_no_trade_pressure(self) -> None:
+    def test_council_does_not_reintroduce_a_second_model_no_trade_gate(self) -> None:
         candidate = _candidate(
             "AAPL",
             "call",
@@ -107,9 +107,8 @@ class CouncilTests(unittest.TestCase):
             MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
         )
 
-        self.assertTrue(result.abstain)
-        self.assertEqual(result.summary["abstain_audit"]["primary_reason"], "model_no_trade")
-        self.assertEqual(result.summary["abstain_audit"]["blocked_symbols"]["model_no_trade"], ["AAPL"])
+        self.assertFalse(result.abstain)
+        self.assertEqual([row.symbol for row in result.live_board], ["AAPL"])
 
     def test_council_blocks_low_fill_quality(self) -> None:
         candidate = _candidate(

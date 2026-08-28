@@ -19,7 +19,6 @@ def _load(path: Path) -> dict[str, Any]:
 
 def validate_snapshot_artifacts(
     snapshot_path: Path,
-    shadow_ledger_path: Path,
     prospective_ledger_path: Path,
     diagnostics_dir: Path,
 ) -> dict[str, Any]:
@@ -53,19 +52,17 @@ def validate_snapshot_artifacts(
     if int(council_summary.get("shadow_count") or 0) != len(shadow_rows):
         raise SnapshotSmokeError("council shadow count does not match shadow board")
 
-    shadow_ledger = _load(shadow_ledger_path)
-    if shadow_ledger.get("artifact") != "side_aware_scout_shadow_ledger":
-        raise SnapshotSmokeError("shadow ledger artifact was not written")
     prospective = _load(prospective_ledger_path)
     if prospective.get("artifact") != "prospective_pick_ledger":
         raise SnapshotSmokeError("prospective pick ledger artifact was not written")
-    attribution = payload.get("attribution") if isinstance(payload.get("attribution"), dict) else {}
-    if attribution.get("artifact") != "live_shadow_attribution":
-        raise SnapshotSmokeError("snapshot attribution artifact missing")
-    if not (diagnostics_dir / "live_shadow_attribution_latest.json").exists():
-        raise SnapshotSmokeError("live/shadow attribution artifact was not written")
     if not (diagnostics_dir / "board_recommendation_history.json").exists():
         raise SnapshotSmokeError("board recommendation history was not written")
+
+    scan_settings = payload.get("scan_settings") if isinstance(payload.get("scan_settings"), dict) else {}
+    if scan_settings.get("model_stack") != "production_v2":
+        raise SnapshotSmokeError("snapshot is not using the production_v2 model stack")
+    if shadow_rows:
+        raise SnapshotSmokeError("production snapshot must not contain a shadow board")
 
     artifacts = payload.get("model_artifacts") if isinstance(payload.get("model_artifacts"), dict) else {}
     missing = [
@@ -88,13 +85,11 @@ def validate_snapshot_artifacts(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate an Orographic smoke-test snapshot and its ledgers.")
     parser.add_argument("--snapshot", type=Path, required=True)
-    parser.add_argument("--shadow-ledger", type=Path, required=True)
     parser.add_argument("--prospective-ledger", type=Path, required=True)
     parser.add_argument("--diagnostics-dir", type=Path, required=True)
     args = parser.parse_args()
     result = validate_snapshot_artifacts(
         args.snapshot,
-        args.shadow_ledger,
         args.prospective_ledger,
         args.diagnostics_dir,
     )

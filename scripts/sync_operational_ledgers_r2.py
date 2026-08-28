@@ -15,10 +15,12 @@ from typing import Any
 OPERATIONAL_PREFIX = "orographic/operational-ledgers/v1"
 LEDGER_PATHS = (
     Path("web/data/diagnostics/prospective_pick_ledger.json"),
-    Path("web/data/diagnostics/moonshot_prospective_ledger.json"),
     Path("web/data/diagnostics/research_run_ledger.json"),
-    Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json"),
 )
+RETIRED_LEDGER_PATHS = {
+    Path("web/data/diagnostics/moonshot_prospective_ledger.json"),
+    Path("web/data/diagnostics/side_aware_scout_shadow_ledger.json"),
+}
 
 
 def _sha256(data: bytes) -> str:
@@ -103,6 +105,8 @@ def pull_ledgers(
             if not isinstance(record, dict):
                 continue
             destination = Path(str(record.get("path") or ""))
+            if destination in RETIRED_LEDGER_PATHS:
+                continue
             if destination not in allowed_paths:
                 raise RuntimeError(f"Operational manifest contains an unexpected path: {destination}")
             archive = temp_root / f"ledger-{index}.json.gz"

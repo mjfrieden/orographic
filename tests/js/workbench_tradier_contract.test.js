@@ -21,8 +21,6 @@ const REQUIRED_STATIC_IDS = [
   "board-refresh-btn",
   "live-picks-grid",
   "shadow-picks-grid",
-  "moonshot-picks-grid",
-  "moonshot-side-pick",
   // Account positions and orders.
   "positions-sync-status",
   "positions-refresh-btn",
@@ -122,7 +120,6 @@ test("Signal & Book exposes interactive sizing, candidate, book, and evidence co
   const source = await readFile(appPath, "utf8");
 
   for (const control of [
-    "data-research-focus=\"observations\"",
     "role=\"tablist\"",
     "aria-controls=\"book-orders-panel\"",
   ]) {
@@ -140,15 +137,11 @@ test("Signal & Book exposes interactive sizing, candidate, book, and evidence co
   }
 });
 
-test("Moonshot remains a visible, outcome-tracked, non-routable side experiment", async () => {
+test("Moonshot experiment is retired from the production cockpit", async () => {
   const html = await readFile(indexPath, "utf8");
-  const source = await readFile(appPath, "utf8");
-
-  assert.ok(html.includes("Visible side pick"));
-  assert.ok(html.includes("Tracked · non-routable"));
-  assert.ok(source.includes("renderMoonshotSidePick"));
-  assert.ok(source.includes("It does not affect the primary ensemble, Council, sizing, or Tradier routing."));
-  assert.ok(source.includes('tracking.dataset || "moonshot_outcomes"'));
+  assert.ok(!html.includes("Visible side pick"));
+  assert.ok(!html.includes("moonshot-side-pick"));
+  assert.ok(!html.includes("moonshot-picks-grid"));
 });
 
 test("Signal & Book preserves readable synchronization spacing", async () => {
@@ -164,31 +157,26 @@ test("Signal & Book preserves readable synchronization spacing", async () => {
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.positions-toolbar\s*\{[^}]*flex-direction:\s*column;/s);
 });
 
-test("Research drawer exposes interactive model governance without live authority", async () => {
+test("Research drawer exposes the single production model without experiment lanes", async () => {
   const html = await readFile(indexPath, "utf8");
   const source = await readFile(appPath, "utf8");
 
   for (const contract of [
     "governance-capture-status",
-    "governance-challenger-status",
+    "governance-model-status",
     "governance-authority-status",
-    "challenger-tabs",
-    "challenger-detail",
-    'role="tablist"',
-    'role="tabpanel"',
   ]) {
     assert.ok(html.includes(contract), `missing model-governance UI contract: ${contract}`);
   }
   for (const behavior of [
     "MODEL_GOVERNANCE_SOURCE",
     "renderModelGovernance",
-    "selectedChallenger",
-    'event.key === "ArrowRight"',
-    "challenger_order_routing === false",
+    "Production v2",
     "Production Board",
   ]) {
     assert.ok(source.includes(behavior), `missing model-governance behavior: ${behavior}`);
   }
+  assert.ok(!html.includes("challenger-tabs"), "production cockpit must not expose challenger lanes");
   assert.ok(!html.includes("governance-mart-status"), "live cockpit must not expose mart tooling");
   assert.ok(!source.includes("SHARED_MART_SHADOW_SOURCE"), "live cockpit must not fetch mart diagnostics");
 });

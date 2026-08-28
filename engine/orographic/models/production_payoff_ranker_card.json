@@ -1,0 +1,54 @@
+{
+  "artifact": "production_payoff_ranker_card",
+  "version": 1,
+  "profile_id": "production_v2",
+  "authority": {
+    "forge_ranking": true,
+    "probability_sizing": false,
+    "independent_route": false
+  },
+  "feature_policy": {
+    "included": [
+      "option_type_is_call",
+      "moneyness",
+      "abs_delta",
+      "implied_volatility",
+      "iv_rank",
+      "realized_vol_20d",
+      "atr_pct_14d",
+      "vrp_gap",
+      "projected_move_pct",
+      "breakeven_move_pct",
+      "extrinsic_ratio",
+      "dte"
+    ],
+    "excluded": [
+      "directional_scout_scores",
+      "sentinel_scores",
+      "path_model_scores",
+      "cost_aware_challenger_scores"
+    ]
+  },
+  "score_contract": {
+    "volatility_contract_rank_weight": 0.70,
+    "execution_quality_weight": 0.20,
+    "after_cost_utility_weight": 0.10,
+    "probability_use": "telemetry_only",
+    "ranking_scope": "current_scan"
+  },
+  "source_validation": {
+    "raw_auc": 0.5588,
+    "calibrated_auc": 0.5691,
+    "call_auc": 0.5770,
+    "put_auc": 0.5778,
+    "calibrated_brier": 0.2743,
+    "baseline_brier": 0.2253,
+    "calibration_sizing_approved": false
+  },
+  "production_policy": {
+    "live_execution_policy_required": true,
+    "council_live_board_only": true,
+    "legacy_model_weights": 0.0,
+    "fail_closed_if_artifact_missing": true
+  }
+}

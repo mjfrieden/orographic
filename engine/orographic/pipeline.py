@@ -15,7 +15,6 @@ from .council import select_board
 from .execution_policy import LiveExecutionPolicy, apply_live_execution_policy, load_recent_live_exposures
 from .forge import rank_contracts_with_diagnostics, select_signals_for_forge
 from .market_shock import classify_current_market_shock
-from .moonshot import select_moonshot_lane
 from .scout import scan_symbols_with_diagnostics
 
 
@@ -58,15 +57,15 @@ class PipelineConfig:
     forge_intake: int = 12
     counterfactual_observation_size: int = 0
     preserve_shadow_veto_live_policy: bool = False
-    model_stack: str = "unified_rnd"
+    model_stack: str = "production_v2"
     minimum_days_to_expiry: int = 7
     maximum_days_to_expiry: int = 14
     minimum_live_score: float = 0.86
     minimum_put_live_score: float = 0.84
     max_live_extrinsic_ratio: float = 0.90
-    moonshot_size: int = 1
-    moonshot_threshold: float = 0.68
-    moonshot_max_cost_basis: float = 225.0
+    moonshot_size: int = 0
+    moonshot_threshold: float = 1.0
+    moonshot_max_cost_basis: float = 0.0
     enforce_pre_council_friction_gate: bool = False
     live_execution_policy_enabled: bool = True
     same_contract_cooldown_hours: float = 72.0
@@ -710,24 +709,15 @@ def _model_artifact_status() -> dict[str, Any]:
         "scout_model": MODEL_DIR / "scout_model.pkl",
         "scout_scaler": MODEL_DIR / "scout_scaler.pkl",
         "scout_side_model": MODEL_DIR / "scout_side_model.pkl",
-        "sentinel_model": MODEL_DIR / "sentinel_model.json",
-        "payoff_model": MODEL_DIR / "payoff_model.pkl",
-        "payoff_volatility_shadow": MODEL_DIR / "payoff_volatility_shadow.pkl",
-        "path_model": MODEL_DIR / "path_model.pkl",
+        "production_payoff_ranker": MODEL_DIR / "production_payoff_ranker.pkl",
         "scout_model_card": MODEL_DIR / "scout_model_card.json",
-        "sentinel_model_card": MODEL_DIR / "sentinel_model_card.json",
-        "payoff_model_card": MODEL_DIR / "payoff_model_card.json",
-        "payoff_volatility_shadow_card": MODEL_DIR / "payoff_volatility_shadow_card.json",
-        "path_model_card": MODEL_DIR / "path_model_card.json",
+        "production_payoff_ranker_card": MODEL_DIR / "production_payoff_ranker_card.json",
     }
-    optional_artifacts = {"payoff_volatility_shadow", "payoff_volatility_shadow_card"}
     return {
         name: {
             "present": path.exists(),
             "sha256": _sha256_file(path),
-            "required": False
-            if name in optional_artifacts
-            else bool(
+            "required": bool(
                 manifest_artifacts.get(name, {}).get("required", True)
                 if isinstance(manifest_artifacts.get(name), dict)
                 else True
@@ -751,18 +741,14 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
     scout_model = artifact_status.get("scout_model", {}) if isinstance(artifact_status, dict) else {}
     scout_scaler = artifact_status.get("scout_scaler", {}) if isinstance(artifact_status, dict) else {}
     side_model = artifact_status.get("scout_side_model", {}) if isinstance(artifact_status, dict) else {}
-    payoff_model = artifact_status.get("payoff_model", {}) if isinstance(artifact_status, dict) else {}
-    payoff_shadow = (
-        artifact_status.get("payoff_volatility_shadow", {}) if isinstance(artifact_status, dict) else {}
-    )
-    path_model = artifact_status.get("path_model", {}) if isinstance(artifact_status, dict) else {}
+    production_ranker = artifact_status.get("production_payoff_ranker", {}) if isinstance(artifact_status, dict) else {}
     directional_mode = (
         "artifact"
         if bool(scout_model.get("present")) and bool(scout_scaler.get("present"))
         else "heuristic_fallback"
     )
     return {
-        "product_stack": str(os.getenv("OROGRAPHIC_MODEL_STACK", "unified_rnd") or "unified_rnd"),
+        "product_stack": "production_v2",
         "directional_scout": directional_mode,
         "side_aware_scout": _normalize_mode(
             os.getenv("OROGRAPHIC_SIDE_MODEL_MODE", "active"),
@@ -770,31 +756,11 @@ def _model_mode_status(artifacts: dict[str, Any] | None = None) -> dict[str, str
             shadow_values={"shadow", "observe", "off"},
             default="active",
         ),
-        "sentinel": _normalize_mode(
-            os.getenv("OROGRAPHIC_SENTINEL_MODE", "active"),
-            active_values={"active"},
-            shadow_values={"shadow", "observe", "off"},
-            default="active",
-        ),
-        "payoff_ranker": (
-            _normalize_mode(
-                os.getenv("OROGRAPHIC_PAYOFF_MODEL_MODE", "active"),
-                active_values={"active", "live", "on"},
-                shadow_values={"shadow", "observe", "off"},
-                default="active",
-            )
-            if bool(payoff_model.get("present"))
-            else "unavailable"
-        ),
-        "payoff_volatility_challenger": "observation_only" if bool(payoff_shadow.get("present")) else "unavailable",
-        "path_model": _normalize_mode(
-            os.getenv("OROGRAPHIC_PATH_MODEL_MODE", "shadow"),
-            active_values={"active", "live", "on"},
-            shadow_values={"shadow", "observe", "off"},
-            default="shadow",
-        ),
+        "sentinel": "retired",
+        "payoff_ranker": "active" if bool(production_ranker.get("present")) else "unavailable",
+        "path_model": "retired",
         "side_model_source": "artifact" if bool(side_model.get("present")) else "derived",
-        "path_model_source": "artifact" if bool(path_model.get("present")) else "heuristic",
+        "ranker_source": "production_payoff_ranker",
     }
 
 
@@ -851,21 +817,8 @@ def _fail_closed_model_modes(promotion_decision: str):
 
 @contextmanager
 def _configured_model_stack(model_stack: str, promotion_decision: str):
-    """Select one product stack while retaining the old gated stack as a baseline."""
-    normalized = str(model_stack or "unified_rnd").strip().lower()
-    if normalized != "unified_rnd":
-        prior_stack = os.environ.get("OROGRAPHIC_MODEL_STACK")
-        try:
-            os.environ["OROGRAPHIC_MODEL_STACK"] = "current_gated"
-            with _fail_closed_model_modes(promotion_decision):
-                yield
-        finally:
-            if prior_stack is None:
-                os.environ.pop("OROGRAPHIC_MODEL_STACK", None)
-            else:
-                os.environ["OROGRAPHIC_MODEL_STACK"] = prior_stack
-        return
-
+    """Force the single production-v2 model path; legacy selections are ignored."""
+    del model_stack, promotion_decision
     names = (
         "OROGRAPHIC_MODEL_STACK",
         "OROGRAPHIC_SIDE_MODEL_MODE",
@@ -875,9 +828,11 @@ def _configured_model_stack(model_stack: str, promotion_decision: str):
     )
     prior = {name: os.environ.get(name) for name in names}
     try:
-        os.environ["OROGRAPHIC_MODEL_STACK"] = "unified_rnd"
-        for name in names[1:]:
-            os.environ[name] = "active"
+        os.environ["OROGRAPHIC_MODEL_STACK"] = "production_v2"
+        os.environ["OROGRAPHIC_SIDE_MODEL_MODE"] = "active"
+        os.environ["OROGRAPHIC_SENTINEL_MODE"] = "shadow"
+        os.environ["OROGRAPHIC_PAYOFF_MODEL_MODE"] = "off"
+        os.environ["OROGRAPHIC_PATH_MODEL_MODE"] = "off"
         yield
     finally:
         for name, value in prior.items():
@@ -2554,9 +2509,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         minimum_live_score = _config_float(config, "minimum_live_score", 0.86, minimum=0.0, maximum=1.0)
         minimum_put_live_score = _config_float(config, "minimum_put_live_score", 0.84, minimum=0.0, maximum=1.0)
         max_live_extrinsic_ratio = _config_float(config, "max_live_extrinsic_ratio", 0.90, minimum=0.0, maximum=1.0)
-        moonshot_size = _config_int(config, "moonshot_size", 1, minimum=0)
-        moonshot_threshold = _config_float(config, "moonshot_threshold", 0.68, minimum=0.0, maximum=1.0)
-        moonshot_max_cost_basis = _config_float(config, "moonshot_max_cost_basis", 225.0, minimum=0.0)
+        moonshot_size = 0
+        moonshot_threshold = 1.0
+        moonshot_max_cost_basis = 0.0
         enforce_pre_council_friction_gate = _config_bool(config, "enforce_pre_council_friction_gate", False)
         live_execution_policy_enabled = _config_bool(config, "live_execution_policy_enabled", True)
         same_contract_cooldown_hours = _config_float(
@@ -2575,9 +2530,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         paired_side_capture_enabled = _config_bool(
             config, "paired_side_capture_enabled", True
         )
-        model_stack = str(getattr(config, "model_stack", "unified_rnd") or "unified_rnd").strip().lower()
-        if model_stack not in {"unified_rnd", "current_gated"}:
-            model_stack = "unified_rnd"
+        model_stack = "production_v2"
         promotion_comparison_path = getattr(config, "promotion_comparison_path", None)
         if not isinstance(promotion_comparison_path, (str, os.PathLike)):
             promotion_comparison_path = DEFAULT_DIAGNOSTICS_DIR / "promotion_shadow_active_comparison_latest.json"
@@ -2692,18 +2645,18 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             market_shock=council_market_shock,
         )
         log.info("Council selection complete. Abstain: %s", council.abstain)
-        moonshot_lane = select_moonshot_lane(
-            forge_candidates,
-            regime,
-            slot_count=moonshot_size,
-            threshold=moonshot_threshold,
-            max_cost_basis=moonshot_max_cost_basis,
-        )
-        log.info(
-            "Moonshot side lane selected %d/%d eligible candidates for outcome tracking.",
-            moonshot_lane["summary"]["pick_count"],
-            moonshot_lane["summary"]["eligible_count"],
-        )
+        moonshot_lane = {
+            "policy": {"mode": "retired", "execution_effect": "none"},
+            "picks": [],
+            "shadow": [],
+            "summary": {
+                "pick_count": 0,
+                "eligible_count": 0,
+                "top_score": None,
+                "threshold": 1.0,
+                "max_cost_basis": 0.0,
+            },
+        }
 
         live_avg_score = (
             round(sum(row.forge_score for row in council.live_board) / len(council.live_board), 4)
@@ -2752,9 +2705,9 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "production_lane_count": 1,
                 "production_lane": "council.live_board",
                 "research_outputs_routable": False,
-                "moonshot_lane_role": "visible_experimental_side_pick",
+                "moonshot_lane_role": "retired",
                 "moonshot_primary_ensemble_effect": "none",
-                "moonshot_outcome_tracking": "moonshot_prospective_ledger",
+                "moonshot_outcome_tracking": "historical_ledger_only",
                 "live_size": live_size,
                 "shadow_size": shadow_size,
                 "forge_intake": forge_intake,
@@ -2780,9 +2733,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "market_shock_control_mode": market_shock_control_mode,
                 "model_stack": model_stack,
             },
-            "diagnostic_sources": {
-                "promotion_comparison": str(promotion_comparison_path) if promotion_comparison_path else None,
-            },
+            "diagnostic_sources": {},
             "model_modes": model_modes,
             "regime": regime.to_dict(),
             "market_shock": market_shock.to_dict(),
@@ -2869,8 +2820,6 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
                 "forge_waterfall": forge_diagnostics.get("waterfall", {}),
             },
         }
-        payload["promotion_readiness"] = build_promotion_readiness(payload)
-        payload["attribution"] = build_live_shadow_attribution_artifact(payload)
         _validate_snapshot_contract(payload)
         return payload
     except Exception as exc:

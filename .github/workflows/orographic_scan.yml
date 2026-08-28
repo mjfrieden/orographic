@@ -170,10 +170,6 @@ jobs:
             --ledger web/data/diagnostics/prospective_pick_ledger.json \
             --ignore-missing \
             --allow-quote-fetch-failure
-          python engine/mark_prospective_outcomes.py \
-            --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
-            --ignore-missing \
-            --allow-quote-fetch-failure
 
       - name: Run Orographic scan
         run: |
@@ -193,23 +189,17 @@ jobs:
             --ledger web/data/diagnostics/prospective_pick_ledger.json \
             --ignore-missing \
             --allow-quote-fetch-failure
-          python engine/mark_prospective_outcomes.py \
-            --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
-            --ignore-missing \
-            --allow-quote-fetch-failure
 
       - name: Mark archived quote path outcomes
         run: |
           python scripts/mark_path_outcomes_from_archive.py \
             --archive-dir engine/data/live_options_archive \
-            --ledger web/data/diagnostics/prospective_pick_ledger.json \
-            --ledger web/data/diagnostics/moonshot_prospective_ledger.json
+            --ledger web/data/diagnostics/prospective_pick_ledger.json
 
       - name: Build research datasets
         run: |
           python scripts/build_research_datasets.py \
             --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
-            --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
             --canonical-option-outcomes-output output/research_datasets/strict_option_outcomes.json \
             --output-dir output/research_datasets
 
@@ -232,10 +222,6 @@ jobs:
         run: |
           python scripts/build_scout_pair_readiness.py --warn-only
 
-      - name: Evaluate executable shadow exit policies
-        run: |
-          python scripts/evaluate_exit_policy_shadow.py
-
       - name: Build point-in-time event outcome coverage
         run: |
           python scripts/build_event_outcome_coverage.py \
@@ -243,37 +229,6 @@ jobs:
             --outcomes output/research_datasets/all_recommendation_outcomes.parquet \
             --output output/research_datasets/event_enriched_option_outcomes.parquet \
             --report-output output/research_datasets/event_outcome_coverage.json
-
-      - name: Evaluate event feature promotion readiness
-        run: |
-          python scripts/evaluate_event_scout_ablation.py \
-            --input output/research_datasets/event_enriched_option_outcomes.parquet \
-            --output output/research_datasets/event_scout_ablation.json
-
-      - name: Audit research data capture
-        run: |
-          MIN_ARCHIVE_ROWS="$(python - <<'PY'
-          import json
-          from pathlib import Path
-
-          payload = json.loads(Path("web/data/latest_run.json").read_text(encoding="utf-8"))
-          regime = payload.get("regime") if isinstance(payload.get("regime"), dict) else {}
-          scout_count = len(payload.get("scout_signals", [])) if isinstance(payload.get("scout_signals"), list) else 0
-          forge_count = len(payload.get("forge_candidates", [])) if isinstance(payload.get("forge_candidates"), list) else 0
-          print(0 if regime.get("mode") == "extreme_vol" and scout_count == 0 and forge_count == 0 else 1)
-          PY
-          )"
-          python scripts/audit_research_data_capture.py \
-            --live-archive-manifest engine/data/live_options_archive/coverage_manifest.json \
-            --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
-            --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
-            --research-dataset-dir output/research_datasets \
-            --min-archive-rows "${MIN_ARCHIVE_ROWS}" \
-            --event-quality-report engine/data/event_observatory/event_observatory.parquet.quality.json \
-            --event-coverage-report output/research_datasets/event_outcome_coverage.json \
-            --event-enriched-dataset output/research_datasets/event_enriched_option_outcomes.parquet \
-            --event-feed-health engine/data/event_observatory/gdelt_company_news_health.json \
-            --output output/research_datasets/research_data_capture_audit.json
 
       - name: Sync dashboard validation artifacts
         run: |
@@ -288,16 +243,12 @@ jobs:
           python scripts/validate_model_artifacts.py
           python scripts/validate_snapshot_smoke.py \
             --snapshot web/data/latest_run.json \
-            --shadow-ledger web/data/diagnostics/side_aware_scout_shadow_ledger.json \
             --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
             --diagnostics-dir web/data/diagnostics
           python - <<'PY'
           import json
           from pathlib import Path
 
-          moonshot_ledger = Path("web/data/diagnostics/moonshot_prospective_ledger.json")
-          if not moonshot_ledger.exists():
-              raise SystemExit("moonshot prospective ledger was not written")
           live_archive_manifest = Path("engine/data/live_options_archive/coverage_manifest.json")
           if not live_archive_manifest.exists():
               raise SystemExit("live option-chain archive manifest was not written")
@@ -465,7 +416,6 @@ jobs:
           git add \
             web/data/diagnostics/scan_health_summary_latest.json \
             web/data/diagnostics/model_governance_summary_latest.json \
-            web/data/diagnostics/exit_policy_shadow_latest.json \
             web/data/diagnostics/orographic_rebuild_readiness_latest.json
           if git diff --cached --quiet; then
             echo "health_summary_changed=false" >> "$GITHUB_OUTPUT"

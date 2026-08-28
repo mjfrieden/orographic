@@ -5,8 +5,8 @@ Orographic is a new short-term options platform built from the useful parts of t
 It is split into three first-party layers:
 
 - `Scout`: a Cirrus-style symbol and direction engine. It decides whether a name has enough short-term edge to even deserve option-chain work.
-- `Forge`: a Cumulus-style contract engine. It chooses the actual weekly contract and combines quote quality, breakeven burden, payoff shape, learned payoff rank, path quality, and transaction-cost awareness.
-- `Council`: a Stratus-style portfolio gate. It selects one ranked R&D board and enforces side, sector, correlation, sizing, and no-trade discipline.
+- `Forge`: a contract engine. It ranks executable weekly contracts with one volatility/contract model, execution quality, and explicit after-cost utility.
+- `Council`: a portfolio gate. It selects from the single production rank and enforces execution, score, concentration, correlation, and sizing controls.
 
 The game layer lives in `web/`. It is designed to deploy cleanly to Cloudflare Pages as a static site.
 
@@ -19,10 +19,10 @@ The current game loop also uses Pages Functions as a thin Tradier proxy. The bro
 - No synthetic bid/ask fallback in the scan engine.
 - One canonical snapshot schema from Scout to Forge to Council.
 - Hard abstain support instead of forcing a pick.
-- One canonical production lane combines Scout, Sentinel, Forge, path quality, cost-aware ranking, and Council.
-- The former gated/shadow stack remains available only as a comparison baseline with `--model-stack current_gated`.
+- One production path: Scout → production v2 ranker → execution policy → Council.
+- No runtime model-stack selector, challenger board, counterfactual board, path-model weight, Sentinel weight, or Moonshot lane.
+- The sole learned Forge input uses volatility/contract features as a within-scan rank. Its probability is telemetry-only and cannot size positions.
 - Scout snapshots include side-aware `call_edge`, `put_edge`, and `no_trade` probabilities.
-- Sentinel extracts structured event features from headlines instead of acting as a raw sentiment oracle.
 - Deployment path is intentionally cheap:
   - static game board on Cloudflare Pages
   - scheduled scan by GitHub Actions or a self-hosted runner
@@ -44,15 +44,10 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
-The scan defaults to `--model-stack unified_rnd`. Its only production and
-buy-to-open authority is `council.live_board`. Moonshot remains a separate,
-visible experimental side lane: it emits at most one tail-upside pick for
-prospective outcome tracking, but does not influence the primary ensemble,
-Council, sizing, or Tradier routing. Shadow-board, counterfactual, arbitrary
-Forge, Moonshot, and manual HOLD candidates cannot be previewed or opened
-through the broker transmitter. Use
-`--model-stack current_gated` only to reproduce the former scoring baseline; it
-does not create another order lane.
+The scan runs `production_v2`; the CLI no longer exposes alternate model
+stacks. Its only production and buy-to-open authority is
+`council.live_board`. Non-Council and manual HOLD candidates cannot be
+previewed or opened through the broker transmitter.
 
 Live scan contract selection defaults to the recovered production DTE window:
 `--minimum-days-to-expiry 7 --maximum-days-to-expiry 14`. Override those only
@@ -71,15 +66,10 @@ Each scan also writes a Forge bottleneck artifact beside the snapshot:
 - `web/data/diagnostics/forge_rejection_waterfall_latest.json`
 - `web/data/diagnostics/forge_rejection_waterfall_YYYY-MM-DD.json`
 
-Each snapshot still includes `promotion_readiness` for evidence and auditability. In the unified R&D stack it does not split models into a second product lane or silently disable a layer; it records whether the combined stack has enough evidence for deployment beyond R&D.
-
-Each scan also appends a legacy-named side-aware Scout disagreement ledger beside the diagnostics:
-
-- `web/data/diagnostics/side_aware_scout_shadow_ledger.json`
-
-This ledger records offline model disagreements for historical comparability. It is research telemetry, not a candidate lane, and has no Council or broker authority.
-
-The unified stack does not allocate a counterfactual observation lane. The old payload key remains as an always-empty compatibility field so archived snapshots and readers do not break. Broker-side quote freshness, spread, buying-power, credential, preview, and live-confirmation controls remain enforced independently of model-stack selection.
+Archived snapshots can still contain legacy promotion, shadow, counterfactual,
+and Moonshot keys. New production scans do not populate or refresh those lanes.
+Broker-side quote freshness, spread, buying-power, credential, preview, and
+live-confirmation controls remain independently enforced.
 
 Each scan also appends a rolling board history ledger beside the diagnostics:
 
@@ -87,17 +77,11 @@ Each scan also appends a rolling board history ledger beside the diagnostics:
 
 This ledger preserves historical live/shadow fields for archive compatibility. New production scans populate one Council board and leave the shadow field empty.
 
-Each scan also appends a dedicated moonshot prospective ledger:
-
-- `web/data/diagnostics/moonshot_prospective_ledger.json`
-
-This ledger records the visible Moonshot side pick and tail-upside research observations with their score, eligibility reasons, emission quote, model context, risk features, and fixed outcome slots. Moonshot is its own experimental lane, but remains non-routable and outside the primary ensemble.
-
 Prospective outcome capture uses policy v2. One-hour quotes must be retrieved within 15 minutes of the target; close-based quotes must be retrieved within 30 minutes. Broker quote timestamps are retained, quotes older than 15 minutes are rejected, and late windows are recorded as `missed_live_window` rather than filled with a current quote. Missing or stale quotes remain retryable inside the live window and recoverable from immutable archives afterward. Legacy pending picks are frozen so current prices cannot contaminate historical horizons.
 
-The `Orographic Outcome Capture` workflow checks eligible windows hourly at `:15` from 09:15 through 15:15 Chicago time. It calls Tradier while a policy-v2 contract is active for trajectory evidence or inside a fixed capture window, refreshes challenger evidence, and persists operational state to R2 when capture state changes.
+The `Orographic Outcome Capture` workflow checks eligible windows hourly at `:15` from 09:15 through 15:15 Chicago time. It calls Tradier while a policy-v2 production contract is active for trajectory evidence or inside a fixed capture window, refreshes the matched-side production training readiness artifact, and persists operational state to R2 when capture state changes.
 
-The post-login Research drawer reads `web/data/diagnostics/model_governance_summary_latest.json`, a stable UI contract generated from scan health, challenger cards, and prospective evidence. It separates data-capture health, research status, and live authority; provides keyboard-accessible Scout, payoff, veto, and exit tabs; and keeps every challenger explicitly locked out of Council, sizing, and Tradier routing. When Council abstains, the primary signal card also shows a compact Universe → Scout → Forge → Council funnel with research-only no-trade observations reported separately.
+The post-login evidence drawer shows production model identity, data-capture health, and live authority. Challenger tabs and experiment lanes are not part of the production cockpit.
 
 Archive live option chains for future model training:
 
@@ -121,17 +105,16 @@ Build canonical research datasets from prospective ledgers:
 ```bash
 ./.venv/bin/python scripts/build_research_datasets.py \
   --prospective-ledger web/data/diagnostics/prospective_pick_ledger.json \
-  --moonshot-ledger web/data/diagnostics/moonshot_prospective_ledger.json \
   --output-dir output/research_datasets
 ```
 
-This produces option-recommendation and moonshot outcome tables suitable for future payoff, path, side-aware, and moonshot model training.
+This produces production recommendation outcomes for offline artifact-replacement evaluation.
 
 Production scans also capture one executable call and one executable put for
 each eligible Forge symbol at the same expiry, choosing the contracts nearest
 `0.35` absolute delta and then the tighter spread. These are matched research
 observations, not another product lane: they cannot enter Forge ranking,
-Council, Moonshot, sizing, order preview, or Tradier submission. If the chosen
+Council, sizing, order preview, or Tradier submission. If the chosen
 same-side contract is already a Forge candidate, the ledger reuses that row
 rather than duplicating it. Disable this data capture for an emergency or
 rate-limit investigation with
@@ -146,25 +129,14 @@ Before building datasets, enrich ledgers with dense path labels from archived op
 ```bash
 ./.venv/bin/python scripts/mark_path_outcomes_from_archive.py \
   --archive-dir engine/data/live_options_archive \
-  --ledger web/data/diagnostics/prospective_pick_ledger.json \
-  --ledger web/data/diagnostics/moonshot_prospective_ledger.json
+  --ledger web/data/diagnostics/prospective_pick_ledger.json
 ```
 
 This adds an `archived_quote_path` block to each pick when archived chains contain the contract. It records observed quote marks, max favorable/adverse excursion, first hit, and take-profit-before-stop labels.
 
-Audit research data capture after archiving and dataset generation:
-
-```bash
-./.venv/bin/python scripts/audit_research_data_capture.py \
-  --live-archive-manifest engine/data/live_options_archive/coverage_manifest.json \
-  --research-dataset-dir output/research_datasets
-```
-
-The scheduled workflow runs this audit and fails if the live chain archive is empty, required ledgers are missing, or the generated datasets are internally inconsistent.
-
 For durable storage beyond GitHub's short-lived workflow artifacts, configure `OROGRAPHIC_RESEARCH_R2_BUCKET` and `CLOUDFLARE_R2_API_TOKEN` as GitHub secrets alongside `CLOUDFLARE_ACCOUNT_ID`. The R2 token should include Cloudflare's `Workers R2 Storage Edit` permission for the account or target bucket. When present, the scan workflow restores the prior canonical evidence bundle, compacts it with the current ledgers, strict outcomes, and option quotes, uploads a timestamped raw snapshot with a verifiable manifest/catalog entry, and publishes the canonical bundle manifest last.
 
-Mutable prospective and shadow ledgers are synchronized separately as content-addressed, gzip-compressed R2 objects under `orographic/operational-ledgers/v1`. Both live workflows restore that state before writing and publish the manifest last after writing. The full ledgers remain research-only; `scripts/build_pages_bundle.py` stages a clean Pages directory that excludes them, while `scripts/build_dashboard_prospective_summary.py` publishes a small aggregate plus the eight most recent scan entries for the dashboard. Outcome capture runs hourly at `:15` from 09:15 through 15:15 Chicago time. The shared research-ledger lock safely queues captures behind scans at `:07`, while the earlier phase leaves enough margin for one-hour outcome windows with a 15-minute tolerance. It no longer creates frequent data commits on `main`, and visibly fails if R2 or Pages publication fails.
+Mutable production recommendation and run-history ledgers are synchronized as content-addressed, gzip-compressed R2 objects under `orographic/operational-ledgers/v1`. Both live workflows restore that state before writing and publish the manifest last after writing. The full ledgers remain research-only; `scripts/build_pages_bundle.py` stages a clean Pages directory that excludes them, while `scripts/build_dashboard_prospective_summary.py` publishes a small aggregate plus the eight most recent scan entries for the dashboard. Outcome capture runs hourly at `:15` from 09:15 through 15:15 Chicago time. The shared research-ledger lock safely queues captures behind scans at `:07`, while the earlier phase leaves enough margin for one-hour outcome windows with a 15-minute tolerance. It no longer creates frequent data commits on `main`, and visibly fails if R2 or Pages publication fails.
 
 ### Canonical evidence lifecycle
 
@@ -396,8 +368,7 @@ Run the walk-forward alpha experiment with the same sizing policy:
 
 The alpha experiment now also writes one canonical `option_outcome_dataset` artifact per variant into `output/` by default. Override the directory with `--option-outcome-dir`.
 
-Run an exact primary-ensemble component ablation (Moonshot is intentionally
-excluded because it is a separate side experiment):
+Run an exact historical component ablation offline:
 
 ```bash
 ./.venv/bin/python -m engine.backtest.alpha_experiment \
@@ -472,11 +443,7 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
 - `OROGRAPHIC_MAX_ENTRY_COST_BASIS_USD`: server-enforced buy-to-open cost-basis ceiling, default `$600`; applied to preview and submission after the live quote is loaded
 - `OROGRAPHIC_INTERNAL_CAPTURE_TOKEN`: shared secret used only for the private hosted position-history capture endpoint
-- `OROGRAPHIC_SENTINEL_TOKEN`: shared secret for the internal `/api/ai/sentinel` headline-analysis route
-- `OROGRAPHIC_MODEL_STACK`: optional; defaults to `unified_rnd`. This activates the integrated side, Sentinel, payoff, path, and cost-aware stack in one R&D lane. Set it to `current_gated` to reproduce the former promotion-gated baseline.
-- `OROGRAPHIC_SENTINEL_MODE`, `OROGRAPHIC_SIDE_MODEL_MODE`, `OROGRAPHIC_PAYOFF_MODEL_MODE`, and `OROGRAPHIC_PATH_MODEL_MODE`: legacy per-layer overrides used by `current_gated`; the unified stack activates and combines these layers explicitly.
-
-Scheduled Python scans that use Sentinel should also set `OROGRAPHIC_SENTINEL_TOKEN` locally or in GitHub Actions so the engine can call the token-protected Cloudflare route. `OROGRAPHIC_INTERNAL_AI_TOKEN` is also accepted as an alias for local/internal tooling. Without an explicit active mode, Sentinel is logged as a model-observation signal and does not steer live recommendations.
+- `OROGRAPHIC_MODEL_STACK` and the legacy per-layer model-mode variables are ignored by production scans. The pipeline forces `production_v2`.
 
 ## Model Governance
 
@@ -486,7 +453,7 @@ Model artifacts are pinned in `engine/orographic/models/artifact_manifest.json`.
 python scripts/validate_model_artifacts.py
 ```
 
-Scout training writes `engine/orographic/models/scout_model_card.json` with feature lists, artifact hashes, walk-forward metrics, Brier score, calibration buckets, side/regime segments, coverage, and feature drift baselines. When trained with strict-real option outcome input, it also writes `engine/orographic/models/scout_side_model.pkl` and records the side-aware target as option-payoff based. The unified R&D stack uses it as a confidence-gated direction correction instead of a serial veto.
+Scout training writes `engine/orographic/models/scout_model_card.json` and the production side-decision artifact. Scout owns trade/abstain and call/put; Council does not introduce a second learned no-trade gate.
 
 For hierarchical call-versus-put training, only rows carrying the same explicit
 matched-pair identifier qualify as paired direction evidence. Merely finding an
@@ -503,113 +470,22 @@ The report requires at least 150 complete strict-executable pairs, 50 call-edge
 and 50 put-edge outcomes, 30 independent decision dates, two regimes with 25
 pairs each, and three usable purged walk-forward folds. Each fold must train and
 freeze its own model/scaler/calibrator bundle before validation. Passing these
-collection gates permits an offline evaluation only; it cannot replace active
-artifacts, affect Council, size an order, or route through Tradier.
+gates permits a production Scout retrain; artifact replacement still requires
+an updated manifest, card, and hash in the same change.
 
-The same training run now builds `scout_hierarchical_challenger.pkl` when strict option outcomes are available. Its first head predicts trade versus abstain; its second head predicts call versus put using only dates where both sides were observed. The unified stack blends this challenger into the side ensemble at a bounded 20% weight; `current_gated` keeps its legacy observation-only treatment.
-
-Use `--hierarchical-only` to train that challenger while preserving every active Scout model, scaler, side model, and model card:
-
-```bash
-python -m engine.train_scout_model --cutoff 2026-08-11 --hierarchical-only \
-  --option-outcome-input output/option_outcomes_live_recommendations.json
-```
-
-Payoff-model training writes both the requested report and `engine/orographic/models/payoff_model_card.json` with strict-real option-label definitions, side coverage, option-chain coverage, walk-forward AUC/Brier/log-loss, probability buckets, and the active-by-default activation policy for the recovered payoff ranker.
-
-Path-model training writes both the requested report and `engine/orographic/models/path_model_card.json` with hold-window path targets, quote-path coverage, walk-forward early-take-profit calibration, and decay risk. The unified R&D stack folds that score into Forge ranking; legacy gated runs keep the prior observation-only policy.
-
-R&D status today:
-
-- canonical research path: `unified_council_cost_cap`
-- comparison baseline: `council_cost_cap` with `model_stack=current_gated`
-- deployment promotion: held pending leakage-safe out-of-sample validation
-
-Recommended payoff-model training flow:
-
-```bash
-./.venv/bin/python -m engine.backtest.runner \
-  --months 12 \
-  --base-budget-usd 300 \
-  --hard-cost-ceiling-usd 600 \
-  --strict-options-data \
-  --min-real-coverage-pct 0.9 \
-  --option-outcome-output output/option_outcomes_12mo.json
-
-./.venv/bin/python engine/train_payoff_model.py \
-  --input output/option_outcomes_12mo.json
-```
-
-`engine/train_payoff_model.py` now prefers canonical `option_outcome_dataset` artifacts first, records those paths as the primary training source in the report/model card, and still accepts legacy backtest results JSON as a fallback. The report/model card now also includes canonical dataset summaries, friction-flip counts, side and regime segmentation, promotion-gate status derived from both dataset coverage and walk-forward metrics, plus a walk-forward family bakeoff across linear, tree, and ensemble model families with an explicit selected family.
-
-Train the cost-aware multi-task challenger without granting it any live authority:
-
-```bash
-./.venv/bin/python scripts/train_cost_aware_payoff_challenger.py \
-  --input output/option_outcomes_12mo.json
-```
-
-The challenger adds q10/q50/q90 strict after-cost return estimates, fill quality, positive-P&L and breakeven probabilities, favorable/adverse path heads, and target-before-stop probability. Quantiles are projected into monotone order, while promotion gates check central-interval coverage and realized performance for the conservative `q10 > 0` selector. Its scores are persisted for prospective replay but cannot alter Forge order, Council eligibility, sizing, or Tradier routing.
-
-Audit the payoff contribution with fold-specific retraining and exact zero-weight
-and inverted-orientation comparisons:
-
-```bash
-python scripts/build_payoff_stack_audit.py
-```
-
-The evaluator groups rows by decision date, purges labels that were not
-available before each validation block, fits and freezes a pre-registered
-linear classifier and q10 model inside every fold, and hashes each fold's
-training and validation evidence. Fixed full-history artifacts are reported
-separately and cannot satisfy promotion gates. The output is research-only and
-cannot write active models or change the unified production rank.
-
-Recommended path-model training flow:
-
-```bash
-./.venv/bin/python engine/train_path_model.py \
-  --input output/option_outcomes_12mo.json
-```
-
-`engine/train_path_model.py` reuses the canonical replay loader and strict-real quote-path reconstruction so the shadow path-quality observer can graduate from heuristics to a learned artifact.
-
-Build the stricter competing-risk exit challenger and its data-quality report with:
-
-```bash
-python scripts/train_path_hazard_challenger.py \
-  --input output/option_outcomes_live_recommendations.json
-```
-
-This evaluator models +25% target, -50% stop, and expiry hazards only when timestamp-valid pre-exit marks exist. It excludes and reports post-exit marks, compares fixed and shadow exits on identical entries with purged folds, and writes `web/data/diagnostics/path_hazard_challenger_latest.json`. If evidence is inadequate it emits a HOLD card and deliberately writes no model artifact.
+The sole Forge artifact is
+`engine/orographic/models/production_payoff_ranker.pkl`, governed by
+`production_payoff_ranker_card.json`. It uses volatility/contract features as
+an intra-scan rank. Calibration is telemetry-only, execution policy is binding,
+and the old payoff, path, cost-aware, hierarchical, Sentinel, and Moonshot
+artifacts have no production runtime authority.
 
 Prospective path collection is performed by the Tradier outcome workflow that captures fixed exits. A Cloudflare cron dispatcher invokes it hourly from 09:15 through 15:15 America/Chicago on weekdays and reports dispatch delay as capture health. For every active policy-v2 contract, the workflow appends one fresh, minute-deduplicated `trajectory_mark` per run from emission through Friday close. These contract-specific marks take priority over the rotating full-chain archive when path labels are rebuilt. The scan-health report marks `trajectory_capture_health` degraded whenever an active pick receives a missing or stale quote. The workflow pages only when current-run trajectory coverage is 30% or lower; partial capture remains visible in governance without generating a failure email. Historical capture debt is reported separately from current-run health.
 
-Model changes should remain pending until the challenger beats the current unified system where they disagree, after costs, across leakage-safe 3/6/12-month validation windows and at least 30 prospective trading days. Comparison is offline or telemetry-only; it never creates a second production lane.
-
-Replay the canonical promotion comparison from the existing prospective and side-aware shadow ledgers:
-
-```bash
-python scripts/build_promotion_comparison.py
-```
-
-The replay writes `web/data/diagnostics/promotion_shadow_active_comparison_latest.json`. It compares one-contract active (`live`) and shadow recommendations at the emission ask and Friday-close bid, reports gross and after-spread P&L, calibration, annualized daily Sharpe, and drawdown for 3-, 6-, and 12-month windows. Repeated intraday scans are collapsed to daily contract exposures, and a paired-market-day bootstrap reports the challenger return-lift distribution. Promotion requires at least 30 paired days, a positive 95% lower confidence bound, at least 95% bootstrap probability of improvement, and positive cluster-adjusted challenger profitability—not merely a smaller loss than active. A window cannot pass until its full history is present. Normal scans refresh this artifact before rebuilding promotion readiness; the comparison is diagnostic-only and does not alter scoring or decision weights.
-
-Build the paired prospective evidence report for the volatility/contract payoff challenger:
-
-```bash
-python scripts/build_payoff_challenger_evidence.py
-```
-
-This writes `web/data/diagnostics/payoff_challenger_evidence_latest.json`. It compares current and challenger probabilities on the exact same recommendations using only strict executable Friday-close labels, reports discrimination and calibration by side and regime, and replays each fully resolved scan with the top current-ranked versus challenger-ranked contract. Incomplete candidate sets fail closed and are excluded from the rank replay. A challenger may replace or change weight within the one unified stack only after adequate resolved samples and disagreements, both call and put coverage, at least two qualified regimes, positive challenger profitability, and a positive paired-run bootstrap lower bound. It never receives separate Tradier authority.
-
-Build the Scout no-trade veto value and threshold-frontier report:
-
-```bash
-python scripts/build_counterfactual_veto_evidence.py
-```
-
-This writes `web/data/diagnostics/counterfactual_veto_evidence_latest.json`. It uses only strict policy-v2 Friday-close executable outcomes, isolates the latest Scout side-model version, and collapses repeated scans to the first recommendation for each Central trading date, symbol, and contract. It reports retained and vetoed after-cost outcomes across a probability/margin grid, segments the current rule by side and regime, and performs market-day clustered inference. Threshold selection is evaluated with expanding walk-forward blocks and a one-trading-day embargo, so test dates never choose their own cutoff. The artifact is advisory-only: even `eligible_for_policy_review` cannot change Council or Tradier behavior.
+Production model changes are evaluated against the deployed artifact on frozen,
+expanding time folds and executable after-cost outcomes. Evaluation is an
+artifact-replacement workflow, not a persistent alternate lane in the scan or
+cockpit.
 
 Recommended default:
 

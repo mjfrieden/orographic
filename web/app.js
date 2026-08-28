@@ -144,7 +144,6 @@ let WORKBENCH_STATE = {
   readiness: null,
   governance: null,
   selectedWindow: "3_month",
-  selectedChallenger: "scout",
 };
 
 function governanceMetricValue(metric) {
@@ -161,9 +160,7 @@ function governanceMetricValue(metric) {
 function renderModelGovernance() {
   const governance = WORKBENCH_STATE.governance || {};
   const capture = governance.data_capture || {};
-  const summary = governance.summary || {};
   const authority = governance.live_authority || {};
-  const challengers = Array.isArray(governance.challengers) ? governance.challengers : [];
 
   const captureTone = evidenceStatus(capture.status || "hold");
   const captureCard = document.getElementById("governance-capture-card");
@@ -171,94 +168,16 @@ function renderModelGovernance() {
   setText("governance-capture-status", captureTone === "pass" ? "Healthy" : captureTone === "fail" ? "Action needed" : "Awaiting capture");
   setText("governance-capture-note", capture.headline || "Trajectory health has not been published yet.");
 
-  const held = Number(summary.held || challengers.filter((item) => evidenceStatus(item.status) !== "pass").length);
-  const challengerTone = held ? "hold" : "pass";
-  const challengerCard = document.getElementById("governance-challenger-card");
-  if (challengerCard) challengerCard.className = `governance-overview-card is-${challengerTone}`;
-  setText("governance-challenger-status", held ? `${integer(held)} held` : "All gates passed");
-  setText("governance-challenger-note", held ? "No challenger has earned production authority." : "All binding research gates report pass.");
+  const modelCard = document.getElementById("governance-model-card");
+  if (modelCard) modelCard.className = "governance-overview-card is-pass";
+  setText("governance-model-status", "Production v2");
+  setText("governance-model-note", "One volatility/contract rank with binding execution and after-cost controls.");
 
   const authorityCard = document.getElementById("governance-authority-card");
   if (authorityCard) authorityCard.className = "governance-overview-card is-pass";
-  setText("governance-authority-status", authority.challenger_order_routing === false ? "Protected" : "Review required");
-  setText("governance-authority-note", authority.summary || "Only active production models can influence Tradier execution.");
+  setText("governance-authority-status", "Protected");
+  setText("governance-authority-note", "Only Council's production board can influence Tradier execution.");
   setText("governance-generated", governance.generated_at_utc ? `Updated ${formatTs(governance.generated_at_utc)}` : "Governance artifact unavailable");
-
-  const tabs = document.getElementById("challenger-tabs");
-  const detail = document.getElementById("challenger-detail");
-  if (!tabs || !detail) return;
-  if (!challengers.length) {
-    tabs.innerHTML = "";
-    detail.innerHTML = `<p class="drawer-note">Model-governance evidence is unavailable. All challenger authority remains disabled.</p>`;
-    return;
-  }
-
-  if (!challengers.some((item) => item.id === WORKBENCH_STATE.selectedChallenger)) {
-    WORKBENCH_STATE.selectedChallenger = challengers[0].id;
-  }
-  tabs.innerHTML = challengers.map((item) => {
-    const selected = item.id === WORKBENCH_STATE.selectedChallenger;
-    const tone = evidenceStatus(item.status);
-    return `
-      <button class="challenger-tab${selected ? " is-active" : ""}" type="button" role="tab"
-        id="challenger-tab-${escapeHtml(item.id)}" aria-selected="${selected}" aria-controls="challenger-detail"
-        data-challenger-id="${escapeHtml(item.id)}">
-        <span>${escapeHtml(item.layer)}</span>
-        <strong>${escapeHtml(item.title)}</strong>
-        <small class="is-${tone}">${evidenceStatusLabel(tone)}</small>
-      </button>`;
-  }).join("");
-
-  tabs.querySelectorAll("[data-challenger-id]").forEach((button, index, buttons) => {
-    button.addEventListener("click", () => {
-      WORKBENCH_STATE.selectedChallenger = button.dataset.challengerId;
-      renderModelGovernance();
-      document.getElementById("challenger-detail")?.focus({ preventScroll: true });
-    });
-    button.addEventListener("keydown", (event) => {
-      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-      event.preventDefault();
-      const nextIndex = event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? buttons.length - 1
-          : (index + (event.key === "ArrowRight" ? 1 : -1) + buttons.length) % buttons.length;
-      buttons[nextIndex].click();
-      buttons[nextIndex].focus();
-    });
-  });
-
-  const selected = challengers.find((item) => item.id === WORKBENCH_STATE.selectedChallenger) || challengers[0];
-  const tone = evidenceStatus(selected.status);
-  const progress = selected.progress || {};
-  const progressPct = Math.max(0, Math.min(Number(progress.progress_pct || 0), 1));
-  const blockers = Array.isArray(selected.blockers) ? selected.blockers : [];
-  const metrics = Array.isArray(selected.metrics) ? selected.metrics : [];
-  detail.tabIndex = -1;
-  detail.innerHTML = `
-    <div class="challenger-detail-head">
-      <div>
-        <span>${escapeHtml(selected.layer || "Research model")}</span>
-        <h4>${escapeHtml(selected.title || "Challenger")}</h4>
-      </div>
-      <div class="challenger-authority">
-        <span class="evidence-pill is-${tone}">${evidenceStatusLabel(tone)}</span>
-        <span class="authority-pill"><span class="material-symbols-outlined" aria-hidden="true">lock</span>${escapeHtml(String(selected.authority || "observation_only").replaceAll("_", " "))}</span>
-      </div>
-    </div>
-    <p class="challenger-summary">${escapeHtml(selected.summary || "No summary available.")}</p>
-    <div class="evidence-progress" aria-label="${escapeHtml(progress.label || "Evidence progress")}: ${integer(progress.current)} of ${integer(progress.required)}">
-      <div><span>${escapeHtml(progress.label || "Evidence progress")}</span><strong>${integer(progress.current)} / ${integer(progress.required)}</strong></div>
-      <div class="evidence-progress-track"><span style="width:${(progressPct * 100).toFixed(1)}%"></span></div>
-      <small>${integer(progress.remaining)} remaining before this sample gate is satisfied</small>
-    </div>
-    <div class="challenger-metrics">
-      ${metrics.map((metric) => `<div><span>${escapeHtml(metric.label)}</span><strong>${escapeHtml(governanceMetricValue(metric))}</strong></div>`).join("")}
-    </div>
-    <div class="challenger-action-grid">
-      <div><span>Blocking gates</span><ul>${blockers.length ? blockers.map((item) => `<li>${escapeHtml(item)}</li>`).join("") : "<li>No blocking gates reported</li>"}</ul></div>
-      <div class="next-evidence-action"><span>Next valid action</span><p>${escapeHtml(selected.next_action || "Continue prospective observation without changing live policy.")}</p></div>
-    </div>`;
 }
 
 function workbenchMetricRow(label, active, shadow, difference, check) {
@@ -492,46 +411,20 @@ function renderCockpitEvidence(windowRow) {
 }
 
 async function loadResearchWorkbench() {
-  const [comparisonResult, readinessResult, governanceResult] = await Promise.allSettled([
-    loadJsonArtifact(PROMOTION_COMPARISON_SOURCE),
-    loadJsonArtifact(RESEARCH_READINESS_SOURCE),
+  const governanceResult = await Promise.allSettled([
     loadJsonArtifact(MODEL_GOVERNANCE_SOURCE),
   ]);
-  WORKBENCH_STATE.comparison = comparisonResult.status === "fulfilled" ? comparisonResult.value : {};
-  WORKBENCH_STATE.readiness = readinessResult.status === "fulfilled"
-    ? readinessResult.value
-    : {
-        status: "red",
-        research_claims_allowed: false,
-        headline: "Research-readiness artifact is unavailable; evidence claims are blocked.",
-        gates: [],
-      };
-  WORKBENCH_STATE.governance = governanceResult.status === "fulfilled"
-    ? governanceResult.value
+  WORKBENCH_STATE.governance = governanceResult[0].status === "fulfilled"
+    ? governanceResult[0].value
     : {
         status: "hold",
-        headline: "Model-governance artifact is unavailable; challenger authority remains disabled.",
-        challengers: [],
+        headline: "Production model-governance status is unavailable.",
         live_authority: {
-          challenger_order_routing: false,
-          summary: "No research challenger can route a Tradier order.",
+          production_order_routing: false,
+          summary: "Order routing is unavailable until governance status is restored.",
         },
       };
-  renderResearchWorkbench();
-
-  const select = document.getElementById("workbench-window-select");
-  if (select) {
-    select.value = WORKBENCH_STATE.selectedWindow;
-    select.addEventListener("change", () => {
-      WORKBENCH_STATE.selectedWindow = select.value;
-      renderResearchWorkbench();
-    });
-  }
-  window.addEventListener("resize", () => {
-    const windows = Array.isArray(WORKBENCH_STATE.comparison?.windows) ? WORKBENCH_STATE.comparison.windows : [];
-    const selected = windows.find((row) => row.window === WORKBENCH_STATE.selectedWindow) || windows[0];
-    if (selected) drawWorkbenchComparison(selected);
-  });
+  renderModelGovernance();
 }
 
 // ── Session & Auth ──────────────────────────────────────────────────────────

@@ -238,23 +238,8 @@ def _candidate_no_trade_pressure(candidate: ContractCandidate) -> float:
 
 
 def _candidate_live_score(candidate: ContractCandidate) -> float:
-    base_score = _base_candidate_score(candidate)
-    utility_score = getattr(candidate, "utility_after_friction_score", None)
-    utility_score = _clip(float(utility_score)) if utility_score is not None else base_score
-    edge_score = _normalized_edge_score(candidate)
-    fill_quality = _candidate_fill_quality(candidate)
-    path_quality = _candidate_path_quality(candidate)
-    sentinel_alignment = _candidate_sentinel_alignment(candidate)
-    no_trade_headroom = 1.0 - _candidate_no_trade_pressure(candidate)
-    return _clip(
-        0.32 * base_score
-        + 0.18 * utility_score
-        + 0.16 * edge_score
-        + 0.14 * fill_quality
-        + 0.10 * path_quality
-        + 0.10 * sentinel_alignment
-        + 0.10 * no_trade_headroom
-    )
+    """Council consumes the single Forge production score without a second ensemble."""
+    return _base_candidate_score(candidate)
 
 
 def _avg_pairwise_corr(corr: np.ndarray | None) -> float | None:
@@ -590,9 +575,9 @@ def select_board(
         sentinel_pressure = _sentinel_no_trade_pressure(candidate)
         score_ok = live_score >= required_score
         extrinsic_ok = candidate.extrinsic_ratio <= effective_max_live_extrinsic_ratio
-        no_trade_ok = no_trade_pressure <= max_live_no_trade_prob
+        no_trade_ok = True
         fill_quality_ok = fill_quality >= min_live_fill_quality
-        sentinel_ok = sentinel_pressure <= max_live_sentinel_no_trade_pressure
+        sentinel_ok = True
         execution_policy_ok = candidate.execution_policy_passed is not False
         if shock.label != NEUTRAL_MARKET_SHOCK.label:
             flags = set(candidate.council_risk_flags)

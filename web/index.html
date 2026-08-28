@@ -78,18 +78,6 @@
             </button>
           </div>
 
-          <section class="moonshot-side-lane" aria-labelledby="moonshot-side-title">
-            <header class="moonshot-side-head">
-              <div>
-                <p class="section-label">Moonshot Experiment</p>
-                <h2 id="moonshot-side-title">Visible side pick</h2>
-              </div>
-              <span class="moonshot-side-authority"><span class="material-symbols-outlined" aria-hidden="true">science</span>Tracked · non-routable</span>
-            </header>
-            <div id="moonshot-side-pick" class="moonshot-side-pick" aria-live="polite">
-              Waiting for the latest experimental pick…
-            </div>
-          </section>
         </article>
 
         <article class="book-pane" id="execution" aria-labelledby="positions-title">
@@ -144,30 +132,14 @@
 
       <section class="evidence-ribbon" id="research" aria-labelledby="evidence-title">
         <div class="evidence-intro">
-          <p class="section-label">Evidence Summary</p>
-          <h2 id="evidence-title">Promotion remains evidence-bound</h2>
-          <span id="workbench-generated">Loading reviewed evidence…</span>
+          <p class="section-label">Production Program</p>
+          <h2 id="evidence-title">Production v2 is the only live model path</h2>
+          <span>Scout direction → Forge rank → Council execution</span>
         </div>
-        <button class="evidence-metric evidence-metric-button" type="button" data-research-focus="observations" aria-label="Open independent observation evidence">
-          <span>Independent observations</span>
-          <strong id="evidence-independent">—</strong>
-          <small id="evidence-independent-note">Daily contract clusters</small>
-        </button>
-        <button class="evidence-metric evidence-metric-button" type="button" data-research-focus="pnl" aria-label="Open executable profit and loss evidence">
-          <span>Executable net P&amp;L</span>
-          <strong id="evidence-pnl">—</strong>
-          <small>Ask entry → bid exit</small>
-        </button>
-        <button class="evidence-metric evidence-metric-button" type="button" data-research-focus="calibration" aria-label="Open calibration evidence">
-          <span>Calibration</span>
-          <strong id="evidence-calibration">—</strong>
-          <small>Brier score</small>
-        </button>
-        <button class="evidence-metric evidence-metric-button" type="button" data-research-focus="drawdown" aria-label="Open drawdown evidence">
-          <span>Max drawdown</span>
-          <strong id="evidence-drawdown">—</strong>
-          <small>Cluster-adjusted</small>
-        </button>
+        <div class="evidence-metric"><span>Learned rank</span><strong>70%</strong><small>Volatility + contract features</small></div>
+        <div class="evidence-metric"><span>Execution quality</span><strong>20%</strong><small>Liquidity, fill, spread</small></div>
+        <div class="evidence-metric"><span>After-cost utility</span><strong>10%</strong><small>Friction-adjusted</small></div>
+        <div class="evidence-metric"><span>Experiment lanes</span><strong>0</strong><small>Single production board</small></div>
         <button id="research-drawer-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="research-drawer">
           Research details<span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
         </button>
@@ -177,16 +149,16 @@
         <header class="drawer-header">
           <div>
             <p class="section-label">Scientific Review</p>
-            <h2 id="research-drawer-title">Model evidence and promotion gates</h2>
+            <h2 id="research-drawer-title">Production model and execution evidence</h2>
           </div>
           <button id="research-drawer-close" class="icon-button" type="button" aria-label="Close research details">
             <span class="material-symbols-outlined" aria-hidden="true">close</span>
           </button>
         </header>
 
-        <div id="research-claims-banner" class="research-claims-banner">
-          <span class="material-symbols-outlined" aria-hidden="true">science</span>
-          <div><strong>Reviewing claims</strong><span id="research-claims-message">Loading research readiness…</span></div>
+        <div id="research-claims-banner" class="research-claims-banner is-pass">
+          <span class="material-symbols-outlined" aria-hidden="true">verified</span>
+          <div><strong>Single production authority</strong><span id="research-claims-message">Offline evaluation informs replacement releases; it does not create runtime lanes.</span></div>
         </div>
 
         <section class="governance-overview" aria-label="Research governance overview">
@@ -198,12 +170,12 @@
               <p id="governance-capture-note">Loading scheduled Tradier trajectory health…</p>
             </div>
           </article>
-          <article id="governance-challenger-card" class="governance-overview-card is-hold">
-            <span class="material-symbols-outlined" aria-hidden="true">experiment</span>
+          <article id="governance-model-card" class="governance-overview-card is-pass">
+            <span class="material-symbols-outlined" aria-hidden="true">model_training</span>
             <div>
-              <small>Challenger queue</small>
-              <strong id="governance-challenger-status">Checking</strong>
-              <p id="governance-challenger-note">Loading promotion evidence…</p>
+              <small>Production ranker</small>
+              <strong id="governance-model-status">Production v2</strong>
+              <p id="governance-model-note">One volatility/contract rank with binding execution and after-cost controls.</p>
             </div>
           </article>
           <article id="governance-authority-card" class="governance-overview-card is-pass">
@@ -211,56 +183,12 @@
             <div>
               <small>Live authority</small>
               <strong id="governance-authority-status">Protected</strong>
-              <p id="governance-authority-note">Research models cannot route Tradier orders.</p>
+              <p id="governance-authority-note">Only Council's production board can route Tradier orders.</p>
             </div>
           </article>
         </section>
 
-        <section class="challenger-workspace" aria-labelledby="challenger-workspace-title">
-          <header class="challenger-workspace-head">
-            <div>
-              <span>Research lanes</span>
-              <h3 id="challenger-workspace-title">What needs evidence next?</h3>
-            </div>
-            <p id="governance-generated">Loading governance artifact…</p>
-          </header>
-          <div id="challenger-tabs" class="challenger-tabs" role="tablist" aria-label="Model challenger research lanes"></div>
-          <article id="challenger-detail" class="challenger-detail" role="tabpanel" aria-live="polite">
-            <p class="drawer-note">Loading challenger evidence…</p>
-          </article>
-        </section>
-
-        <div class="drawer-grid">
-          <article>
-            <div class="drawer-section-head">
-              <div><span>Current decision</span><strong id="workbench-overall-status">Loading</strong></div>
-              <select id="workbench-window-select" aria-label="Evidence window">
-                <option value="3_month">3 months</option><option value="6_month">6 months</option><option value="12_month">12 months</option>
-              </select>
-            </div>
-            <p id="workbench-overall-note" class="drawer-note">Checking binding evidence gates…</p>
-            <div id="comparison-status" class="drawer-note">Loading comparison…</div>
-            <canvas id="workbench-comparison-chart" height="210" aria-label="Active and shadow executable net profit comparison"></canvas>
-            <div id="comparison-summary" class="summary-box"></div>
-          </article>
-          <article>
-            <div class="drawer-section-head"><div><span>Binding controls</span><strong id="promotion-decision">Loading</strong></div></div>
-            <div id="workbench-gates" class="workbench-gates"></div>
-          </article>
-        </div>
-
-        <div class="detail-table-wrap">
-          <table class="workbench-table">
-            <thead><tr><th>Metric</th><th>Active</th><th>Shadow</th><th>Difference</th><th>Gate</th></tr></thead>
-            <tbody id="workbench-diagnostics-body"><tr><td colspan="5">Loading diagnostics…</td></tr></tbody>
-          </table>
-        </div>
-        <ol id="workbench-lineage" class="lineage-list"></ol>
-        <div class="research-meta" aria-label="Research metadata">
-          <span>Run <strong id="workbench-run-id">—</strong></span>
-          <span>Dataset <strong id="workbench-dataset">—</strong></span>
-          <span>Cutoff <strong id="workbench-cutoff">—</strong></span>
-        </div>
+        <p id="governance-generated" class="drawer-note">Loading production model status…</p>
       </section>
 
       <footer class="cockpit-footer">
@@ -273,7 +201,7 @@
     <div class="legacy-sinks" hidden aria-hidden="true">
       <span id="ribbon-cash"></span><span id="ribbon-positions"></span><span id="regime-pill"></span><span id="regime-tag"></span><span id="dispatch-tag"></span><span id="regime-source"></span>
       <span id="live-count-hud"></span><span id="shadow-count-hud"></span><span id="board-status"></span>
-      <div id="live-picks-grid"></div><div id="shadow-picks-grid"></div><div id="moonshot-picks-grid"></div><div id="moonshot-policy-status"></div><div id="moonshot-summary-grid"></div>
+      <div id="live-picks-grid"></div><div id="shadow-picks-grid"></div>
       <div id="promotion-gates"></div><div id="promotion-model-grid"></div><div id="promotion-policy"></div>
       <div id="prospective-overview-grid"></div><div id="prospective-performance-explain"></div><div id="prospective-sync-status"></div><table><tbody id="prospective-tbody"></tbody></table>
       <div id="scout-board"></div><div id="forge-board"></div><div id="council-summary"></div><div id="forge-waterfall"></div><div id="forge-bottlenecks"></div><div id="model-observability"></div><div id="live-shadow-attribution"></div>

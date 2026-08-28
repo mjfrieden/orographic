@@ -96,29 +96,13 @@ jobs:
             --ledger web/data/diagnostics/prospective_pick_ledger.json \
             --ignore-missing
 
-      - name: Capture moonshot trajectories and outcome windows
-        id: capture_moonshot
-        if: ${{ steps.capture_config.outputs.configured == 'true' }}
-        continue-on-error: true
-        run: |
-          python engine/mark_prospective_outcomes.py \
-            --ledger web/data/diagnostics/moonshot_prospective_ledger.json \
-            --ignore-missing
-
-      - name: Refresh challenger evidence
+      - name: Refresh production training evidence
         id: refresh_evidence
         if: ${{ always() }}
         continue-on-error: true
         run: |
           if [ -f web/data/diagnostics/prospective_pick_ledger.json ]; then
             python scripts/build_scout_pair_readiness.py --warn-only
-            python scripts/build_payoff_challenger_evidence.py
-            python scripts/build_counterfactual_veto_evidence.py
-            python scripts/evaluate_exit_policy_shadow.py
-            python scripts/mark_path_outcomes_from_archive.py \
-              --archive-dir engine/data/live_options_archive \
-              --ledger web/data/diagnostics/prospective_pick_ledger.json \
-              --ledger web/data/diagnostics/moonshot_prospective_ledger.json
           fi
 
       - name: Build capture health and governance artifacts
@@ -127,7 +111,6 @@ jobs:
           python scripts/build_outcome_capture_health.py \
             --token-configured "${{ steps.capture_config.outputs.configured }}" \
             --prospective-step-status "${{ steps.capture_prospective.outcome }}" \
-            --moonshot-step-status "${{ steps.capture_moonshot.outcome }}" \
             --evidence-step-status "${{ steps.refresh_evidence.outcome }}" \
             --scheduled-at-utc "${{ inputs.scheduled_time_utc }}" \
             --workflow-started-at-utc "${{ steps.capture_start.outputs.started_at_utc }}" \

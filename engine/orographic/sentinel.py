@@ -610,7 +610,7 @@ def fetch_ai_multiplier(
     local structured-event model so Sentinel can still produce stable fields and
     abstain-aware scores when remote extraction is partial or unavailable.
     """
-    sentinel_mode = os.getenv("OROGRAPHIC_SENTINEL_MODE", "active").strip().lower()
+    sentinel_mode = os.getenv("OROGRAPHIC_SENTINEL_MODE", "shadow").strip().lower()
     if sentinel_mode not in {"active", "shadow"}:
         sentinel_mode = "shadow"
     event_context = dict(event_context or {})

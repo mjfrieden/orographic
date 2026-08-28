@@ -120,7 +120,8 @@ class SentinelTests(unittest.TestCase):
         self.assertEqual(score.novelty, "high")
         self.assertGreater(score.call_relevance, score.put_relevance)
         self.assertLess(score.no_trade_relevance, 1.0)
-        self.assertIsNotNone(score.model_artifact_sha256)
+        self.assertIsNone(score.model_artifact_sha256)
+        self.assertEqual(score.multiplier, 1.0)
         self.assertIn("structured_event", score.model_mode)
 
 
