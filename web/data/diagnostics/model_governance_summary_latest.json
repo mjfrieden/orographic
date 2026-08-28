@@ -1,240 +1,38 @@
 {
   "artifact": "model_governance_summary",
-  "schema_version": 1,
-  "generated_at_utc": "2026-08-27T20:20:07.419571Z",
-  "status": "hold",
-  "headline": "Production policy is unchanged while challengers collect binding evidence.",
+  "schema_version": 2,
+  "generated_at_utc": "2026-08-28T03:09:53.050132Z",
+  "status": "pass",
+  "headline": "Production v2 is the only scoring and execution path.",
+  "production_model": {
+    "profile": "production_v2",
+    "scout": "direction plus trade/abstain and side decision",
+    "ranker": "volatility/contract within-scan rank",
+    "score_weights": {
+      "volatility_contract_rank": 0.7,
+      "execution_quality": 0.2,
+      "after_cost_utility": 0.1
+    },
+    "probability_sizing": false,
+    "legacy_model_authority": false
+  },
   "live_authority": {
-    "policy": "active_production_models_only",
-    "challenger_order_routing": false,
-    "challenger_sizing_effect": false,
-    "challenger_council_eligibility": false,
-    "summary": "No research challenger can size, select, or transmit a Tradier order."
+    "policy": "production_v2_council_only",
+    "summary": "Only Council's production board can size, select, or transmit a Tradier order."
   },
   "data_capture": {
     "status": "pass",
     "headline": "No contracts are currently due for path capture.",
     "active_contracts_last_run": 0,
     "marks_written_last_run": 0,
-    "trajectory_contracts": 606,
-    "trajectory_marks": 36012,
+    "trajectory_contracts": 554,
+    "trajectory_marks": 34890,
     "missing_quotes_last_run": 0,
     "stale_quotes_last_run": 0,
-    "evidence_inventory": {
-      "cumulative_inventory": {
-        "moonshot": {
-          "recommendations": 530,
-          "runs": 171,
-          "strict_capture_policy_v2": 104,
-          "with_any_executable_label": 198,
-          "with_any_fixed_mark": 518,
-          "with_friday_executable_label": 110
-        },
-        "option_quote_rows": 1441172,
-        "primary": {
-          "recommendations": 2219,
-          "runs": 213,
-          "strict_capture_policy_v2": 571,
-          "with_any_executable_label": 508,
-          "with_any_fixed_mark": 1509,
-          "with_friday_executable_label": 293
-        },
-        "recommendation_outcome_rows": 1143
-      },
-      "current_model_cohort": {
-        "artifact_sha256": "9efcf85bf38e321f642cb7e46e4c59817b997bacb332f4bb48a4175a63fd5bea",
-        "resolved_recommendations": 72,
-        "resolved_runs": 10,
-        "scored_recommendations": 128
-      },
-      "training_eligible": {
-        "deduplicated_recommendation_outcomes": 1143,
-        "primary_recommendations_with_executable_label": 508,
-        "strict_capture_policy_v2_primary_recommendations": 571
-      }
-    },
-    "canonical_bundle_id": "2daa55a97f1eb5c6f1b5"
+    "canonical_bundle_id": "9fd0d2409d75930179f6"
   },
-  "challengers": [
-    {
-      "id": "scout",
-      "title": "Scout abstention + direction",
-      "layer": "Signal selection",
-      "status": "hold",
-      "authority": "observation_only",
-      "execution_effect": "none",
-      "summary": "Two-stage challenger learns trade-versus-abstain before call-versus-put.",
-      "progress": {
-        "current": 95,
-        "required": 150,
-        "remaining": 55,
-        "progress_pct": 0.6333,
-        "label": "complete matched call/put pairs"
-      },
-      "metrics": [
-        {
-          "label": "Complete matched pairs",
-          "value": 95,
-          "format": "integer"
-        },
-        {
-          "label": "Trade AUC",
-          "value": 0.4825,
-          "format": "decimal"
-        },
-        {
-          "label": "Call-edge / put-edge",
-          "value": "19 / 25",
-          "format": "text"
-        },
-        {
-          "label": "Ready frozen folds",
-          "value": 0,
-          "format": "integer"
-        }
-      ],
-      "blockers": [
-        "minimum complete pairs",
-        "minimum call put edges",
-        "independent decision dates",
-        "fold frozen plan"
-      ],
-      "next_action": "Continue prospective matched-pair outcome capture; historical archive coverage is insufficient for a credible backfill."
-    },
-    {
-      "id": "payoff",
-      "title": "Cost-aware payoff ranker",
-      "layer": "Contract ranking",
-      "status": "collecting_evidence",
-      "authority": "observation_only",
-      "execution_effect": "none",
-      "summary": "Predicts after-cost return quantiles, breakeven probability, and fill quality.",
-      "progress": {
-        "current": 72,
-        "required": 100,
-        "remaining": 28,
-        "progress_pct": 0.72,
-        "label": "resolved prospective recommendations"
-      },
-      "metrics": [
-        {
-          "label": "Training examples",
-          "value": 409,
-          "format": "integer"
-        },
-        {
-          "label": "Positive-P&L AUC",
-          "value": 0.4403,
-          "format": "decimal"
-        },
-        {
-          "label": "Exact paths",
-          "value": 44,
-          "format": "integer"
-        },
-        {
-          "label": "Frozen audit dates",
-          "value": 16,
-          "format": "integer"
-        },
-        {
-          "label": "Retrained lift",
-          "value": 0.150781,
-          "format": "decimal"
-        }
-      ],
-      "blockers": [
-        "minimum history days",
-        "full 3 6 12 month windows",
-        "validation side coverage"
-      ],
-      "next_action": "Extend strict executable history, then rerun the same frozen-fold audit."
-    },
-    {
-      "id": "veto",
-      "title": "Counterfactual no-trade veto",
-      "layer": "Risk filtering",
-      "status": "collecting_evidence",
-      "authority": "advisory_only",
-      "execution_effect": "none",
-      "summary": "Measures whether Scout's no-trade preference avoids losses without suppressing profitable trades.",
-      "progress": {
-        "current": 34,
-        "required": 100,
-        "remaining": 66,
-        "progress_pct": 0.34,
-        "label": "resolved independent vetoes"
-      },
-      "metrics": [
-        {
-          "label": "Independent scored",
-          "value": 384,
-          "format": "integer"
-        },
-        {
-          "label": "Resolved vetoes",
-          "value": 34,
-          "format": "integer"
-        },
-        {
-          "label": "Trading days",
-          "value": 4,
-          "format": "integer"
-        }
-      ],
-      "blockers": [
-        "resolved current rule vetoes",
-        "independent trading days",
-        "call coverage",
-        "regime coverage"
-      ],
-      "next_action": "Capture more strict Friday-close outcomes for independent current-rule veto observations."
-    },
-    {
-      "id": "exit",
-      "title": "Competing-risk exit model",
-      "layer": "Exit advice",
-      "status": "hold",
-      "authority": "advice_only",
-      "execution_effect": "none",
-      "summary": "Separately estimates target, stop, and expiry hazards from timestamp-valid option paths.",
-      "progress": {
-        "current": 0,
-        "required": 150,
-        "remaining": 150,
-        "progress_pct": 0.0,
-        "label": "exact pre-exit paths"
-      },
-      "metrics": [
-        {
-          "label": "Valid path records",
-          "value": 0,
-          "format": "integer"
-        },
-        {
-          "label": "Target / stop events",
-          "value": "0 / 0",
-          "format": "text"
-        },
-        {
-          "label": "Rejected post-exit marks",
-          "value": 61,
-          "format": "integer"
-        }
-      ],
-      "blockers": [
-        "minimum exact paths",
-        "minimum stop events",
-        "minimum target events",
-        "no post exit leakage"
-      ],
-      "next_action": "Collect dense 15-minute Tradier marks until target and stop hazards are estimable without leakage."
-    }
-  ],
   "summary": {
-    "challengers": 4,
-    "ready": 0,
-    "held": 4,
-    "observation_only": 4
+    "production_models": 1,
+    "experiment_lanes": 0
   }
 }
