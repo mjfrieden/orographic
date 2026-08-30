@@ -65,6 +65,18 @@ class LiveExecutionPolicyTests(unittest.TestCase):
         self.assertEqual(candidate.execution_policy_reasons, ["after_friction_edge", "entry_spread"])
         self.assertIn("execution_policy", candidate.council_risk_flags)
 
+    def test_positive_tail_utility_can_replace_legacy_edge_gate(self) -> None:
+        candidate = _candidate(
+            expected_edge_after_friction_pct=0.01,
+            expected_tail_utility=0.60,
+            tail_gate_passed=True,
+        )
+        result = apply_live_execution_policy([candidate])
+
+        self.assertEqual(result["kept"], 1)
+        self.assertTrue(candidate.execution_policy_passed)
+        self.assertNotIn("after_friction_edge", candidate.execution_policy_reasons)
+
     def test_same_contract_higher_premium_reentry_is_blocked(self) -> None:
         now = datetime(2026, 8, 18, 15, tzinfo=timezone.utc)
         candidate = _candidate(ask=1.88, contract_cost=188.0, expected_edge_after_friction_pct=0.16)

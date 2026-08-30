@@ -1,13 +1,17 @@
 {
   "artifact": "production_payoff_ranker_card",
-  "version": 1,
-  "profile_id": "production_v2",
   "authority": {
+    "active_research_routing": true,
+    "council_route": "single_production_lane",
     "forge_ranking": true,
-    "probability_sizing": false,
-    "independent_route": false
+    "probability_sizing": false
   },
   "feature_policy": {
+    "excluded": [
+      "sentinel_event_scores",
+      "path_model_scores",
+      "shadow_challenger_scores"
+    ],
     "included": [
       "option_type_is_call",
       "moneyness",
@@ -20,35 +24,279 @@
       "projected_move_pct",
       "breakeven_move_pct",
       "extrinsic_ratio",
-      "dte"
-    ],
-    "excluded": [
-      "directional_scout_scores",
-      "sentinel_scores",
-      "path_model_scores",
-      "cost_aware_challenger_scores"
+      "dte",
+      "spread_pct",
+      "log_open_interest",
+      "log_volume",
+      "premium_pct_of_spot",
+      "expected_return_pct",
+      "heuristic_edge_after_friction_pct",
+      "liquidity_score",
+      "fill_quality_score"
     ]
   },
-  "score_contract": {
-    "volatility_contract_rank_weight": 0.70,
-    "execution_quality_weight": 0.20,
-    "after_cost_utility_weight": 0.10,
-    "probability_use": "telemetry_only",
-    "ranking_scope": "current_scan"
-  },
-  "source_validation": {
-    "raw_auc": 0.5588,
-    "calibrated_auc": 0.5691,
-    "call_auc": 0.5770,
-    "put_auc": 0.5778,
-    "calibrated_brier": 0.2743,
-    "baseline_brier": 0.2253,
-    "calibration_sizing_approved": false
-  },
+  "model_sha256": "fe95801fd2aebed04f20d25d15ee1e49a6f216aaa578739573c3d72defaf8410",
+  "objective": "large_after_friction_return_with_explicit_abstention",
   "production_policy": {
-    "live_execution_policy_required": true,
     "council_live_board_only": true,
-    "legacy_model_weights": 0.0,
-    "fail_closed_if_artifact_missing": true
-  }
+    "kill_switch": "disable active routing if 10 resolved live picks have negative cumulative after-friction return",
+    "live_execution_policy_required": true,
+    "live_size": 1,
+    "probability_sizing_enabled": false,
+    "research_risk_posture": "active_with_liquidity_gates_and_prospective_kill_switch",
+    "shadow_size": 0
+  },
+  "profile_id": "production_v2",
+  "source_validation": {
+    "by_side": {
+      "call": {
+        "auc": 0.6339,
+        "big_win_rate": 0.1034,
+        "rows": 87
+      },
+      "put": {
+        "auc": 0.663,
+        "big_win_rate": 0.0847,
+        "rows": 59
+      }
+    },
+    "call_auc": 0.6339,
+    "development_policy": {
+      "available_groups": 20,
+      "average_return_after_friction_pct": -0.085,
+      "big_win_rate": 0.1429,
+      "eligible_candidates": 12,
+      "median_return_after_friction_pct": -0.1053,
+      "positive_return_rate": 0.1429,
+      "selected_contracts": [
+        "XLE260702C00054500",
+        "DIA260710C00522000",
+        "T260710C00021000",
+        "XLE260710C00054000",
+        "T260710C00021000",
+        "T260710C00021000",
+        "SCHW260717C00105000"
+      ],
+      "selected_trades": 7,
+      "severe_loss_rate": 0.0,
+      "total_equal_weight_return": -0.5948,
+      "trade_rate": 0.35
+    },
+    "folds": [
+      {
+        "fold": 1,
+        "training_label_end": "2026-06-08",
+        "training_rows": 33,
+        "validation_rows": 114,
+        "validation_start": "2026-06-12"
+      },
+      {
+        "fold": 2,
+        "training_label_end": "2026-06-26",
+        "training_rows": 173,
+        "validation_rows": 71,
+        "validation_start": "2026-06-28"
+      },
+      {
+        "fold": 3,
+        "training_label_end": "2026-06-26",
+        "training_rows": 173,
+        "validation_rows": 78,
+        "validation_start": "2026-07-02"
+      },
+      {
+        "fold": 4,
+        "training_label_end": "2026-07-03",
+        "training_rows": 275,
+        "validation_rows": 45,
+        "validation_start": "2026-07-08"
+      },
+      {
+        "fold": 5,
+        "training_label_end": "2026-07-10",
+        "training_rows": 356,
+        "validation_rows": 39,
+        "validation_start": "2026-07-14"
+      }
+    ],
+    "forward_big_win_auc": 0.6602,
+    "forward_big_win_brier": 0.1481,
+    "forward_policy": {
+      "available_groups": 17,
+      "average_return_after_friction_pct": 0.0222,
+      "big_win_rate": 0.2222,
+      "eligible_candidates": 18,
+      "median_return_after_friction_pct": -0.4432,
+      "positive_return_rate": 0.3333,
+      "selected_contracts": [
+        "DIA260821C00544000",
+        "CRM260821C00200000",
+        "MCD260828C00270000",
+        "XLP260828C00086500",
+        "C260828C00138000",
+        "GLD260826C00420000",
+        "XLF260828C00057500",
+        "DIS260828P00106000",
+        "DIA260828P00526000"
+      ],
+      "selected_rows": [
+        {
+          "contract_symbol": "DIA260821C00544000",
+          "expected_tail_utility": 0.6473,
+          "prob_big_win": 0.6402,
+          "prob_severe_loss": 0.215,
+          "return_after_friction_pct": -0.7654,
+          "run_generated_at_utc": "2026-08-11T20:10:37+00:00"
+        },
+        {
+          "contract_symbol": "CRM260821C00200000",
+          "expected_tail_utility": 0.6532,
+          "prob_big_win": 0.5067,
+          "prob_severe_loss": 0.0966,
+          "return_after_friction_pct": 2.2874,
+          "run_generated_at_utc": "2026-08-14T20:09:00+00:00"
+        },
+        {
+          "contract_symbol": "MCD260828C00270000",
+          "expected_tail_utility": 0.96,
+          "prob_big_win": 0.7873,
+          "prob_severe_loss": 0.0937,
+          "return_after_friction_pct": 0.441,
+          "run_generated_at_utc": "2026-08-17T20:09:11+00:00"
+        },
+        {
+          "contract_symbol": "XLP260828C00086500",
+          "expected_tail_utility": 0.9523,
+          "prob_big_win": 0.7795,
+          "prob_severe_loss": 0.0925,
+          "return_after_friction_pct": -0.7015,
+          "run_generated_at_utc": "2026-08-18T17:40:27+00:00"
+        },
+        {
+          "contract_symbol": "C260828C00138000",
+          "expected_tail_utility": 0.924,
+          "prob_big_win": 0.7708,
+          "prob_severe_loss": 0.115,
+          "return_after_friction_pct": -0.8968,
+          "run_generated_at_utc": "2026-08-19T14:11:31+00:00"
+        },
+        {
+          "contract_symbol": "GLD260826C00420000",
+          "expected_tail_utility": 0.9491,
+          "prob_big_win": 0.7851,
+          "prob_severe_loss": 0.1154,
+          "return_after_friction_pct": 1.2,
+          "run_generated_at_utc": "2026-08-19T17:10:56+00:00"
+        },
+        {
+          "contract_symbol": "XLF260828C00057500",
+          "expected_tail_utility": 0.7174,
+          "prob_big_win": 0.6586,
+          "prob_severe_loss": 0.1561,
+          "return_after_friction_pct": -0.2857,
+          "run_generated_at_utc": "2026-08-20T14:10:40+00:00"
+        },
+        {
+          "contract_symbol": "DIS260828P00106000",
+          "expected_tail_utility": 0.6518,
+          "prob_big_win": 0.5914,
+          "prob_severe_loss": 0.0917,
+          "return_after_friction_pct": -0.4432,
+          "run_generated_at_utc": "2026-08-20T17:10:45+00:00"
+        },
+        {
+          "contract_symbol": "DIA260828P00526000",
+          "expected_tail_utility": 0.865,
+          "prob_big_win": 0.7003,
+          "prob_severe_loss": 0.0431,
+          "return_after_friction_pct": -0.6364,
+          "run_generated_at_utc": "2026-08-20T20:11:01+00:00"
+        }
+      ],
+      "selected_trades": 9,
+      "severe_loss_rate": 0.4444,
+      "total_equal_weight_return": 0.1994,
+      "trade_rate": 0.5294
+    },
+    "forward_severe_loss_auc": 0.5575,
+    "integrated_forward_policy": {
+      "abstain_reasons": {
+        "mixed_core_filters": 9,
+        "symbol_probation": 1,
+        "tail_utility": 3
+      },
+      "available_scans": 17,
+      "average_return_after_friction_pct": 0.652,
+      "big_win_rate": 0.5,
+      "median_return_after_friction_pct": 0.5111,
+      "positive_return_rate": 0.5,
+      "selected_rows": [
+        {
+          "contract_symbol": "CRM260821C00200000",
+          "expected_tail_utility": 0.6532,
+          "prob_big_win": 0.5067,
+          "prob_severe_loss": 0.0966,
+          "production_score": 0.9582,
+          "return_after_friction_pct": 2.2874,
+          "run_generated_at_utc": "2026-08-14T20:09:00+00:00"
+        },
+        {
+          "contract_symbol": "XLP260828C00086500",
+          "expected_tail_utility": 0.9523,
+          "prob_big_win": 0.7795,
+          "prob_severe_loss": 0.0925,
+          "production_score": 0.962,
+          "return_after_friction_pct": -0.7015,
+          "run_generated_at_utc": "2026-08-18T17:40:27+00:00"
+        },
+        {
+          "contract_symbol": "GLD260826C00420000",
+          "expected_tail_utility": 0.9491,
+          "prob_big_win": 0.7851,
+          "prob_severe_loss": 0.1154,
+          "production_score": 0.9453,
+          "return_after_friction_pct": 1.2,
+          "run_generated_at_utc": "2026-08-19T17:10:56+00:00"
+        },
+        {
+          "contract_symbol": "QQQ260828C00723000",
+          "expected_tail_utility": 0.7786,
+          "prob_big_win": 0.6528,
+          "prob_severe_loss": 0.0846,
+          "production_score": 0.9103,
+          "return_after_friction_pct": -0.1779,
+          "run_generated_at_utc": "2026-08-20T20:11:01+00:00"
+        }
+      ],
+      "selected_trades": 4,
+      "severe_loss_rate": 0.25,
+      "total_equal_weight_return": 2.608,
+      "trade_rate": 0.2353
+    },
+    "put_auc": 0.663,
+    "split_policy": "purged_date_grouped_development_folds_plus_later_frozen_forward_window"
+  },
+  "sources": {
+    "development": "output/option_outcomes_live_recommendations.json",
+    "forward": "orographic-live-research-data/output/research_datasets/strict_option_outcomes.json"
+  },
+  "status": "active_research",
+  "tail_contract": {
+    "big_win_return_threshold": 0.5,
+    "bucket_values": [
+      -0.801556,
+      -0.243599,
+      0.214845,
+      1.332586
+    ],
+    "selection": "one highest-utility eligible contract per scan",
+    "severe_loss_return_threshold": -0.5,
+    "tail_gate": {
+      "maximum_severe_loss_probability": 0.65,
+      "minimum_big_win_probability": 0.3916891329717107,
+      "minimum_expected_utility": 0.5582922181314538
+    }
+  },
+  "trained_at_utc": "2026-08-30T19:22:53.794682+00:00",
+  "version": 2
 }

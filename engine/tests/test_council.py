@@ -127,6 +127,23 @@ class CouncilTests(unittest.TestCase):
         self.assertEqual(result.summary["abstain_audit"]["primary_reason"], "fill_quality")
         self.assertEqual(result.summary["abstain_audit"]["blocked_symbols"]["fill_quality"], ["AAPL"])
 
+    def test_council_blocks_failed_tail_utility_gate(self) -> None:
+        candidate = _candidate(
+            "AAPL",
+            "call",
+            0.92,
+            tail_gate_passed=False,
+            tail_gate_reasons=["big_win_probability"],
+        )
+        result = select_board(
+            [candidate],
+            MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+        )
+
+        self.assertTrue(result.abstain)
+        self.assertEqual(result.summary["abstain_audit"]["primary_reason"], "tail_utility")
+        self.assertEqual(result.summary["abstain_audit"]["blocked_symbols"]["tail_utility"], ["AAPL"])
+
     def test_council_prefers_prior_board_when_replacement_uplift_is_small(self) -> None:
         candidates = [
             _candidate("AAPL", "call", 0.90),

@@ -95,6 +95,37 @@ class ProductionRankerTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 score_production_candidates([_candidate("call")], model_path=model_path)
 
+    def test_tail_utility_artifact_is_active_and_exposes_abstention_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            model_path = Path(tmpdir) / "tail.pkl"
+            model = LogisticRegression(max_iter=1000).fit(
+                np.array([[0.0], [0.2], [0.8], [1.0]]),
+                np.array([0, 1, 2, 3]),
+            )
+            joblib.dump(
+                {
+                    "artifact": "production_payoff_ranker",
+                    "mode": "production_tail_utility",
+                    "feature_cols": ["option_type_is_call"],
+                    "base_model": model,
+                    "bucket_values": [-0.8, -0.2, 0.2, 1.3],
+                    "tail_gate": {
+                        "minimum_expected_utility": -1.0,
+                        "minimum_big_win_probability": 0.0,
+                        "maximum_severe_loss_probability": 1.0,
+                    },
+                },
+                model_path,
+            )
+            candidates = [_candidate("put"), _candidate("call")]
+            score_production_candidates(candidates, model_path=model_path)
+
+        self.assertTrue(all(row.ranker_mode == "production_tail_utility_v1" for row in candidates))
+        self.assertTrue(all(row.tail_gate_passed for row in candidates))
+        self.assertTrue(all(row.prob_big_win is not None for row in candidates))
+        self.assertTrue(all(row.prob_severe_loss is not None for row in candidates))
+        self.assertTrue(all(row.expected_tail_utility is not None for row in candidates))
+
 
 if __name__ == "__main__":
     unittest.main()

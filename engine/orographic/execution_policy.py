@@ -150,6 +150,8 @@ def apply_live_execution_policy(
         ask = _number(candidate.ask)
         spread_pct = _number(candidate.spread_pct)
         edge = _number(candidate.expected_edge_after_friction_pct)
+        tail_utility = _number(candidate.expected_tail_utility)
+        tail_override = bool(candidate.tail_gate_passed) and tail_utility is not None and tail_utility > 0.0
         last_trade_age = _number(candidate.last_trade_age_seconds)
 
         candidate.conservative_exit_bid = bid
@@ -171,7 +173,7 @@ def apply_live_execution_policy(
             reasons.append("open_interest")
         if volume is None or volume < policy.min_volume:
             reasons.append("volume")
-        if edge is None or edge < policy.min_expected_edge_after_friction_pct:
+        if (edge is None or edge < policy.min_expected_edge_after_friction_pct) and not tail_override:
             reasons.append("after_friction_edge")
         if last_trade_age is not None and last_trade_age > policy.max_last_trade_age_seconds:
             reasons.append("stale_last_trade")
@@ -224,6 +226,8 @@ def apply_live_execution_policy(
                 "open_interest": int(open_interest) if open_interest is not None else None,
                 "volume": int(volume) if volume is not None else None,
                 "expected_edge_after_friction_pct": edge,
+                "expected_tail_utility": tail_utility,
+                "tail_utility_override": tail_override,
                 "prior_entry_ask": candidate.prior_entry_ask,
             })
 

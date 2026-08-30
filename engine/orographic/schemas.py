@@ -97,6 +97,12 @@ class ContractCandidate:
     liquidity_score: float | None = None
     regime_alignment_score: float | None = None
     prob_positive_option_pnl: float | None = None
+    prob_big_win: float | None = None
+    prob_severe_loss: float | None = None
+    expected_tail_utility: float | None = None
+    tail_utility_rank: float | None = None
+    tail_gate_passed: bool | None = None
+    tail_gate_reasons: list[str] = field(default_factory=list)
     payoff_edge_score: float | None = None
     expected_option_return_pct_model: float | None = None
     expected_option_return_pct_rank: float | None = None

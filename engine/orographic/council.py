@@ -39,6 +39,7 @@ ABSTAIN_REASON_LABELS = {
     "extrinsic_limit": "All candidates failed the extrinsic ceiling.",
     "model_no_trade": "Model no-trade discipline blocked every live candidate.",
     "fill_quality": "All candidates failed the fill-quality gate.",
+    "tail_utility": "All candidates failed the active big-win utility or severe-loss gate.",
     "execution_policy": "All candidates failed executable-liquidity or repeat-entry controls.",
     "sentinel_no_trade_pressure": "Sentinel event pressure blocked every live candidate.",
     "symbol_probation": "All candidates are live-blocked by symbol probation.",
@@ -309,6 +310,11 @@ def _audit_candidate(row: ContractCandidate) -> dict[str, Any]:
         "risk_adjusted_score": row.risk_adjusted_score,
         "utility_after_friction_score": row.utility_after_friction_score,
         "expected_edge_after_friction_pct": row.expected_edge_after_friction_pct,
+        "prob_big_win": row.prob_big_win,
+        "prob_severe_loss": row.prob_severe_loss,
+        "expected_tail_utility": row.expected_tail_utility,
+        "tail_gate_passed": row.tail_gate_passed,
+        "tail_gate_reasons": row.tail_gate_reasons,
         "friction_buffer_pct": row.friction_buffer_pct,
         "prob_no_trade": row.prob_no_trade,
         "scout_no_trade_prob": row.scout_no_trade_prob,
@@ -550,6 +556,7 @@ def select_board(
     score_and_extrinsic_blocked: list[ContractCandidate] = []
     no_trade_blocked: list[ContractCandidate] = []
     fill_quality_blocked: list[ContractCandidate] = []
+    tail_utility_blocked: list[ContractCandidate] = []
     execution_policy_blocked: list[ContractCandidate] = []
     sentinel_pressure_blocked: list[ContractCandidate] = []
     mixed_policy_blocked: list[ContractCandidate] = []
@@ -577,6 +584,7 @@ def select_board(
         extrinsic_ok = candidate.extrinsic_ratio <= effective_max_live_extrinsic_ratio
         no_trade_ok = True
         fill_quality_ok = fill_quality >= min_live_fill_quality
+        tail_utility_ok = candidate.tail_gate_passed is not False
         sentinel_ok = True
         execution_policy_ok = candidate.execution_policy_passed is not False
         if shock.label != NEUTRAL_MARKET_SHOCK.label:
@@ -585,7 +593,7 @@ def select_board(
             if candidate.option_type in shock.blocked_sides:
                 flags.add("market_shock_side_block")
             candidate.council_risk_flags = sorted(flags)
-        if score_ok and extrinsic_ok and no_trade_ok and fill_quality_ok and sentinel_ok and execution_policy_ok and not symbol_on_probation:
+        if score_ok and extrinsic_ok and no_trade_ok and fill_quality_ok and tail_utility_ok and sentinel_ok and execution_policy_ok and not symbol_on_probation:
             eligible.append(candidate)
             continue
 
@@ -604,6 +612,9 @@ def select_board(
         if not fill_quality_ok:
             failures.append("fill_quality")
             fill_quality_blocked.append(candidate)
+        if not tail_utility_ok:
+            failures.append("tail_utility")
+            tail_utility_blocked.append(candidate)
         if not sentinel_ok:
             failures.append("sentinel")
             sentinel_pressure_blocked.append(candidate)
@@ -793,6 +804,8 @@ def select_board(
             primary_reason = "execution_policy"
         elif len(fill_quality_blocked) == len(candidates):
             primary_reason = "fill_quality"
+        elif len(tail_utility_blocked) == len(candidates):
+            primary_reason = "tail_utility"
         elif len(sentinel_pressure_blocked) == len(candidates):
             primary_reason = "sentinel_no_trade_pressure"
         elif len(extrinsic_only_blocked) + len(score_and_extrinsic_blocked) + len(probation_blocked) == len(candidates):
@@ -866,6 +879,7 @@ def select_board(
             "score_and_extrinsic_fail_count": len(score_and_extrinsic_blocked),
             "model_no_trade_fail_count": len(no_trade_blocked),
             "fill_quality_fail_count": len(fill_quality_blocked),
+            "tail_utility_fail_count": len(tail_utility_blocked),
             "execution_policy_fail_count": len(execution_policy_blocked),
             "sentinel_no_trade_pressure_fail_count": len(sentinel_pressure_blocked),
             "mixed_policy_fail_count": len(mixed_policy_blocked),
@@ -878,6 +892,7 @@ def select_board(
                 "score_and_extrinsic": [row.symbol for row in score_and_extrinsic_blocked[:3]],
                 "model_no_trade": [row.symbol for row in no_trade_blocked[:3]],
                 "fill_quality": [row.symbol for row in fill_quality_blocked[:3]],
+                "tail_utility": [row.symbol for row in tail_utility_blocked[:3]],
                 "execution_policy": [row.symbol for row in execution_policy_blocked[:3]],
                 "sentinel_no_trade_pressure": [row.symbol for row in sentinel_pressure_blocked[:3]],
                 "mixed_policy": [row.symbol for row in mixed_policy_blocked[:3]],
@@ -889,6 +904,7 @@ def select_board(
                 "score_and_extrinsic": [_audit_candidate(row) for row in score_and_extrinsic_blocked[:5]],
                 "model_no_trade": [_audit_candidate(row) for row in no_trade_blocked[:5]],
                 "fill_quality": [_audit_candidate(row) for row in fill_quality_blocked[:5]],
+                "tail_utility": [_audit_candidate(row) for row in tail_utility_blocked[:5]],
                 "execution_policy": [_audit_candidate(row) for row in execution_policy_blocked[:5]],
                 "sentinel_no_trade_pressure": [_audit_candidate(row) for row in sentinel_pressure_blocked[:5]],
                 "mixed_policy": [_audit_candidate(row) for row in mixed_policy_blocked[:5]],

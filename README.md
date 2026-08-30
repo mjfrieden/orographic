@@ -44,10 +44,17 @@ Run a fresh scan:
 ./.venv/bin/python engine/run_scan.py --output web/data/latest_run.json
 ```
 
-The scan runs `production_v2`; the CLI no longer exposes alternate model
-stacks. Its only production and buy-to-open authority is
+The scan runs the active-research `production_v2` tail-utility ranker; the CLI
+no longer exposes alternate model stacks. Its only production and buy-to-open authority is
 `council.live_board`. Non-Council and manual HOLD candidates cannot be
 previewed or opened through the broker transmitter.
+
+The ranker predicts four after-friction return buckets, prioritizes the
+probability and expected utility of returns of at least 50%, and abstains when
+big-win probability or expected tail utility is too low. Severe-loss
+probability, quote quality, spread, open interest, volume, cooldown, and
+Council score remain binding gates. Production selects at most one contract
+per scan and maintains no shadow board. Model probabilities do not size orders.
 
 Live scan contract selection defaults to the recovered production DTE window:
 `--minimum-days-to-expiry 7 --maximum-days-to-expiry 14`. Override those only
@@ -475,10 +482,15 @@ an updated manifest, card, and hash in the same change.
 
 The sole Forge artifact is
 `engine/orographic/models/production_payoff_ranker.pkl`, governed by
-`production_payoff_ranker_card.json`. It uses volatility/contract features as
-an intra-scan rank. Calibration is telemetry-only, execution policy is binding,
-and the old payoff, path, cost-aware, hierarchical, Sentinel, and Moonshot
-artifacts have no production runtime authority.
+`production_payoff_ranker_card.json`. It is a four-class tail-return model whose
+intra-scan score is 70% expected-tail-utility rank, 20% execution quality, and
+10% normalized tail utility. Its explicit gate requires sufficient big-win
+probability and expected utility while capping predicted severe-loss risk.
+Execution policy remains binding, and the old payoff, path, cost-aware,
+hierarchical, Sentinel, and Moonshot artifacts have no production runtime
+authority. This is an active research deployment, not a sizing-grade model;
+disable active routing if the first 10 resolved live picks have negative
+cumulative after-friction return.
 
 Prospective path collection is performed by the Tradier outcome workflow that captures fixed exits. A Cloudflare cron dispatcher invokes it hourly from 09:15 through 15:15 America/Chicago on weekdays and reports dispatch delay as capture health. For every active policy-v2 contract, the workflow appends one fresh, minute-deduplicated `trajectory_mark` per run from emission through Friday close. These contract-specific marks take priority over the rotating full-chain archive when path labels are rebuilt. The scan-health report marks `trajectory_capture_health` degraded whenever an active pick receives a missing or stale quote. The workflow pages only when current-run trajectory coverage is 30% or lower; partial capture remains visible in governance without generating a failure email. Historical capture debt is reported separately from current-run health.
 

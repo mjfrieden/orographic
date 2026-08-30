@@ -62,7 +62,7 @@ class PipelineConfig:
     maximum_days_to_expiry: int = 14
     minimum_live_score: float = 0.86
     minimum_put_live_score: float = 0.84
-    max_live_extrinsic_ratio: float = 0.90
+    max_live_extrinsic_ratio: float = 1.00
     moonshot_size: int = 0
     moonshot_threshold: float = 1.0
     moonshot_max_cost_basis: float = 0.0
@@ -70,7 +70,7 @@ class PipelineConfig:
     live_execution_policy_enabled: bool = True
     same_contract_cooldown_hours: float = 72.0
     max_entry_spread_pct: float = 0.12
-    min_execution_open_interest: int = 200
+    min_execution_open_interest: int = 150
     min_execution_volume: int = 25
     min_execution_edge_after_friction_pct: float = 0.05
     paired_side_capture_enabled: bool = True
@@ -2508,7 +2508,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
         maximum_days_to_expiry = _config_int(config, "maximum_days_to_expiry", 14, minimum=0)
         minimum_live_score = _config_float(config, "minimum_live_score", 0.86, minimum=0.0, maximum=1.0)
         minimum_put_live_score = _config_float(config, "minimum_put_live_score", 0.84, minimum=0.0, maximum=1.0)
-        max_live_extrinsic_ratio = _config_float(config, "max_live_extrinsic_ratio", 0.90, minimum=0.0, maximum=1.0)
+        max_live_extrinsic_ratio = _config_float(config, "max_live_extrinsic_ratio", 1.00, minimum=0.0, maximum=1.0)
         moonshot_size = 0
         moonshot_threshold = 1.0
         moonshot_max_cost_basis = 0.0
@@ -2521,7 +2521,7 @@ def run_scan(config: PipelineConfig) -> dict[str, Any]:
             config, "max_entry_spread_pct", 0.12, minimum=0.0, maximum=1.0
         )
         min_execution_open_interest = _config_int(
-            config, "min_execution_open_interest", 200, minimum=0
+            config, "min_execution_open_interest", 150, minimum=0
         )
         min_execution_volume = _config_int(config, "min_execution_volume", 25, minimum=0)
         min_execution_edge_after_friction_pct = _config_float(

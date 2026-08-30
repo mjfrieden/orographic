@@ -145,8 +145,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--max-live-extrinsic-ratio",
         type=float,
-        default=0.90,
-        help="Maximum extrinsic ratio allowed on live-board candidates.",
+        default=1.00,
+        help="Maximum extrinsic ratio allowed on live-board candidates; tail-utility mode permits fully extrinsic contracts.",
     )
     parser.add_argument(
         "--enforce-pre-council-friction-gate",
@@ -161,7 +161,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--same-contract-cooldown-hours", type=float, default=72.0)
     parser.add_argument("--max-entry-spread-pct", type=float, default=0.12)
-    parser.add_argument("--min-execution-open-interest", type=int, default=200)
+    parser.add_argument("--min-execution-open-interest", type=int, default=150)
     parser.add_argument("--min-execution-volume", type=int, default=25)
     parser.add_argument("--min-execution-edge-after-friction-pct", type=float, default=0.05)
     parser.add_argument(

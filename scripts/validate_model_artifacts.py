@@ -131,14 +131,30 @@ def validate_model_cards(manifest_path: Path) -> list[str]:
         ranker_card = _load_json(production_ranker_card_path)
         if ranker_card.get("profile_id") != "production_v2":
             errors.append("production_payoff_ranker_card: wrong production profile")
+        if ranker_card.get("objective") != "large_after_friction_return_with_explicit_abstention":
+            errors.append("production_payoff_ranker_card: wrong production objective")
+        if ranker_card.get("status") != "active_research":
+            errors.append("production_payoff_ranker_card: active research status missing")
         authority = ranker_card.get("authority", {})
         if authority.get("forge_ranking") is not True:
             errors.append("production_payoff_ranker_card: Forge ranking authority missing")
         if authority.get("probability_sizing") is not False:
             errors.append("production_payoff_ranker_card: probability sizing must remain disabled")
+        if authority.get("active_research_routing") is not True:
+            errors.append("production_payoff_ranker_card: active research routing authority missing")
+        if authority.get("council_route") != "single_production_lane":
+            errors.append("production_payoff_ranker_card: ranker must use the single Council lane")
         validation = ranker_card.get("source_validation", {})
         if validation.get("call_auc") is None or validation.get("put_auc") is None:
             errors.append("production_payoff_ranker_card: side validation missing")
+        integrated = validation.get("integrated_forward_policy", {})
+        if int(integrated.get("available_scans", 0) or 0) < 1:
+            errors.append("production_payoff_ranker_card: integrated frozen replay missing")
+        policy = ranker_card.get("production_policy", {})
+        if policy.get("shadow_size") != 0:
+            errors.append("production_payoff_ranker_card: shadow lane must remain disabled")
+        if not policy.get("kill_switch"):
+            errors.append("production_payoff_ranker_card: prospective kill switch missing")
     else:
         errors.append("production_payoff_ranker_card: file missing")
 
