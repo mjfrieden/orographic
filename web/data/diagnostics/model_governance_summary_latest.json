@@ -1,18 +1,20 @@
 {
   "artifact": "model_governance_summary",
   "schema_version": 2,
-  "generated_at_utc": "2026-08-28T20:15:27.514620Z",
+  "generated_at_utc": "2026-08-30T19:40:46.101147Z",
   "status": "pass",
-  "headline": "Production v2 is the only scoring and execution path.",
+  "headline": "The active tail-utility ranker is the only scoring and execution path.",
   "production_model": {
     "profile": "production_v2",
     "scout": "direction plus trade/abstain and side decision",
-    "ranker": "volatility/contract within-scan rank",
+    "ranker": "four-class after-friction tail-utility rank",
     "score_weights": {
-      "volatility_contract_rank": 0.7,
+      "expected_tail_utility_rank": 0.7,
       "execution_quality": 0.2,
-      "after_cost_utility": 0.1
+      "normalized_tail_utility": 0.1
     },
+    "objective": "large_after_friction_return_with_explicit_abstention",
+    "research_risk_posture": "active",
     "probability_sizing": false,
     "legacy_model_authority": false
   },
@@ -29,7 +31,7 @@
     "trajectory_marks": 37761,
     "missing_quotes_last_run": 0,
     "stale_quotes_last_run": 0,
-    "canonical_bundle_id": "bb8b7f2a8759a127dffd"
+    "canonical_bundle_id": "5d05f30ad298761b8e5b"
   },
   "summary": {
     "production_models": 1,
