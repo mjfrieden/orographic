@@ -139,6 +139,100 @@ class SharedResearchMartTests(unittest.TestCase):
             self.assertEqual(set(outcomes["source_system"]), {"cirrus", "orographic"})
             validate_shared_research_mart(mart)
 
+    def test_orographic_recommendations_emit_point_in_time_features(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "orographic_source"
+            source.mkdir()
+            primary = root / "primary.json"
+            moonshot = root / "moonshot.json"
+            decision = "2026-08-21T19:00:00+00:00"
+            primary.write_text(json.dumps({"entries": [{
+                "run_generated_at_utc": decision,
+                "regime": {"mode": "risk_on", "bias": 0.3},
+                "picks": [{
+                    "recommendation_id": "oro-1", "symbol": "BBB",
+                    "contract_symbol": "BBB260828C00100000", "option_type": "call",
+                    "expiry": "2026-08-28", "strike": 100.0, "lane": "primary",
+                    "days_to_expiry": 7,
+                    "emission_quote": {"bid": 1.0, "ask": 1.2, "mid": 1.1,
+                                       "spread_pct": 0.18, "open_interest": 500,
+                                       "captured_at_utc": decision},
+                    "scores": {"final_candidate_score": 0.82, "forge_score": 0.7,
+                               "prob_positive_option_pnl": 0.55},
+                    "risk_features": {"delta": 0.5, "implied_volatility": 0.4,
+                                      "moneyness": 0.98, "extrinsic_ratio": 0.6},
+                    "context": {"regime": {"mode": "risk_on", "bias": 0.3},
+                                "ranker_mode": "production_v2"},
+                    "outcomes": {"status": "settled",
+                                 "fixed_exit_marks": {"friday_close": {"pnl_pct_from_emission": 0.25}}},
+                }],
+            }]}), encoding="utf-8")
+            moonshot.write_text(json.dumps({"entries": []}), encoding="utf-8")
+            pd.DataFrame([{
+                "recommendation_id": "oro-1", "run_generated_at_utc": decision,
+                "source_artifact": "prospective_pick_ledger", "fixed_exit_window": "friday_close",
+                "symbol": "BBB", "contract_symbol": "BBB260828C00100000", "option_type": "call",
+                "expiry": "2026-08-28", "strike": 100.0, "entry_price": 1.2, "exit_price": 1.5,
+                "pnl_pct": 0.25, "entry_quote_observed_at_utc": decision,
+                "exit_quote_observed_at_utc": "2026-08-22T19:00:00+00:00",
+                "executable_label_available_at_utc": "2026-08-22T19:00:01+00:00",
+                "executable_label_contract_id": "orographic.v2", "executable_label_contract_version": 2,
+            }]).to_parquet(source / "recommendation_outcomes.parquet", index=False)
+            pd.DataFrame([{
+                "contract_symbol": "BBB260828C00100000", "underlying_symbol": "BBB",
+                "chain_snapshot_at_utc": decision, "quote_date": "2026-08-21",
+                "bid": 1.0, "ask": 1.2,
+            }]).to_parquet(source / "live_option_quotes.parquet", index=False)
+            canonical = root / "canonical"
+            build_canonical_evidence_bundle(
+                source_roots=[source], current_prospective_ledger=primary,
+                current_moonshot_ledger=moonshot, payoff_evidence=None,
+                strict_outcome_artifacts=[], output_dir=canonical,
+            )
+            cirrus = root / "cirrus"
+            cirrus.mkdir()
+            _write_cirrus_export(cirrus)
+            mart = root / "mart"
+            manifest = build_shared_research_mart(
+                orographic_canonical_dir=canonical,
+                cirrus_export_dir=cirrus,
+                output_dir=mart,
+            )
+            self.assertEqual(manifest["validation"]["status"], "passed")
+
+            features = pd.read_parquet(mart / "feature_snapshots.parquet")
+            oro_features = features[features["source_system"] == "orographic"]
+            self.assertEqual(len(oro_features), 1)
+            row = oro_features.iloc[0]
+            self.assertEqual(row["feature_schema_version"], "orographic_pick_features_v1")
+            self.assertEqual(row["recommendation_key"], "orographic|primary|oro-1")
+            self.assertLessEqual(row["available_at_utc"], decision)
+            payload = json.loads(row["features_json"])
+            self.assertIn("scores.final_candidate_score", payload)
+            self.assertIn("risk_features.delta", payload)
+            self.assertIn("regime.mode", payload)
+            self.assertEqual(payload["option_type"], "call")
+            # Post-decision outcome fields must never leak into features. The
+            # decision-time `prob_positive_option_pnl` score is allowed; realized
+            # outcome fields such as `pnl_pct_from_emission` must be absent.
+            self.assertFalse(any("outcomes" in key for key in payload))
+            self.assertFalse(any("pnl_pct" in key for key in payload))
+            self.assertFalse(any("from_emission" in key for key in payload))
+
+            try:
+                import duckdb  # noqa: F401
+            except ImportError:
+                self.skipTest("duckdb not installed")
+            from engine.orographic.shared_mart_consumers import (
+                build_shared_mart_consumer_bundle,
+            )
+            consumers = root / "consumers"
+            consumer_manifest = build_shared_mart_consumer_bundle(mart, consumers)
+            self.assertGreaterEqual(
+                consumer_manifest["views"]["orographic_training_v1"]["rows"], 1
+            )
+
     def test_validation_rejects_tampered_table(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
