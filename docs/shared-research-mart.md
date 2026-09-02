@@ -141,6 +141,24 @@ Mart `bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64` was publ
 
 No production selector, model, trade gate, or execution setting is changed by the mart.
 
+## Scan-workflow sync
+
+The scheduled Orographic scan keeps the mart aligned with this repo:
+
+1. Restore Orographic canonical evidence and, when present, the Cirrus export from
+   `r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current`.
+2. Run `scripts/sync_shared_research_mart.py --allow-missing`. A missing Cirrus export is a
+   diagnostic, not a live-scan failure. A two-source mart is required before consumers, Iceberg
+   publication, or rebuild-readiness promotion.
+3. Persist `web/data/diagnostics/shared_mart_sync_latest.json` and refresh
+   `shared_mart_shadow_evidence_latest.json` plus `weekly_alpha_review_latest.json`.
+4. Orographic feature snapshots now come from recommendation-time scores, risk features, and
+   entry quotes (`orographic_recommendation_features_v1`) so `orographic_training_v1` is no longer
+   an empty join.
+
+Publish a current Cirrus `options_research_bundle` to that R2 prefix after Cirrus marks and
+settlement. The mart still refuses a one-system publication.
+
 ## Orographic consumer rollout
 
 Orographic materializes five versioned views from one validated local mart snapshot:
