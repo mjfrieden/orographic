@@ -150,7 +150,7 @@ No production selector, model, trade gate, or execution setting is changed by th
 
 ## Orographic consumer rollout
 
-Orographic materializes five versioned views from one validated local mart snapshot:
+Orographic materializes six versioned views from one validated local mart snapshot:
 
 | View | Purpose | Initial authority |
 | --- | --- | --- |
@@ -159,6 +159,24 @@ Orographic materializes five versioned views from one validated local mart snaps
 | `orographic_exit_replay_v1` | Executable ask-to-bid quote paths for frozen exit-policy replay | Shadow only |
 | `cirrus_orographic_disagreement_v1` | One top daily recommendation per system and symbol | Research only |
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
+| `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
+
+### Data-quality scorecard (`mart_data_quality_v1`)
+
+One row per `(source_system, cohort)` measuring whether the mart is trustworthy enough to train and
+compare on. It surfaces, without any routing authority:
+
+- Coverage: `feature_coverage_rate`, `path_quote_coverage_rate`, `executable_outcome_coverage_rate`.
+- Decision-field null rates: `entry_mid_null_rate`, `score_null_rate`, `strike_null_rate`,
+  `expiry_null_rate`, `contract_symbol_null_rate`, `underlying_null_rate`, rolled into `critical_null_rate`.
+- Quote integrity: `crossed_entry_rate`, `nonpositive_entry_mid_rate`, `path_crossed_quote_rate`,
+  `path_null_iv_rate`, `path_null_delta_rate`, plus entry-spread stats
+  (`avg_entry_spread_pct`, `median_entry_spread_pct`, `wide_entry_spread_rate`), rolled into
+  `integrity_anomaly_rate`.
+
+`scripts/build_shared_mart_shadow_evidence.py` folds this into a `data_quality` block (worst null and
+integrity rates, minimum coverage, and how many cohorts show gaps) so regressions in incoming data are
+visible before they silently degrade training or paired comparisons.
 
 Build them with `scripts/build_shared_mart_consumers.py`. The generated consumer manifest pins the
 source `mart_id`, requires both systems, hashes every output, and grants no scoring, Council, sizing,

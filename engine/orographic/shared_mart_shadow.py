@@ -36,6 +36,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         disagreements = _path(root, manifest, "cirrus_orographic_disagreement_v1")
         training = _path(root, manifest, "orographic_training_v1")
         monitoring = _path(root, manifest, "orographic_model_monitoring_v1")
+        data_quality = _path(root, manifest, "mart_data_quality_v1")
         execution_summary = _record(connection, f"""
             SELECT
                 count(*) AS recommendations,
@@ -103,8 +104,26 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                    sum(recommendations_with_features) AS recommendations_with_features
             FROM read_parquet('{monitoring}')
         """)
+        data_quality_summary = _record(connection, f"""
+            SELECT count(*) AS cohorts,
+                   sum(recommendations) AS recommendations,
+                   max(critical_null_rate) AS worst_critical_null_rate,
+                   max(integrity_anomaly_rate) AS worst_integrity_anomaly_rate,
+                   max(wide_entry_spread_rate) AS worst_wide_entry_spread_rate,
+                   min(feature_coverage_rate) AS min_feature_coverage_rate,
+                   min(path_quote_coverage_rate) AS min_path_quote_coverage_rate,
+                   min(executable_outcome_coverage_rate) AS min_executable_outcome_coverage_rate,
+                   avg(avg_entry_spread_pct) AS avg_entry_spread_pct,
+                   count(*) FILTER (WHERE integrity_anomaly_rate > 0) AS cohorts_with_integrity_anomalies,
+                   count(*) FILTER (WHERE critical_null_rate > 0) AS cohorts_with_null_gaps
+            FROM read_parquet('{data_quality}')
+        """)
     finally:
         connection.close()
+
+    worst_null = float(data_quality_summary.get("worst_critical_null_rate") or 0.0)
+    worst_integrity = float(data_quality_summary.get("worst_integrity_anomaly_rate") or 0.0)
+    data_quality_clean = worst_integrity == 0.0 and worst_null == 0.0
 
     paired_outcomes = int(disagreement_summary.get("paired_executable_outcomes") or 0)
     paired_market_dates = int(disagreement_summary.get("paired_market_dates") or 0)
@@ -137,6 +156,10 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         "cross_system_comparison": disagreement_summary,
         "training_evidence": training_summary,
         "model_monitoring": monitoring_summary,
+        "data_quality": {
+            **data_quality_summary,
+            "integrity_clean": data_quality_clean,
+        },
         "shadow_entry_gates": {
             "paired_executable_outcomes": {
                 "passed": paired_outcomes >= 30, "actual": paired_outcomes, "required": 30,

@@ -245,6 +245,88 @@ VIEW_SQL: dict[str, str] = {
         FROM orographic_execution_quality_v1
         GROUP BY source_system, cohort, model_version, option_type
     """,
+    "mart_data_quality_v1": """
+        WITH path_quotes AS (
+            SELECT
+                recommendation_key,
+                count(*) AS quote_observations,
+                count(*) FILTER (
+                    WHERE bid IS NOT NULL AND ask IS NOT NULL AND ask < bid
+                ) AS crossed_quotes,
+                count(*) FILTER (WHERE implied_volatility IS NULL) AS null_iv_quotes,
+                count(*) FILTER (WHERE delta IS NULL) AS null_delta_quotes
+            FROM option_quotes
+            WHERE recommendation_key IS NOT NULL
+            GROUP BY recommendation_key
+        ), outcome_cov AS (
+            SELECT
+                recommendation_key,
+                count(*) FILTER (WHERE is_executable AND NOT is_excluded) AS executable_rows
+            FROM execution_outcomes
+            GROUP BY recommendation_key
+        ), feature_cov AS (
+            SELECT recommendation_key, count(*) AS feature_rows
+            FROM feature_snapshots
+            GROUP BY recommendation_key
+        ), per_cohort AS (
+            SELECT
+                r.source_system,
+                r.cohort,
+                count(*) AS recommendations,
+                min(r.decision_at_utc) AS first_decision_at_utc,
+                max(r.decision_at_utc) AS last_decision_at_utc,
+                avg(CASE WHEN f.feature_rows > 0 THEN 1.0 ELSE 0.0 END) AS feature_coverage_rate,
+                avg(CASE WHEN q.quote_observations > 0 THEN 1.0 ELSE 0.0 END) AS path_quote_coverage_rate,
+                avg(CASE WHEN o.executable_rows > 0 THEN 1.0 ELSE 0.0 END) AS executable_outcome_coverage_rate,
+                avg(CASE WHEN r.entry_mid IS NULL THEN 1.0 ELSE 0.0 END) AS entry_mid_null_rate,
+                avg(CASE WHEN r.score IS NULL THEN 1.0 ELSE 0.0 END) AS score_null_rate,
+                avg(CASE WHEN r.strike IS NULL THEN 1.0 ELSE 0.0 END) AS strike_null_rate,
+                avg(CASE WHEN r.expiry_date IS NULL THEN 1.0 ELSE 0.0 END) AS expiry_null_rate,
+                avg(CASE WHEN r.contract_symbol IS NULL THEN 1.0 ELSE 0.0 END) AS contract_symbol_null_rate,
+                avg(CASE WHEN r.underlying_symbol IS NULL THEN 1.0 ELSE 0.0 END) AS underlying_null_rate,
+                avg(CASE
+                        WHEN r.entry_bid IS NOT NULL AND r.entry_ask IS NOT NULL AND r.entry_ask < r.entry_bid
+                        THEN 1.0 ELSE 0.0 END) AS crossed_entry_rate,
+                avg(CASE
+                        WHEN r.entry_mid IS NOT NULL AND r.entry_mid <= 0
+                        THEN 1.0 ELSE 0.0 END) AS nonpositive_entry_mid_rate,
+                avg(CASE
+                        WHEN r.entry_bid > 0 AND r.entry_ask >= r.entry_bid AND r.entry_mid > 0
+                        THEN (r.entry_ask - r.entry_bid) / r.entry_mid END) AS avg_entry_spread_pct,
+                quantile_cont(
+                    CASE
+                        WHEN r.entry_bid > 0 AND r.entry_ask >= r.entry_bid AND r.entry_mid > 0
+                        THEN (r.entry_ask - r.entry_bid) / r.entry_mid END, 0.5) AS median_entry_spread_pct,
+                avg(CASE
+                        WHEN r.entry_bid > 0 AND r.entry_ask >= r.entry_bid AND r.entry_mid > 0
+                             AND (r.entry_ask - r.entry_bid) / r.entry_mid > 0.5
+                        THEN 1.0 ELSE 0.0 END) AS wide_entry_spread_rate,
+                coalesce(sum(q.quote_observations), 0) AS path_quote_observations,
+                CASE WHEN sum(q.quote_observations) > 0
+                     THEN sum(q.crossed_quotes) * 1.0 / sum(q.quote_observations) END AS path_crossed_quote_rate,
+                CASE WHEN sum(q.quote_observations) > 0
+                     THEN sum(q.null_iv_quotes) * 1.0 / sum(q.quote_observations) END AS path_null_iv_rate,
+                CASE WHEN sum(q.quote_observations) > 0
+                     THEN sum(q.null_delta_quotes) * 1.0 / sum(q.quote_observations) END AS path_null_delta_rate
+            FROM recommendations r
+            LEFT JOIN path_quotes q USING (recommendation_key)
+            LEFT JOIN outcome_cov o USING (recommendation_key)
+            LEFT JOIN feature_cov f USING (recommendation_key)
+            GROUP BY r.source_system, r.cohort
+        )
+        SELECT
+            *,
+            greatest(
+                entry_mid_null_rate, score_null_rate, strike_null_rate,
+                expiry_null_rate, contract_symbol_null_rate, underlying_null_rate
+            ) AS critical_null_rate,
+            greatest(
+                crossed_entry_rate,
+                nonpositive_entry_mid_rate,
+                coalesce(path_crossed_quote_rate, 0.0)
+            ) AS integrity_anomaly_rate
+        FROM per_cohort
+    """,
 }
 
 
@@ -254,6 +336,7 @@ VIEW_KEYS: dict[str, tuple[str, ...]] = {
     "orographic_exit_replay_v1": ("recommendation_key", "quote_key"),
     "cirrus_orographic_disagreement_v1": ("market_date", "underlying_symbol"),
     "orographic_model_monitoring_v1": ("source_system", "cohort", "model_version", "option_type"),
+    "mart_data_quality_v1": ("source_system", "cohort"),
 }
 
 
