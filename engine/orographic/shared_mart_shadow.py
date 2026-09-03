@@ -37,6 +37,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         training = _path(root, manifest, "orographic_training_v1")
         monitoring = _path(root, manifest, "orographic_model_monitoring_v1")
         data_quality = _path(root, manifest, "mart_data_quality_v1")
+        training_funnel = _path(root, manifest, "orographic_training_funnel_v1")
         execution_summary = _record(connection, f"""
             SELECT
                 count(*) AS recommendations,
@@ -118,12 +119,30 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                    count(*) FILTER (WHERE critical_null_rate > 0) AS cohorts_with_null_gaps
             FROM read_parquet('{data_quality}')
         """)
+        training_funnel_summary = _record(connection, f"""
+            SELECT sum(recommendations) AS recommendations,
+                   sum(with_any_feature) AS with_any_feature,
+                   sum(with_point_in_time_feature) AS with_point_in_time_feature,
+                   sum(with_valid_label_outcome) AS with_valid_label_outcome,
+                   sum(training_eligible_recommendations) AS training_eligible_recommendations,
+                   sum(training_rows) AS training_rows,
+                   sum(dropped_missing_feature) AS dropped_missing_feature,
+                   sum(dropped_feature_not_point_in_time) AS dropped_feature_not_point_in_time,
+                   sum(dropped_missing_executable_outcome) AS dropped_missing_executable_outcome,
+                   sum(dropped_label_before_decision) AS dropped_label_before_decision,
+                   min(point_in_time_feature_coverage_rate) AS min_point_in_time_feature_coverage_rate,
+                   min(training_eligibility_rate) AS min_training_eligibility_rate
+            FROM read_parquet('{training_funnel}')
+        """)
     finally:
         connection.close()
 
     worst_null = float(data_quality_summary.get("worst_critical_null_rate") or 0.0)
     worst_integrity = float(data_quality_summary.get("worst_integrity_anomaly_rate") or 0.0)
     data_quality_clean = worst_integrity == 0.0 and worst_null == 0.0
+
+    training_rows_total = int(training_funnel_summary.get("training_rows") or 0)
+    training_mart_usable = training_rows_total > 0
 
     paired_outcomes = int(disagreement_summary.get("paired_executable_outcomes") or 0)
     paired_market_dates = int(disagreement_summary.get("paired_market_dates") or 0)
@@ -159,6 +178,10 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         "data_quality": {
             **data_quality_summary,
             "integrity_clean": data_quality_clean,
+        },
+        "training_funnel": {
+            **training_funnel_summary,
+            "training_mart_usable": training_mart_usable,
         },
         "shadow_entry_gates": {
             "paired_executable_outcomes": {

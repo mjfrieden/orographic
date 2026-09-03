@@ -327,6 +327,76 @@ VIEW_SQL: dict[str, str] = {
             ) AS integrity_anomaly_rate
         FROM per_cohort
     """,
+    "orographic_training_funnel_v1": """
+        WITH feat AS (
+            SELECT
+                f.recommendation_key,
+                count(*) AS feature_rows,
+                count(*) FILTER (
+                    WHERE CAST(f.available_at_utc AS TIMESTAMPTZ)
+                          <= CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                ) AS pit_feature_rows
+            FROM feature_snapshots f
+            JOIN recommendations r USING (recommendation_key)
+            GROUP BY f.recommendation_key
+        ), outc AS (
+            SELECT
+                o.recommendation_key,
+                count(*) FILTER (WHERE o.is_executable AND NOT o.is_excluded) AS executable_rows,
+                count(*) FILTER (
+                    WHERE o.is_executable AND NOT o.is_excluded
+                      AND CAST(o.label_available_at_utc AS TIMESTAMPTZ)
+                          >= CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                ) AS valid_label_rows
+            FROM execution_outcomes o
+            JOIN recommendations r USING (recommendation_key)
+            GROUP BY o.recommendation_key
+        ), per_rec AS (
+            SELECT
+                r.source_system,
+                r.cohort,
+                coalesce(f.feature_rows, 0) AS feature_rows,
+                coalesce(f.pit_feature_rows, 0) AS pit_feature_rows,
+                coalesce(o.executable_rows, 0) AS executable_rows,
+                coalesce(o.valid_label_rows, 0) AS valid_label_rows
+            FROM recommendations r
+            LEFT JOIN feat f USING (recommendation_key)
+            LEFT JOIN outc o USING (recommendation_key)
+        )
+        SELECT
+            source_system,
+            cohort,
+            count(*) AS recommendations,
+            count(*) FILTER (WHERE feature_rows > 0) AS with_any_feature,
+            count(*) FILTER (WHERE pit_feature_rows > 0) AS with_point_in_time_feature,
+            count(*) FILTER (WHERE executable_rows > 0) AS with_executable_outcome,
+            count(*) FILTER (WHERE valid_label_rows > 0) AS with_valid_label_outcome,
+            count(*) FILTER (WHERE pit_feature_rows > 0 AND valid_label_rows > 0)
+                AS training_eligible_recommendations,
+            coalesce(sum(valid_label_rows) FILTER (WHERE pit_feature_rows > 0), 0) AS training_rows,
+            -- Mutually exclusive drop-off reasons, evaluated in funnel order so
+            -- each lost recommendation is attributed to exactly one stage.
+            count(*) FILTER (
+                WHERE valid_label_rows > 0 AND feature_rows = 0
+            ) AS dropped_missing_feature,
+            count(*) FILTER (
+                WHERE valid_label_rows > 0 AND feature_rows > 0 AND pit_feature_rows = 0
+            ) AS dropped_feature_not_point_in_time,
+            count(*) FILTER (
+                WHERE pit_feature_rows > 0 AND executable_rows = 0
+            ) AS dropped_missing_executable_outcome,
+            count(*) FILTER (
+                WHERE pit_feature_rows > 0 AND executable_rows > 0 AND valid_label_rows = 0
+            ) AS dropped_label_before_decision,
+            avg(CASE WHEN pit_feature_rows > 0 THEN 1.0 ELSE 0.0 END)
+                AS point_in_time_feature_coverage_rate,
+            avg(CASE WHEN valid_label_rows > 0 THEN 1.0 ELSE 0.0 END)
+                AS valid_label_coverage_rate,
+            avg(CASE WHEN pit_feature_rows > 0 AND valid_label_rows > 0 THEN 1.0 ELSE 0.0 END)
+                AS training_eligibility_rate
+        FROM per_rec
+        GROUP BY source_system, cohort
+    """,
 }
 
 
@@ -337,6 +407,7 @@ VIEW_KEYS: dict[str, tuple[str, ...]] = {
     "cirrus_orographic_disagreement_v1": ("market_date", "underlying_symbol"),
     "orographic_model_monitoring_v1": ("source_system", "cohort", "model_version", "option_type"),
     "mart_data_quality_v1": ("source_system", "cohort"),
+    "orographic_training_funnel_v1": ("source_system", "cohort"),
 }
 
 

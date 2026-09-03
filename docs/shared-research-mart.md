@@ -150,7 +150,7 @@ No production selector, model, trade gate, or execution setting is changed by th
 
 ## Orographic consumer rollout
 
-Orographic materializes six versioned views from one validated local mart snapshot:
+Orographic materializes seven versioned views from one validated local mart snapshot:
 
 | View | Purpose | Initial authority |
 | --- | --- | --- |
@@ -160,6 +160,7 @@ Orographic materializes six versioned views from one validated local mart snapsh
 | `cirrus_orographic_disagreement_v1` | One top daily recommendation per system and symbol | Research only |
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
 | `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
+| `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |
 
 ### Data-quality scorecard (`mart_data_quality_v1`)
 
@@ -178,12 +179,34 @@ compare on. It surfaces, without any routing authority:
 integrity rates, minimum coverage, and how many cohorts show gaps) so regressions in incoming data are
 visible before they silently degrade training or paired comparisons.
 
+### Training-readiness funnel (`orographic_training_funnel_v1`)
+
+One row per `(source_system, cohort)` answering the operative question — *can this mart actually be
+used to train and improve the models?* It reproduces the exact join semantics of
+`orographic_training_v1` (a point-in-time feature with `available_at_utc <= decision_at_utc`, an
+executable non-excluded outcome, and a label available at or after the decision) and reports the yield
+and where recommendations are lost:
+
+- Funnel counts: `recommendations`, `with_any_feature`, `with_point_in_time_feature`,
+  `with_executable_outcome`, `with_valid_label_outcome`, `training_eligible_recommendations`, and
+  `training_rows` (matches the `orographic_training_v1` row count for Orographic cohorts).
+- Mutually exclusive drop-off reasons, attributed in funnel order: `dropped_missing_feature`,
+  `dropped_feature_not_point_in_time`, `dropped_missing_executable_outcome`, and
+  `dropped_label_before_decision`.
+- Rates: `point_in_time_feature_coverage_rate`, `valid_label_coverage_rate`, and
+  `training_eligibility_rate`.
+
+The shadow evidence rollup folds this into a `training_funnel` block (including a `training_mart_usable`
+flag that is true once any training-eligible rows exist), so a structurally empty training set — the
+failure mode the point-in-time Orographic feature snapshots were added to fix — is visible directly in
+the committed diagnostics rather than only as a blocked rebuild gate.
+
 Build them with `scripts/build_shared_mart_consumers.py`. The generated consumer manifest pins the
 source `mart_id`, requires both systems, hashes every output, and grants no scoring, Council, sizing,
 or order-routing authority. `scripts/build_rebuild_readiness.py` treats this bundle as a required
 fail-closed gate before a fold-frozen challenger can become eligible for promotion review.
 
-`scripts/build_shared_mart_shadow_evidence.py` turns the five views into one compact diagnostic.
+`scripts/build_shared_mart_shadow_evidence.py` turns these views into one compact diagnostic.
 It requires 30 paired executable cross-system outcomes and 30 independent paired market dates
 before recommending that a single liquidity veto enter shadow evaluation. Passing those entry gates
 still grants no production authority; production promotion remains governed by the stricter rebuild
