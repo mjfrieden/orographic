@@ -1,26 +1,18 @@
 {
   "artifact": "orographic_weekly_alpha_review",
   "schema_version": 1,
-  "generated_at_utc": "2026-09-02T14:24:00+00:00",
-  "week_start_utc": "2026-08-26T14:24:00+00:00",
-  "week_end_utc": "2026-09-02T14:24:00+00:00",
+  "generated_at_utc": "2026-09-02T20:14:35+00:00",
+  "week_start_utc": "2026-08-26T20:14:35+00:00",
+  "week_end_utc": "2026-09-02T20:14:35+00:00",
   "objective": "after_cost_alpha_versus_cirrus_and_internal_challengers",
   "production": {
     "lane": "production_v2_council_live_board",
     "model_stack": "production_v2",
     "regime": "neutral",
-    "current_pick": {
-      "symbol": "WFC",
-      "contract_symbol": "WFC260911C00088000",
-      "option_type": "call",
-      "ask": 2.14,
-      "spread_pct": 0.0676,
-      "prob_big_win": 0.5955,
-      "expected_tail_utility": 0.658
-    },
+    "current_pick": null,
     "week": {
       "scans": 17,
-      "abstain_scans": 12,
+      "abstain_scans": 11,
       "live_emissions": [
         {
           "run_generated_at_utc": "2026-08-31T14:11:02+00:00",
@@ -61,6 +53,14 @@
           "option_type": "call",
           "ask": 2.14,
           "spread_pct": 0.0676
+        },
+        {
+          "run_generated_at_utc": "2026-09-02T17:16:06+00:00",
+          "symbol": "XLE",
+          "contract_symbol": "XLE260911C00064500",
+          "option_type": "call",
+          "ask": 1.26,
+          "spread_pct": 0.0741
         }
       ],
       "unique_live_days": 3
@@ -68,103 +68,125 @@
     "week_live_marks": {
       "picks": 5,
       "mark_windows": {
-        "next_day_close": 1,
+        "next_day_close": 3,
         "end_of_day": 2
       },
-      "resolved": 3,
-      "win_rate": 0.3333,
-      "mean_return": 0.0372,
-      "equal_weight_sum": 0.1115
+      "resolved": 5,
+      "win_rate": 1.0,
+      "mean_return": 0.1937,
+      "equal_weight_sum": 0.9683
     }
   },
   "research_lanes": {
-    "picks": 152,
+    "picks": 178,
     "lanes": {
       "council_holdout": {
-        "picks": 24,
+        "picks": 23,
         "mark_windows": {
-          "next_day_close": 11,
-          "end_of_day": 9
+          "next_day_close": 15,
+          "end_of_day": 5
         },
         "resolved": 20,
-        "win_rate": 0.55,
-        "mean_return": 0.2216,
-        "equal_weight_sum": 4.432
+        "win_rate": 0.8,
+        "mean_return": 0.2833,
+        "equal_weight_sum": 5.6663
       },
       "friction_veto": {
-        "picks": 48,
+        "picks": 57,
         "mark_windows": {
-          "next_day_close": 21,
-          "end_of_day": 12
+          "next_day_close": 35,
+          "end_of_day": 15
         },
-        "resolved": 33,
-        "win_rate": 0.4545,
-        "mean_return": 0.1589,
-        "equal_weight_sum": 5.2438
+        "resolved": 50,
+        "win_rate": 0.42,
+        "mean_return": 0.067,
+        "equal_weight_sum": 3.3492
       },
       "paired_side_observation": {
-        "picks": 75,
+        "picks": 93,
         "mark_windows": {
-          "next_day_close": 26,
-          "end_of_day": 26
+          "next_day_close": 53,
+          "end_of_day": 27
         },
-        "resolved": 52,
-        "win_rate": 0.4808,
-        "mean_return": 0.0146,
-        "equal_weight_sum": 0.7605
+        "resolved": 80,
+        "win_rate": 0.3375,
+        "mean_return": -0.0564,
+        "equal_weight_sum": -4.5156
       },
       "live": {
         "picks": 5,
         "mark_windows": {
-          "next_day_close": 1,
+          "next_day_close": 3,
           "end_of_day": 2
         },
-        "resolved": 3,
-        "win_rate": 0.3333,
-        "mean_return": 0.0372,
-        "equal_weight_sum": 0.1115
+        "resolved": 5,
+        "win_rate": 1.0,
+        "mean_return": 0.1937,
+        "equal_weight_sum": 0.9683
       }
     }
   },
   "challenger_to_open": {
     "experiment_id": "holdout_top1_vs_live_v1",
     "authority": "observation_only_never_used_for_routing",
-    "paired_scans": 3,
-    "mean_return_lift": 0.4167,
-    "positive_lift_rate": 1.0,
+    "paired_scans": 5,
+    "mean_return_lift": 0.2215,
+    "positive_lift_rate": 0.8,
     "rows": [
-      {
-        "run_generated_at_utc": "2026-08-31T14:11:02+00:00",
-        "live_symbol": "XLE",
-        "live_return": 0.3212,
-        "live_window": "next_day_close",
-        "holdout_top1_symbol": "XLE",
-        "holdout_top1_contract": "XLE260911C00064000",
-        "holdout_top1_return": 0.4211,
-        "holdout_top1_window": "next_day_close",
-        "return_lift": 0.0999
-      },
       {
         "run_generated_at_utc": "2026-09-01T14:13:49+00:00",
         "live_symbol": "BAC",
-        "live_return": -0.1726,
-        "live_window": "end_of_day",
-        "holdout_top1_symbol": "XLE",
-        "holdout_top1_contract": "XLE260911C00064500",
-        "holdout_top1_return": 0.625,
-        "holdout_top1_window": "end_of_day",
-        "return_lift": 0.7976
+        "live_return": 0.0051,
+        "live_window": "next_day_close",
+        "holdout_top1_symbol": "WFC",
+        "holdout_top1_contract": "WFC260911C00087000",
+        "holdout_top1_return": 0.8056,
+        "holdout_top1_window": "next_day_close",
+        "return_lift": 0.8005
       },
       {
         "run_generated_at_utc": "2026-09-01T17:14:42+00:00",
         "live_symbol": "SPY",
-        "live_return": -0.0371,
+        "live_return": 0.2785,
+        "live_window": "next_day_close",
+        "holdout_top1_symbol": "PFE",
+        "holdout_top1_contract": "PFE260911C00028000",
+        "holdout_top1_return": 0.3373,
+        "holdout_top1_window": "next_day_close",
+        "return_lift": 0.0588
+      },
+      {
+        "run_generated_at_utc": "2026-09-01T20:11:27+00:00",
+        "live_symbol": "IWM",
+        "live_return": 0.5799,
+        "live_window": "next_day_close",
+        "holdout_top1_symbol": "PFE",
+        "holdout_top1_contract": "PFE260911C00028000",
+        "holdout_top1_return": 0.4581,
+        "holdout_top1_window": "next_day_close",
+        "return_lift": -0.1218
+      },
+      {
+        "run_generated_at_utc": "2026-09-02T14:24:00+00:00",
+        "live_symbol": "WFC",
+        "live_return": 0.0266,
         "live_window": "end_of_day",
-        "holdout_top1_symbol": "CVX",
-        "holdout_top1_contract": "CVX260911C00215000",
-        "holdout_top1_return": 0.3156,
+        "holdout_top1_symbol": "XLE",
+        "holdout_top1_contract": "XLE260911C00064500",
+        "holdout_top1_return": 0.2843,
         "holdout_top1_window": "end_of_day",
-        "return_lift": 0.3527
+        "return_lift": 0.2577
+      },
+      {
+        "run_generated_at_utc": "2026-09-02T17:16:06+00:00",
+        "live_symbol": "XLE",
+        "live_return": 0.0782,
+        "live_window": "end_of_day",
+        "holdout_top1_symbol": "XLE",
+        "holdout_top1_contract": "XLE260911C00066000",
+        "holdout_top1_return": 0.1905,
+        "holdout_top1_window": "end_of_day",
+        "return_lift": 0.1123
       }
     ],
     "promotion_ready": false,
@@ -213,8 +235,8 @@
       "action": "open_observation_only",
       "authority": "observation_only",
       "reason": "This week's Council holdout top-1 beat the live pick on paired intraweek marks. Track it as the replacement research strategy; it cannot route orders.",
-      "paired_scans": 3,
-      "mean_return_lift": 0.4167
+      "paired_scans": 5,
+      "mean_return_lift": 0.2215
     },
     {
       "lane": "cirrus_paired_alpha",
@@ -225,7 +247,7 @@
   ],
   "cirrus": {
     "mart_id": "b712d8206ae74e598d534d873456ba5c619ecd0dbbc682676aaea1ffbc91b777",
-    "mart_sync_status": "missing",
+    "mart_sync_status": "missing_orographic_canonical",
     "mart_generated_at_utc": "2026-08-24T03:36:22+00:00",
     "paired_executable_outcomes": 0,
     "paired_market_dates": 3,
