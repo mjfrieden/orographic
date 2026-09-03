@@ -42,6 +42,13 @@ Every table retains `source_system` or an explicit parent carrying it, and all m
 retain source bundle identity. Orographic primary and Moonshot cohorts remain separate. Cirrus
 research, live, shadow, and board lanes remain distinguishable through `lane`.
 
+Both systems now populate `feature_snapshots`. Cirrus contributes its candidate feature snapshots;
+Orographic contributes one `orographic_pick_features_v1` snapshot per pick, built from decision-time
+scores, risk features, entry-quote fields, and regime context. Post-decision `outcomes` fields are
+never captured as features, and every Orographic feature snapshot is anchored to the recommendation
+decision timestamp so `available_at_utc <= decision_at_utc` always holds. This is what makes the
+`orographic_training_v1` consumer view non-empty and unblocks the training-source rebuild gate.
+
 ## Point-in-time and execution rules
 
 - Recommendation evidence cannot be available before its decision timestamp.
