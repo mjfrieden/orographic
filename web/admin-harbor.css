@@ -8,6 +8,21 @@
   padding-top: 8px;
 }
 
+.admin-page .admin-grid,
+.admin-page .admin-overview-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-page .admin-overview-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-page .admin-overview-grid:has(.admin-card:only-child) {
+  grid-template-columns: 1fr;
+}
+
 .admin-page .panel {
   border-color: rgba(232, 197, 109, 0.22);
   box-shadow:
@@ -178,14 +193,21 @@
 
 .admin-page .admin-trend-empty,
 .admin-page .map-empty {
-  min-height: 140px;
+  position: relative;
+  min-height: 180px;
   display: grid;
   place-items: center;
   text-align: center;
-  border-style: dashed;
-  border-color: rgba(232, 197, 109, 0.32);
-  background:
-    linear-gradient(180deg, rgba(72, 52, 28, 0.22), rgba(12, 20, 32, 0.55));
+  overflow: hidden;
+}
+
+.admin-page .map-empty-copy {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  max-width: 42ch;
+  font-family: var(--font-body, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.05rem;
   color: var(--text-secondary, rgba(244, 221, 164, 0.65));
 }
 
@@ -264,6 +286,7 @@
   }
 
   .admin-page .admin-overview-grid,
+  .admin-page .admin-grid,
   .admin-page .admin-trend-panel {
     grid-template-columns: 1fr;
   }

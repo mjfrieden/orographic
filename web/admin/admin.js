@@ -106,6 +106,30 @@ function buildTrendPoints(items) {
     .join(" ");
 }
 
+function friendlyLoadError(error) {
+  const text = String(error?.message || error || "Unknown error");
+  if (
+    text.includes("Unexpected token") ||
+    text.includes("<!DOCTYPE") ||
+    text.includes("is not valid JSON") ||
+    text.includes("Failed to fetch")
+  ) {
+    return "History store is unreachable in this preview.";
+  }
+  return text;
+}
+
+function renderBlankMap(container, message) {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="admin-trend-chart map-parchment map-empty">
+      <span class="map-compass" aria-hidden="true"></span>
+      <p class="map-cartouche">Marked value</p>
+      <p class="map-empty-copy">${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
 function renderOverview(items) {
   const container = document.getElementById("admin-overview-grid");
   if (!container) return;
@@ -171,7 +195,7 @@ function renderTrend(items) {
   const container = document.getElementById("admin-trend-panel");
   if (!container) return;
   if (!items.length) {
-    container.innerHTML = `<div class="admin-trend-empty map-empty">The parchment is still blank. No hosted history yet.</div>`;
+    renderBlankMap(container, "The parchment is still blank. No hosted history yet.");
     return;
   }
 
@@ -415,13 +439,13 @@ async function initAdminHistory() {
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="admin-history-loading">${escapeHtml(String(orderEvents.error?.message || orderEvents.error || "Unable to load order provenance."))}</td>
+            <td colspan="8" class="admin-history-loading">${escapeHtml(friendlyLoadError(orderEvents.error))}</td>
           </tr>
         `;
       }
     }
   } catch (error) {
-    const message = String(error?.message || error || "Unknown error");
+    const message = friendlyLoadError(error);
     const overview = document.getElementById("admin-overview-grid");
     const trend = document.getElementById("admin-trend-panel");
     const tbody = document.getElementById("admin-history-tbody");
@@ -435,7 +459,7 @@ async function initAdminHistory() {
       `;
     }
     if (trend) {
-      trend.innerHTML = `<div class="admin-trend-empty map-empty">${escapeHtml(message)}</div>`;
+      renderBlankMap(trend, message);
     }
     if (tbody) {
       tbody.innerHTML = `
