@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 65 — 2026-09-04 — Skip-link gate filigree
+
+- Skip-link gold gates close with four-corner L-brackets on Signal & Book and Harbor Gate. `#signal` and `#login-form` hrefs, off-screen rest position, and focus reveal stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 64 — 2026-09-04 — Stone quantity-tablet filigree
 
 - The Contracts stone tablet closes with gold L-brackets on all four corners, matching HOLD wells. `.card-qty-input`, `.card-qty-step`, estimated debit copy, and Preview order stay.

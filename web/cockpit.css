@@ -3210,6 +3210,24 @@ body.cockpit-page {
   text-decoration: none;
 }
 
+.skip-link::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 1.5px 6px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 1.5px 6px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 1.5px 6px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 6px no-repeat;
+}
+
 .skip-link:focus {
   top: 12px;
   outline: 2px solid var(--cockpit-gold);

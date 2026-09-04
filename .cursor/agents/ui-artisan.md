@@ -95,6 +95,7 @@ Audit juice shipped:
 62. Backtest Lab gate closes with gold filigree. **Shipped in cycle 62.**
 63. Sealed-writ Execute and Cancel gates close with gold filigree. **Shipped in cycle 63.**
 64. Stone quantity tablet closes with gold filigree. **Shipped in cycle 64.**
+65. Skip-link gold gates close with gold filigree. **Shipped in cycle 65.**
 
 ## Done when
 
