@@ -67,6 +67,7 @@ Audit juice shipped:
 34. Empty talent-tree experiment socket as a vacant shrine. **Shipped in cycle 34.**
 35. Party and Quest log count seals in Cinzel. **Shipped in cycle 35.**
 36. HOLD funnel stage kickers at readable Marcellus. **Shipped in cycle 36.**
+37. Research dungeon equity-chart labels in Cinzel. **Shipped in cycle 37.**
 
 ## Done when
 

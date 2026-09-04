@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 37 — 2026-09-04 — Dungeon chart parchment
+
+- Research dungeon equity-chart axis marks use Cinzel gold instead of 10px Inter grey. P&L values, week labels, and command math stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, backtest command math.
+
 ## Cycle 36 — 2026-09-04 — Funnel stage kickers
 
 - HOLD Universe / Scout / Forge / Council stage labels use 11px Marcellus instead of 8–10px microtype. Stage counts stay Cinzel and literal.

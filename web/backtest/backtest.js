@@ -139,12 +139,12 @@ function renderEquity(data) {
   const min = Math.min(0, ...values), max = Math.max(0, ...values), span = max - min || 1;
   const x = (i) => pad.left + (i / Math.max(1, values.length - 1)) * (width - pad.left - pad.right);
   const y = (v) => pad.top + ((max - v) / span) * (height - pad.top - pad.bottom);
-  ctx.font = "10px Inter"; ctx.fillStyle = "#778799"; ctx.strokeStyle = "rgba(154,181,203,.14)"; ctx.lineWidth = 1;
+  ctx.font = "600 11px Cinzel, Georgia, serif"; ctx.fillStyle = "rgba(232, 197, 109, 0.78)"; ctx.strokeStyle = "rgba(232, 197, 109, 0.14)"; ctx.lineWidth = 1;
   for (let i = 0; i <= 4; i += 1) { const value = min + (span * i) / 4; const py = y(value); ctx.beginPath(); ctx.moveTo(pad.left, py); ctx.lineTo(width - pad.right, py); ctx.stroke(); ctx.fillText(money(value), 4, py + 3); }
   const gradient = ctx.createLinearGradient(0, pad.top, 0, height - pad.bottom); gradient.addColorStop(0, "rgba(72,203,177,.24)"); gradient.addColorStop(1, "rgba(72,203,177,0)");
   ctx.beginPath(); values.forEach((value, index) => { if (index === 0) ctx.moveTo(x(index), y(value)); else ctx.lineTo(x(index), y(value)); }); ctx.lineTo(x(values.length - 1), height - pad.bottom); ctx.lineTo(x(0), height - pad.bottom); ctx.closePath(); ctx.fillStyle = gradient; ctx.fill();
   ctx.beginPath(); values.forEach((value, index) => { if (index === 0) ctx.moveTo(x(index), y(value)); else ctx.lineTo(x(index), y(value)); }); ctx.strokeStyle = "#48cbb1"; ctx.lineWidth = 2; ctx.stroke();
-  const labels = [0, Math.floor((points.length - 1) / 2), points.length - 1]; ctx.fillStyle = "#778799"; labels.forEach((index) => { const label = String(points[index]?.week || ""); ctx.fillText(label, Math.max(pad.left, Math.min(width - 80, x(index) - 28)), height - 8); });
+  const labels = [0, Math.floor((points.length - 1) / 2), points.length - 1]; ctx.fillStyle = "rgba(232, 197, 109, 0.78)"; labels.forEach((index) => { const label = String(points[index]?.week || ""); ctx.fillText(label, Math.max(pad.left, Math.min(width - 80, x(index) - 28)), height - 8); });
 }
 
 function renderVariants(data) {
