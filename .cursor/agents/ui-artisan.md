@@ -112,6 +112,7 @@ Audit juice shipped:
 79. Research dungeon map parchment plate closes with gold filigree. **Shipped in cycle 79.**
 80. Research dungeon Show more gate closes with gold filigree. **Shipped in cycle 80.**
 81. Research dungeon CALL/PUT tags become Harbor gold seals. **Shipped in cycle 81.**
+82. Research dungeon Executable pricing note closes with gold filigree. **Shipped in cycle 82.**
 
 ## Done when
 

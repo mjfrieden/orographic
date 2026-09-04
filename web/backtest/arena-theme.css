@@ -476,9 +476,33 @@
   box-shadow: inset 3px 0 #e8c56d;
 }
 
-.friction-note {
-  border: 1px solid rgba(232, 197, 109, 0.22);
-  background: rgba(232, 197, 109, 0.06);
+.lab-page .friction-note {
+  position: relative;
+  border: 1px solid rgba(232, 197, 109, 0.38);
+  background: linear-gradient(180deg, rgba(42, 36, 24, 0.35), rgba(12, 18, 28, 0.72));
+}
+
+.lab-page .friction-note::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(#e8c56d, #e8c56d) top left / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top left / 1.5px 7px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 1.5px 7px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 1.5px 7px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 1.5px 7px no-repeat;
+}
+
+.lab-page .friction-note > * {
+  position: relative;
+  z-index: 2;
 }
 
 .rail-heading > p,
