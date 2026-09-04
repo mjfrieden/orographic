@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 15 — 2026-09-04 — Realm bar footer
+
+- The cockpit footer is a WoW realm bar: stone plate, “Realm bar” kicker, hearth gem, and a teal-to-gold XP hairline.
+- Audit trail is a gold gate. Tradier copy stays literal (“Connected to Tradier Brokerage”, preview-before-execute note).
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 14 — 2026-09-04 — Character plate ribbon
 
 - The sticky account strip is a WoW character plate: each ribbon stat sits in a stone well, and broker mode is a gem socket (live / sandbox / offline) instead of a capsule pill.

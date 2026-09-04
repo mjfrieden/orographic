@@ -1803,18 +1803,47 @@ body.cockpit-page {
 }
 
 .cockpit-footer {
+  position: relative;
   min-height: 64px;
   display: grid;
   grid-template-columns: 1fr 1.4fr 1fr;
   align-items: center;
-  gap: 20px;
+  gap: 10px 20px;
   margin: 16px 0 24px;
-  padding: 0 28px;
+  padding: 12px 28px 14px;
   color: var(--cockpit-muted);
   font-size: 11px;
-  border: 1px solid var(--cockpit-border);
-  border-radius: 18px;
-  background: rgba(4, 9, 26, 0.55);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(232, 197, 109, 0.28);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(232, 197, 109, 0.08), transparent 48%),
+    rgba(4, 9, 26, 0.82);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 217, 138, 0.14),
+    inset 0 0 0 1px rgba(232, 197, 109, 0.08);
+}
+.cockpit-footer::before {
+  content: "Realm bar";
+  grid-column: 1 / -1;
+  color: var(--cockpit-gold);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+.cockpit-footer::after {
+  content: "";
+  grid-column: 1 / -1;
+  height: 5px;
+  border-radius: 99px;
+  background: linear-gradient(
+    90deg,
+    var(--cockpit-teal) 0%,
+    var(--cockpit-gold) 58%,
+    rgba(232, 197, 109, 0.22) 100%
+  );
+  box-shadow: 0 0 10px rgba(232, 197, 109, 0.35);
 }
 .cockpit-footer > span:first-child {
   display: inline-flex;
@@ -1827,9 +1856,20 @@ body.cockpit-page {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  min-height: 36px;
+  padding: 0 12px;
   text-decoration: none;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
+  border: 1px solid rgba(232, 197, 109, 0.35);
+  border-radius: 8px;
+  background: rgba(232, 197, 109, 0.08);
+}
+.cockpit-footer a:hover,
+.cockpit-footer a:focus-visible {
+  color: #1a0f00;
+  background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
+  border-color: rgba(255, 224, 160, 0.55);
 }
 .cockpit-footer .sigil {
   font-size: 16px;
@@ -1839,7 +1879,9 @@ body.cockpit-page {
   height: 8px;
   border-radius: 50%;
   background: var(--cockpit-teal);
-  box-shadow: 0 0 0 4px rgba(78, 205, 196, 0.16);
+  box-shadow:
+    0 0 8px var(--cockpit-teal),
+    0 0 0 3px rgba(78, 205, 196, 0.16);
 }
 
 .detail-table-wrap {
@@ -2051,7 +2093,11 @@ body.cockpit-page {
   }
   .cockpit-footer {
     grid-template-columns: 1fr;
-    padding: 18px;
+    padding: 14px 16px 16px;
+  }
+  .cockpit-footer::before,
+  .cockpit-footer::after {
+    grid-column: 1;
   }
   .cockpit-footer a {
     justify-self: start;
