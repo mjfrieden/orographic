@@ -107,6 +107,7 @@ Audit juice shipped:
 74. Research dungeon source-switch gates close with gold filigree. **Shipped in cycle 74.**
 75. Research dungeon coverage wells close with gold filigree. **Shipped in cycle 75.**
 76. Research dungeon integrity banner closes with gold filigree. **Shipped in cycle 76.**
+77. Research dungeon Engine command plate closes with gold filigree. **Shipped in cycle 77.**
 
 ## Done when
 
