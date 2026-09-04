@@ -74,6 +74,7 @@ Audit juice shipped:
 41. Legendary-card remaining microtype as Harbor. **Shipped in cycle 41.**
 42. Harbor Gate and Master Harbor kickers as Marcellus. **Shipped in cycle 42.**
 43. Research dungeon remaining 9px kickers as Marcellus. **Shipped in cycle 43.**
+44. Empty-board shrine kickers as readable Marcellus. **Shipped in cycle 44.**
 
 ## Done when
 
