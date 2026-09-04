@@ -89,6 +89,7 @@ Audit juice shipped:
 56. Preview-order gate closes with gold filigree. **Shipped in cycle 56.**
 57. Stone quest pager closes with gold filigree. **Shipped in cycle 57.**
 58. Refresh gates close with gold filigree. **Shipped in cycle 58.**
+59. Open spellbook gate closes with gold filigree. **Shipped in cycle 59.**
 
 ## Done when
 

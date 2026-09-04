@@ -2054,6 +2054,39 @@ body.cockpit-page {
   background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
   border-color: rgba(255, 224, 160, 0.55);
 }
+#research-drawer-toggle {
+  position: relative;
+}
+#research-drawer-toggle::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 1.5px 8px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 1.5px 8px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 1.5px 8px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 8px no-repeat;
+}
+#research-drawer-toggle:hover::before,
+#research-drawer-toggle:focus-visible::before {
+  opacity: 0.45;
+  background:
+    linear-gradient(#1a0f00, #1a0f00) top left / 8px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top left / 1.5px 8px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 8px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 1.5px 8px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 8px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 1.5px 8px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 8px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 1.5px 8px no-repeat;
+}
 .text-button .sigil {
   font-size: 17px;
 }
