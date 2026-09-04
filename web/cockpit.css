@@ -1523,7 +1523,7 @@ body.cockpit-page {
   border-radius: 4px;
   background: #c9a227;
   color: #1a0f00;
-  font: 800 14px/1 Georgia, serif;
+  font: 700 14px/1 var(--font-display, "Cinzel", Georgia, serif);
 }
 .quest-entry.is-rejected .quest-bang,
 .quest-entry.is-error .quest-bang,
@@ -1534,20 +1534,24 @@ body.cockpit-page {
 .quest-entry strong {
   display: block;
   color: var(--text-data, #e8eaf0);
-  font-size: 12px;
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
+  font-size: 14px;
   word-break: break-word;
 }
 .quest-entry span,
 .quest-entry small {
   display: block;
   color: var(--cockpit-muted);
-  font-size: 10px;
   margin-top: 2px;
+  font-family: var(--font-body, "Cormorant Garamond", Georgia, serif);
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
 }
 .quest-entry em {
   font-style: normal;
   color: var(--cockpit-gold);
-  font-size: 10px;
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  font-size: 11px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -1556,6 +1560,7 @@ body.cockpit-page {
 }
 .position-name strong {
   display: block;
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
   font-size: 14px;
   word-break: break-word;
   color: var(--text-data, #e8eaf0);
@@ -1565,8 +1570,14 @@ body.cockpit-page {
 .position-action span {
   display: block;
   color: var(--cockpit-muted);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
   font-size: 11px;
+  letter-spacing: 0.08em;
   margin-top: 4px;
+}
+.position-size strong {
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
+  font-variant-numeric: tabular-nums;
 }
 .position-pnl {
   color: var(--cockpit-teal);
@@ -1580,6 +1591,7 @@ body.cockpit-page {
 }
 .position-action strong {
   color: var(--cockpit-teal);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
   font-size: 13px;
 }
 .position-action.is-warning strong {

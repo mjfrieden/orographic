@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 47 — 2026-09-04 — Quest and party row parchment
+
+- Quest log entries and party-row names use Cinzel / Marcellus / Cormorant instead of 10–12px generic type. Contract symbols, quantities, money, and order status stay literal. Empty quest-quiet and empty-slot copy stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 46 — 2026-09-04 — Leather plate filigree
 
 - Signal, Book, and talent-tree leather plates close with bottom gold L-brackets, matching the existing top filigree. Pane ids, sync-line margin, and positions-toolbar flex stay.

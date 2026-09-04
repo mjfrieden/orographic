@@ -77,6 +77,7 @@ Audit juice shipped:
 44. Empty-board shrine kickers as readable Marcellus. **Shipped in cycle 44.**
 45. Vacant party and talent sockets as shrine diamonds. **Shipped in cycle 45.**
 46. Leather plates close with bottom gold filigree. **Shipped in cycle 46.**
+47. Quest-entry and party-row type as Harbor. **Shipped in cycle 47.**
 
 ## Done when
 
