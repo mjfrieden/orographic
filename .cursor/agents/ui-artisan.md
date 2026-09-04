@@ -65,6 +65,7 @@ Audit juice shipped:
 32. Live-board metric kickers in Marcellus. **Shipped in cycle 32.**
 33. Empty party portraits as vacant shrine sockets. **Shipped in cycle 33.**
 34. Empty talent-tree experiment socket as a vacant shrine. **Shipped in cycle 34.**
+35. Party and Quest log count seals in Cinzel. **Shipped in cycle 35.**
 
 ## Done when
 

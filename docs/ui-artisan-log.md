@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 35 — 2026-09-04 — Party count seals
+
+- Party and Quest log tab counts are Cinzel stone seals instead of 9px Inter pills. Tab ids and literal counts stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 34 — 2026-09-04 — Vacant talent socket
 
 - The unused Experiment lanes talent-tree node is a dashed shrine socket instead of a dim solid orb, matching empty party portraits. Node copy, ranks, and research ids stay.
