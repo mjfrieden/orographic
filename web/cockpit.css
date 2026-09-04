@@ -206,6 +206,7 @@ body.cockpit-page {
   opacity: 0.55;
 }
 #logout-btn {
+  position: relative;
   min-height: 40px;
   padding: 0 14px;
   border: 1px solid rgba(232, 197, 109, 0.38);
@@ -218,11 +219,44 @@ body.cockpit-page {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+#logout-btn::before,
+.cockpit-footer a::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 1.5px 6px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 1.5px 6px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 1.5px 6px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 6px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 6px no-repeat;
+}
 #logout-btn:hover,
 #logout-btn:focus-visible {
   color: #1a0f00;
   background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
   border-color: rgba(255, 224, 160, 0.55);
+}
+#logout-btn:hover::before,
+#logout-btn:focus-visible::before,
+.cockpit-footer a:hover::before,
+.cockpit-footer a:focus-visible::before {
+  opacity: 0.45;
+  background:
+    linear-gradient(#1a0f00, #1a0f00) top left / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top left / 1.5px 6px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 1.5px 6px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 1.5px 6px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 1.5px 6px no-repeat;
 }
 .top-actions {
   display: flex;
@@ -2598,6 +2632,7 @@ body.cockpit-page {
     0 0 0 3px rgba(240, 156, 91, 0.16);
 }
 .cockpit-footer a {
+  position: relative;
   color: var(--cockpit-gold);
   justify-self: end;
   display: inline-flex;
