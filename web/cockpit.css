@@ -1793,17 +1793,47 @@ body.cockpit-page {
 
 @media (max-width: 1100px) {
   .cockpit-topbar {
-    grid-template-columns: 220px 1fr;
-    padding: 0 18px;
+    grid-template-columns: minmax(132px, auto) minmax(0, 1fr) auto;
+    padding: 0 16px;
+    column-gap: 10px;
   }
   .top-actions {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .top-actions .action-copy {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+  .lab-link,
+  .guarded-live {
+    position: relative;
+    min-width: 40px;
+    min-height: 40px;
+    justify-content: center;
+    padding: 0 8px;
+  }
+  #logout-btn {
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--cockpit-border);
+    border-radius: 8px;
+    color: var(--cockpit-gold);
+    background: rgba(232, 197, 109, 0.06);
   }
   .top-stat-account {
     display: none;
   }
   .cockpit-account-strip {
     grid-template-columns: repeat(3, 1fr);
+  }
+  .cockpit-brand span {
+    font-size: 16px;
+    letter-spacing: 0.08em;
   }
   .signal-book {
     grid-template-columns: 1fr;
@@ -1838,12 +1868,34 @@ body.cockpit-page {
 @media (max-width: 720px) {
   .cockpit-topbar {
     position: static;
-    grid-template-columns: 1fr;
-    padding: 14px 18px;
-    gap: 12px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "brand actions"
+      "strip strip";
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .cockpit-brand {
+    grid-area: brand;
+  }
+  .top-actions {
+    grid-area: actions;
+    display: flex;
   }
   .cockpit-account-strip {
+    grid-area: strip;
     grid-template-columns: repeat(2, 1fr);
+  }
+  .cockpit-brand span {
+    display: none;
+  }
+  .cockpit-signal-card.trade-card,
+  .cockpit-signal {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .cockpit-signal-card .card-symbol-giant {
+    font-size: clamp(1.7rem, 11vw, 2.6rem);
   }
   .top-stat {
     padding: 8px 12px;

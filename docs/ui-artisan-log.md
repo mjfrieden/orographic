@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 9 — 2026-09-04 — Tablet logout and unclipped signal card
+
+- 1100px keeps `#logout-btn` on the topbar (gold gate control). Backtest Lab and Guarded live collapse to sigils with accessible names instead of vanishing.
+- 720px places brand + Log out on the first row and the account strip underneath. Legendary ticker scales down so HOLD does not overflow.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, required DOM ids, positions-toolbar flex contract.
+
 ## Cycle 8 — 2026-09-04 — Harbor sigils instead of Material Symbols
 
 - Cockpit and Backtest Lab drop the Google Material Symbols font. Icons are a small CSS-mask sigil set (lock, refresh, book, shield, flask, check, warning).
