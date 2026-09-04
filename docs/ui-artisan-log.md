@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 23 — 2026-09-04 — Research dungeon type
+
+- Backtest Lab body, labels, and trade-receipt rows use Cormorant / Marcellus instead of Inter. Metric numbers and engine `code` stay tabular/mono.
+- 820px still keeps Live / Lab / Audit nav. Command builder ids and mart hooks stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, backtest command math.
+
 ## Cycle 22 — 2026-09-04 — Stone ledgers
 
 - Positions and orders tables sit in stone ledger plates with Marcellus gold headers and parchment rows instead of Inter SaaS grids.
