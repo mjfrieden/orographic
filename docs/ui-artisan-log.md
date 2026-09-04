@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 26 — 2026-09-04 — Parchment order rows and writ status
+
+- Quest-ledger order rows and sealed-writ fetching/error copy inherit Harbor type instead of inline Inter.
+- Status chips are Marcellus. Contract symbols, money, dates, and Tradier preview payloads stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 25 — 2026-09-04 — Harbor Gate parchment
 
 - Skip link is Cinzel. Credential fields and the denied-gate toast use Cormorant instead of Inter.

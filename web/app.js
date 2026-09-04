@@ -924,13 +924,13 @@ function renderOrders() {
         ? `<div class="order-status-note" title="${escapeHtml(rejectionReason)}">${escapeHtml(rejectionReason)}</div>`
         : "";
       return `<tr>
-      <td data-label="Status"><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
-      <td data-label="Contract" style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
+      <td data-label="Status"><span class="ledger-status">${o.status || "open"}</span></td>
+      <td data-label="Contract" class="ledger-contract">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
       <td data-label="Side" class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
       <td data-label="Qty" class="is-num">${integer(o.quantity)}</td>
       <td data-label="Price" class="is-num">${o.price ? money(o.price) : "--"}</td>
       <td data-label="Fill" class="is-num">${o.avg_fill_price ? money(o.avg_fill_price) : "--"}</td>
-      <td data-label="Date" style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
+      <td data-label="Date" class="ledger-date">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
     </tr>`;
     })
     .join("");
@@ -3020,9 +3020,8 @@ function executionNotice(submission, isAdmin) {
 function submissionDetailHtml(submission, isAdmin) {
   const note = executionNotice(submission, isAdmin);
   if (!note) return "";
-  const tone =
-    submission?.allowed && isAdmin ? "var(--teal)" : "var(--text-muted)";
-  return `<p style="font-family:var(--font-data);font-size:.72rem;color:${tone};margin-top:12px;">${escapeHtml(note)}</p>`;
+  const toneClass = submission?.allowed && isAdmin ? "is-ready" : "";
+  return `<p class="writ-note ${toneClass}">${escapeHtml(note)}</p>`;
 }
 
 function openModal(title, bodyHtml, executeEnabled, orderData, options = {}) {
@@ -3143,7 +3142,7 @@ async function handlePreview(
 ) {
   openModal(
     "Requesting Preview…",
-    `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`,
+    `<div class="writ-status">Fetching Tradier preview…</div>`,
     false,
     null,
   );
@@ -3194,7 +3193,7 @@ async function handlePreview(
     const warningHtml = (elig.warnings || [])
       .map(
         (w) =>
-          `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`,
+          `<div class="writ-warning">⚠ ${w}</div>`,
       )
       .join("");
 
@@ -3233,7 +3232,7 @@ async function handlePreview(
   } catch (err) {
     openModal(
       "Preview Failed",
-      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${escapeHtml(err.message || err)}</p>`,
+      `<p class="writ-error">${escapeHtml(err.message || err)}</p>`,
       false,
       null,
       { executeLabel: "Execute Trade" },
@@ -3272,7 +3271,7 @@ async function handleClosePosition(contractSymbol, qty) {
   const msg = document.getElementById("modal-message");
   openModal(
     "Closing Position…",
-    `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`,
+    `<div class="writ-status">Fetching Tradier preview…</div>`,
     false,
     null,
   );
@@ -3317,7 +3316,7 @@ async function handleClosePosition(contractSymbol, qty) {
     const warningHtml = (elig.warnings || [])
       .map(
         (w) =>
-          `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`,
+          `<div class="writ-warning">⚠ ${w}</div>`,
       )
       .join("");
 
@@ -3353,7 +3352,7 @@ async function handleClosePosition(contractSymbol, qty) {
   } catch (err) {
     openModal(
       "Preview Failed",
-      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${escapeHtml(err.message || err)}</p>`,
+      `<p class="writ-error">${escapeHtml(err.message || err)}</p>`,
       false,
       null,
       { executeLabel: "Close Position" },
