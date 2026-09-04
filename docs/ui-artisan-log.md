@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 54 — 2026-09-04 — Book-tab filigree
+
+- Party and Quest log tabs close with gold L-brackets on all four corners, matching leather-plate and HOLD-well filigree. Tab ids, count seals, and keyboard switching stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 53 — 2026-09-04 — HOLD funnel filigree
 
 - HOLD funnel stage wells and HOLD metric wells close with gold L-brackets on all four corners, matching leather-plate and party-frame filigree. Universe / Scout / Forge / Council counts, abstention copy, and the disabled preview button stay literal.

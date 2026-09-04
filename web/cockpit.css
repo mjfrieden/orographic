@@ -1319,6 +1319,7 @@ body.cockpit-page {
   border-bottom: 1px solid var(--cockpit-border);
 }
 .book-tab {
+  position: relative;
   min-height: 40px;
   padding: 0 14px 8px;
   border: 1px solid transparent;
@@ -1330,6 +1331,23 @@ body.cockpit-page {
   font: 600 12px/1 var(--font-ui, "Marcellus SC", Georgia, serif);
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+.book-tab::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.5;
+  background:
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 7px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 1.5px 7px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 7px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 1.5px 7px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 7px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 1.5px 7px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 7px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 7px no-repeat;
 }
 .book-tab span {
   display: inline-grid;
@@ -1355,6 +1373,11 @@ body.cockpit-page {
   border-bottom-color: var(--cockpit-gold);
   background: rgba(232, 197, 109, 0.06);
   outline: none;
+}
+.book-tab:hover::before,
+.book-tab:focus-visible::before,
+.book-tab.is-active::before {
+  opacity: 0.65;
 }
 .book-panel[hidden] {
   display: none;

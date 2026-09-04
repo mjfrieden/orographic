@@ -84,6 +84,7 @@ Audit juice shipped:
 51. Master Harbor inventory cards close with gold filigree. **Shipped in cycle 51.**
 52. Party unit frames close with gold filigree. **Shipped in cycle 52.**
 53. HOLD funnel wells close with gold filigree. **Shipped in cycle 53.**
+54. Party and Quest log tabs close with gold filigree. **Shipped in cycle 54.**
 
 ## Done when
 
