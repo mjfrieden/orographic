@@ -105,6 +105,7 @@ Audit juice shipped:
 72. Research dungeon Prepare local run closes with gold filigree. **Shipped in cycle 72.**
 73. Research dungeon KPI wells close with gold filigree. **Shipped in cycle 73.**
 74. Research dungeon source-switch gates close with gold filigree. **Shipped in cycle 74.**
+75. Research dungeon coverage wells close with gold filigree. **Shipped in cycle 75.**
 
 ## Done when
 
