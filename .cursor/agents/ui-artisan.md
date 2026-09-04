@@ -93,6 +93,7 @@ Audit juice shipped:
 60. Log out and Audit trail gates close with gold filigree. **Shipped in cycle 60.**
 61. Previous / Next pager gates close with gold filigree. **Shipped in cycle 61.**
 62. Backtest Lab gate closes with gold filigree. **Shipped in cycle 62.**
+63. Sealed-writ Execute and Cancel gates close with gold filigree. **Shipped in cycle 63.**
 
 ## Done when
 

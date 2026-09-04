@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 63 — 2026-09-04 — Sealed-writ execute gates filigree
+
+- Execute Trade and Cancel gold gates close with four-corner L-brackets: dark ticks on the live gold Execute fill, gold ticks on the disabled Execute stone and Cancel rest state, dark ticks on the Cancel hover fill. `#preview-modal`, `#modal-execute-btn`, and `#modal-cancel-btn` stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 62 — 2026-09-04 — Backtest Lab gate filigree
 
 - Backtest Lab gold gate closes with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `/backtest/` href, aria-label, and 720px flask placement stay.
