@@ -11,7 +11,7 @@
   --cockpit-surface-2: rgba(13, 29, 50, 0.88);
   --cockpit-border: rgba(232, 197, 109, 0.18);
   --cockpit-text: #f4dda4;
-  --cockpit-muted: rgba(244, 221, 164, 0.58);
+  --cockpit-muted: rgba(244, 221, 164, 0.76);
   --cockpit-gold: #e8c56d;
   --cockpit-teal: #4ecdc4;
   --cockpit-amber: #f09c5b;
@@ -2136,4 +2136,51 @@ body.cockpit-page {
   .cockpit-signal-card.trade-card {
     transition: none;
   }
+}
+
+.skip-link {
+  position: absolute;
+  left: 16px;
+  top: -64px;
+  z-index: 80;
+  padding: 10px 14px;
+  border: 1px solid var(--cockpit-gold);
+  border-radius: 8px;
+  background: #1a1204;
+  color: var(--cockpit-gold);
+  font: 700 13px/1 Inter, sans-serif;
+  text-decoration: none;
+}
+
+.skip-link:focus {
+  top: 12px;
+  outline: 2px solid var(--cockpit-gold);
+  outline-offset: 3px;
+}
+
+.cockpit-page :is(a, button, input, select, summary):focus-visible {
+  outline: 2px solid var(--cockpit-gold);
+  outline-offset: 3px;
+}
+
+.sync-line.is-error,
+.positions-sync-status.is-error {
+  color: #ffc9c6;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 140, 120, 0.5);
+  border-radius: 8px;
+  background: rgba(90, 18, 18, 0.55);
+}
+
+.unit-frame.is-empty {
+  opacity: 0.95;
+  border-color: rgba(232, 197, 109, 0.38);
+}
+
+.unit-empty-copy {
+  color: rgba(244, 221, 164, 0.82);
+}
+
+.party-empty .position-loading {
+  color: var(--cockpit-text);
 }

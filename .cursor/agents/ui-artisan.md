@@ -36,7 +36,7 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 7. Backtest Lab as a research dungeon: same gold chrome, shared fonts, no sterile Inter-only lab. **Shipped in cycle 7.**
 8. Replace leftover Material Symbol clutter with a small SVG sigil set (crest, lock, refresh, book). **Shipped in cycle 8.**
 9. Motion pass: card appear, foil sheen, restrained hover. Respect `prefers-reduced-motion`. **Shipped in cycle 10.**
-10. Accessibility pass: contrast on gold/navy, focus rings, keyboard tabs, empty/error states.
+10. Accessibility pass: contrast on gold/navy, focus rings, keyboard tabs, empty/error states. **Shipped in cycle 11.**
 11. Mobile/tablet: 720px and 1100px breakpoints must not clip the signal card or hide logout without a replacement control. **Shipped in cycle 9.**
 12. Custom harbor illustration polish on top of `web/harbor-hero.png` without blocking text.
 

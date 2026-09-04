@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 11 — 2026-09-04 — Accessibility pass
+
+- Skip links land on Signal & Book and the login form. Gold `focus-visible` rings apply to cockpit controls (tabs already arrow-key).
+- Muted parchment contrast is raised. Tradier/board `is-error` sync lines are a crimson toast, not dim caption text. Empty party slots are a live `role="status"`.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, required DOM ids.
+
 ## Cycle 10 — 2026-09-04 — Motion pass
 
 - Legendary signal card, party frames, quest rows, and talent nodes arrive with a short rise. Foil sheen stays; hover lift is 1–2px.

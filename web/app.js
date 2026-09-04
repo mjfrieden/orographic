@@ -1330,7 +1330,7 @@ function renderCockpitPositions() {
   setText("book-orders-count", String((BROKER_STATE.orders || []).length));
   if (!positions.length) {
     root.innerHTML = `
-      <div class="party-empty">
+      <div class="party-empty" role="status">
         <div class="position-loading">No open positions. The book is clear.</div>
         <div class="party-slots" aria-hidden="true">
           <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
