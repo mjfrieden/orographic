@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 34 — 2026-09-04 — Vacant talent socket
+
+- The unused Experiment lanes talent-tree node is a dashed shrine socket instead of a dim solid orb, matching empty party portraits. Node copy, ranks, and research ids stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 33 — 2026-09-04 — Vacant party sockets
 
 - Empty party portraits are dashed shrine sockets instead of glowing orbs, matching the unused talent-tree node. Roster copy and position ids stay.
