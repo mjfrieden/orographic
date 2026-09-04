@@ -46,6 +46,7 @@ Audit juice shipped:
 13. Sealed writ order preview and HOLD preview gate. **Shipped in cycle 13.**
 14. Character-plate account ribbon and gold-gate logout. **Shipped in cycle 14.**
 15. Realm-bar footer with XP hairline. **Shipped in cycle 15.**
+16. Leather-bound Signal & Book plates. **Shipped in cycle 16.**
 
 ## Done when
 

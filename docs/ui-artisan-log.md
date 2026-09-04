@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 16 — 2026-09-04 — Leather-bound Signal & Book
+
+- Council Quest and Party Ledger sit in separate stone plates with gold corner ticks instead of one glass SaaS card.
+- Day P&L is a character-plate well. Party/Quest tabs use Marcellus. Sync-line margin and positions-toolbar flex contracts stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 15 — 2026-09-04 — Realm bar footer
 
 - The cockpit footer is a WoW realm bar: stone plate, “Realm bar” kicker, hearth gem, and a teal-to-gold XP hairline.
