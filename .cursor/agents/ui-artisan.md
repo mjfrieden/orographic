@@ -83,6 +83,7 @@ Audit juice shipped:
 50. Realm bar closes with gold filigree. **Shipped in cycle 50.**
 51. Master Harbor inventory cards close with gold filigree. **Shipped in cycle 51.**
 52. Party unit frames close with gold filigree. **Shipped in cycle 52.**
+53. HOLD funnel wells close with gold filigree. **Shipped in cycle 53.**
 
 ## Done when
 

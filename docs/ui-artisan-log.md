@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 53 — 2026-09-04 — HOLD funnel filigree
+
+- HOLD funnel stage wells and HOLD metric wells close with gold L-brackets on all four corners, matching leather-plate and party-frame filigree. Universe / Scout / Forge / Council counts, abstention copy, and the disabled preview button stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 52 — 2026-09-04 — Party-frame filigree
 
 - Empty and occupied party unit frames close with gold L-brackets on all four corners, matching leather-plate filigree. Empty-slot copy, roster ids, and Tradier hooks stay.
