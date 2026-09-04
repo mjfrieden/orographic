@@ -2,6 +2,15 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 7 — 2026-09-04 — Backtest Lab as a research dungeon
+
+- Control rail is a shrine altar: Marcellus labels, stone-gold fields, Cinzel delve heading.
+- KPI tiles, parchment P&L chart (compass cartouche), and quest-receipt trade table share the Harbor gold language instead of the sterile Inter lab.
+- Flavor kickers only (Shrine controls, Research dungeon, Map parchment, Rival builds, Reliquary, Quest receipts). Metric ids and command builder unchanged.
+- 820px keeps the Live / Lab / Audit nav instead of hiding it.
+
+Left alone: `buildBacktestCommand` / trade filters / mart hooks, Scout/Forge/Council, Tradier, auth.
+
 ## Cycle 6 — 2026-09-04 — Master Harbor auction house and map parchment
 
 - Admin overview tiles read as inventory slots (gold corner ticks, stone wells).

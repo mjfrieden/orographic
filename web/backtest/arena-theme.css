@@ -1,4 +1,8 @@
-/* Harbor overlay for Backtest Lab — same gold/navy language as the live board. */
+/* ============================================================
+   OROGRAPHIC RESEARCH DUNGEON — Backtest Lab chrome
+   WoW shrine rail × Zelda map parchment × Hearthstone sockets
+   Command math, observation ids, and mart hooks stay unchanged.
+   ============================================================ */
 
 @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Marcellus+SC&display=swap");
 
@@ -12,6 +16,41 @@ body {
   background-position: top, bottom, top center;
   background-repeat: no-repeat, no-repeat, no-repeat;
   background-attachment: fixed, fixed, fixed;
+}
+
+.lab-page .scene-bloom,
+.lab-page .noise {
+  position: fixed;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.lab-page .scene-bloom {
+  top: 0;
+  bottom: 0;
+  width: 38vw;
+}
+
+.lab-page .scene-bloom-left {
+  left: 0;
+  background: radial-gradient(ellipse at left center, rgba(78, 205, 196, 0.055) 0%, transparent 70%);
+}
+
+.lab-page .scene-bloom-right {
+  right: 0;
+  background: radial-gradient(ellipse at right center, rgba(240, 156, 91, 0.08) 0%, transparent 70%);
+}
+
+.lab-page .noise {
+  inset: 0;
+  opacity: 0.045;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.45'/%3E%3C/svg%3E");
+}
+
+.lab-topbar,
+.lab-shell {
+  position: relative;
+  z-index: 1;
 }
 
 .lab-topbar {
@@ -28,39 +67,218 @@ body {
   font-size: 18px;
 }
 
+.lab-topbar nav a {
+  font-family: "Marcellus SC", Georgia, serif;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+
 .control-rail {
-  background: rgba(7, 21, 34, 0.72);
-  border-right-color: rgba(232, 197, 109, 0.16);
+  background:
+    linear-gradient(180deg, rgba(18, 28, 42, 0.82), rgba(7, 14, 24, 0.9));
+  border-right-color: rgba(232, 197, 109, 0.22);
+  box-shadow: inset -1px 0 0 rgba(232, 197, 109, 0.08);
 }
 
 .rail-heading h1,
 .analysis-heading h2,
 .panel h3 {
   font-family: "Cinzel", "Cormorant Garamond", Georgia, serif;
+  color: #f5d98a;
 }
 
 .eyebrow {
   font-family: "Marcellus SC", Georgia, serif;
+  color: #4ecdc4;
+}
+
+.control-rail label {
+  font-family: "Marcellus SC", Georgia, serif;
+  color: #e8c56d;
+}
+
+.control-rail input,
+.control-rail select,
+.trade-filters input,
+.trade-filters select {
+  background: linear-gradient(180deg, #2a2418, #14110c);
+  border: 1px solid rgba(232, 197, 109, 0.32);
+  color: #e8eaf0;
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.12);
+}
+
+.control-rail input:focus,
+.control-rail select:focus,
+.trade-filters input:focus,
+.trade-filters select:focus {
+  border-color: #e8c56d;
+  box-shadow: 0 0 0 1px rgba(232, 197, 109, 0.28);
+}
+
+.check-row {
+  border-color: rgba(232, 197, 109, 0.28);
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.55), rgba(18, 16, 12, 0.72));
 }
 
 .panel,
 .metric-grid,
 .quality-banner,
-.source-switch {
-  border-color: rgba(232, 197, 109, 0.18);
-  background: rgba(10, 22, 40, 0.72);
-  box-shadow: 0 0 0 1px rgba(232, 197, 109, 0.06);
+.source-switch,
+.command-card code {
+  border-color: rgba(232, 197, 109, 0.22);
+  background: rgba(10, 22, 40, 0.78);
+  box-shadow:
+    0 0 0 1px rgba(232, 197, 109, 0.06),
+    inset 0 1px 0 rgba(245, 217, 138, 0.08);
 }
 
 .primary-button {
-  background: linear-gradient(135deg, #c9a227, #f09c5b);
+  font-family: "Cinzel", Georgia, serif;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 224, 160, 0.4);
+  background: linear-gradient(180deg, #f5d98a 0%, #c9a227 48%, #8a6a12 100%);
   color: #1a0f00;
-  box-shadow: 0 8px 24px rgba(201, 162, 39, 0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    0 8px 24px rgba(201, 162, 39, 0.28);
 }
 
 .primary-button:hover,
 .primary-button:focus-visible {
-  background: linear-gradient(135deg, #e8c56d, #f5d98a);
+  background: linear-gradient(180deg, #ffe7a8 0%, #e8c56d 48%, #c9a227 100%);
+  outline-color: #e8c56d;
+}
+
+.secondary-button {
+  border-color: rgba(232, 197, 109, 0.32);
+  color: #e8c56d;
+}
+
+.metric-grid {
+  overflow: hidden;
+  background: transparent;
+}
+
+.metric-grid article {
+  background:
+    linear-gradient(180deg, rgba(42, 36, 24, 0.55) 0%, rgba(12, 18, 28, 0.88) 100%);
+  border-right-color: rgba(232, 197, 109, 0.18);
+}
+
+.metric-grid span {
+  font-family: "Marcellus SC", Georgia, serif;
+  color: #e8c56d;
+}
+
+.metric-grid strong {
+  font-family: "Cinzel", Georgia, serif;
+}
+
+.chart-panel {
+  background:
+    radial-gradient(ellipse at 18% 20%, rgba(244, 221, 164, 0.08), transparent 46%),
+    linear-gradient(180deg, rgba(72, 52, 28, 0.28), rgba(12, 20, 32, 0.86));
+}
+
+.chart-panel .panel-heading {
+  border-bottom-color: rgba(232, 197, 109, 0.22);
+}
+
+.canvas-wrap {
+  position: relative;
+}
+
+.canvas-wrap::after {
+  content: "N";
+  position: absolute;
+  top: 18px;
+  right: 12px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(232, 197, 109, 0.4);
+  border-radius: 50%;
+  background: rgba(12, 18, 28, 0.7);
+  color: #e8c56d;
+  font: 700 8px/1 "Cinzel", Georgia, serif;
+  pointer-events: none;
+}
+
+.source-switch button.is-active {
+  background: linear-gradient(180deg, rgba(232, 197, 109, 0.22), rgba(201, 162, 39, 0.12));
+  color: #f5d98a;
+}
+
+.quality-banner {
+  border-color: rgba(78, 205, 196, 0.28);
+}
+
+.command-card code {
+  background: #030b13;
+  border: 1px solid rgba(78, 205, 196, 0.18);
+  color: #a9d7cd;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.variant-row.is-selected {
+  box-shadow: inset 3px 0 #e8c56d;
+}
+
+.friction-note {
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  background: rgba(232, 197, 109, 0.06);
+}
+
+.trade-panel th {
+  background: linear-gradient(180deg, rgba(58, 46, 26, 0.96), rgba(28, 22, 14, 0.96));
+  color: #e8c56d;
+  font-family: "Marcellus SC", Georgia, serif;
+  letter-spacing: 0.1em;
+  border-bottom-color: rgba(232, 197, 109, 0.38);
+}
+
+.trade-panel tbody tr:nth-child(odd) td {
+  background: rgba(244, 221, 164, 0.03);
+}
+
+.mart-status-pill {
+  font-family: "Marcellus SC", Georgia, serif;
+}
+
+.mart-status-grid article {
+  background: linear-gradient(180deg, rgba(42, 36, 24, 0.35), rgba(12, 18, 28, 0.72));
+}
+
+@media (max-width: 820px) {
+  .lab-topbar {
+    height: auto;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 16px 10px;
+  }
+
+  .lab-topbar nav {
+    display: flex;
+    height: auto;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .lab-topbar nav a {
+    min-height: 36px;
+  }
+
+  .environment {
+    font-size: 10px;
+  }
+
+  .analysis-heading h2 {
+    font-size: 1.7rem;
+  }
 }
 
 @media (max-width: 600px) {
