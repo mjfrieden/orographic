@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 31 — 2026-09-04 — Spellbook shrine notes
+
+- Spellbook claims banner, shrine-seal status titles, and governance notes use Cinzel / Cormorant instead of 11–12px Inter. Kickers stay Marcellus.
+- Governance ids, readiness copy, and model authority stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 30 — 2026-09-04 — Funnel and shrine parchment
 
 - HOLD “Why no trade?” reason copy, funnel footnotes, and talent-tree pipeline notes use Cormorant instead of 9–11px Inter. Stage labels stay Marcellus. Funnel counts stay literal.
