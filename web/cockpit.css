@@ -205,7 +205,8 @@ body.cockpit-page {
   box-shadow: none;
   opacity: 0.55;
 }
-#logout-btn {
+#logout-btn,
+.top-actions .lab-link {
   position: relative;
   min-height: 40px;
   padding: 0 14px;
@@ -219,7 +220,11 @@ body.cockpit-page {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+.top-actions .lab-link {
+  text-decoration: none;
+}
 #logout-btn::before,
+.top-actions .lab-link::before,
 .cockpit-footer a::before {
   content: "";
   position: absolute;
@@ -238,13 +243,17 @@ body.cockpit-page {
     linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 6px no-repeat;
 }
 #logout-btn:hover,
-#logout-btn:focus-visible {
+#logout-btn:focus-visible,
+.top-actions .lab-link:hover,
+.top-actions .lab-link:focus-visible {
   color: #1a0f00;
   background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
   border-color: rgba(255, 224, 160, 0.55);
 }
 #logout-btn:hover::before,
 #logout-btn:focus-visible::before,
+.top-actions .lab-link:hover::before,
+.top-actions .lab-link:focus-visible::before,
 .cockpit-footer a:hover::before,
 .cockpit-footer a:focus-visible::before {
   opacity: 0.45;
