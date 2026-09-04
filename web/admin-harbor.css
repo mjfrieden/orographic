@@ -1,0 +1,281 @@
+/* ============================================================
+   OROGRAPHIC MASTER HARBOR — admin chrome
+   WoW auction house log × Zelda map parchment × inventory tiles
+   Fetch URLs, snapshot math, and table ids stay unchanged.
+   ============================================================ */
+
+.admin-page .admin-shell {
+  padding-top: 8px;
+}
+
+.admin-page .panel {
+  border-color: rgba(232, 197, 109, 0.22);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 217, 138, 0.08),
+    0 18px 40px rgba(0, 0, 0, 0.28);
+}
+
+.admin-page .panel-hero {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 28px;
+  align-items: center;
+}
+
+.admin-page .hero-emblem {
+  position: relative;
+  top: auto;
+  right: auto;
+  flex: 0 0 auto;
+}
+
+.admin-page .hero-emblem-core {
+  width: 88px;
+  height: 88px;
+  border-width: 2px;
+  box-shadow:
+    0 0 0 4px rgba(8, 14, 26, 0.8),
+    0 0 28px rgba(201, 162, 39, 0.32),
+    inset 0 0 22px rgba(201, 162, 39, 0.1);
+}
+
+.admin-page .hero-emblem-core::after {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  border: 1px dashed rgba(232, 197, 109, 0.28);
+  pointer-events: none;
+}
+
+.admin-page .hero-emblem-ribbon {
+  margin-top: 8px;
+  letter-spacing: 0.16em;
+}
+
+.admin-page .eyebrow {
+  color: var(--teal, #4ecdc4);
+}
+
+.admin-page .admin-card,
+.admin-page .inventory-slot {
+  position: relative;
+  min-height: 100px;
+  padding: 16px 16px 14px;
+  border: 1px solid rgba(232, 197, 109, 0.32);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(42, 36, 24, 0.55) 0%, rgba(12, 18, 28, 0.88) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 217, 138, 0.16),
+    inset 0 -10px 18px rgba(0, 0, 0, 0.28),
+    0 8px 18px rgba(0, 0, 0, 0.22);
+}
+
+.admin-page .admin-card::before {
+  content: "";
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 8px;
+  height: 8px;
+  border-top: 1px solid rgba(232, 197, 109, 0.45);
+  border-left: 1px solid rgba(232, 197, 109, 0.45);
+  pointer-events: none;
+}
+
+.admin-page .admin-card .summary-label {
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  letter-spacing: 0.12em;
+  color: var(--gold, #e8c56d);
+}
+
+.admin-page .admin-card .summary-value {
+  font-family: var(--font-data, "Inter", system-ui, sans-serif);
+  font-size: 1.05rem;
+  color: var(--text-data, #e8eaf0);
+}
+
+.admin-page .map-parchment {
+  background:
+    radial-gradient(ellipse at 18% 20%, rgba(244, 221, 164, 0.08), transparent 46%),
+    linear-gradient(180deg, rgba(72, 52, 28, 0.35), rgba(12, 20, 32, 0.82)),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 11px,
+      rgba(232, 197, 109, 0.04) 12px
+    );
+  border: 1px solid rgba(232, 197, 109, 0.38);
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 221, 164, 0.06),
+    inset 0 0 40px rgba(80, 48, 16, 0.18);
+}
+
+.admin-page .map-parchment::before {
+  background:
+    linear-gradient(to right, transparent 0, rgba(232, 197, 109, 0.12) 1px, transparent 1px),
+    linear-gradient(to top, transparent 0, rgba(232, 197, 109, 0.1) 1px, transparent 1px);
+  background-size: 16.66% 100%, 100% 25%;
+  opacity: 0.55;
+}
+
+.admin-page .map-compass {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 1px solid rgba(232, 197, 109, 0.45);
+  background: rgba(12, 18, 28, 0.72);
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.35);
+}
+
+.admin-page .map-compass::before,
+.admin-page .map-compass::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  color: var(--gold, #e8c56d);
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
+  font-size: 0.48rem;
+  letter-spacing: 0.08em;
+}
+
+.admin-page .map-compass::before {
+  content: "N";
+  transform: translate(-50%, calc(-50% - 12px));
+}
+
+.admin-page .map-compass::after {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 14px solid #e05252;
+  transform: translate(-50%, -62%);
+  filter: drop-shadow(0 6px 0 #4ecdc4);
+}
+
+.admin-page .map-cartouche {
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  z-index: 2;
+  margin: 0;
+  padding: 3px 8px;
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold, #e8c56d);
+  border: 1px solid rgba(232, 197, 109, 0.28);
+  background: rgba(8, 14, 22, 0.62);
+}
+
+.admin-page .admin-trend-empty,
+.admin-page .map-empty {
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-style: dashed;
+  border-color: rgba(232, 197, 109, 0.32);
+  background:
+    linear-gradient(180deg, rgba(72, 52, 28, 0.22), rgba(12, 20, 32, 0.55));
+  color: var(--text-secondary, rgba(244, 221, 164, 0.65));
+}
+
+.admin-page .auction-house-log {
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  border-radius: 10px;
+  background: rgba(8, 14, 22, 0.45);
+}
+
+.admin-page .admin-history-table {
+  min-width: 720px;
+}
+
+.admin-page .admin-history-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 10px 12px;
+  background: linear-gradient(180deg, rgba(58, 46, 26, 0.96), rgba(28, 22, 14, 0.96));
+  color: var(--gold, #e8c56d);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  letter-spacing: 0.12em;
+  border-bottom: 1px solid rgba(232, 197, 109, 0.38);
+}
+
+.admin-page .admin-history-table tbody td {
+  border-bottom-color: rgba(232, 197, 109, 0.1);
+}
+
+.admin-page .admin-history-table tbody tr:nth-child(odd) td {
+  background: rgba(244, 221, 164, 0.03);
+}
+
+.admin-page .admin-history-table tbody tr:hover td {
+  background: rgba(232, 197, 109, 0.08);
+}
+
+.admin-page .admin-history-loading {
+  font-family: var(--font-body, "Cormorant Garamond", Georgia, serif);
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+}
+
+.admin-page .admin-mart-status {
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  letter-spacing: 0.12em;
+}
+
+.admin-page .admin-trend-stat {
+  border-color: rgba(232, 197, 109, 0.28);
+  background:
+    linear-gradient(180deg, rgba(42, 36, 24, 0.45), rgba(12, 18, 28, 0.82));
+}
+
+@media (max-width: 720px) {
+  .admin-page .admin-shell {
+    padding: 0 12px 48px;
+  }
+
+  .admin-page .panel-hero {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 24px 16px 20px;
+  }
+
+  .admin-page .hero-emblem {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-page .hero-emblem-core {
+    width: 64px;
+    height: 64px;
+    font-size: 0.92rem;
+  }
+
+  .admin-page .admin-overview-grid,
+  .admin-page .admin-trend-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-page .map-compass {
+    width: 34px;
+    height: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-page .hero-emblem-core::before {
+    animation: none;
+  }
+}

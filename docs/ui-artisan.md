@@ -16,6 +16,7 @@ The **UI Artisan** agent exists to keep unifying that board, one focused visual 
 | `web/login-gate.css` | Login crest, stone fields, error toast |
 | `web/backtest/` | Research dungeon |
 | `web/admin/` | Master Harbor ledger |
+| `web/admin-harbor.css` | Auction-house log and map parchment |
 
 ## Create the Cursor Automation
 

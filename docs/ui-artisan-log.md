@@ -2,6 +2,15 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 6 — 2026-09-04 — Master Harbor auction house and map parchment
+
+- Admin overview tiles read as inventory slots (gold corner ticks, stone wells).
+- Portfolio trend sits on a map parchment with compass rose and cartouche; empty history is a blank map.
+- Capture and order tables use auction-house gold headers and leather row wash. Kickers are flavor-only (Auction House, Map Parchment, Quest Receipts, Reliquary).
+- Mobile keeps the Master Harbor emblem instead of hiding it at 600px.
+
+Left alone: admin fetch URLs, snapshot/P&L math, table ids, Scout/Forge/Council, Tradier, auth.
+
 ## Cycle 5 — 2026-09-04 — Harbor Gate crest, stone fields, error toast
 
 - Login crest now orbits with dashed gold rings, rune ticks, a pulsing mark, and a Hearthstone-style rarity gem.
