@@ -91,6 +91,7 @@ Audit juice shipped:
 58. Refresh gates close with gold filigree. **Shipped in cycle 58.**
 59. Open spellbook gate closes with gold filigree. **Shipped in cycle 59.**
 60. Log out and Audit trail gates close with gold filigree. **Shipped in cycle 60.**
+61. Previous / Next pager gates close with gold filigree. **Shipped in cycle 61.**
 
 ## Done when
 

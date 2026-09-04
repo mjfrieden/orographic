@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 61 — 2026-09-04 — Quest-pager button filigree
+
+- Previous and Next gold gates close with four-corner L-brackets: gold ticks on the stone rest and disabled states, dark ticks on the live gold hover fill. `#signal-prev`, `#signal-next`, and the pager plate stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 60 — 2026-09-04 — Log-out and Audit-trail filigree
 
 - Log out and Audit trail gold gates close with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `#logout-btn`, the `/admin/` Audit trail href, and 720px logout placement stay.

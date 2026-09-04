@@ -1245,6 +1245,7 @@ body.cockpit-page {
 #signal-prev,
 #signal-next,
 #positions-refresh-btn {
+  position: relative;
   min-height: 36px;
   padding: 0 12px;
   border: 1px solid rgba(232, 197, 109, 0.32);
@@ -1255,6 +1256,10 @@ body.cockpit-page {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+#signal-prev,
+#signal-next {
+  z-index: 1;
 }
 #signal-prev:hover:not(:disabled),
 #signal-prev:focus-visible:not(:disabled),
@@ -1285,7 +1290,9 @@ body.cockpit-page {
   position: relative;
 }
 #board-refresh-btn::before,
-#positions-refresh-btn::before {
+#positions-refresh-btn::before,
+#signal-prev::before,
+#signal-next::before {
   content: "";
   position: absolute;
   inset: 5px;
@@ -1305,7 +1312,11 @@ body.cockpit-page {
 #board-refresh-btn:hover::before,
 #board-refresh-btn:focus-visible::before,
 #positions-refresh-btn:hover::before,
-#positions-refresh-btn:focus-visible::before {
+#positions-refresh-btn:focus-visible::before,
+#signal-prev:hover:not(:disabled)::before,
+#signal-prev:focus-visible:not(:disabled)::before,
+#signal-next:hover:not(:disabled)::before,
+#signal-next:focus-visible:not(:disabled)::before {
   opacity: 0.45;
   background:
     linear-gradient(#1a0f00, #1a0f00) top left / 6px 1.5px no-repeat,
