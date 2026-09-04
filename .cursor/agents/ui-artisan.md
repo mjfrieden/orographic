@@ -73,6 +73,7 @@ Audit juice shipped:
 40. Research dungeon body type at the source stylesheet. **Shipped in cycle 40.**
 41. Legendary-card remaining microtype as Harbor. **Shipped in cycle 41.**
 42. Harbor Gate and Master Harbor kickers as Marcellus. **Shipped in cycle 42.**
+43. Research dungeon remaining 9px kickers as Marcellus. **Shipped in cycle 43.**
 
 ## Done when
 

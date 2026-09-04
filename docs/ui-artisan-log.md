@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 43 — 2026-09-04 — Dungeon kicker parchment
+
+- Research dungeon eyebrows, metric-grid / coverage / Reliquary kickers, and rail labels use 11px Marcellus instead of 9–10px microtype. Helpers stay Cormorant. Command ids, mart hooks, and 820px Live/Lab/Audit nav stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, backtest command math.
+
 ## Cycle 42 — 2026-09-04 — Harbor Gate and Master Harbor kickers
 
 - Harbor Gate “Harbor Gate” eyebrow and Master Harbor “Master Harbor” / Auction House / Map Parchment / Harbor Ledger kickers use Marcellus instead of Inter. Login form, admin fetch URLs, and snapshot math stay.
