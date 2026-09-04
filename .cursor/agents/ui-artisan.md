@@ -71,6 +71,7 @@ Audit juice shipped:
 38. HOLD metric helper copy as parchment. **Shipped in cycle 38.**
 39. Legendary foil sheen confined to ticker art. **Shipped in cycle 39.**
 40. Research dungeon body type at the source stylesheet. **Shipped in cycle 40.**
+41. Legendary-card remaining microtype as Harbor. **Shipped in cycle 41.**
 
 ## Done when
 

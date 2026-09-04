@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 41 — 2026-09-04 — Legendary card microtype
+
+- Why-this-signal labels, Contracts kicker, preview-safety note, and candidate chips use Marcellus / Cormorant instead of 8–10px generic type. Contract symbols, money, and Tradier hooks stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 40 — 2026-09-04 — Dungeon source parchment
 
 - Research dungeon `backtest.css` body type is Cormorant parchment instead of Inter, so the lab is Harbor even before the arena overlay. Command ids, mart hooks, and 820px Live/Lab/Audit nav stay.
