@@ -76,6 +76,7 @@ Audit juice shipped:
 43. Research dungeon remaining 9px kickers as Marcellus. **Shipped in cycle 43.**
 44. Empty-board shrine kickers as readable Marcellus. **Shipped in cycle 44.**
 45. Vacant party and talent sockets as shrine diamonds. **Shipped in cycle 45.**
+46. Leather plates close with bottom gold filigree. **Shipped in cycle 46.**
 
 ## Done when
 

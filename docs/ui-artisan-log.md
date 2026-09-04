@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 46 — 2026-09-04 — Leather plate filigree
+
+- Signal, Book, and talent-tree leather plates close with bottom gold L-brackets, matching the existing top filigree. Pane ids, sync-line margin, and positions-toolbar flex stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 45 — 2026-09-04 — Vacant shrine diamonds
 
 - Empty party portraits and the unused Experiment talent socket show a gold shrine diamond instead of a dim dashed inner circle, matching legendary rarity-gem language. Roster copy, node ranks, and research ids stay.
