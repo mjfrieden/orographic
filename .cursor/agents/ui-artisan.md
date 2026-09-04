@@ -102,6 +102,7 @@ Audit juice shipped:
 69. Guarded-live shrine seal closes with gold filigree. **Shipped in cycle 69.**
 70. Harbor Gate Enter Arena closes with gold filigree. **Shipped in cycle 70.**
 71. Research dungeon Copy and Export gates close with gold filigree. **Shipped in cycle 71.**
+72. Research dungeon Prepare local run closes with gold filigree. **Shipped in cycle 72.**
 
 ## Done when
 
