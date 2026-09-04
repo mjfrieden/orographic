@@ -41,7 +41,9 @@ body.cockpit-page {
   grid-template-columns: minmax(250px, 1fr) minmax(620px, 2.2fr) minmax(200px, 0.8fr);
   align-items: center;
   border-bottom: 1px solid var(--cockpit-border);
-  background: rgba(4, 9, 26, 0.82);
+  background:
+    linear-gradient(180deg, rgba(232, 197, 109, 0.08), transparent 42%),
+    rgba(4, 9, 26, 0.88);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   padding: 0 28px;
@@ -49,7 +51,8 @@ body.cockpit-page {
   top: 0;
   z-index: 50;
   box-shadow:
-    0 1px 0 rgba(232, 197, 109, 0.12),
+    inset 0 1px 0 rgba(245, 217, 138, 0.16),
+    inset 0 0 0 1px rgba(232, 197, 109, 0.1),
     0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -75,14 +78,20 @@ body.cockpit-page {
 .cockpit-account-strip {
   display: grid;
   grid-template-columns: 1.25fr 1fr 1fr 1fr;
+  gap: 6px;
+  padding: 8px 4px;
 }
 .top-stat {
-  min-height: 46px;
-  padding: 2px 22px;
-  border-left: 1px solid var(--cockpit-border);
+  min-height: 52px;
+  padding: 8px 12px;
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   justify-content: center;
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.45), rgba(8, 16, 28, 0.72));
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.12);
 }
 .top-stat span,
 .book-pnl span {
@@ -93,16 +102,81 @@ body.cockpit-page {
   font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
 }
 .top-stat strong {
-  color: var(--text-data, #e8eaf0);
+  color: var(--cockpit-text);
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-family: var(--font-data, Inter, sans-serif);
 }
-.connection-state {
-  color: var(--cockpit-teal) !important;
+.cockpit-page .connection-state,
+.cockpit-page .ribbon-mode-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 2px;
+  padding: 3px 9px 3px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(232, 197, 109, 0.35);
+  background: rgba(8, 16, 28, 0.72);
+  color: var(--cockpit-gold);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+}
+.cockpit-page .connection-state::before,
+.cockpit-page .ribbon-mode-pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+}
+.cockpit-page .ribbon-mode-pill.is-live {
+  color: var(--cockpit-amber);
+  border-color: rgba(240, 156, 91, 0.55);
+  background: rgba(90, 42, 12, 0.45);
+}
+.cockpit-page .ribbon-mode-pill.is-sandbox {
+  color: var(--cockpit-teal);
+  border-color: rgba(78, 205, 196, 0.45);
+  background: rgba(10, 42, 40, 0.45);
+}
+.cockpit-page .ribbon-mode-pill.is-offline,
+.cockpit-page .connection-state.is-offline {
+  color: var(--cockpit-muted);
+  border-color: rgba(232, 197, 109, 0.22);
+  background: rgba(8, 16, 28, 0.55);
+}
+.cockpit-page .ribbon-mode-pill.is-offline::before,
+.cockpit-page .connection-state.is-offline::before {
+  box-shadow: none;
+  opacity: 0.55;
+}
+#logout-btn {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid rgba(232, 197, 109, 0.38);
+  border-radius: 8px;
+  color: var(--cockpit-gold);
+  background: rgba(232, 197, 109, 0.08);
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+#logout-btn:hover,
+#logout-btn:focus-visible {
+  color: #1a0f00;
+  background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
+  border-color: rgba(255, 224, 160, 0.55);
 }
 .top-actions {
   display: flex;

@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 14 — 2026-09-04 — Character plate ribbon
+
+- The sticky account strip is a WoW character plate: each ribbon stat sits in a stone well, and broker mode is a gem socket (live / sandbox / offline) instead of a capsule pill.
+- `#logout-btn` is a gold gate at every width. Ribbon ids and 720px brand/logout layout stay unchanged.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 13 — 2026-09-04 — Sealed writ order preview
 
 - HOLD’s “No order to preview” control is a sealed stone gate (dim gold), not a gray SaaS slab. Live preview uses the same Cinzel gold as Harbor Gate.

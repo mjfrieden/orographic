@@ -44,6 +44,7 @@ If the backlog is complete, audit the live board for visual regressions and ship
 
 Audit juice shipped:
 13. Sealed writ order preview and HOLD preview gate. **Shipped in cycle 13.**
+14. Character-plate account ribbon and gold-gate logout. **Shipped in cycle 14.**
 
 ## Done when
 
