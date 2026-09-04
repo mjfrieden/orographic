@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 33 — 2026-09-04 — Vacant party sockets
+
+- Empty party portraits are dashed shrine sockets instead of glowing orbs, matching the unused talent-tree node. Roster copy and position ids stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 32 — 2026-09-04 — Metric kickers
 
 - HOLD Decision / Live candidates / Regime labels and talent-tree node names use Marcellus instead of 11px Inter. Cinzel figures stay. Sync-line margin and positions-toolbar flex stay.

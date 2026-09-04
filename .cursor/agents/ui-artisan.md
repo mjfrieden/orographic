@@ -63,6 +63,7 @@ Audit juice shipped:
 30. HOLD funnel and talent-tree helper copy as parchment. **Shipped in cycle 30.**
 31. Spellbook shrine notes as parchment. **Shipped in cycle 31.**
 32. Live-board metric kickers in Marcellus. **Shipped in cycle 32.**
+33. Empty party portraits as vacant shrine sockets. **Shipped in cycle 33.**
 
 ## Done when
 
