@@ -75,6 +75,7 @@ Audit juice shipped:
 42. Harbor Gate and Master Harbor kickers as Marcellus. **Shipped in cycle 42.**
 43. Research dungeon remaining 9px kickers as Marcellus. **Shipped in cycle 43.**
 44. Empty-board shrine kickers as readable Marcellus. **Shipped in cycle 44.**
+45. Vacant party and talent sockets as shrine diamonds. **Shipped in cycle 45.**
 
 ## Done when
 

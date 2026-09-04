@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 45 — 2026-09-04 — Vacant shrine diamonds
+
+- Empty party portraits and the unused Experiment talent socket show a gold shrine diamond instead of a dim dashed inner circle, matching legendary rarity-gem language. Roster copy, node ranks, and research ids stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 44 — 2026-09-04 — Empty-board shrine kickers
 
 - Party roster, Quest quiet, Realm bar, and roster/quest ledger kickers use 11px Marcellus instead of 10px microtype. Empty-slot copy, table ids, and Tradier hooks stay.
