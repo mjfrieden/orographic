@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/orographic-mark-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/orographic-apple-touch.png" />
     <link rel="stylesheet" href="/styles.css?v=20260904a" />
-    <link rel="stylesheet" href="/cockpit.css?v=20260904c" />
+    <link rel="stylesheet" href="/cockpit.css?v=20260904d" />
   </head>
   <body class="cockpit-page">
     <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
@@ -101,10 +101,10 @@
           </div>
           <div class="book-tabs" role="tablist" aria-label="Portfolio book view">
             <button id="book-tab-positions" class="book-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="book-positions-panel">
-              Positions <span id="book-positions-count">0</span>
+              Party <span id="book-positions-count">0</span>
             </button>
             <button id="book-tab-orders" class="book-tab" type="button" role="tab" aria-selected="false" aria-controls="book-orders-panel">
-              Orders <span id="book-orders-count">0</span>
+              Quest log <span id="book-orders-count">0</span>
             </button>
           </div>
           <section id="book-positions-panel" class="book-panel" role="tabpanel" aria-labelledby="book-tab-positions">
@@ -123,7 +123,8 @@
             </details>
           </section>
           <section id="book-orders-panel" class="book-panel" role="tabpanel" aria-labelledby="book-tab-orders" hidden>
-            <div id="orders-table-wrap" class="detail-table-wrap">
+            <ol id="orders-quest-log" class="quest-log" aria-label="Recent orders"></ol>
+            <div id="orders-table-wrap" class="detail-table-wrap quest-ledger">
               <table id="orders-table" class="data-table" aria-label="Recent orders">
                 <thead><tr><th>Status</th><th>Contract</th><th>Side</th><th>Qty</th><th>Price</th><th>Fill</th><th>Date</th></tr></thead>
                 <tbody id="orders-tbody"><tr><td colspan="7">Loading orders…</td></tr></tbody>
@@ -220,6 +221,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=20260904c"></script>
+    <script type="module" src="/app.js?v=20260904d"></script>
   </body>
 </html>

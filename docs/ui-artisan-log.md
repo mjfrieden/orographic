@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 3 — 2026-09-04 — Party frames and quest log
+
+- Open positions render as WoW unit frames: circular portrait, call/put gem color, HP-like P&L bar plus a thinner mana-like mark bar. Empty book shows three dashed empty party slots.
+- Orders tab is a quest log (`!` / `?` bangs) while the existing `orders-table` / `orders-tbody` ledger remains for the Tradier DOM contract.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, required DOM ids.
+
 ## Cycle 2 — 2026-09-04 — Legendary foil, rarity gem, stone tablet
 
 - Signal cards now carry a foil sheen, inset gold ring, and a diamond rarity gem. Call cards foil teal; put cards foil amber; HOLD is a sealed/quiet legendary with a dimmed gem and “No legendary drawn.”

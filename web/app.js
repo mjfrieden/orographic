@@ -873,10 +873,33 @@ async function hydratePositionAdvice(positions, epoch) {
 function renderOrders() {
   const tbody = document.getElementById("orders-tbody");
   if (!tbody) return;
+  const log = document.getElementById("orders-quest-log");
   const rows = (BROKER_STATE.orders || []).slice(0, 10);
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No recent orders found.</td></tr>`;
+    if (log) {
+      log.innerHTML = `<li class="quest-empty">No quests in the log.</li>`;
+    }
     return;
+  }
+  if (log) {
+    log.innerHTML = rows
+      .map((o) => {
+        const isBuy = String(o.side || "").includes("buy");
+        const status = String(o.status || "open").toLowerCase();
+        const contract = o.option_symbol || o.symbol || "--";
+        const issue = orderIssueText(o);
+        return `<li class="quest-entry ${isBuy ? "is-buy" : "is-sell"} is-${escapeHtml(status.replaceAll(" ", "-"))}">
+          <span class="quest-bang" aria-hidden="true">${status.includes("reject") || status.includes("fail") ? "!" : "?"}</span>
+          <div>
+            <strong>${escapeHtml(contract)}</strong>
+            <span>${escapeHtml(o.side || "order")} · ${integer(o.quantity)}${o.price ? ` @ ${money(o.price)}` : ""}</span>
+            ${issue ? `<small>${escapeHtml(issue)}</small>` : ""}
+          </div>
+          <em>${escapeHtml(o.status || "open")}</em>
+        </li>`;
+      })
+      .join("");
   }
   tbody.innerHTML = rows
     .map((o) => {
@@ -1291,11 +1314,20 @@ function renderCockpitPositions() {
   setText("book-positions-count", String(positions.length));
   setText("book-orders-count", String((BROKER_STATE.orders || []).length));
   if (!positions.length) {
-    root.innerHTML = `<div class="position-loading">No open positions. The book is clear.</div>`;
+    root.innerHTML = `
+      <div class="party-empty">
+        <div class="position-loading">No open positions. The book is clear.</div>
+        <div class="party-slots" aria-hidden="true">
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+        </div>
+      </div>`;
     return;
   }
   root.innerHTML = positions.slice(0, 6).map((position) => {
     const symbol = String(position.symbol || "—");
+    const meta = optionContractMeta(symbol);
     const value = Number(position.current_value);
     const basis = Number(position.cost_basis);
     const pnl = Number.isFinite(Number(position.open_pl))
@@ -1308,13 +1340,22 @@ function renderCockpitPositions() {
     const action = advice?.action === "sell" ? "Reduce risk" : pnl != null && pnl > 0 ? "Monitor gain" : "Monitor";
     const warning = advice?.action === "sell" || (pnl != null && pnl < 0);
     const vitality = Math.max(6, Math.min(100, 50 + (Number(pnlPct) || 0) * 100));
-    return `<div class="cockpit-position-row${pnl != null && pnl < 0 ? " is-negative" : ""}">
-      <div class="position-name"><strong>${escapeHtml(symbol)}</strong><span>${escapeHtml(optionContractMeta(symbol).root)}</span></div>
+    const mana = Number.isFinite(value) && Number.isFinite(basis) && basis
+      ? Math.max(8, Math.min(100, (value / Math.max(basis, 1)) * 50))
+      : 36;
+    const sideClass = meta.side === "put" ? "is-put" : meta.side === "call" ? "is-call" : "";
+    const portrait = escapeHtml((meta.root || "•").slice(0, 4));
+    return `<div class="cockpit-position-row unit-frame ${sideClass}${pnl != null && pnl < 0 ? " is-negative" : ""}">
+      <div class="unit-portrait" aria-hidden="true"><span>${portrait}</span></div>
+      <div class="position-name"><strong>${escapeHtml(symbol)}</strong><span>${escapeHtml(meta.root)}${meta.side ? ` · ${meta.side.toUpperCase()}` : ""}</span></div>
       <div class="position-size"><strong>${integer(position.quantity)}</strong><span>contracts</span></div>
       <div class="position-pnl ${pnl != null && pnl < 0 ? "is-negative" : ""}">${pnl == null ? "--" : signed(pnl)}<span>${pnlPct == null ? "" : pct(pnlPct)}</span></div>
       <div class="position-action ${warning ? "is-warning" : ""}"><strong>${action}</strong><span>${escapeHtml(positionMarkMeta(position).label)}</span></div>
       <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
-      <div class="position-vitality" aria-hidden="true"><span style="width:${vitality.toFixed(0)}%"></span></div>
+      <div class="unit-bars" aria-hidden="true">
+        <div class="position-vitality unit-hp"><span style="width:${vitality.toFixed(0)}%"></span></div>
+        <div class="unit-mana"><span style="width:${mana.toFixed(0)}%"></span></div>
+      </div>
     </div>`;
   }).join("");
   root.querySelectorAll(".position-row-action").forEach((button) => {
