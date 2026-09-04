@@ -57,6 +57,7 @@ Audit juice shipped:
 24. Cockpit parchment body (Cormorant copy, Cinzel figures). **Shipped in cycle 24.**
 25. Harbor Gate parchment fields, skip link, and denied toast. **Shipped in cycle 25.**
 26. Parchment order rows and sealed-writ status copy. **Shipped in cycle 26.**
+27. Master Harbor Cinzel figures and parchment empty plates. **Shipped in cycle 27.**
 
 ## Done when
 

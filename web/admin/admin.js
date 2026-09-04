@@ -410,7 +410,7 @@ function renderOrderLedger(events) {
           </td>
           <td>${escapeHtml(event.event_type || "--")}</td>
           <td>${escapeHtml(event.lane || "unknown")}</td>
-          <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${escapeHtml(event.option_symbol || "--")}${exitPolicy}</td>
+          <td class="ledger-contract">${escapeHtml(event.option_symbol || "--")}${exitPolicy}</td>
           <td>${escapeHtml(event.side || "--")}</td>
           <td class="is-num">${escapeHtml(integer(event.quantity))}</td>
           <td class="is-num">${escapeHtml(money(event.limit_price))}</td>

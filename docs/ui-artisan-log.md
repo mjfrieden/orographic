@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 27 — 2026-09-04 — Master Harbor figures
+
+- Auction-house inventory figures and trend stats use Cinzel tabular instead of Inter. Empty trend/loading plates are stone parchment, not dashed SaaS.
+- Order-ledger contract cells inherit Harbor type. Fetch URLs, snapshot math, and table ids stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 26 — 2026-09-04 — Parchment order rows and writ status
 
 - Quest-ledger order rows and sealed-writ fetching/error copy inherit Harbor type instead of inline Inter.

@@ -105,8 +105,10 @@
   color: var(--gold, #e8c56d);
 }
 
-.admin-page .admin-card .summary-value {
-  font-family: var(--font-data, "Inter", system-ui, sans-serif);
+.admin-page .admin-card .summary-value,
+.admin-page .admin-trend-stat .summary-value {
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
+  font-variant-numeric: tabular-nums;
   font-size: 1.05rem;
   color: var(--text-data, #e8eaf0);
 }
@@ -260,6 +262,23 @@
   border-color: rgba(232, 197, 109, 0.28);
   background:
     linear-gradient(180deg, rgba(42, 36, 24, 0.45), rgba(12, 18, 28, 0.82));
+}
+
+.admin-page .ledger-contract {
+  word-break: break-all;
+}
+
+.admin-page .admin-trend-empty,
+.admin-page .admin-history-loading {
+  border: 1px solid rgba(232, 197, 109, 0.32);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.28), rgba(8, 16, 28, 0.72));
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.08);
+  color: rgba(244, 221, 164, 0.82);
+  font-family: var(--font-body, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.05rem;
+  letter-spacing: 0.02em;
 }
 
 @media (max-width: 720px) {
