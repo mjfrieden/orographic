@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 58 — 2026-09-04 — Refresh-gate filigree
+
+- Signal and Party refresh gold gates close with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. Button ids, Tradier refresh hooks, and the positions-toolbar flex contract stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 57 — 2026-09-04 — Quest-pager filigree
 
 - The stone quest pager plate and `#signal-index` well close with gold L-brackets on all four corners. Previous / Next ids, disabled state, and index copy stay.
