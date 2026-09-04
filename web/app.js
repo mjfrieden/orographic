@@ -101,6 +101,21 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function sigil(name, extraClass = "") {
+  const safe = String(name || "check").replace(/[^a-z-]/g, "");
+  const extra = extraClass ? ` ${extraClass}` : "";
+  return `<span class="sigil sigil-${safe}${extra}" aria-hidden="true"></span>`;
+}
+
+function setSigil(node, name) {
+  if (!node) return;
+  const kept = [...node.classList].filter(
+    (cls) => cls !== "sigil" && !cls.startsWith("sigil-") && cls !== "material-symbols-outlined",
+  );
+  node.className = ["sigil", `sigil-${name}`, ...kept].join(" ");
+  node.textContent = "";
+}
+
 function domSafeId(value) {
   return String(value ?? "").replace(/[^a-z0-9]/gi, "_");
 }
@@ -194,10 +209,10 @@ function workbenchMetricRow(label, active, shadow, difference, check) {
 
 function workbenchGateRow(title, summary, statusValue) {
   const status = evidenceStatus(statusValue);
-  const icon = status === "pass" ? "check_circle" : status === "hold" ? "pause_circle" : "error";
+  const icon = status === "pass" ? "check" : status === "hold" ? "pause" : "warning";
   return `
     <div class="workbench-gate-row">
-      <span class="material-symbols-outlined gate-icon is-${status}" aria-hidden="true">${icon}</span>
+      ${sigil(icon, `gate-icon is-${status}`)}
       <div>
         <strong>${escapeHtml(title)}</strong>
         <span>${escapeHtml(summary)}</span>
@@ -282,8 +297,8 @@ function renderResearchWorkbench() {
   const banner = document.getElementById("research-claims-banner");
   if (banner) {
     banner.className = `research-claims-banner is-${overallTone}`;
-    const icon = banner.querySelector(".material-symbols-outlined");
-    if (icon) icon.textContent = overallTone === "pass" ? "verified" : overallTone === "hold" ? "pause_circle" : "gpp_bad";
+    const icon = banner.querySelector(".sigil");
+    if (icon) setSigil(icon, overallTone === "pass" ? "check" : overallTone === "hold" ? "pause" : "warning");
     const title = banner.querySelector("strong");
     if (title) title.textContent = readiness.research_claims_allowed ? "Research claims allowed" : "Research claims blocked";
   }
@@ -381,7 +396,7 @@ function renderResearchWorkbench() {
       { label: "Current decision", detail: String(promotionStatus).replaceAll("_", " "), status: promotionStatus },
     ].map((item) => `
       <li class="is-${evidenceStatus(item.status)}">
-        <span class="lineage-marker material-symbols-outlined" aria-hidden="true">${evidenceStatus(item.status) === "pass" ? "check_circle" : evidenceStatus(item.status) === "hold" ? "pause_circle" : "error"}</span>
+        ${sigil(evidenceStatus(item.status) === "pass" ? "check" : evidenceStatus(item.status) === "hold" ? "pause" : "warning", "lineage-marker")}
         <div><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></div>
       </li>`).join("");
   }
@@ -1019,7 +1034,7 @@ function noTradeFunnelHtml(payload) {
             <span>${escapeHtml(stage.label)}</span><strong>${integer(stage.value)}</strong><small>${escapeHtml(stage.note)}</small>
           </div>`).join("")}
       </div>
-      <p><span class="material-symbols-outlined" aria-hidden="true">visibility</span>${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
+      <p>${sigil("eye")}${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
     </details>`;
 }
 
@@ -1148,10 +1163,10 @@ function renderCockpitSignal(payload) {
           data-lane="${escapeHtml(lane)}"
           data-ask="${ask}"
           data-alloc="${Number(candidate.allocation_weight || 1)}">
-          ${previewLabel}<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+          ${previewLabel}${sigil("forward")}
         </button>
       </div>
-      <p class="signal-safety"><span class="material-symbols-outlined" aria-hidden="true">lock</span>Preview first. Broker execution remains permissioned and separately confirmed.</p>
+      <p class="signal-safety">${sigil("lock")}Preview first. Broker execution remains permissioned and separately confirmed.</p>
       </div>
     </div>`;
   setText("signal-index", `${COCKPIT_SIGNAL_INDEX + 1} of ${COCKPIT_SIGNALS.length}`);
@@ -1190,7 +1205,7 @@ function renderMoonshotSidePick(payload) {
       <div><span>Ask</span><strong>${money(pick.ask ?? pick.premium)}</strong></div>
       <div><span>Tracking</span><strong>${escapeHtml(tracking.dataset || "moonshot_outcomes")}</strong></div>
     </div>
-    <p><span class="material-symbols-outlined" aria-hidden="true">lock</span>Visible experiment only. It does not affect the primary ensemble, Council, sizing, or Tradier routing.</p>`;
+    <p>${sigil("lock")}Visible experiment only. It does not affect the primary ensemble, Council, sizing, or Tradier routing.</p>`;
 }
 
 function syncCockpitSignalControls() {
@@ -1351,7 +1366,7 @@ function renderCockpitPositions() {
       <div class="position-size"><strong>${integer(position.quantity)}</strong><span>contracts</span></div>
       <div class="position-pnl ${pnl != null && pnl < 0 ? "is-negative" : ""}">${pnl == null ? "--" : signed(pnl)}<span>${pnlPct == null ? "" : pct(pnlPct)}</span></div>
       <div class="position-action ${warning ? "is-warning" : ""}"><strong>${action}</strong><span>${escapeHtml(positionMarkMeta(position).label)}</span></div>
-      <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+      <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details">${sigil("chevron")}</button>
       <div class="unit-bars" aria-hidden="true">
         <div class="position-vitality unit-hp"><span style="width:${vitality.toFixed(0)}%"></span></div>
         <div class="unit-mana"><span style="width:${mana.toFixed(0)}%"></span></div>

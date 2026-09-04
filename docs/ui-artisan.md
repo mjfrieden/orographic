@@ -11,7 +11,7 @@ The **UI Artisan** agent exists to keep unifying that board, one focused visual 
 | `.cursor/agents/ui-artisan.md` | Operating prompt for every run |
 | `docs/ui-artisan-log.md` | Cycle history so runs do not repeat work |
 | `web/styles.css` | Shared Harbor / Hearthstone design system |
-| `web/cockpit.css` | Live Signal & Book overlay |
+| `web/sigils.css` | Harbor SVG-mask icon set |
 | `web/login/index.html` | Harbor Gate |
 | `web/login-gate.css` | Login crest, stone fields, error toast |
 | `web/backtest/` | Research dungeon |

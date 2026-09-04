@@ -34,7 +34,7 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 5. Login Harbor Gate: crest animation, field chrome, error toast, mobile alignment. **Shipped in cycle 5.**
 6. Admin Master Harbor: ledger as an auction-house log, trend as a map parchment. **Shipped in cycle 6.**
 7. Backtest Lab as a research dungeon: same gold chrome, shared fonts, no sterile Inter-only lab. **Shipped in cycle 7.**
-8. Replace leftover Material Symbol clutter with a small SVG sigil set (crest, lock, refresh, book).
+8. Replace leftover Material Symbol clutter with a small SVG sigil set (crest, lock, refresh, book). **Shipped in cycle 8.**
 9. Motion pass: card appear, foil sheen, restrained hover. Respect `prefers-reduced-motion`.
 10. Accessibility pass: contrast on gold/navy, focus rings, keyboard tabs, empty/error states.
 11. Mobile/tablet: 720px and 1100px breakpoints must not clip the signal card or hide logout without a replacement control.

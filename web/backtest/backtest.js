@@ -114,7 +114,11 @@ function renderQuality(data) {
   const banner = byId("quality-banner");
   const passed = !policy.coverage_failed && real >= Number(policy.min_real_coverage_pct || 0);
   banner.classList.toggle("is-warning", !passed);
-  banner.querySelector(".material-symbols-outlined").textContent = passed ? "verified" : "warning";
+  const icon = banner.querySelector(".sigil");
+  if (icon) {
+    icon.classList.toggle("sigil-check", passed);
+    icon.classList.toggle("sigil-warning", !passed);
+  }
   banner.querySelector("strong").textContent = passed ? "Research integrity gate passed" : "Research integrity requires review";
   banner.querySelector("p").textContent = `${pct(real, 0)} of trades use real chains at both entry and exit · ${policy.strict_options_data ? "strict pricing enabled" : "mixed-source pricing"}.`;
 }

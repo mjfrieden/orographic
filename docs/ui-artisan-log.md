@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 8 — 2026-09-04 — Harbor sigils instead of Material Symbols
+
+- Cockpit and Backtest Lab drop the Google Material Symbols font. Icons are a small CSS-mask sigil set (lock, refresh, book, shield, flask, check, warning).
+- JS still finds icons via `.sigil` (quality banner, research-claims banner, live card lock/forward, party chevron). Button ids and Tradier hooks are unchanged.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, required DOM ids.
+
 ## Cycle 7 — 2026-09-04 — Backtest Lab as a research dungeon
 
 - Control rail is a shrine altar: Marcellus labels, stone-gold fields, Cinzel delve heading.
