@@ -70,6 +70,7 @@ Audit juice shipped:
 37. Research dungeon equity-chart labels in Cinzel. **Shipped in cycle 37.**
 38. HOLD metric helper copy as parchment. **Shipped in cycle 38.**
 39. Legendary foil sheen confined to ticker art. **Shipped in cycle 39.**
+40. Research dungeon body type at the source stylesheet. **Shipped in cycle 40.**
 
 ## Done when
 

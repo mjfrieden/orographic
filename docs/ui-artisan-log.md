@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 40 — 2026-09-04 — Dungeon source parchment
+
+- Research dungeon `backtest.css` body type is Cormorant parchment instead of Inter, so the lab is Harbor even before the arena overlay. Command ids, mart hooks, and 820px Live/Lab/Audit nav stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, backtest command math.
+
 ## Cycle 39 — 2026-09-04 — Foil on ticker art
 
 - Legendary foil sheen stays on the ticker strip instead of screening the whole HOLD card, so sealed-writ copy stays readable. Card ids, HOLD copy, and Tradier hooks stay.
