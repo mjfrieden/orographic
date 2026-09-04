@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 12 — 2026-09-04 — Harbor mural without a picture frame
+
+- `harbor-hero.png` is zoomed into the watercolor (boats, lighthouse, sunset runes) so the baked-in gold frame and parchment mat are cropped out of the viewport.
+- Navy scrims sit over the sunset so gold Cinzel copy stays readable on login, cockpit, admin, and the research dungeon. The PNG file itself is unchanged.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 11 — 2026-09-04 — Accessibility pass
 
 - Skip links land on Signal & Book and the login form. Gold `focus-visible` rings apply to cockpit controls (tabs already arrow-key).

@@ -38,7 +38,7 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 9. Motion pass: card appear, foil sheen, restrained hover. Respect `prefers-reduced-motion`. **Shipped in cycle 10.**
 10. Accessibility pass: contrast on gold/navy, focus rings, keyboard tabs, empty/error states. **Shipped in cycle 11.**
 11. Mobile/tablet: 720px and 1100px breakpoints must not clip the signal card or hide logout without a replacement control. **Shipped in cycle 9.**
-12. Custom harbor illustration polish on top of `web/harbor-hero.png` without blocking text.
+12. Custom harbor illustration polish on top of `web/harbor-hero.png` without blocking text. **Shipped in cycle 12.**
 
 If the backlog is complete, audit the live board for visual regressions and ship a small juice/contrast fix rather than inventing a new product surface.
 
