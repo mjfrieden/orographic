@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 64 — 2026-09-04 — Stone quantity-tablet filigree
+
+- The Contracts stone tablet closes with gold L-brackets on all four corners, matching HOLD wells. `.card-qty-input`, `.card-qty-step`, estimated debit copy, and Preview order stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 63 — 2026-09-04 — Sealed-writ execute gates filigree
 
 - Execute Trade and Cancel gold gates close with four-corner L-brackets: dark ticks on the live gold Execute fill, gold ticks on the disabled Execute stone and Cancel rest state, dark ticks on the Cancel hover fill. `#preview-modal`, `#modal-execute-btn`, and `#modal-cancel-btn` stay.
