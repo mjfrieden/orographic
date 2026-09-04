@@ -100,6 +100,7 @@ Audit juice shipped:
 67. Research dungeon Reliquary wells close with gold filigree. **Shipped in cycle 67.**
 68. Sealed-writ close gate closes with gold filigree. **Shipped in cycle 68.**
 69. Guarded-live shrine seal closes with gold filigree. **Shipped in cycle 69.**
+70. Harbor Gate Enter Arena closes with gold filigree. **Shipped in cycle 70.**
 
 ## Done when
 

@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 70 — 2026-09-04 — Harbor Gate Enter Arena filigree
+
+- The Harbor Gate Enter Arena gold gate closes with four-corner L-brackets: dark ticks on the live gold fill, matching sealed-writ Execute. `#login-form`, field ids, and the `/api/login` payload stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 69 — 2026-09-04 — Guarded-live shrine-seal filigree
 
 - The Guarded live shrine seal closes with gold L-brackets on all four corners, matching the Lab and Log out gold gates. Teal status copy, the shield sigil, and 720px icon-only placement stay.
