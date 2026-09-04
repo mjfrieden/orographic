@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 36 — 2026-09-04 — Funnel stage kickers
+
+- HOLD Universe / Scout / Forge / Council stage labels use 11px Marcellus instead of 8–10px microtype. Stage counts stay Cinzel and literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 35 — 2026-09-04 — Party count seals
 
 - Party and Quest log tab counts are Cinzel stone seals instead of 9px Inter pills. Tab ids and literal counts stay.

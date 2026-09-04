@@ -66,6 +66,7 @@ Audit juice shipped:
 33. Empty party portraits as vacant shrine sockets. **Shipped in cycle 33.**
 34. Empty talent-tree experiment socket as a vacant shrine. **Shipped in cycle 34.**
 35. Party and Quest log count seals in Cinzel. **Shipped in cycle 35.**
+36. HOLD funnel stage kickers at readable Marcellus. **Shipped in cycle 36.**
 
 ## Done when
 
