@@ -276,6 +276,50 @@
   color: #f5d98a;
 }
 
+.lab-page .source-switch button {
+  position: relative;
+}
+
+.lab-page .source-switch button::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(#e8c56d, #e8c56d) top left / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top left / 1.5px 6px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 1.5px 6px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 1.5px 6px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 1.5px 6px no-repeat;
+}
+
+.lab-page .source-switch button:hover:not(.is-active),
+.lab-page .source-switch button:focus-visible:not(.is-active) {
+  color: #1a0f00;
+  background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
+  outline: none;
+}
+
+.lab-page .source-switch button:hover::before,
+.lab-page .source-switch button:focus-visible::before,
+.lab-page .source-switch button.is-active::before {
+  opacity: 0.45;
+  background:
+    linear-gradient(#1a0f00, #1a0f00) top left / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top left / 1.5px 6px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 1.5px 6px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 1.5px 6px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 6px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 1.5px 6px no-repeat;
+}
+
 .quality-banner {
   border-color: rgba(78, 205, 196, 0.28);
 }

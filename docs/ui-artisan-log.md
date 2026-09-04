@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 74 — 2026-09-04 — Dungeon source-switch gate filigree
+
+- Research dungeon Current strategy and Historical benchmark gold gates close with four-corner L-brackets: gold ticks at rest, dark ticks on the active and hover fills. `data-source`, tablist, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 73 — 2026-09-04 — Dungeon KPI-well filigree
 
 - Research dungeon KPI wells close with gold L-brackets on all four corners, matching Reliquary evidence filigree. Metric ids, P&L copy, and dungeon nav at 820px stay.
