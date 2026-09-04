@@ -97,6 +97,7 @@ Audit juice shipped:
 64. Stone quantity tablet closes with gold filigree. **Shipped in cycle 64.**
 65. Skip-link gold gates close with gold filigree. **Shipped in cycle 65.**
 66. Full position detail gate closes with gold filigree. **Shipped in cycle 66.**
+67. Research dungeon Reliquary wells close with gold filigree. **Shipped in cycle 67.**
 
 ## Done when
 
