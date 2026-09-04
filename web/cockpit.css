@@ -2034,13 +2034,106 @@ body.cockpit-page {
   }
 }
 
+@keyframes harbor-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.cockpit-signal-card.trade-card {
+  animation: harbor-arrive 0.42s ease both;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.unit-frame,
+.quest-entry {
+  animation: harbor-arrive 0.36s ease both;
+}
+
+.cockpit-position-list .unit-frame:nth-child(2),
+#orders-quest-log .quest-entry:nth-child(2) {
+  animation-delay: 0.06s;
+}
+.cockpit-position-list .unit-frame:nth-child(3),
+#orders-quest-log .quest-entry:nth-child(3) {
+  animation-delay: 0.12s;
+}
+
+.evidence-metric.talent-node {
+  animation: harbor-arrive 0.4s ease both;
+}
+.evidence-metric.talent-node:nth-child(2) {
+  animation-delay: 0.05s;
+}
+.evidence-metric.talent-node:nth-child(3) {
+  animation-delay: 0.1s;
+}
+.evidence-metric.talent-node:nth-child(4) {
+  animation-delay: 0.15s;
+}
+
+.research-drawer.spellbook:not([hidden]) {
+  animation: harbor-arrive 0.32s ease both;
+}
+
+.icon-button,
+.quiet-button,
+.text-button,
+.book-tab {
+  transition: color 0.16s ease, border-color 0.16s ease, transform 0.16s ease, box-shadow 0.16s ease;
+}
+
+.icon-button:hover:not(:disabled),
+.icon-button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.unit-frame:not(.is-empty):hover {
+  transform: translateY(-1px);
+}
+
+.talent-socket {
+  transition: filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+.evidence-metric-button:hover .talent-socket,
+.evidence-metric.talent-node:hover .talent-socket {
+  filter: brightness(1.12);
+  box-shadow:
+    0 0 22px rgba(232, 197, 109, 0.42),
+    inset 0 0 10px rgba(0, 0, 0, 0.55);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .cockpit-signal-card.trade-card,
+  .unit-frame,
+  .quest-entry,
+  .evidence-metric.talent-node,
+  .research-drawer.spellbook {
+    animation: none;
+  }
   .cockpit-signal-card.trade-card:hover,
-  .trade-card:hover {
+  .trade-card:hover,
+  .unit-frame:hover,
+  .icon-button:hover:not(:disabled),
+  .icon-button:focus-visible {
     transform: none;
   }
   .card-foil {
     animation: none;
     opacity: 0.18;
+  }
+  .talent-socket,
+  .icon-button,
+  .quiet-button,
+  .text-button,
+  .book-tab,
+  .cockpit-signal-card.trade-card {
+    transition: none;
   }
 }

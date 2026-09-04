@@ -35,7 +35,7 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 6. Admin Master Harbor: ledger as an auction-house log, trend as a map parchment. **Shipped in cycle 6.**
 7. Backtest Lab as a research dungeon: same gold chrome, shared fonts, no sterile Inter-only lab. **Shipped in cycle 7.**
 8. Replace leftover Material Symbol clutter with a small SVG sigil set (crest, lock, refresh, book). **Shipped in cycle 8.**
-9. Motion pass: card appear, foil sheen, restrained hover. Respect `prefers-reduced-motion`.
+9. Motion pass: card appear, foil sheen, restrained hover. Respect `prefers-reduced-motion`. **Shipped in cycle 10.**
 10. Accessibility pass: contrast on gold/navy, focus rings, keyboard tabs, empty/error states.
 11. Mobile/tablet: 720px and 1100px breakpoints must not clip the signal card or hide logout without a replacement control. **Shipped in cycle 9.**
 12. Custom harbor illustration polish on top of `web/harbor-hero.png` without blocking text.

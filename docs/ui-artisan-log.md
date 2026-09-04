@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 10 — 2026-09-04 — Motion pass
+
+- Legendary signal card, party frames, quest rows, and talent nodes arrive with a short rise. Foil sheen stays; hover lift is 1–2px.
+- Spellbook drawer uses the same arrive. `prefers-reduced-motion` kills arrive, foil, and hover transforms.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, required DOM ids.
+
 ## Cycle 9 — 2026-09-04 — Tablet logout and unclipped signal card
 
 - 1100px keeps `#logout-btn` on the topbar (gold gate control). Backtest Lab and Guarded live collapse to sigils with accessible names instead of vanishing.
