@@ -78,6 +78,7 @@ Audit juice shipped:
 45. Vacant party and talent sockets as shrine diamonds. **Shipped in cycle 45.**
 46. Leather plates close with bottom gold filigree. **Shipped in cycle 46.**
 47. Quest-entry and party-row type as Harbor. **Shipped in cycle 47.**
+48. Shrine-seal cards close with bottom gold filigree. **Shipped in cycle 48.**
 
 ## Done when
 
