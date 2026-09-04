@@ -50,6 +50,7 @@ Audit juice shipped:
 17. Talent-tree shrine plate and Open spellbook gold gate. **Shipped in cycle 17.**
 18. Spellbook shrine-seal governance cards. **Shipped in cycle 18.**
 19. Stone quest pager and refresh gates. **Shipped in cycle 19.**
+20. HOLD sealed writ body (gold decision, wax-seal state, stone funnel wells). **Shipped in cycle 20.**
 
 ## Done when
 

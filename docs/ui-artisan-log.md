@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 20 — 2026-09-04 — HOLD sealed writ
+
+- HOLD’s “No trade today” body is a sealed writ: gold Cinzel decision, Marcellus wax-seal state, and stone wells for funnel ranks and metrics instead of white Inter hairlines.
+- Flavor kicker “Sealed writ” only. Decision copy, funnel counts, and preview-disabled control stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 19 — 2026-09-04 — Stone quest pager
 
 - Previous / Next sit in a stone page-turner with a Marcellus index well. Disabled states stay dim gold, not gray SaaS.

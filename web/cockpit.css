@@ -700,6 +700,89 @@ body.cockpit-page {
   box-shadow: inset 0 0 0 1px rgba(232, 197, 109, 0.08);
   cursor: not-allowed;
 }
+
+/* HOLD sealed writ — abstention copy stays literal; chrome only. */
+.trade-card.is-hold .signal-state.is-hold {
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 8px;
+  border-color: rgba(232, 197, 109, 0.38);
+  color: var(--cockpit-gold);
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.45), rgba(8, 16, 28, 0.72));
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  letter-spacing: 0.16em;
+}
+.trade-card.is-hold .signal-contract {
+  margin: 0 0 12px;
+  padding: 12px 14px 14px;
+  border: 1px solid rgba(232, 197, 109, 0.28);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.32), rgba(8, 16, 28, 0.7));
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.1);
+}
+.trade-card.is-hold .signal-contract span {
+  color: var(--cockpit-gold);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+}
+.trade-card.is-hold .signal-contract span::before {
+  content: "Sealed writ · ";
+  font-weight: 400;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+}
+.trade-card.is-hold .signal-contract h3 {
+  color: var(--cockpit-gold);
+  letter-spacing: 0.04em;
+}
+.trade-card.is-hold .signal-metrics {
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.trade-card.is-hold .signal-metric {
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  border-radius: 8px;
+  background: rgba(8, 16, 28, 0.55);
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.08);
+}
+.trade-card.is-hold .signal-metric:nth-child(odd) {
+  border-right: 1px solid rgba(232, 197, 109, 0.22);
+}
+.trade-card.is-hold .signal-metric:nth-child(even) {
+  padding-left: 12px;
+}
+.no-trade-funnel {
+  margin: 12px 0 14px;
+  padding: 6px 10px 8px;
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.28), rgba(8, 16, 28, 0.65));
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.08);
+}
+.no-trade-funnel summary > span {
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  color: var(--cockpit-gold);
+}
+.no-trade-stages {
+  gap: 8px;
+}
+.no-trade-stage {
+  border: 1px solid rgba(232, 197, 109, 0.2);
+  border-radius: 8px;
+  background: rgba(8, 16, 28, 0.5);
+}
+.no-trade-stage:first-child {
+  padding-left: 10px;
+}
+.no-trade-stage:last-child {
+  border-right: 1px solid rgba(232, 197, 109, 0.2);
+}
+.no-trade-funnel > p {
+  border-top-color: rgba(232, 197, 109, 0.18);
+}
 .signal-safety {
   display: flex;
   justify-content: center;
@@ -2211,10 +2294,10 @@ body.cockpit-page {
     grid-template-columns: repeat(2, 1fr);
   }
   .no-trade-stage:nth-child(2) {
-    border-right: 0;
+    border-right: 1px solid rgba(232, 197, 109, 0.2);
   }
   .no-trade-stage:nth-child(-n + 2) {
-    border-bottom: 1px solid var(--cockpit-border);
+    border-bottom: 1px solid rgba(232, 197, 109, 0.2);
   }
   .signal-evidence-grid > div:nth-child(odd) {
     border-right: 0;
