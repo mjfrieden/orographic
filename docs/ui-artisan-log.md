@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 80 — 2026-09-04 — Dungeon Show more gate filigree
+
+- Research dungeon Show more gold gate closes with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `#show-more`, trade pagination, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 79 — 2026-09-04 — Dungeon map-parchment plate filigree
 
 - Research dungeon Cumulative executable P&L map parchment closes with gold L-brackets on all four corners, matching Reliquary wells. `#equity-chart`, chart math, compass rose, and dungeon nav at 820px stay.

@@ -110,6 +110,7 @@ Audit juice shipped:
 77. Research dungeon Engine command plate closes with gold filigree. **Shipped in cycle 77.**
 78. Research dungeon Rival builds rows close with gold filigree. **Shipped in cycle 78.**
 79. Research dungeon map parchment plate closes with gold filigree. **Shipped in cycle 79.**
+80. Research dungeon Show more gate closes with gold filigree. **Shipped in cycle 80.**
 
 ## Done when
 
