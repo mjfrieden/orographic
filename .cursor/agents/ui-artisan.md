@@ -79,6 +79,7 @@ Audit juice shipped:
 46. Leather plates close with bottom gold filigree. **Shipped in cycle 46.**
 47. Quest-entry and party-row type as Harbor. **Shipped in cycle 47.**
 48. Shrine-seal cards close with bottom gold filigree. **Shipped in cycle 48.**
+49. Character-plate wells close with gold filigree. **Shipped in cycle 49.**
 
 ## Done when
 

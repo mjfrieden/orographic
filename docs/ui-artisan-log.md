@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 49 — 2026-09-04 — Character-plate filigree
+
+- Account ribbon wells and the Day P&L well close with gold L-brackets on all four corners, matching leather-plate and shrine-seal filigree. Ribbon ids, connectivity pill, and logout stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 48 — 2026-09-04 — Shrine-seal filigree
 
 - Spellbook shrine-seal governance cards close with bottom gold L-brackets, matching the existing top corners and leather-plate filigree. Card ids, status copy, and Open spellbook stay.
