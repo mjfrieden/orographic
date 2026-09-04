@@ -42,6 +42,9 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 
 If the backlog is complete, audit the live board for visual regressions and ship a small juice/contrast fix rather than inventing a new product surface.
 
+Audit juice shipped:
+13. Sealed writ order preview and HOLD preview gate. **Shipped in cycle 13.**
+
 ## Done when
 
 - `npm run test:js -- tests/js/workbench_tradier_contract.test.js` passes.

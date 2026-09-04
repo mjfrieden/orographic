@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 13 — 2026-09-04 — Sealed writ order preview
+
+- HOLD’s “No order to preview” control is a sealed stone gate (dim gold), not a gray SaaS slab. Live preview uses the same Cinzel gold as Harbor Gate.
+- `#preview-modal` is a sealed writ: corner ticks, rarity gem, parchment kicker, gold execute / stone cancel. Tradier ids, execute labels, and preview payloads stay unchanged.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 12 — 2026-09-04 — Harbor mural without a picture frame
 
 - `harbor-hero.png` is zoomed into the watercolor (boats, lighthouse, sunset runes) so the baked-in gold frame and parchment mat are cropped out of the viewport (`215vmax`, viewport-fixed so tall pages cannot reveal the frame).
