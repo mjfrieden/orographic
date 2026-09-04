@@ -1220,6 +1220,17 @@ body.cockpit-page {
 .party-empty {
   padding: 18px 0 8px;
 }
+.party-empty .position-loading::before {
+  content: "Party roster";
+  display: block;
+  margin-bottom: 6px;
+  color: var(--cockpit-gold);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
 .party-slots {
   display: grid;
   gap: 10px;
@@ -1228,19 +1239,38 @@ body.cockpit-page {
 .unit-frame.is-empty {
   display: grid;
   grid-template-columns: 52px 1fr;
+  grid-template-rows: auto 8px;
   align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 8px 12px;
-  border: 1px dashed rgba(232, 197, 109, 0.22);
+  gap: 8px 12px;
+  min-height: 72px;
+  padding: 10px 12px 12px;
+  border: 1px solid rgba(232, 197, 109, 0.32);
   border-radius: 10px;
-  background: rgba(4, 9, 26, 0.28);
-  opacity: 0.7;
+  background:
+    linear-gradient(90deg, rgba(10, 22, 40, 0.88), rgba(10, 22, 40, 0.5)),
+    rgba(8, 16, 28, 0.78);
+  box-shadow:
+    inset 3px 0 0 rgba(232, 197, 109, 0.28),
+    inset 0 1px 0 rgba(245, 217, 138, 0.08),
+    0 10px 24px rgba(0, 0, 0, 0.28);
+  opacity: 1;
+}
+.unit-frame.is-empty::after {
+  content: "";
+  grid-column: 2;
+  grid-row: 2;
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(232, 197, 109, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
 }
 .unit-empty-copy {
-  color: var(--cockpit-muted);
+  grid-column: 2;
+  grid-row: 1;
+  color: rgba(244, 221, 164, 0.82);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
   font-size: 11px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 .cockpit-position-row.unit-frame,
@@ -1294,8 +1324,14 @@ body.cockpit-page {
   border-color: rgba(240, 156, 91, 0.7);
 }
 .unit-frame.is-empty .unit-portrait {
-  border-style: dashed;
-  opacity: 0.45;
+  grid-row: 1 / span 2;
+  border-style: solid;
+  border-color: rgba(232, 197, 109, 0.34);
+  opacity: 1;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(8, 16, 28, 0.2) 34%, rgba(8, 16, 28, 0.92) 38%),
+    linear-gradient(160deg, #1a2433, #0b1522);
+  box-shadow: inset 0 0 0 1px rgba(232, 197, 109, 0.1);
 }
 .unit-bars {
   grid-column: 1 / -1;
@@ -1343,15 +1379,29 @@ body.cockpit-page {
 }
 .quest-empty {
   min-height: 120px;
-  display: grid;
-  place-items: center;
-  border: 1px dashed rgba(232, 197, 109, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgba(232, 197, 109, 0.32);
   border-radius: 10px;
-  color: var(--cockpit-muted);
-  letter-spacing: 0.1em;
+  color: rgba(244, 221, 164, 0.82);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   font-size: 11px;
-  background: rgba(4, 9, 26, 0.28);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.28), rgba(8, 16, 28, 0.72));
+  box-shadow:
+    inset 0 1px 0 rgba(245, 217, 138, 0.08),
+    0 10px 24px rgba(0, 0, 0, 0.22);
+}
+.quest-empty::before {
+  content: "Quest quiet";
+  color: var(--cockpit-gold);
+  font-size: 10px;
+  letter-spacing: 0.16em;
 }
 .quest-entry {
   display: grid;
@@ -2528,17 +2578,12 @@ body.cockpit-page {
   background: rgba(90, 18, 18, 0.55);
 }
 
-.unit-frame.is-empty {
-  opacity: 0.95;
-  border-color: rgba(232, 197, 109, 0.38);
-}
-
-.unit-empty-copy {
-  color: rgba(244, 221, 164, 0.82);
-}
-
 .party-empty .position-loading {
   color: var(--cockpit-text);
+  font-family: var(--font-body, "Cormorant Garamond", Georgia, serif);
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  text-transform: none;
 }
 
 /* Sealed writ — order preview confirmation. Tradier ids stay unchanged. */
