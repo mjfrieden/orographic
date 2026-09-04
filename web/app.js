@@ -743,7 +743,7 @@ function renderPositions() {
   if (!tbody) return;
   const rows = BROKER_STATE.positions || [];
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="ledger-empty">No open positions found.</td></tr>`;
     renderCockpitPositions();
     return;
   }
@@ -891,7 +891,7 @@ function renderOrders() {
   const log = document.getElementById("orders-quest-log");
   const rows = (BROKER_STATE.orders || []).slice(0, 10);
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No recent orders found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="ledger-empty">No recent orders found.</td></tr>`;
     if (log) {
       log.innerHTML = `<li class="quest-empty">No quests in the log.</li>`;
     }

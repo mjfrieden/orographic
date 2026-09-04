@@ -52,6 +52,7 @@ Audit juice shipped:
 19. Stone quest pager and refresh gates. **Shipped in cycle 19.**
 20. HOLD sealed writ body (gold decision, wax-seal state, stone funnel wells). **Shipped in cycle 20.**
 21. Empty party roster and quest-quiet plate. **Shipped in cycle 21.**
+22. Stone roster/quest ledgers for positions and orders tables. **Shipped in cycle 22.**
 
 ## Done when
 

@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 22 — 2026-09-04 — Stone ledgers
+
+- Positions and orders tables sit in stone ledger plates with Marcellus gold headers and parchment rows instead of Inter SaaS grids.
+- Flavor kickers “Roster ledger” / “Quest ledger” only. Table ids, empty-state copy, and money/P&L cells stay literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 21 — 2026-09-04 — Empty party roster
 
 - Empty party slots are sealed WoW frames (solid gold rail, dormant HP hairline, stone portrait) instead of dashed SaaS placeholders over the mural.
