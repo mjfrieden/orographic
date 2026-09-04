@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 68 — 2026-09-04 — Sealed-writ close-gate filigree
+
+- The sealed-writ close gold gate closes with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `#modal-close-btn`, aria-label, and Execute / Cancel stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 67 — 2026-09-04 — Reliquary-well filigree
 
 - Research dungeon Reliquary evidence wells close with gold L-brackets on all four corners, matching Master Harbor inventory filigree. `#mart-research-summary`, status copy, fetch URLs, and dungeon nav at 820px stay.

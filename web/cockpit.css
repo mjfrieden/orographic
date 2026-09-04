@@ -3424,6 +3424,7 @@ body.cockpit-page {
 }
 
 #preview-modal .writ-close {
+  position: relative;
   width: 36px;
   height: 36px;
   display: inline-grid;
@@ -3432,6 +3433,45 @@ body.cockpit-page {
   background: rgba(232, 197, 109, 0.08);
   border: 1px solid rgba(232, 197, 109, 0.32);
   border-radius: 8px;
+}
+
+#preview-modal .writ-close::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 5px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 1.5px 5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 5px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 1.5px 5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 5px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 1.5px 5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 5px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 5px no-repeat;
+}
+
+#preview-modal .writ-close:hover,
+#preview-modal .writ-close:focus-visible {
+  color: #1a0f00;
+  background: linear-gradient(180deg, #f5d98a 0%, #c9a227 100%);
+  border-color: rgba(255, 224, 160, 0.55);
+}
+
+#preview-modal .writ-close:hover::before,
+#preview-modal .writ-close:focus-visible::before {
+  opacity: 0.45;
+  background:
+    linear-gradient(#1a0f00, #1a0f00) top left / 5px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top left / 1.5px 5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 5px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) top right / 1.5px 5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 5px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom left / 1.5px 5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 5px 1.5px no-repeat,
+    linear-gradient(#1a0f00, #1a0f00) bottom right / 1.5px 5px no-repeat;
 }
 
 #preview-modal .writ-close .sigil {
