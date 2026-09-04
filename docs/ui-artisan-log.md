@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 57 — 2026-09-04 — Quest-pager filigree
+
+- The stone quest pager plate and `#signal-index` well close with gold L-brackets on all four corners. Previous / Next ids, disabled state, and index copy stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 56 — 2026-09-04 — Preview-order gate filigree
 
 - The Preview order gold gate closes with four-corner L-brackets: dark ticks on the live gold fill, gold ticks on the HOLD disabled stone. Button copy, disabled state, and Tradier preview hooks stay.

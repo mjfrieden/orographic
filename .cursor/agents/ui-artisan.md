@@ -87,6 +87,7 @@ Audit juice shipped:
 54. Party and Quest log tabs close with gold filigree. **Shipped in cycle 54.**
 55. HOLD sealed writ closes with gold filigree. **Shipped in cycle 55.**
 56. Preview-order gate closes with gold filigree. **Shipped in cycle 56.**
+57. Stone quest pager closes with gold filigree. **Shipped in cycle 57.**
 
 ## Done when
 
