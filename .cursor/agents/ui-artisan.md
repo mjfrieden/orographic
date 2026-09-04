@@ -69,6 +69,7 @@ Audit juice shipped:
 36. HOLD funnel stage kickers at readable Marcellus. **Shipped in cycle 36.**
 37. Research dungeon equity-chart labels in Cinzel. **Shipped in cycle 37.**
 38. HOLD metric helper copy as parchment. **Shipped in cycle 38.**
+39. Legendary foil sheen confined to ticker art. **Shipped in cycle 39.**
 
 ## Done when
 
