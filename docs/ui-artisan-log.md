@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 19 — 2026-09-04 — Stone quest pager
+
+- Previous / Next sit in a stone page-turner with a Marcellus index well. Disabled states stay dim gold, not gray SaaS.
+- `#board-refresh-btn` and `#positions-refresh-btn` are small gold gates. Ids and the positions-toolbar flex contract stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 18 — 2026-09-04 — Spellbook shrine seals
 
 - Governance cards in the spellbook are separate stone seals with gold ticks (pass/hold/fail gems stay teal/amber/crimson). Claims banner matches the plate language.
