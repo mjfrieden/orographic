@@ -81,6 +81,7 @@ Audit juice shipped:
 48. Shrine-seal cards close with bottom gold filigree. **Shipped in cycle 48.**
 49. Character-plate wells close with gold filigree. **Shipped in cycle 49.**
 50. Realm bar closes with gold filigree. **Shipped in cycle 50.**
+51. Master Harbor inventory cards close with gold filigree. **Shipped in cycle 51.**
 
 ## Done when
 

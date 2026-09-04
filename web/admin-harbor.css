@@ -99,16 +99,22 @@
     0 8px 18px rgba(0, 0, 0, 0.22);
 }
 
-.admin-page .admin-card::before {
+.admin-page .admin-card::before,
+.admin-page .inventory-slot::before {
   content: "";
   position: absolute;
-  top: 8px;
-  left: 8px;
-  width: 8px;
-  height: 8px;
-  border-top: 1px solid rgba(232, 197, 109, 0.45);
-  border-left: 1px solid rgba(232, 197, 109, 0.45);
+  inset: 8px;
   pointer-events: none;
+  opacity: 0.7;
+  background:
+    linear-gradient(#e8c56d, #e8c56d) top left / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top left / 1.5px 8px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 1.5px 8px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 1.5px 8px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 1.5px 8px no-repeat;
 }
 
 .admin-page .admin-card .summary-label {

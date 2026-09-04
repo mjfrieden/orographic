@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 51 — 2026-09-04 — Master Harbor inventory filigree
+
+- Auction House and Reliquary inventory cards close with gold L-brackets on all four corners, matching leather-plate filigree. Fetch URLs, snapshot math, and table ids stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 50 — 2026-09-04 — Realm-bar filigree
 
 - Realm bar closes with gold L-brackets on all four corners. The kicker, XP hairline, connectivity ids, and Audit trail stay.
