@@ -60,6 +60,7 @@ Audit juice shipped:
 27. Master Harbor Cinzel figures, parchment empty plates, and Harbor ledger type. **Shipped in cycle 27.**
 28. Realm bar matches character-plate Tradier connectivity. **Shipped in cycle 28.**
 29. Quest and party sync lines in parchment (not Inter). **Shipped in cycle 29.**
+30. HOLD funnel and talent-tree helper copy as parchment. **Shipped in cycle 30.**
 
 ## Done when
 

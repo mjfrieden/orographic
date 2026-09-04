@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 30 — 2026-09-04 — Funnel and shrine parchment
+
+- HOLD “Why no trade?” reason copy, funnel footnotes, and talent-tree pipeline notes use Cormorant instead of 9–11px Inter. Stage labels stay Marcellus. Funnel counts stay literal.
+- Legendary `card-notes` inherit Harbor body type. Sync-line margin and positions-toolbar flex stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 29 — 2026-09-04 — Parchment sync lines
 
 - Council Quest snapshot age and Party Ledger Tradier sync copy use Cormorant parchment instead of Inter. Error wells stay crimson stone.
