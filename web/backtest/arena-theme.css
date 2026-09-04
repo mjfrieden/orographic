@@ -411,7 +411,40 @@
   font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
-.variant-row.is-selected {
+.lab-page .variant-row {
+  position: relative;
+  margin: 6px 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(42, 36, 24, 0.35), rgba(12, 18, 28, 0.72));
+}
+
+.lab-page .variant-row::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(#e8c56d, #e8c56d) top left / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top left / 1.5px 7px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 1.5px 7px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 1.5px 7px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 7px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 1.5px 7px no-repeat;
+}
+
+.lab-page .variant-row > * {
+  position: relative;
+  z-index: 2;
+}
+
+.lab-page .variant-row.is-selected {
+  border-color: rgba(232, 197, 109, 0.38);
   box-shadow: inset 3px 0 #e8c56d;
 }
 

@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 78 — 2026-09-04 — Dungeon variant-row filigree
+
+- Research dungeon Rival builds rows close with gold L-brackets on all four corners, matching Reliquary and coverage wells. `#variant-list`, selected gold rail, variant copy, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 77 — 2026-09-04 — Dungeon command-card plate filigree
 
 - Research dungeon Engine command plate closes with gold L-brackets on all four corners, matching Reliquary and coverage wells. `#copy-command`, `#run-command`, command builder copy, and dungeon nav at 820px stay.
