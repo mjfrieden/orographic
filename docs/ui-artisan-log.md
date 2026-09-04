@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 29 — 2026-09-04 — Parchment sync lines
+
+- Council Quest snapshot age and Party Ledger Tradier sync copy use Cormorant parchment instead of Inter. Error wells stay crimson stone.
+- Sync-line margin and positions-toolbar flex contracts stay. Snapshot timestamps remain literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 28 — 2026-09-04 — Realm bar connectivity
 
 - The realm bar hearth gem and Tradier copy follow the same live / sandbox / offline state as the character-plate ribbon, so local preview no longer claims a live connection.

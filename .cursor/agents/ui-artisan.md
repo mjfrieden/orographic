@@ -59,6 +59,7 @@ Audit juice shipped:
 26. Parchment order rows and sealed-writ status copy. **Shipped in cycle 26.**
 27. Master Harbor Cinzel figures, parchment empty plates, and Harbor ledger type. **Shipped in cycle 27.**
 28. Realm bar matches character-plate Tradier connectivity. **Shipped in cycle 28.**
+29. Quest and party sync lines in parchment (not Inter). **Shipped in cycle 29.**
 
 ## Done when
 
