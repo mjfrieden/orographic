@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 52 — 2026-09-04 — Party-frame filigree
+
+- Empty and occupied party unit frames close with gold L-brackets on all four corners, matching leather-plate filigree. Empty-slot copy, roster ids, and Tradier hooks stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 51 — 2026-09-04 — Master Harbor inventory filigree
 
 - Auction House and Reliquary inventory cards close with gold L-brackets on all four corners, matching leather-plate filigree. Fetch URLs, snapshot math, and table ids stay.

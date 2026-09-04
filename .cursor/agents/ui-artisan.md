@@ -82,6 +82,7 @@ Audit juice shipped:
 49. Character-plate wells close with gold filigree. **Shipped in cycle 49.**
 50. Realm bar closes with gold filigree. **Shipped in cycle 50.**
 51. Master Harbor inventory cards close with gold filigree. **Shipped in cycle 51.**
+52. Party unit frames close with gold filigree. **Shipped in cycle 52.**
 
 ## Done when
 

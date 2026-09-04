@@ -1363,6 +1363,7 @@ body.cockpit-page {
   margin-top: 14px;
 }
 .unit-frame.is-empty {
+  position: relative;
   display: grid;
   grid-template-columns: 52px 1fr;
   grid-template-rows: auto 8px;
@@ -1380,6 +1381,24 @@ body.cockpit-page {
     inset 0 1px 0 rgba(245, 217, 138, 0.08),
     0 10px 24px rgba(0, 0, 0, 0.28);
   opacity: 1;
+}
+.unit-frame.is-empty::before,
+.cockpit-position-row.unit-frame::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.65;
+  background:
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top left / 1.5px 8px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) top right / 1.5px 8px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom left / 1.5px 8px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 8px 1.5px no-repeat,
+    linear-gradient(var(--cockpit-gold), var(--cockpit-gold)) bottom right / 1.5px 8px no-repeat;
 }
 .unit-frame.is-empty::after {
   content: "";
@@ -1401,6 +1420,7 @@ body.cockpit-page {
 }
 .cockpit-position-row.unit-frame,
 .cockpit-position-row {
+  position: relative;
   min-height: 86px;
   display: grid;
   grid-template-columns: 52px minmax(150px, 1.5fr) 84px 112px minmax(105px, 1fr) 40px;
