@@ -47,6 +47,7 @@ Audit juice shipped:
 14. Character-plate account ribbon and gold-gate logout. **Shipped in cycle 14.**
 15. Realm-bar footer with XP hairline. **Shipped in cycle 15.**
 16. Leather-bound Signal & Book plates. **Shipped in cycle 16.**
+17. Talent-tree shrine plate and Open spellbook gold gate. **Shipped in cycle 17.**
 
 ## Done when
 

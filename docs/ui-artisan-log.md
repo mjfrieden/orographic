@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 17 — 2026-09-04 — Talent-tree shrine plate
+
+- The talent tree sits in the same stone plate language as Signal & Book (gold corner ticks, leather wash).
+- `#research-drawer-toggle` is a Cinzel gold gate (“Open spellbook”). Drawer ids and governance cards stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 16 — 2026-09-04 — Leather-bound Signal & Book
 
 - Council Quest and Party Ledger sit in separate stone plates with gold corner ticks instead of one glass SaaS card. 720px stacks them with the same gap.
