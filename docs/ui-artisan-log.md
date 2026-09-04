@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 56 — 2026-09-04 — Preview-order gate filigree
+
+- The Preview order gold gate closes with four-corner L-brackets: dark ticks on the live gold fill, gold ticks on the HOLD disabled stone. Button copy, disabled state, and Tradier preview hooks stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 55 — 2026-09-04 — HOLD sealed-writ filigree
 
 - HOLD sealed writ well closes with gold L-brackets on all four corners, matching funnel and metric-well filigree. Decision copy, abstention language, and the disabled preview button stay literal.
