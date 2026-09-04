@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 76 — 2026-09-04 — Dungeon integrity-banner filigree
+
+- Research dungeon research-integrity banner closes with gold L-brackets on all four corners, matching Reliquary, KPI, and coverage wells. `#quality-banner`, integrity copy, `is-warning`, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 75 — 2026-09-04 — Dungeon coverage-well filigree
 
 - Research dungeon Evidence coverage wells close with gold L-brackets on all four corners, matching Reliquary and KPI filigree. `#coverage-grid`, coverage copy, fetch math, and dungeon nav at 820px stay.
