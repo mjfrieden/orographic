@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 69 — 2026-09-04 — Guarded-live shrine-seal filigree
+
+- The Guarded live shrine seal closes with gold L-brackets on all four corners, matching the Lab and Log out gold gates. Teal status copy, the shield sigil, and 720px icon-only placement stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 68 — 2026-09-04 — Sealed-writ close-gate filigree
 
 - The sealed-writ close gold gate closes with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `#modal-close-btn`, aria-label, and Execute / Cancel stay.
