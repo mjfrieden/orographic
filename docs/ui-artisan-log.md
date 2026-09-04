@@ -2,6 +2,15 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 5 — 2026-09-04 — Harbor Gate crest, stone fields, error toast
+
+- Login crest now orbits with dashed gold rings, rune ticks, a pulsing mark, and a Hearthstone-style rarity gem.
+- Credential fields match the cockpit stone-tablet chrome (gold labels, inset stone wells) instead of flat glass inputs.
+- Failed login raises a live `role="alert"` toast with a sealed-gate shake. Motion respects `prefers-reduced-motion`.
+- Portal card and fields stay aligned at ~720px (`100svh`, full-width card, larger tap targets).
+
+Left alone: `/api/login` payload and auth, Scout/Forge/Council, Tradier preview/submit, required DOM ids.
+
 ## Cycle 4 — 2026-09-04 — Talent tree and spellbook
 
 - Production evidence ribbon is a talent tree: circular sockets, conic rank fills, connecting gold lines, and an unlearned experiment-lane node.

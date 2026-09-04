@@ -12,7 +12,8 @@
     />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/orographic-mark-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/orographic-apple-touch.png" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="/styles.css?v=20260904f" />
+    <link rel="stylesheet" href="/login-gate.css?v=20260904a" />
   </head>
   <body class="portal-page login-page">
     <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
@@ -20,8 +21,16 @@
     <div class="noise"></div>
     <main class="portal-shell">
       <section class="panel portal-card">
+        <span class="gate-corners" aria-hidden="true"></span>
         <div class="portal-crest" aria-hidden="true">
+          <div class="crest-orbit"></div>
+          <div class="crest-orbit-inner"></div>
+          <div class="crest-runes">
+            <span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span>
+          </div>
           <img class="portal-crest-core" src="/assets/orographic-mark.png" alt="" aria-hidden="true" />
+          <span class="crest-gem"></span>
         </div>
         <p class="eyebrow">Harbor Gate</p>
         <h1>Enter Orographic</h1>
@@ -44,7 +53,7 @@
           </label>
           <button type="submit" class="primary-action">Enter Arena</button>
         </form>
-        <div id="error" class="error"></div>
+        <div id="error" class="error" role="alert" aria-live="assertive" hidden></div>
         <p class="portal-footnote muted">Access remains role-gated exactly as before. This is a visual overhaul only.</p>
       </section>
     </main>
@@ -52,12 +61,27 @@
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next") || "/";
       const form = document.getElementById("login-form");
+      const gate = form.closest(".portal-card");
       const errorNode = document.getElementById("error");
       const submitButton = form.querySelector('button[type="submit"]');
 
+      function clearGateSeal() {
+        errorNode.hidden = true;
+        errorNode.textContent = "";
+        gate.classList.remove("gate-denied");
+      }
+
+      function sealGate(message) {
+        errorNode.hidden = false;
+        errorNode.textContent = message;
+        gate.classList.remove("gate-denied");
+        void gate.offsetWidth;
+        gate.classList.add("gate-denied");
+      }
+
       form.addEventListener("submit", async (event) => {
         event.preventDefault();
-        errorNode.textContent = "";
+        clearGateSeal();
         submitButton.disabled = true;
         submitButton.textContent = "Entering...";
         const payload = {
@@ -78,13 +102,13 @@
             : { ok: false, error: await response.text() };
 
           if (!response.ok || !data.ok) {
-            errorNode.textContent = data.error || "Login failed";
+            sealGate(data.error || "Login failed");
             return;
           }
 
           window.location.assign(data.redirectTo || "/");
         } catch (error) {
-          errorNode.textContent = error.message || "Login failed";
+          sealGate(error.message || "Login failed");
         } finally {
           submitButton.disabled = false;
           submitButton.textContent = "Enter Arena";

@@ -13,6 +13,7 @@ The **UI Artisan** agent exists to keep unifying that board, one focused visual 
 | `web/styles.css` | Shared Harbor / Hearthstone design system |
 | `web/cockpit.css` | Live Signal & Book overlay |
 | `web/login/index.html` | Harbor Gate |
+| `web/login-gate.css` | Login crest, stone fields, error toast |
 | `web/backtest/` | Research dungeon |
 | `web/admin/` | Master Harbor ledger |
 
