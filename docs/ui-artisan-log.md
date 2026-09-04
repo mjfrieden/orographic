@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 81 — 2026-09-04 — Dungeon call/put gold seals
+
+- Research dungeon CALL/PUT tags become Harbor gold seals (Marcellus, stone fill) instead of 8px rounded chips. `.pill` class, option-type copy, trade filters, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 80 — 2026-09-04 — Dungeon Show more gate filigree
 
 - Research dungeon Show more gold gate closes with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `#show-more`, trade pagination, and dungeon nav at 820px stay.
