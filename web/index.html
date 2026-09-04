@@ -12,7 +12,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/orographic-mark-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/orographic-apple-touch.png" />
     <link rel="stylesheet" href="/styles.css?v=20260904a" />
-    <link rel="stylesheet" href="/cockpit.css?v=20260904d" />
+    <link rel="stylesheet" href="/cockpit.css?v=20260904e" />
   </head>
   <body class="cockpit-page">
     <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
@@ -134,25 +134,37 @@
         </article>
       </section>
 
-      <section class="evidence-ribbon" id="research" aria-labelledby="evidence-title">
+      <section class="evidence-ribbon talent-tree" id="research" aria-labelledby="evidence-title">
         <div class="evidence-intro">
           <p class="section-label">Talent Tree</p>
           <h2 id="evidence-title">Production v2 is the only live model path</h2>
           <span>Scout direction → Forge rank → Council execution</span>
         </div>
-        <div class="evidence-metric"><span>Learned rank</span><strong>70%</strong><small>Volatility + contract features</small></div>
-        <div class="evidence-metric"><span>Execution quality</span><strong>20%</strong><small>Liquidity, fill, spread</small></div>
-        <div class="evidence-metric"><span>After-cost utility</span><strong>10%</strong><small>Friction-adjusted</small></div>
-        <div class="evidence-metric"><span>Experiment lanes</span><strong>0</strong><small>Single production board</small></div>
+        <div class="evidence-metric talent-node is-learned">
+          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:70%"></span></span>
+          <span>Learned rank</span><strong>70%</strong><small>Volatility + contract features</small>
+        </div>
+        <div class="evidence-metric talent-node is-learned">
+          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:20%"></span></span>
+          <span>Execution quality</span><strong>20%</strong><small>Liquidity, fill, spread</small>
+        </div>
+        <div class="evidence-metric talent-node is-learned">
+          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:10%"></span></span>
+          <span>After-cost utility</span><strong>10%</strong><small>Friction-adjusted</small>
+        </div>
+        <div class="evidence-metric talent-node is-empty">
+          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:0%"></span></span>
+          <span>Experiment lanes</span><strong>0</strong><small>Single production board</small>
+        </div>
         <button id="research-drawer-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="research-drawer">
-          Research details<span class="material-symbols-outlined" aria-hidden="true">open_in_new</span>
+          Open spellbook<span class="material-symbols-outlined" aria-hidden="true">menu_book</span>
         </button>
       </section>
 
-      <section id="research-drawer" class="research-drawer" hidden aria-labelledby="research-drawer-title">
+      <section id="research-drawer" class="research-drawer spellbook" hidden aria-labelledby="research-drawer-title">
         <header class="drawer-header">
           <div>
-            <p class="section-label">Scientific Review</p>
+            <p class="section-label">Spellbook</p>
             <h2 id="research-drawer-title">Production model and execution evidence</h2>
           </div>
           <button id="research-drawer-close" class="icon-button" type="button" aria-label="Close research details">

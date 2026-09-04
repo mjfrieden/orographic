@@ -1205,21 +1205,76 @@ body.cockpit-page {
   font-size: 13px;
 }
 
-.evidence-ribbon {
+.evidence-ribbon,
+.evidence-ribbon.talent-tree {
   display: grid;
   grid-template-columns: 1.4fr repeat(4, 1fr) 0.7fr;
   align-items: stretch;
   margin: 16px 0 0;
-  border: 1px solid var(--cockpit-border);
+  border: 1px solid rgba(232, 197, 109, 0.28);
   border-radius: 18px;
-  background: var(--cockpit-surface);
+  background:
+    radial-gradient(ellipse at 12% 0%, rgba(232, 197, 109, 0.1), transparent 42%),
+    radial-gradient(ellipse at 80% 120%, rgba(78, 205, 196, 0.08), transparent 46%),
+    var(--cockpit-surface);
   box-shadow: var(--cockpit-foil);
   overflow: hidden;
 }
 .evidence-intro,
 .evidence-metric {
-  padding: 24px 26px;
+  padding: 24px 22px;
   border-right: 1px solid var(--cockpit-border);
+}
+.evidence-metric.talent-node {
+  position: relative;
+  text-align: center;
+  padding-top: 22px;
+}
+.evidence-metric.talent-node::before {
+  content: "";
+  position: absolute;
+  left: -50%;
+  top: 42px;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(232, 197, 109, 0.4), rgba(78, 205, 196, 0.35));
+  pointer-events: none;
+}
+.evidence-metric.talent-node:first-of-type::before {
+  left: -30%;
+  width: 80%;
+}
+.talent-socket {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  margin: 0 auto 10px;
+  border-radius: 50%;
+  border: 2px solid rgba(232, 197, 109, 0.7);
+  background: radial-gradient(circle at 30% 30%, #243044, #070c14);
+  box-shadow:
+    0 0 16px rgba(232, 197, 109, 0.28),
+    inset 0 0 10px rgba(0, 0, 0, 0.55);
+  position: relative;
+  z-index: 1;
+}
+.talent-fill {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--cockpit-teal) 0 var(--rank, 0%),
+    rgba(255, 255, 255, 0.06) var(--rank, 0%)
+  );
+  box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.45);
+}
+.talent-node.is-empty .talent-socket {
+  border-color: rgba(160, 184, 207, 0.28);
+  box-shadow: none;
+}
+.talent-node.is-empty .talent-fill {
+  background: rgba(255, 255, 255, 0.04);
 }
 .evidence-metric-button {
   width: 100%;
@@ -1250,7 +1305,7 @@ body.cockpit-page {
   display: block;
   color: var(--cockpit-teal);
   font: 600 25px/1.1 var(--font-display, "Cinzel", Georgia, serif);
-  margin-top: 13px;
+  margin-top: 10px;
 }
 .evidence-metric small {
   color: var(--cockpit-muted);
@@ -1259,24 +1314,63 @@ body.cockpit-page {
 }
 .text-button {
   color: var(--cockpit-gold);
-  padding: 20px;
+  padding: 20px 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 11px;
+  font-weight: 700;
 }
 .text-button .material-symbols-outlined {
   font-size: 17px;
 }
 
-.research-drawer {
+.research-drawer,
+.research-drawer.spellbook {
   scroll-margin-top: 78px;
   margin: 16px 0 0;
-  border: 1px solid var(--cockpit-border);
+  border: 1px solid rgba(232, 197, 109, 0.32);
   border-radius: 18px;
-  background: var(--cockpit-surface);
-  padding: 30px;
-  box-shadow: var(--cockpit-foil);
+  background:
+    linear-gradient(90deg, #3a2a18 0, #3a2a18 14px, transparent 14px),
+    linear-gradient(180deg, rgba(244, 221, 164, 0.08), rgba(10, 22, 40, 0.94));
+  padding: 30px 30px 30px 40px;
+  box-shadow:
+    var(--cockpit-foil),
+    inset 0 0 0 1px rgba(232, 197, 109, 0.08);
+}
+.cockpit-page .research-claims-banner {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(232, 197, 109, 0.28);
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(232, 197, 109, 0.12), rgba(10, 22, 40, 0.35));
+}
+.governance-overview {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 20px 0 0;
+  border: 1px solid rgba(232, 197, 109, 0.22);
+  border-radius: 12px;
+  overflow: hidden;
+  background: rgba(244, 221, 164, 0.03);
+}
+.governance-overview-card {
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+  padding: 18px;
+  border-right: 1px solid var(--cockpit-border);
+  background: linear-gradient(180deg, rgba(244, 221, 164, 0.05), rgba(10, 22, 40, 0.35));
 }
 .research-drawer .is-emphasized {
   box-shadow: inset 0 0 0 2px var(--cockpit-teal);
@@ -1333,9 +1427,10 @@ body.cockpit-page {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   margin: 20px 0 0;
-  border: 1px solid var(--cockpit-border);
+  border: 1px solid rgba(232, 197, 109, 0.22);
   border-radius: 12px;
   overflow: hidden;
+  background: rgba(244, 221, 164, 0.03);
 }
 .governance-overview-card {
   min-width: 0;
@@ -1345,7 +1440,7 @@ body.cockpit-page {
   gap: 12px;
   padding: 18px;
   border-right: 1px solid var(--cockpit-border);
-  background: rgba(255, 255, 255, 0.012);
+  background: linear-gradient(180deg, rgba(244, 221, 164, 0.05), rgba(10, 22, 40, 0.35));
 }
 .governance-overview-card:last-child {
   border-right: 0;
@@ -1815,6 +1910,9 @@ body.cockpit-page {
   }
   .evidence-ribbon {
     display: block;
+  }
+  .evidence-metric.talent-node::before {
+    display: none;
   }
   .evidence-intro,
   .evidence-metric {

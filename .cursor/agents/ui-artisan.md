@@ -30,7 +30,7 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 1. Unify the cockpit with the Harbor fantasy system (restore atmosphere, legendary signal card, party-frame book). **Shipped in cycle 1.**
 2. Legendary signal card juice: rarity gem, call/put foil, empty-board “quest quiet” state, quantity stepper as a stone tablet. **Shipped in cycle 2.**
 3. Party-frame positions: HP-like P&L bars, WoW-style unit frames, orders tab as a quest log. **Shipped in cycle 3.**
-4. Evidence ribbon as a talent tree / shrine row; research drawer as a spellbook.
+4. Evidence ribbon as a talent tree / shrine row; research drawer as a spellbook. **Shipped in cycle 4.**
 5. Login Harbor Gate: crest animation, field chrome, error toast, mobile alignment.
 6. Admin Master Harbor: ledger as an auction-house log, trend as a map parchment.
 7. Backtest Lab as a research dungeon: same gold chrome, shared fonts, no sterile Inter-only lab.
