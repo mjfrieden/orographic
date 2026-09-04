@@ -55,6 +55,7 @@ Audit juice shipped:
 22. Stone roster/quest ledgers for positions and orders tables. **Shipped in cycle 22.**
 23. Research dungeon body type (Cormorant / Marcellus, not Inter). **Shipped in cycle 23.**
 24. Cockpit parchment body (Cormorant copy, Cinzel figures). **Shipped in cycle 24.**
+25. Harbor Gate parchment fields, skip link, and denied toast. **Shipped in cycle 25.**
 
 ## Done when
 

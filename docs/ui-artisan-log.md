@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 25 — 2026-09-04 — Harbor Gate parchment
+
+- Skip link is Cinzel. Credential fields and the denied-gate toast use Cormorant instead of Inter.
+- Auth ids, `/api/login` payload, and “Enter Arena” copy stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth payload, required DOM ids.
+
 ## Cycle 24 — 2026-09-04 — Cockpit parchment body
 
 - The live board’s body copy is Cormorant parchment instead of Inter. Chrome controls use Marcellus; account/P&L figures stay Cinzel tabular.
