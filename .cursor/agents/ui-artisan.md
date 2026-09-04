@@ -54,6 +54,7 @@ Audit juice shipped:
 21. Empty party roster and quest-quiet plate. **Shipped in cycle 21.**
 22. Stone roster/quest ledgers for positions and orders tables. **Shipped in cycle 22.**
 23. Research dungeon body type (Cormorant / Marcellus, not Inter). **Shipped in cycle 23.**
+24. Cockpit parchment body (Cormorant copy, Cinzel figures). **Shipped in cycle 24.**
 
 ## Done when
 

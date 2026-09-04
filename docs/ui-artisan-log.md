@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 24 — 2026-09-04 — Cockpit parchment body
+
+- The live board’s body copy is Cormorant parchment instead of Inter. Chrome controls use Marcellus; account/P&L figures stay Cinzel tabular.
+- Skip link is Cinzel. Sync-line margin and positions-toolbar flex contracts stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 23 — 2026-09-04 — Research dungeon type
 
 - Backtest Lab body, labels, and trade-receipt rows use Cormorant / Marcellus instead of Inter. Metric numbers and engine `code` stay tabular/mono.
