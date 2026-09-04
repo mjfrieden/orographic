@@ -96,6 +96,7 @@ Audit juice shipped:
 63. Sealed-writ Execute and Cancel gates close with gold filigree. **Shipped in cycle 63.**
 64. Stone quantity tablet closes with gold filigree. **Shipped in cycle 64.**
 65. Skip-link gold gates close with gold filigree. **Shipped in cycle 65.**
+66. Full position detail gate closes with gold filigree. **Shipped in cycle 66.**
 
 ## Done when
 

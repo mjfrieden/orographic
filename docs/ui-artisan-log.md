@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 66 — 2026-09-04 — Position-detail gate filigree
+
+- Full position detail gold gate closes with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. Summary copy, `#positions-table`, and the positions-toolbar flex contract stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 65 — 2026-09-04 — Skip-link gate filigree
 
 - Skip-link gold gates close with four-corner L-brackets on Signal & Book and Harbor Gate. `#signal` and `#login-form` hrefs, off-screen rest position, and focus reveal stay.
