@@ -2359,7 +2359,6 @@ body.cockpit-page {
   );
   box-shadow: 0 0 10px rgba(232, 197, 109, 0.35);
 }
-.cockpit-footer > span:first-child,
 .cockpit-footer .realm-status {
   display: inline-flex;
   align-items: center;
@@ -2405,6 +2404,49 @@ body.cockpit-page {
 }
 .cockpit-footer .sigil {
   font-size: 16px;
+}
+.cockpit-footer > .realm-filigree,
+.cockpit-footer > .plate-filigree {
+  z-index: 2;
+}
+.cockpit-footer > .realm-filigree {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cockpit-footer > .realm-filigree::before,
+.cockpit-footer > .realm-filigree::after {
+  content: "";
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--cockpit-gold);
+  opacity: 0.55;
+}
+.cockpit-footer > .realm-filigree::before {
+  top: 8px;
+  left: 8px;
+  border-right: 0;
+  border-bottom: 0;
+}
+.cockpit-footer > .realm-filigree::after {
+  top: 8px;
+  right: 8px;
+  border-left: 0;
+  border-bottom: 0;
+}
+.cockpit-footer > .plate-filigree::before,
+.cockpit-footer > .plate-filigree::after {
+  width: 12px;
+  height: 12px;
+  bottom: 8px;
+  opacity: 0.55;
+}
+.cockpit-footer > .plate-filigree::before {
+  left: 8px;
+}
+.cockpit-footer > .plate-filigree::after {
+  right: 8px;
 }
 .status-dot {
   width: 8px;

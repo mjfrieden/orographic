@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 50 — 2026-09-04 — Realm-bar filigree
+
+- Realm bar closes with gold L-brackets on all four corners. The kicker, XP hairline, connectivity ids, and Audit trail stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 49 — 2026-09-04 — Character-plate filigree
 
 - Account ribbon wells and the Day P&L well close with gold L-brackets on all four corners, matching leather-plate and shrine-seal filigree. Ribbon ids, connectivity pill, and logout stay.
