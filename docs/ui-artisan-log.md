@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 18 — 2026-09-04 — Spellbook shrine seals
+
+- Governance cards in the spellbook are separate stone seals with gold ticks (pass/hold/fail gems stay teal/amber/crimson). Claims banner matches the plate language.
+- Flavor kicker “Shrine seals” only. Governance ids and notes stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 17 — 2026-09-04 — Talent-tree shrine plate
 
 - The talent tree sits in the same stone plate language as Signal & Book (gold corner ticks, leather wash).

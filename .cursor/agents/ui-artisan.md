@@ -48,6 +48,7 @@ Audit juice shipped:
 15. Realm-bar footer with XP hairline. **Shipped in cycle 15.**
 16. Leather-bound Signal & Book plates. **Shipped in cycle 16.**
 17. Talent-tree shrine plate and Open spellbook gold gate. **Shipped in cycle 17.**
+18. Spellbook shrine-seal governance cards. **Shipped in cycle 18.**
 
 ## Done when
 

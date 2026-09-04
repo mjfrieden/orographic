@@ -1505,32 +1505,20 @@ body.cockpit-page {
   align-items: center;
   margin: 18px 0 0;
   padding: 14px 16px;
-  border: 1px solid rgba(232, 197, 109, 0.28);
+  border: 1px solid rgba(232, 197, 109, 0.32);
   border-radius: 10px;
-  background: linear-gradient(90deg, rgba(232, 197, 109, 0.12), rgba(10, 22, 40, 0.35));
-}
-.governance-overview {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  margin: 20px 0 0;
-  border: 1px solid rgba(232, 197, 109, 0.22);
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(244, 221, 164, 0.03);
-}
-.governance-overview-card {
-  min-width: 0;
-  min-height: 112px;
-  display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 12px;
-  padding: 18px;
-  border-right: 1px solid var(--cockpit-border);
-  background: linear-gradient(180deg, rgba(244, 221, 164, 0.05), rgba(10, 22, 40, 0.35));
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.4), rgba(8, 16, 28, 0.72));
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.1);
 }
 .research-drawer .is-emphasized {
   box-shadow: inset 0 0 0 2px var(--cockpit-teal);
   transition: box-shadow 0.2s ease;
+}
+#research-drawer-close {
+  border-color: rgba(232, 197, 109, 0.4);
+  color: var(--cockpit-gold);
+  background: rgba(232, 197, 109, 0.08);
 }
 .drawer-header {
   padding-bottom: 20px;
@@ -1579,27 +1567,54 @@ body.cockpit-page {
   color: var(--text-data, #e8eaf0);
 }
 
+.shrine-seals-kicker {
+  margin: 22px 0 10px;
+  color: var(--cockpit-gold);
+}
 .governance-overview {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  margin: 20px 0 0;
-  border: 1px solid rgba(232, 197, 109, 0.22);
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(244, 221, 164, 0.03);
+  gap: 12px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  overflow: visible;
 }
 .governance-overview-card {
+  position: relative;
   min-width: 0;
   min-height: 112px;
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 12px;
   padding: 18px;
-  border-right: 1px solid var(--cockpit-border);
-  background: linear-gradient(180deg, rgba(244, 221, 164, 0.05), rgba(10, 22, 40, 0.35));
+  border: 1px solid rgba(232, 197, 109, 0.28);
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.4), rgba(8, 16, 28, 0.78));
+  box-shadow: inset 0 1px 0 rgba(245, 217, 138, 0.1);
 }
-.governance-overview-card:last-child {
+.governance-overview-card::before,
+.governance-overview-card::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  border: 1.5px solid var(--cockpit-gold);
+  opacity: 0.55;
+}
+.governance-overview-card::before {
+  top: 8px;
+  left: 8px;
   border-right: 0;
+  border-bottom: 0;
+}
+.governance-overview-card::after {
+  top: 8px;
+  right: 8px;
+  border-left: 0;
+  border-bottom: 0;
 }
 .governance-overview-card > .sigil {
   margin-top: 2px;
@@ -2188,11 +2203,10 @@ body.cockpit-page {
     grid-template-columns: 1fr;
   }
   .governance-overview-card {
-    border-right: 0;
-    border-bottom: 1px solid var(--cockpit-border);
+    border: 1px solid rgba(232, 197, 109, 0.28);
   }
   .governance-overview-card:last-child {
-    border-bottom: 0;
+    border-bottom: 1px solid rgba(232, 197, 109, 0.28);
   }
   .challenger-workspace-head {
     align-items: flex-start;
