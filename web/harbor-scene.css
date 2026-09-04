@@ -1,0 +1,85 @@
+/* ============================================================
+   OROGRAPHIC HARBOR MURAL
+   Crops web/harbor-hero.png into the watercolor (sailboats,
+   lighthouse, sunset runes) so the baked-in gold picture frame
+   and parchment mat never become the page chrome. Navy scrims
+   keep gold Cinzel copy readable. Does not change trading UI.
+   ============================================================ */
+
+html {
+  background-color: #04091a;
+}
+
+body {
+  background-color: #04091a;
+  background-image:
+    radial-gradient(
+      ellipse 74% 70% at 50% 44%,
+      rgba(4, 9, 26, 0.72) 0%,
+      rgba(4, 9, 26, 0.46) 46%,
+      rgba(4, 9, 26, 0.16) 70%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(4, 9, 26, 0.52) 0%,
+      rgba(4, 9, 26, 0.18) 14%,
+      transparent 32%,
+      transparent 58%,
+      rgba(4, 9, 26, 0.58) 100%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(4, 9, 26, 0.38) 0%,
+      transparent 18%,
+      transparent 82%,
+      rgba(4, 9, 26, 0.38) 100%
+    ),
+    radial-gradient(
+      ellipse 120% 60% at 75% 0%,
+      rgba(240, 156, 91, 0.1) 0%,
+      transparent 55%
+    ),
+    radial-gradient(
+      ellipse 100% 80% at 10% 100%,
+      rgba(78, 205, 196, 0.08) 0%,
+      transparent 50%
+    ),
+    url("/harbor-hero.png");
+  /* vmax crop: parchment + gold frame are ~20–26% of the square asset. */
+  background-size:
+    auto,
+    auto,
+    auto,
+    auto,
+    auto,
+    215vmax;
+  background-position:
+    center,
+    center,
+    center,
+    top,
+    bottom,
+    center 44%;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+@media (max-width: 720px) {
+  body {
+    background-size:
+      auto,
+      auto,
+      auto,
+      auto,
+      auto,
+      215vmax;
+    background-position:
+      center,
+      center,
+      center,
+      top,
+      bottom,
+      center 44%;
+  }
+}

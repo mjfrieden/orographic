@@ -101,6 +101,21 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function sigil(name, extraClass = "") {
+  const safe = String(name || "check").replace(/[^a-z-]/g, "");
+  const extra = extraClass ? ` ${extraClass}` : "";
+  return `<span class="sigil sigil-${safe}${extra}" aria-hidden="true"></span>`;
+}
+
+function setSigil(node, name) {
+  if (!node) return;
+  const kept = [...node.classList].filter(
+    (cls) => cls !== "sigil" && !cls.startsWith("sigil-") && cls !== "material-symbols-outlined",
+  );
+  node.className = ["sigil", `sigil-${name}`, ...kept].join(" ");
+  node.textContent = "";
+}
+
 function domSafeId(value) {
   return String(value ?? "").replace(/[^a-z0-9]/gi, "_");
 }
@@ -194,10 +209,10 @@ function workbenchMetricRow(label, active, shadow, difference, check) {
 
 function workbenchGateRow(title, summary, statusValue) {
   const status = evidenceStatus(statusValue);
-  const icon = status === "pass" ? "check_circle" : status === "hold" ? "pause_circle" : "error";
+  const icon = status === "pass" ? "check" : status === "hold" ? "pause" : "warning";
   return `
     <div class="workbench-gate-row">
-      <span class="material-symbols-outlined gate-icon is-${status}" aria-hidden="true">${icon}</span>
+      ${sigil(icon, `gate-icon is-${status}`)}
       <div>
         <strong>${escapeHtml(title)}</strong>
         <span>${escapeHtml(summary)}</span>
@@ -282,8 +297,8 @@ function renderResearchWorkbench() {
   const banner = document.getElementById("research-claims-banner");
   if (banner) {
     banner.className = `research-claims-banner is-${overallTone}`;
-    const icon = banner.querySelector(".material-symbols-outlined");
-    if (icon) icon.textContent = overallTone === "pass" ? "verified" : overallTone === "hold" ? "pause_circle" : "gpp_bad";
+    const icon = banner.querySelector(".sigil");
+    if (icon) setSigil(icon, overallTone === "pass" ? "check" : overallTone === "hold" ? "pause" : "warning");
     const title = banner.querySelector("strong");
     if (title) title.textContent = readiness.research_claims_allowed ? "Research claims allowed" : "Research claims blocked";
   }
@@ -381,7 +396,7 @@ function renderResearchWorkbench() {
       { label: "Current decision", detail: String(promotionStatus).replaceAll("_", " "), status: promotionStatus },
     ].map((item) => `
       <li class="is-${evidenceStatus(item.status)}">
-        <span class="lineage-marker material-symbols-outlined" aria-hidden="true">${evidenceStatus(item.status) === "pass" ? "check_circle" : evidenceStatus(item.status) === "hold" ? "pause_circle" : "error"}</span>
+        ${sigil(evidenceStatus(item.status) === "pass" ? "check" : evidenceStatus(item.status) === "hold" ? "pause" : "warning", "lineage-marker")}
         <div><strong>${escapeHtml(item.label)}</strong><span>${escapeHtml(item.detail)}</span></div>
       </li>`).join("");
   }
@@ -721,6 +736,25 @@ function renderRibbon() {
           ? " is-sandbox"
           : " is-offline");
   }
+
+  const realmEl = document.getElementById("realm-broker-status");
+  const realmLabel = document.getElementById("realm-broker-label");
+  if (realmEl && realmLabel) {
+    const m = BROKER_STATE.mode || "offline";
+    const configured = Boolean(BROKER_STATE.configured);
+    realmEl.className =
+      "realm-status" +
+      (m === "live" && configured
+        ? " is-live"
+        : configured
+          ? " is-sandbox"
+          : " is-offline");
+    realmLabel.textContent = configured
+      ? m === "live"
+        ? "Connected to Tradier Brokerage"
+        : "Tradier sandbox realm"
+      : "Tradier realm offline";
+  }
 }
 
 function renderPositions() {
@@ -728,7 +762,7 @@ function renderPositions() {
   if (!tbody) return;
   const rows = BROKER_STATE.positions || [];
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No open positions found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" class="ledger-empty">No open positions found.</td></tr>`;
     renderCockpitPositions();
     return;
   }
@@ -873,10 +907,33 @@ async function hydratePositionAdvice(positions, epoch) {
 function renderOrders() {
   const tbody = document.getElementById("orders-tbody");
   if (!tbody) return;
+  const log = document.getElementById("orders-quest-log");
   const rows = (BROKER_STATE.orders || []).slice(0, 10);
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);font-family:var(--font-data);font-size:.78rem;">No recent orders found.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="ledger-empty">No recent orders found.</td></tr>`;
+    if (log) {
+      log.innerHTML = `<li class="quest-empty">No quests in the log.</li>`;
+    }
     return;
+  }
+  if (log) {
+    log.innerHTML = rows
+      .map((o) => {
+        const isBuy = String(o.side || "").includes("buy");
+        const status = String(o.status || "open").toLowerCase();
+        const contract = o.option_symbol || o.symbol || "--";
+        const issue = orderIssueText(o);
+        return `<li class="quest-entry ${isBuy ? "is-buy" : "is-sell"} is-${escapeHtml(status.replaceAll(" ", "-"))}">
+          <span class="quest-bang" aria-hidden="true">${status.includes("reject") || status.includes("fail") ? "!" : "?"}</span>
+          <div>
+            <strong>${escapeHtml(contract)}</strong>
+            <span>${escapeHtml(o.side || "order")} · ${integer(o.quantity)}${o.price ? ` @ ${money(o.price)}` : ""}</span>
+            ${issue ? `<small>${escapeHtml(issue)}</small>` : ""}
+          </div>
+          <em>${escapeHtml(o.status || "open")}</em>
+        </li>`;
+      })
+      .join("");
   }
   tbody.innerHTML = rows
     .map((o) => {
@@ -886,13 +943,13 @@ function renderOrders() {
         ? `<div class="order-status-note" title="${escapeHtml(rejectionReason)}">${escapeHtml(rejectionReason)}</div>`
         : "";
       return `<tr>
-      <td data-label="Status"><span style="font-family:var(--font-data);font-size:.65rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid var(--border)">${o.status || "open"}</span></td>
-      <td data-label="Contract" style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
+      <td data-label="Status"><span class="ledger-status">${o.status || "open"}</span></td>
+      <td data-label="Contract" class="ledger-contract">${o.option_symbol || o.symbol || "--"}${contractMeta}</td>
       <td data-label="Side" class="${isBuy ? "is-call-cell" : "is-put-cell"}">${o.side || "--"}</td>
       <td data-label="Qty" class="is-num">${integer(o.quantity)}</td>
       <td data-label="Price" class="is-num">${o.price ? money(o.price) : "--"}</td>
       <td data-label="Fill" class="is-num">${o.avg_fill_price ? money(o.avg_fill_price) : "--"}</td>
-      <td data-label="Date" style="font-family:var(--font-data);font-size:.7rem;color:var(--text-muted)">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
+      <td data-label="Date" class="ledger-date">${o.create_date ? o.create_date.slice(0, 10) : "--"}</td>
     </tr>`;
     })
     .join("");
@@ -996,8 +1053,20 @@ function noTradeFunnelHtml(payload) {
             <span>${escapeHtml(stage.label)}</span><strong>${integer(stage.value)}</strong><small>${escapeHtml(stage.note)}</small>
           </div>`).join("")}
       </div>
-      <p><span class="material-symbols-outlined" aria-hidden="true">visibility</span>${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
+      <p>${sigil("eye")}${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
     </details>`;
+}
+
+function legendaryCardChrome({ ticker, gem, rarity, hold }) {
+  return `
+    <div class="card-foil" aria-hidden="true"></div>
+    <div class="card-art" aria-hidden="true">
+      <span class="card-art-glow"></span>
+      <span class="card-rarity-gem${hold ? " is-sealed" : ""}"></span>
+      <span class="card-symbol-giant">${ticker}</span>
+      <span class="card-gem${hold ? "" : " card-gem-direction"}">${gem}</span>
+      <span class="card-rarity">${rarity}</span>
+    </div>`;
 }
 
 function renderCockpitSignal(payload) {
@@ -1012,15 +1081,25 @@ function renderCockpitSignal(payload) {
 
   if (!COCKPIT_SIGNALS.length) {
     root.innerHTML = `
-      <span class="signal-state is-hold">Hold</span>
-      <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
-      <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
-      ${noTradeFunnelHtml(payload)}
-      <div class="signal-metrics">
-        <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
-        <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
-      </div>
-      <button class="preview-order-button" type="button" disabled>No order to preview</button>`;
+      <div class="cockpit-signal-card trade-card is-hold is-legendary">
+        ${legendaryCardChrome({
+          ticker: "HOLD",
+          gem: "—",
+          rarity: "No legendary drawn",
+          hold: true,
+        })}
+        <div class="card-body">
+          <span class="signal-state is-hold">Hold</span>
+          <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
+          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
+          ${noTradeFunnelHtml(payload)}
+          <div class="signal-metrics">
+            <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
+            <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
+          </div>
+          <button class="preview-order-button" type="button" disabled>No order to preview</button>
+        </div>
+      </div>`;
     setText("signal-index", "0 of 0");
     renderCockpitSignalSelector();
     syncCockpitSignalControls();
@@ -1045,8 +1124,18 @@ function renderCockpitSignal(payload) {
   const riskFlags = (candidate.council_risk_flags || [])
     .map((flag) => String(flag).replaceAll("_", " "))
     .slice(0, 3);
+  const optionType = String(candidate.option_type || "").toLowerCase();
+  const tone = toneClass(optionType);
+  const gemLabel = optionType === "put" ? "PUT" : optionType === "call" ? "CALL" : "LIVE";
   root.innerHTML = `
-    <div class="cockpit-signal-card trade-card" data-ask="${ask}">
+    <div class="cockpit-signal-card trade-card is-legendary ${tone}" data-ask="${ask}">
+      ${legendaryCardChrome({
+        ticker: escapeHtml(candidate.symbol || "—"),
+        gem: gemLabel,
+        rarity: "Legendary signal",
+        hold: false,
+      })}
+      <div class="card-body">
       <span class="signal-state ${stateClass}">${stateLabel}</span>
       <p class="signal-lead">Model edge is positive after costs and the contract cleared Council risk controls.</p>
       <div class="signal-contract">
@@ -1078,7 +1167,7 @@ function renderCockpitSignal(payload) {
         </div>
       </details>
       <div class="signal-order-row">
-        <div class="signal-quantity-control">
+        <div class="signal-quantity-control stone-tablet">
           <span>Contracts</span>
           <div class="quantity-stepper">
             <button class="card-qty-step" type="button" data-step="-1" aria-label="Decrease contracts">−</button>
@@ -1093,10 +1182,11 @@ function renderCockpitSignal(payload) {
           data-lane="${escapeHtml(lane)}"
           data-ask="${ask}"
           data-alloc="${Number(candidate.allocation_weight || 1)}">
-          ${previewLabel}<span class="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+          ${previewLabel}${sigil("forward")}
         </button>
       </div>
-      <p class="signal-safety"><span class="material-symbols-outlined" aria-hidden="true">lock</span>Preview first. Broker execution remains permissioned and separately confirmed.</p>
+      <p class="signal-safety">${sigil("lock")}Preview first. Broker execution remains permissioned and separately confirmed.</p>
+      </div>
     </div>`;
   setText("signal-index", `${COCKPIT_SIGNAL_INDEX + 1} of ${COCKPIT_SIGNALS.length}`);
   bindCardButtons();
@@ -1134,7 +1224,7 @@ function renderMoonshotSidePick(payload) {
       <div><span>Ask</span><strong>${money(pick.ask ?? pick.premium)}</strong></div>
       <div><span>Tracking</span><strong>${escapeHtml(tracking.dataset || "moonshot_outcomes")}</strong></div>
     </div>
-    <p><span class="material-symbols-outlined" aria-hidden="true">lock</span>Visible experiment only. It does not affect the primary ensemble, Council, sizing, or Tradier routing.</p>`;
+    <p>${sigil("lock")}Visible experiment only. It does not affect the primary ensemble, Council, sizing, or Tradier routing.</p>`;
 }
 
 function syncCockpitSignalControls() {
@@ -1258,11 +1348,20 @@ function renderCockpitPositions() {
   setText("book-positions-count", String(positions.length));
   setText("book-orders-count", String((BROKER_STATE.orders || []).length));
   if (!positions.length) {
-    root.innerHTML = `<div class="position-loading">No open positions. The book is clear.</div>`;
+    root.innerHTML = `
+      <div class="party-empty" role="status">
+        <div class="position-loading">No open positions. The book is clear.</div>
+        <div class="party-slots" aria-hidden="true">
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+        </div>
+      </div>`;
     return;
   }
   root.innerHTML = positions.slice(0, 6).map((position) => {
     const symbol = String(position.symbol || "—");
+    const meta = optionContractMeta(symbol);
     const value = Number(position.current_value);
     const basis = Number(position.cost_basis);
     const pnl = Number.isFinite(Number(position.open_pl))
@@ -1274,12 +1373,23 @@ function renderCockpitPositions() {
     const advice = POSITION_ADVICE.get(symbol);
     const action = advice?.action === "sell" ? "Reduce risk" : pnl != null && pnl > 0 ? "Monitor gain" : "Monitor";
     const warning = advice?.action === "sell" || (pnl != null && pnl < 0);
-    return `<div class="cockpit-position-row">
-      <div class="position-name"><strong>${escapeHtml(symbol)}</strong><span>${escapeHtml(optionContractMeta(symbol).root)}</span></div>
+    const vitality = Math.max(6, Math.min(100, 50 + (Number(pnlPct) || 0) * 100));
+    const mana = Number.isFinite(value) && Number.isFinite(basis) && basis
+      ? Math.max(8, Math.min(100, (value / Math.max(basis, 1)) * 50))
+      : 36;
+    const sideClass = meta.side === "put" ? "is-put" : meta.side === "call" ? "is-call" : "";
+    const portrait = escapeHtml((meta.root || "•").slice(0, 4));
+    return `<div class="cockpit-position-row unit-frame ${sideClass}${pnl != null && pnl < 0 ? " is-negative" : ""}">
+      <div class="unit-portrait" aria-hidden="true"><span>${portrait}</span></div>
+      <div class="position-name"><strong>${escapeHtml(symbol)}</strong><span>${escapeHtml(meta.root)}${meta.side ? ` · ${meta.side.toUpperCase()}` : ""}</span></div>
       <div class="position-size"><strong>${integer(position.quantity)}</strong><span>contracts</span></div>
       <div class="position-pnl ${pnl != null && pnl < 0 ? "is-negative" : ""}">${pnl == null ? "--" : signed(pnl)}<span>${pnlPct == null ? "" : pct(pnlPct)}</span></div>
       <div class="position-action ${warning ? "is-warning" : ""}"><strong>${action}</strong><span>${escapeHtml(positionMarkMeta(position).label)}</span></div>
-      <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+      <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details">${sigil("chevron")}</button>
+      <div class="unit-bars" aria-hidden="true">
+        <div class="position-vitality unit-hp"><span style="width:${vitality.toFixed(0)}%"></span></div>
+        <div class="unit-mana"><span style="width:${mana.toFixed(0)}%"></span></div>
+      </div>
     </div>`;
   }).join("");
   root.querySelectorAll(".position-row-action").forEach((button) => {
@@ -2929,9 +3039,8 @@ function executionNotice(submission, isAdmin) {
 function submissionDetailHtml(submission, isAdmin) {
   const note = executionNotice(submission, isAdmin);
   if (!note) return "";
-  const tone =
-    submission?.allowed && isAdmin ? "var(--teal)" : "var(--text-muted)";
-  return `<p style="font-family:var(--font-data);font-size:.72rem;color:${tone};margin-top:12px;">${escapeHtml(note)}</p>`;
+  const toneClass = submission?.allowed && isAdmin ? "is-ready" : "";
+  return `<p class="writ-note ${toneClass}">${escapeHtml(note)}</p>`;
 }
 
 function openModal(title, bodyHtml, executeEnabled, orderData, options = {}) {
@@ -3052,7 +3161,7 @@ async function handlePreview(
 ) {
   openModal(
     "Requesting Preview…",
-    `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`,
+    `<div class="writ-status">Fetching Tradier preview…</div>`,
     false,
     null,
   );
@@ -3103,7 +3212,7 @@ async function handlePreview(
     const warningHtml = (elig.warnings || [])
       .map(
         (w) =>
-          `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`,
+          `<div class="writ-warning">⚠ ${w}</div>`,
       )
       .join("");
 
@@ -3142,7 +3251,7 @@ async function handlePreview(
   } catch (err) {
     openModal(
       "Preview Failed",
-      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${escapeHtml(err.message || err)}</p>`,
+      `<p class="writ-error">${escapeHtml(err.message || err)}</p>`,
       false,
       null,
       { executeLabel: "Execute Trade" },
@@ -3181,7 +3290,7 @@ async function handleClosePosition(contractSymbol, qty) {
   const msg = document.getElementById("modal-message");
   openModal(
     "Closing Position…",
-    `<div style="padding:24px;text-align:center;font-family:var(--font-data);font-size:.8rem;color:var(--text-muted)">Fetching Tradier preview…</div>`,
+    `<div class="writ-status">Fetching Tradier preview…</div>`,
     false,
     null,
   );
@@ -3226,7 +3335,7 @@ async function handleClosePosition(contractSymbol, qty) {
     const warningHtml = (elig.warnings || [])
       .map(
         (w) =>
-          `<div style="font-family:var(--font-data);font-size:.7rem;color:var(--amber);margin-top:4px;">⚠ ${w}</div>`,
+          `<div class="writ-warning">⚠ ${w}</div>`,
       )
       .join("");
 
@@ -3262,7 +3371,7 @@ async function handleClosePosition(contractSymbol, qty) {
   } catch (err) {
     openModal(
       "Preview Failed",
-      `<p style="font-family:var(--font-data);font-size:.8rem;color:var(--crimson);padding:16px">${escapeHtml(err.message || err)}</p>`,
+      `<p class="writ-error">${escapeHtml(err.message || err)}</p>`,
       false,
       null,
       { executeLabel: "Close Position" },

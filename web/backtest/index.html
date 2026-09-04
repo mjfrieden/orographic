@@ -7,13 +7,18 @@
     <meta name="description" content="A reproducible research environment for Orographic strategy validation." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0,0" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&amp;family=Cormorant+Garamond:wght@500;600;700&amp;family=Marcellus+SC&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/orographic-mark-32.png" />
-    <link rel="stylesheet" href="/backtest/backtest.css?v=20260811a" />
+    <link rel="stylesheet" href="/sigils.css?v=20260904a" />
+    <link rel="stylesheet" href="/backtest/backtest.css?v=20260904b" />
+    <link rel="stylesheet" href="/backtest/arena-theme.css?v=20260904t" />
+    <link rel="stylesheet" href="/harbor-scene.css?v=20260904c" />
     <link rel="stylesheet" href="/backtest/shared-mart.css" />
   </head>
-  <body>
+  <body class="lab-page">
+    <div class="scene-bloom scene-bloom-left" aria-hidden="true"></div>
+    <div class="scene-bloom scene-bloom-right" aria-hidden="true"></div>
+    <div class="noise" aria-hidden="true"></div>
     <header class="lab-topbar">
       <a class="brand" href="/"><img src="/assets/orographic-mark.png" alt="" /><span>Orographic</span></a>
       <nav aria-label="Primary navigation">
@@ -21,15 +26,15 @@
         <a class="is-active" href="/backtest/">Backtest lab</a>
         <a href="/admin/">Audit trail</a>
       </nav>
-      <div class="environment"><span></span>Research environment</div>
+      <div class="environment"><span></span>Research dungeon</div>
     </header>
 
     <main class="lab-shell">
       <aside class="control-rail" aria-labelledby="experiment-title">
         <div class="rail-heading">
-          <p class="eyebrow">Experiment control</p>
-          <h1 id="experiment-title">Design a run</h1>
-          <p>Generate a reproducible engine command and manifest. Completed artifacts appear in the analysis center.</p>
+          <p class="eyebrow">Shrine controls</p>
+          <h1 id="experiment-title">Design a delve</h1>
+          <p>Generate a reproducible engine command and manifest. Completed artifacts appear in the research dungeon.</p>
         </div>
 
         <form id="run-form">
@@ -58,8 +63,8 @@
           <label class="check-row"><input id="run-strict" type="checkbox" checked /><span><strong>Strict real-chain data</strong><small style="position:static">Skip observations without historical quotes</small></span></label>
           <label>Minimum real coverage<input id="run-coverage" type="range" min="0" max="100" step="5" value="90" /><output id="run-coverage-value">90%</output></label>
 
-          <button id="prepare-run" class="primary-button" type="submit"><span class="material-symbols-outlined">terminal</span>Prepare local run</button>
-          <button id="export-manifest" class="secondary-button" type="button"><span class="material-symbols-outlined">download</span>Export manifest</button>
+          <button id="prepare-run" class="primary-button" type="submit"><span class="sigil sigil-terminal" aria-hidden="true"></span>Prepare local run</button>
+          <button id="export-manifest" class="secondary-button" type="button"><span class="sigil sigil-download" aria-hidden="true"></span>Export manifest</button>
         </form>
 
         <section class="command-card" aria-labelledby="command-title">
@@ -72,7 +77,7 @@
       <section class="analysis-center">
         <header class="analysis-heading">
           <div>
-            <p class="eyebrow">Strategy data center</p>
+            <p class="eyebrow">Research dungeon</p>
             <h2>Performance under the microscope</h2>
             <p id="artifact-meta">Loading validation artifacts…</p>
           </div>
@@ -82,7 +87,7 @@
           </div>
         </header>
 
-        <section id="quality-banner" class="quality-banner" aria-live="polite"><span class="material-symbols-outlined">verified</span><div><strong>Checking research integrity</strong><p>Validating quote lineage and coverage policy.</p></div></section>
+        <section id="quality-banner" class="quality-banner" aria-live="polite"><span class="sigil sigil-check" aria-hidden="true"></span><div><strong>Checking research integrity</strong><p>Validating quote lineage and coverage policy.</p></div></section>
 
         <section class="metric-grid" aria-label="Key performance indicators">
           <article><span>Net return</span><strong id="metric-return">—</strong><small id="metric-return-note">on deployed capital</small></article>
@@ -93,28 +98,28 @@
         </section>
 
         <section class="chart-panel panel">
-          <div class="panel-heading"><div><p class="eyebrow">Capital path</p><h3>Cumulative executable P&amp;L</h3></div><div class="chart-legend"><span></span>Selected result</div></div>
+          <div class="panel-heading"><div><p class="eyebrow">Map parchment</p><h3>Cumulative executable P&amp;L</h3></div><div class="chart-legend"><span></span>Selected result</div></div>
           <div class="canvas-wrap"><canvas id="equity-chart" height="290" aria-label="Cumulative profit and loss chart"></canvas></div>
         </section>
 
         <div class="two-column">
           <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">Model comparison</p><h3>Strategy variants</h3></div><small>Same validation window</small></div>
+            <div class="panel-heading"><div><p class="eyebrow">Rival builds</p><h3>Strategy variants</h3></div><small>Same validation window</small></div>
             <div id="variant-list" class="variant-list"></div>
           </section>
           <section class="panel">
-            <div class="panel-heading"><div><p class="eyebrow">Data integrity</p><h3>Evidence coverage</h3></div><small id="coverage-gate">—</small></div>
+            <div class="panel-heading"><div><p class="eyebrow">Shrine seals</p><h3>Evidence coverage</h3></div><small id="coverage-gate">—</small></div>
             <div id="coverage-grid" class="coverage-grid"></div>
-            <div class="friction-note"><span class="material-symbols-outlined">shield_lock</span><p><strong>Executable pricing</strong> Results use ask-side entry and bid-side exit with explicit slippage and liquidity constraints.</p></div>
+            <div class="friction-note"><span class="sigil sigil-lock" aria-hidden="true"></span><p><strong>Executable pricing</strong> Results use ask-side entry and bid-side exit with explicit slippage and liquidity constraints.</p></div>
           </section>
         </div>
 
         <section class="panel mart-research-panel" aria-labelledby="mart-research-title">
           <div class="panel-heading">
-            <div><p class="eyebrow">Shared research data</p><h3 id="mart-research-title">Cirrus + Orographic evidence</h3></div>
+            <div><p class="eyebrow">Reliquary</p><h3 id="mart-research-title">Cirrus + Orographic evidence</h3></div>
             <span id="mart-research-status" class="mart-status-pill">Checking</span>
           </div>
-          <p class="mart-authority"><span class="material-symbols-outlined" aria-hidden="true">science</span><span><strong>Research only.</strong> This mart can support backtests and shadow evaluation; it has no live scoring, sizing, council, or order-routing authority.</span></p>
+          <p class="mart-authority"><span class="sigil sigil-flask" aria-hidden="true"></span><span><strong>Research only.</strong> This mart can support backtests and shadow evaluation; it has no live scoring, sizing, council, or order-routing authority.</span></p>
           <div id="mart-research-summary" class="mart-status-grid" aria-live="polite">
             <article><span>Loading</span><strong>Shared evidence…</strong><small>Validating the pinned mart</small></article>
           </div>
@@ -126,7 +131,7 @@
 
         <section class="panel trade-panel">
           <div class="panel-heading trade-heading">
-            <div><p class="eyebrow">Observation ledger</p><h3>Trade-level evidence</h3></div>
+            <div><p class="eyebrow">Quest receipts</p><h3>Trade-level evidence</h3></div>
             <div class="trade-filters">
               <input id="trade-search" type="search" placeholder="Search symbol" aria-label="Search trades by symbol" />
               <select id="trade-side" aria-label="Filter by side"><option value="all">All sides</option><option value="call">Calls</option><option value="put">Puts</option></select>
@@ -141,6 +146,6 @@
         </section>
       </section>
     </main>
-    <script type="module" src="/backtest/backtest.js?v=20260811a"></script>
+    <script type="module" src="/backtest/backtest.js?v=20260904c"></script>
   </body>
 </html>
