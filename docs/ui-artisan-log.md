@@ -4,7 +4,7 @@ Newest cycle first. Each run appends what shipped, which surfaces changed, and w
 
 ## Cycle 16 — 2026-09-04 — Leather-bound Signal & Book
 
-- Council Quest and Party Ledger sit in separate stone plates with gold corner ticks instead of one glass SaaS card.
+- Council Quest and Party Ledger sit in separate stone plates with gold corner ticks instead of one glass SaaS card. 720px stacks them with the same gap.
 - Day P&L is a character-plate well. Party/Quest tabs use Marcellus. Sync-line margin and positions-toolbar flex contracts stay.
 
 Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
