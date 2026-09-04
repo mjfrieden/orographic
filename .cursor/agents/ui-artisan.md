@@ -109,6 +109,7 @@ Audit juice shipped:
 76. Research dungeon integrity banner closes with gold filigree. **Shipped in cycle 76.**
 77. Research dungeon Engine command plate closes with gold filigree. **Shipped in cycle 77.**
 78. Research dungeon Rival builds rows close with gold filigree. **Shipped in cycle 78.**
+79. Research dungeon map parchment plate closes with gold filigree. **Shipped in cycle 79.**
 
 ## Done when
 

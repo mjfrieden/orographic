@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 79 — 2026-09-04 — Dungeon map-parchment plate filigree
+
+- Research dungeon Cumulative executable P&L map parchment closes with gold L-brackets on all four corners, matching Reliquary wells. `#equity-chart`, chart math, compass rose, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 78 — 2026-09-04 — Dungeon variant-row filigree
 
 - Research dungeon Rival builds rows close with gold L-brackets on all four corners, matching Reliquary and coverage wells. `#variant-list`, selected gold rail, variant copy, and dungeon nav at 820px stay.

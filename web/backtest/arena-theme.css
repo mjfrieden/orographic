@@ -273,6 +273,34 @@
   border-bottom-color: rgba(232, 197, 109, 0.22);
 }
 
+.lab-page .chart-panel {
+  position: relative;
+  border-color: rgba(232, 197, 109, 0.38);
+}
+
+.lab-page .chart-panel::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.65;
+  background:
+    linear-gradient(#e8c56d, #e8c56d) top left / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top left / 1.5px 8px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top right / 1.5px 8px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom left / 1.5px 8px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 8px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom right / 1.5px 8px no-repeat;
+}
+
+.lab-page .chart-panel > * {
+  position: relative;
+  z-index: 2;
+}
+
 .canvas-wrap {
   position: relative;
 }
