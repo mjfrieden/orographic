@@ -72,6 +72,7 @@ Audit juice shipped:
 39. Legendary foil sheen confined to ticker art. **Shipped in cycle 39.**
 40. Research dungeon body type at the source stylesheet. **Shipped in cycle 40.**
 41. Legendary-card remaining microtype as Harbor. **Shipped in cycle 41.**
+42. Harbor Gate and Master Harbor kickers as Marcellus. **Shipped in cycle 42.**
 
 ## Done when
 

@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 42 — 2026-09-04 — Harbor Gate and Master Harbor kickers
+
+- Harbor Gate “Harbor Gate” eyebrow and Master Harbor “Master Harbor” / Auction House / Map Parchment / Harbor Ledger kickers use Marcellus instead of Inter. Login form, admin fetch URLs, and snapshot math stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 41 — 2026-09-04 — Legendary card microtype
 
 - Why-this-signal labels, Contracts kicker, preview-safety note, and candidate chips use Marcellus / Cormorant instead of 8–10px generic type. Contract symbols, money, and Tradier hooks stay literal.
