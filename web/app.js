@@ -736,6 +736,25 @@ function renderRibbon() {
           ? " is-sandbox"
           : " is-offline");
   }
+
+  const realmEl = document.getElementById("realm-broker-status");
+  const realmLabel = document.getElementById("realm-broker-label");
+  if (realmEl && realmLabel) {
+    const m = BROKER_STATE.mode || "offline";
+    const configured = Boolean(BROKER_STATE.configured);
+    realmEl.className =
+      "realm-status" +
+      (m === "live" && configured
+        ? " is-live"
+        : configured
+          ? " is-sandbox"
+          : " is-offline");
+    realmLabel.textContent = configured
+      ? m === "live"
+        ? "Connected to Tradier Brokerage"
+        : "Tradier sandbox realm"
+      : "Tradier realm offline";
+  }
 }
 
 function renderPositions() {

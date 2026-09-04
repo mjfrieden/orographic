@@ -58,6 +58,7 @@ Audit juice shipped:
 25. Harbor Gate parchment fields, skip link, and denied toast. **Shipped in cycle 25.**
 26. Parchment order rows and sealed-writ status copy. **Shipped in cycle 26.**
 27. Master Harbor Cinzel figures, parchment empty plates, and Harbor ledger type. **Shipped in cycle 27.**
+28. Realm bar matches character-plate Tradier connectivity. **Shipped in cycle 28.**
 
 ## Done when
 

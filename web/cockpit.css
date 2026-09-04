@@ -2134,10 +2134,28 @@ body.cockpit-page {
   );
   box-shadow: 0 0 10px rgba(232, 197, 109, 0.35);
 }
-.cockpit-footer > span:first-child {
+.cockpit-footer > span:first-child,
+.cockpit-footer .realm-status {
   display: inline-flex;
   align-items: center;
   gap: 8px;
+}
+.cockpit-footer .realm-status.is-offline .status-dot {
+  background: var(--cockpit-muted, rgba(244, 221, 164, 0.55));
+  box-shadow: none;
+  opacity: 0.55;
+}
+.cockpit-footer .realm-status.is-sandbox .status-dot {
+  background: var(--cockpit-teal, #4ecdc4);
+  box-shadow:
+    0 0 8px var(--cockpit-teal, #4ecdc4),
+    0 0 0 3px rgba(78, 205, 196, 0.16);
+}
+.cockpit-footer .realm-status.is-live .status-dot {
+  background: var(--cockpit-amber, #f09c5b);
+  box-shadow:
+    0 0 8px var(--cockpit-amber, #f09c5b),
+    0 0 0 3px rgba(240, 156, 91, 0.16);
 }
 .cockpit-footer a {
   color: var(--cockpit-gold);

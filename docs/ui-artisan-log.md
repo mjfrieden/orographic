@@ -2,6 +2,13 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 28 — 2026-09-04 — Realm bar connectivity
+
+- The realm bar hearth gem and Tradier copy follow the same live / sandbox / offline state as the character-plate ribbon, so local preview no longer claims a live connection.
+- Preview-before-execute note, Audit trail gate, ribbon ids, and `/api/tradier/account` stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 27 — 2026-09-04 — Master Harbor figures
 
 - Auction-house inventory figures and trend stats use Cinzel tabular instead of Inter. Empty trend/loading plates are stone parchment, not dashed SaaS.
