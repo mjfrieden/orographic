@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 38 — 2026-09-04 — Metric helper parchment
+
+- HOLD Live candidates / Regime helper lines and the legendary-card estimated-debit footnote use Cormorant parchment instead of generic 9–16px small type. Figures and money stay Cinzel and literal.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 37 — 2026-09-04 — Dungeon chart parchment
 
 - Research dungeon equity-chart axis marks use Cinzel gold instead of 10px Inter grey. P&L values, week labels, and command math stay literal.

@@ -68,6 +68,7 @@ Audit juice shipped:
 35. Party and Quest log count seals in Cinzel. **Shipped in cycle 35.**
 36. HOLD funnel stage kickers at readable Marcellus. **Shipped in cycle 36.**
 37. Research dungeon equity-chart labels in Cinzel. **Shipped in cycle 37.**
+38. HOLD metric helper copy as parchment. **Shipped in cycle 38.**
 
 ## Done when
 
