@@ -260,9 +260,98 @@ body.cockpit-page {
   min-width: 0;
   margin-top: 4px;
   cursor: default;
+  border-width: 2px;
+  outline: 1px solid rgba(232, 197, 109, 0.16);
+  outline-offset: -8px;
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 1px rgba(232, 197, 109, 0.28),
+    0 0 32px rgba(232, 197, 109, 0.12);
+}
+.cockpit-signal-card.trade-card.is-call {
+  outline-color: rgba(78, 205, 196, 0.22);
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 1px rgba(78, 205, 196, 0.38),
+    0 0 36px rgba(78, 205, 196, 0.16);
+}
+.cockpit-signal-card.trade-card.is-put {
+  outline-color: rgba(240, 156, 91, 0.22);
+  box-shadow:
+    var(--shadow-card),
+    0 0 0 1px rgba(240, 156, 91, 0.38),
+    0 0 36px rgba(240, 156, 91, 0.16);
 }
 .cockpit-signal-card.trade-card:hover {
   transform: translateY(-2px);
+}
+.card-foil {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  z-index: 3;
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(255, 255, 255, 0.16) 46%,
+    rgba(232, 197, 109, 0.18) 50%,
+    transparent 64%
+  );
+  background-size: 240% 240%;
+  animation: foil-sheen 8s ease-in-out infinite;
+  mix-blend-mode: screen;
+  opacity: 0.5;
+}
+.cockpit-signal-card.is-call .card-foil {
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(78, 205, 196, 0.22) 46%,
+    rgba(255, 255, 255, 0.16) 52%,
+    transparent 64%
+  );
+}
+.cockpit-signal-card.is-put .card-foil {
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(240, 156, 91, 0.24) 46%,
+    rgba(255, 255, 255, 0.14) 52%,
+    transparent 64%
+  );
+}
+.cockpit-signal-card.is-hold .card-foil {
+  opacity: 0.22;
+  animation-duration: 14s;
+}
+@keyframes foil-sheen {
+  0% {
+    background-position: 130% -10%;
+  }
+  100% {
+    background-position: -40% 120%;
+  }
+}
+.card-rarity-gem {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  z-index: 4;
+  transform: rotate(45deg);
+  background: linear-gradient(135deg, #f5d98a, #c9a227 55%, #8a6a14);
+  border: 1px solid rgba(255, 236, 180, 0.7);
+  box-shadow:
+    0 0 14px rgba(232, 197, 109, 0.55),
+    inset 0 0 6px rgba(255, 255, 255, 0.35);
+}
+.card-rarity-gem.is-sealed {
+  background: linear-gradient(135deg, #3a3a52, #16161f);
+  border-color: rgba(232, 197, 109, 0.28);
+  box-shadow: none;
+  opacity: 0.85;
 }
 .cockpit-signal-card .card-body {
   padding: 8px 18px 18px;
@@ -571,11 +660,22 @@ body.cockpit-page {
   align-items: stretch;
   margin-top: 12px;
 }
-.signal-quantity-control {
-  border: 1px solid var(--cockpit-border);
-  border-radius: 8px;
+.signal-quantity-control,
+.signal-quantity-control.stone-tablet {
+  border: 1px solid rgba(232, 197, 109, 0.38);
+  border-radius: 6px;
   padding: 8px 10px;
-  background: rgba(4, 9, 26, 0.35);
+  background:
+    linear-gradient(180deg, rgba(58, 48, 32, 0.92) 0%, rgba(18, 16, 12, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(245, 217, 138, 0.22),
+    inset 0 -8px 16px rgba(0, 0, 0, 0.35),
+    0 8px 18px rgba(0, 0, 0, 0.35);
+}
+.signal-quantity-control.stone-tablet > span {
+  color: var(--cockpit-gold);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+  letter-spacing: 0.14em;
 }
 .quantity-stepper {
   display: grid;
@@ -585,8 +685,8 @@ body.cockpit-page {
 .quantity-stepper button,
 .quantity-stepper input {
   min-height: 28px;
-  border: 1px solid var(--cockpit-border);
-  background: var(--cockpit-surface-2);
+  border: 1px solid rgba(232, 197, 109, 0.32);
+  background: linear-gradient(180deg, #2a2418, #14110c);
   color: var(--text-data, #e8eaf0);
   text-align: center;
 }
@@ -594,6 +694,7 @@ body.cockpit-page {
   cursor: pointer;
   color: var(--cockpit-gold);
   font-size: 16px;
+  font-family: var(--font-display, "Cinzel", Georgia, serif);
 }
 .quantity-stepper button:hover,
 .quantity-stepper button:focus-visible,
@@ -606,6 +707,7 @@ body.cockpit-page {
   border-left: 0;
   border-right: 0;
   font: 600 13px/1 "Inter", sans-serif;
+  color: var(--cockpit-gold);
 }
 .quantity-stepper input::-webkit-inner-spin-button {
   appearance: none;
@@ -1627,5 +1729,9 @@ body.cockpit-page {
   .cockpit-signal-card.trade-card:hover,
   .trade-card:hover {
     transform: none;
+  }
+  .card-foil {
+    animation: none;
+    opacity: 0.18;
   }
 }

@@ -1000,6 +1000,18 @@ function noTradeFunnelHtml(payload) {
     </details>`;
 }
 
+function legendaryCardChrome({ ticker, gem, rarity, hold }) {
+  return `
+    <div class="card-foil" aria-hidden="true"></div>
+    <div class="card-art" aria-hidden="true">
+      <span class="card-art-glow"></span>
+      <span class="card-rarity-gem${hold ? " is-sealed" : ""}"></span>
+      <span class="card-symbol-giant">${ticker}</span>
+      <span class="card-gem${hold ? "" : " card-gem-direction"}">${gem}</span>
+      <span class="card-rarity">${rarity}</span>
+    </div>`;
+}
+
 function renderCockpitSignal(payload) {
   const root = document.getElementById("cockpit-signal");
   if (!root) return;
@@ -1012,13 +1024,13 @@ function renderCockpitSignal(payload) {
 
   if (!COCKPIT_SIGNALS.length) {
     root.innerHTML = `
-      <div class="cockpit-signal-card trade-card is-hold">
-        <div class="card-art" aria-hidden="true">
-          <span class="card-art-glow"></span>
-          <span class="card-symbol-giant">HOLD</span>
-          <span class="card-gem">—</span>
-          <span class="card-rarity">Quest quiet</span>
-        </div>
+      <div class="cockpit-signal-card trade-card is-hold is-legendary">
+        ${legendaryCardChrome({
+          ticker: "HOLD",
+          gem: "—",
+          rarity: "No legendary drawn",
+          hold: true,
+        })}
         <div class="card-body">
           <span class="signal-state is-hold">Hold</span>
           <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
@@ -1059,13 +1071,13 @@ function renderCockpitSignal(payload) {
   const tone = toneClass(optionType);
   const gemLabel = optionType === "put" ? "PUT" : optionType === "call" ? "CALL" : "LIVE";
   root.innerHTML = `
-    <div class="cockpit-signal-card trade-card ${tone}" data-ask="${ask}">
-      <div class="card-art" aria-hidden="true">
-        <span class="card-art-glow"></span>
-        <span class="card-symbol-giant">${escapeHtml(candidate.symbol || "—")}</span>
-        <span class="card-gem card-gem-direction">${gemLabel}</span>
-        <span class="card-rarity">Legendary signal</span>
-      </div>
+    <div class="cockpit-signal-card trade-card is-legendary ${tone}" data-ask="${ask}">
+      ${legendaryCardChrome({
+        ticker: escapeHtml(candidate.symbol || "—"),
+        gem: gemLabel,
+        rarity: "Legendary signal",
+        hold: false,
+      })}
       <div class="card-body">
       <span class="signal-state ${stateClass}">${stateLabel}</span>
       <p class="signal-lead">Model edge is positive after costs and the contract cleared Council risk controls.</p>
@@ -1098,7 +1110,7 @@ function renderCockpitSignal(payload) {
         </div>
       </details>
       <div class="signal-order-row">
-        <div class="signal-quantity-control">
+        <div class="signal-quantity-control stone-tablet">
           <span>Contracts</span>
           <div class="quantity-stepper">
             <button class="card-qty-step" type="button" data-step="-1" aria-label="Decrease contracts">−</button>

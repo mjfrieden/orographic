@@ -28,7 +28,7 @@ Run **every other day**. Each run ships **one focused visual PR**, then stops.
 ## Backlog
 
 1. Unify the cockpit with the Harbor fantasy system (restore atmosphere, legendary signal card, party-frame book). **Shipped in cycle 1.**
-2. Legendary signal card juice: rarity gem, call/put foil, empty-board “quest quiet” state, quantity stepper as a stone tablet.
+2. Legendary signal card juice: rarity gem, call/put foil, empty-board “quest quiet” state, quantity stepper as a stone tablet. **Shipped in cycle 2.**
 3. Party-frame positions: HP-like P&L bars, WoW-style unit frames, orders tab as a quest log.
 4. Evidence ribbon as a talent tree / shrine row; research drawer as a spellbook.
 5. Login Harbor Gate: crest animation, field chrome, error toast, mobile alignment.
