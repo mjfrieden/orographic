@@ -103,6 +103,7 @@ Audit juice shipped:
 70. Harbor Gate Enter Arena closes with gold filigree. **Shipped in cycle 70.**
 71. Research dungeon Copy and Export gates close with gold filigree. **Shipped in cycle 71.**
 72. Research dungeon Prepare local run closes with gold filigree. **Shipped in cycle 72.**
+73. Research dungeon KPI wells close with gold filigree. **Shipped in cycle 73.**
 
 ## Done when
 

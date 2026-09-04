@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 73 — 2026-09-04 — Dungeon KPI-well filigree
+
+- Research dungeon KPI wells close with gold L-brackets on all four corners, matching Reliquary evidence filigree. Metric ids, P&L copy, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 72 — 2026-09-04 — Dungeon Prepare local run filigree
 
 - The research dungeon Prepare local run gold gate closes with four-corner L-brackets: dark ticks on the live gold fill, matching Harbor Gate Enter Arena. `#prepare-run`, form submit, engine command copy, and dungeon nav at 820px stay.
