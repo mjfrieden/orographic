@@ -1012,15 +1012,25 @@ function renderCockpitSignal(payload) {
 
   if (!COCKPIT_SIGNALS.length) {
     root.innerHTML = `
-      <span class="signal-state is-hold">Hold</span>
-      <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
-      <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
-      ${noTradeFunnelHtml(payload)}
-      <div class="signal-metrics">
-        <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
-        <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
-      </div>
-      <button class="preview-order-button" type="button" disabled>No order to preview</button>`;
+      <div class="cockpit-signal-card trade-card is-hold">
+        <div class="card-art" aria-hidden="true">
+          <span class="card-art-glow"></span>
+          <span class="card-symbol-giant">HOLD</span>
+          <span class="card-gem">—</span>
+          <span class="card-rarity">Quest quiet</span>
+        </div>
+        <div class="card-body">
+          <span class="signal-state is-hold">Hold</span>
+          <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
+          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
+          ${noTradeFunnelHtml(payload)}
+          <div class="signal-metrics">
+            <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
+            <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
+          </div>
+          <button class="preview-order-button" type="button" disabled>No order to preview</button>
+        </div>
+      </div>`;
     setText("signal-index", "0 of 0");
     renderCockpitSignalSelector();
     syncCockpitSignalControls();
@@ -1045,8 +1055,18 @@ function renderCockpitSignal(payload) {
   const riskFlags = (candidate.council_risk_flags || [])
     .map((flag) => String(flag).replaceAll("_", " "))
     .slice(0, 3);
+  const optionType = String(candidate.option_type || "").toLowerCase();
+  const tone = toneClass(optionType);
+  const gemLabel = optionType === "put" ? "PUT" : optionType === "call" ? "CALL" : "LIVE";
   root.innerHTML = `
-    <div class="cockpit-signal-card trade-card" data-ask="${ask}">
+    <div class="cockpit-signal-card trade-card ${tone}" data-ask="${ask}">
+      <div class="card-art" aria-hidden="true">
+        <span class="card-art-glow"></span>
+        <span class="card-symbol-giant">${escapeHtml(candidate.symbol || "—")}</span>
+        <span class="card-gem card-gem-direction">${gemLabel}</span>
+        <span class="card-rarity">Legendary signal</span>
+      </div>
+      <div class="card-body">
       <span class="signal-state ${stateClass}">${stateLabel}</span>
       <p class="signal-lead">Model edge is positive after costs and the contract cleared Council risk controls.</p>
       <div class="signal-contract">
@@ -1097,6 +1117,7 @@ function renderCockpitSignal(payload) {
         </button>
       </div>
       <p class="signal-safety"><span class="material-symbols-outlined" aria-hidden="true">lock</span>Preview first. Broker execution remains permissioned and separately confirmed.</p>
+      </div>
     </div>`;
   setText("signal-index", `${COCKPIT_SIGNAL_INDEX + 1} of ${COCKPIT_SIGNALS.length}`);
   bindCardButtons();
@@ -1274,12 +1295,14 @@ function renderCockpitPositions() {
     const advice = POSITION_ADVICE.get(symbol);
     const action = advice?.action === "sell" ? "Reduce risk" : pnl != null && pnl > 0 ? "Monitor gain" : "Monitor";
     const warning = advice?.action === "sell" || (pnl != null && pnl < 0);
-    return `<div class="cockpit-position-row">
+    const vitality = Math.max(6, Math.min(100, 50 + (Number(pnlPct) || 0) * 100));
+    return `<div class="cockpit-position-row${pnl != null && pnl < 0 ? " is-negative" : ""}">
       <div class="position-name"><strong>${escapeHtml(symbol)}</strong><span>${escapeHtml(optionContractMeta(symbol).root)}</span></div>
       <div class="position-size"><strong>${integer(position.quantity)}</strong><span>contracts</span></div>
       <div class="position-pnl ${pnl != null && pnl < 0 ? "is-negative" : ""}">${pnl == null ? "--" : signed(pnl)}<span>${pnlPct == null ? "" : pct(pnlPct)}</span></div>
       <div class="position-action ${warning ? "is-warning" : ""}"><strong>${action}</strong><span>${escapeHtml(positionMarkMeta(position).label)}</span></div>
       <button class="position-row-action" type="button" aria-label="View ${escapeHtml(symbol)} details"><span class="material-symbols-outlined" aria-hidden="true">chevron_right</span></button>
+      <div class="position-vitality" aria-hidden="true"><span style="width:${vitality.toFixed(0)}%"></span></div>
     </div>`;
   }).join("");
   root.querySelectorAll(".position-row-action").forEach((button) => {
