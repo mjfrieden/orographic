@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 71 — 2026-09-04 — Dungeon Copy and Export gate filigree
+
+- Research dungeon Copy and Export manifest gold gates close with four-corner L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover fill. `#copy-command`, `#export-manifest`, engine command copy, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 70 — 2026-09-04 — Harbor Gate Enter Arena filigree
 
 - The Harbor Gate Enter Arena gold gate closes with four-corner L-brackets: dark ticks on the live gold fill, matching sealed-writ Execute. `#login-form`, field ids, and the `/api/login` payload stay.
