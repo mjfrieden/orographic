@@ -113,6 +113,7 @@ Audit juice shipped:
 80. Research dungeon Show more gate closes with gold filigree. **Shipped in cycle 80.**
 81. Research dungeon CALL/PUT tags become Harbor gold seals. **Shipped in cycle 81.**
 82. Research dungeon Executable pricing note closes with gold filigree. **Shipped in cycle 82.**
+83. Research dungeon quest-receipt filters close with gold filigree. **Shipped in cycle 83.**
 
 ## Done when
 
