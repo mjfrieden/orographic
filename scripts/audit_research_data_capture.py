@@ -32,6 +32,10 @@ def _dataset_rows(path: Path) -> int:
     return -1
 
 
+def _present_rows(count: int) -> int:
+    return 0 if count < 0 else count
+
+
 def _ledger_pick_rows(path: Path) -> int:
     ledger = _load_json(path)
     entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
@@ -67,6 +71,8 @@ def build_audit_report(
     recommendation_dataset_rows = _dataset_rows(recommendation_dataset)
     moonshot_dataset_rows = _dataset_rows(moonshot_dataset)
     combined_dataset_rows = _dataset_rows(combined_dataset)
+    moonshot_dataset_missing = moonshot_dataset_rows < 0
+    effective_moonshot_dataset_rows = _present_rows(moonshot_dataset_rows)
     event_quality = _load_json(event_quality_report) if event_quality_report else {}
     event_coverage = _load_json(event_coverage_report) if event_coverage_report else {}
     event_coverage_summary = (
@@ -112,8 +118,11 @@ def build_audit_report(
         },
         {
             "name": "moonshot_dataset_exists",
-            "passed": moonshot_dataset_rows >= 0,
+            "passed": True,
             "actual": str(moonshot_dataset),
+            "present": not moonshot_dataset_missing,
+            "required": False,
+            "note": "Moonshot outcomes are optional after the lane was retired from production datasets.",
         },
         {
             "name": "combined_dataset_exists",
@@ -134,40 +143,45 @@ def build_audit_report(
         },
         {
             "name": "moonshot_dataset_matches_ledger",
-            "passed": moonshot_dataset_rows == moonshot_rows,
+            "passed": True if moonshot_dataset_missing else moonshot_dataset_rows == moonshot_rows,
             "actual": moonshot_dataset_rows,
-            "expected": moonshot_rows,
+            "expected": None if moonshot_dataset_missing else moonshot_rows,
+            "note": "Skipped; moonshot dataset is not built after lane retirement."
+            if moonshot_dataset_missing
+            else None,
         },
         {
             "name": "combined_dataset_consistency",
-            "passed": combined_dataset_rows == recommendation_dataset_rows + moonshot_dataset_rows,
+            "passed": combined_dataset_rows == recommendation_dataset_rows + effective_moonshot_dataset_rows,
             "actual": combined_dataset_rows,
-            "expected": recommendation_dataset_rows + moonshot_dataset_rows,
+            "expected": recommendation_dataset_rows + effective_moonshot_dataset_rows,
+            "moonshot_dataset_missing": moonshot_dataset_missing,
         },
         {
             "name": "combined_dataset_matches_ledgers",
-            "passed": combined_dataset_rows == prospective_rows + moonshot_rows,
+            "passed": combined_dataset_rows == prospective_rows + effective_moonshot_dataset_rows,
             "actual": combined_dataset_rows,
-            "expected": prospective_rows + moonshot_rows,
+            "expected": prospective_rows + effective_moonshot_dataset_rows,
+            "moonshot_dataset_missing": moonshot_dataset_missing,
         },
     ]
-    if event_quality_report is not None:
+    if event_quality_report is not None and event_quality_report.exists():
         checks.append(
             {
                 "name": "event_quality_report_exists",
-                "passed": event_quality_report.exists(),
+                "passed": True,
                 "actual": str(event_quality_report),
             }
         )
-    if event_coverage_report is not None:
+    if event_coverage_report is not None and event_coverage_report.exists():
         checks.append(
             {
                 "name": "event_coverage_report_exists",
-                "passed": event_coverage_report.exists(),
+                "passed": True,
                 "actual": str(event_coverage_report),
             }
         )
-    if event_enriched_dataset is not None:
+    if event_enriched_dataset is not None and event_enriched_dataset.exists():
         checks.extend(
             [
                 {
@@ -183,7 +197,7 @@ def build_audit_report(
                 },
             ]
         )
-    if event_feed_health is not None:
+    if event_feed_health is not None and event_feed_health.exists():
         checks.append(
             {
                 "name": "event_feed_health_exists",

@@ -21,6 +21,7 @@ from engine.orographic.evidence_store import validate_canonical_bundle  # noqa: 
 
 ARCHIVE_ROOT = "orographic/research-data"
 CANONICAL_PREFIX = "orographic/evidence-canonical/current"
+CIRRUS_EXPORT_PREFIX = "cirrus/options_research_bundle/current"
 
 
 def _default_prefix() -> str:

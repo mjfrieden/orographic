@@ -87,7 +87,10 @@ class SharedResearchMartTests(unittest.TestCase):
                     "contract_symbol": "BBB260828C00100000", "option_type": "call",
                     "expiry": "2026-08-28", "strike": 100.0, "lane": "shadow",
                     "emission_quote": {"bid": 1.0, "ask": 1.2, "mid": 1.1,
+                                       "spread_pct": 0.18, "open_interest": 400,
                                        "captured_at_utc": "2026-08-21T19:00:00+00:00"},
+                    "scores": {"forge_score": 0.81, "final_candidate_score": 0.81},
+                    "risk_features": {"delta": 0.41, "implied_volatility": 0.22},
                     "outcomes": {"status": "settled"},
                 }],
             }]}), encoding="utf-8")
@@ -133,10 +136,18 @@ class SharedResearchMartTests(unittest.TestCase):
             self.assertEqual(manifest["artifacts"]["model_runs"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["recommendations"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["execution_outcomes"]["rows"], 2)
+            self.assertEqual(manifest["artifacts"]["feature_snapshots"]["rows"], 2)
             self.assertEqual(manifest["mart_id"], repeated["mart_id"])
             outcomes = pd.read_parquet(mart / "execution_outcomes.parquet")
             self.assertTrue(outcomes["is_executable"].all())
             self.assertEqual(set(outcomes["source_system"]), {"cirrus", "orographic"})
+            features = pd.read_parquet(mart / "feature_snapshots.parquet")
+            oro_features = features[features["source_system"] == "orographic"]
+            self.assertEqual(len(oro_features), 1)
+            payload = json.loads(str(oro_features.iloc[0]["features_json"]))
+            self.assertEqual(payload["forge_score"], 0.81)
+            self.assertEqual(payload["entry_spread_pct"], 0.18)
+            self.assertEqual(payload["option_type_is_call"], 1.0)
             validate_shared_research_mart(mart)
 
     def test_orographic_recommendations_emit_point_in_time_features(self) -> None:
