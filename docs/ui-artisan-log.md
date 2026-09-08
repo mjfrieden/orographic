@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 83 — 2026-09-06 — Dungeon quest-receipt filter filigree
+
+- Research dungeon Search symbol, All sides, and All outcomes fields close with gold L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover/focus fill. `#trade-search`, `#trade-side`, `#trade-outcome`, filter math, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids.
+
 ## Cycle 82 — 2026-09-04 — Dungeon friction-note shrine-seal filigree
 
 - Research dungeon Executable pricing note closes with gold L-brackets on all four corners, matching Reliquary wells. Pricing copy, lock sigil, coverage grid, and dungeon nav at 820px stay.
