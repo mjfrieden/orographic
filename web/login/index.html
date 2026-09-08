@@ -34,9 +34,9 @@
           <img class="portal-crest-core" src="/assets/orographic-mark.png" alt="" aria-hidden="true" />
           <span class="crest-gem"></span>
         </div>
-        <p class="eyebrow">Harbor Gate</p>
+        <p class="eyebrow">Harbor Gate · sign in</p>
         <h1>Enter Orographic</h1>
-        <p class="subhead">Present your credentials to step onto the San Diego sunset quest board.</p>
+        <p class="subhead">Sign in to the Orographic options cockpit.</p>
         <form id="login-form" class="portal-form" tabindex="-1">
           <label class="field">
             <span>Username</span>
@@ -53,10 +53,10 @@
               required
             />
           </label>
-          <button type="submit" class="primary-action">Enter Arena</button>
+          <button type="submit" class="primary-action">Sign in</button>
         </form>
         <div id="error" class="error" role="alert" aria-live="assertive" hidden></div>
-        <p class="portal-footnote muted">Access remains role-gated exactly as before. This is a visual overhaul only.</p>
+        <p class="portal-footnote muted">Access is still role-gated. Username and password are unchanged.</p>
       </section>
     </main>
     <script>
@@ -93,7 +93,7 @@
         event.preventDefault();
         clearGateSeal();
         submitButton.disabled = true;
-        submitButton.textContent = "Entering...";
+        submitButton.textContent = "Signing in…";
         const payload = {
           username: document.getElementById("username").value,
           password: document.getElementById("password").value,
@@ -121,7 +121,7 @@
           sealGate(error.message || "Login failed");
         } finally {
           submitButton.disabled = false;
-          submitButton.textContent = "Enter Arena";
+          submitButton.textContent = "Sign in";
         }
       });
     </script>

@@ -115,6 +115,7 @@ Audit juice shipped:
 82. Research dungeon Executable pricing note closes with gold filigree. **Shipped in cycle 82.**
 83. Research dungeon quest-receipt filters close with gold filigree. **Shipped in cycle 83.**
 84. HOLD “Why no trade?” funnel plate closes with gold filigree. **Shipped in cycle 84.**
+85. Harbor copy pairs flavor with function; HOLD shows came-close runners. **Shipped in cycle 85.**
 
 ## Done when
 

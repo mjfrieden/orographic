@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/styles.css?v=20260904h" />
     <link rel="stylesheet" href="/harbor-scene.css?v=20260904c" />
     <link rel="stylesheet" href="/sigils.css?v=20260904a" />
-    <link rel="stylesheet" href="/cockpit.css?v=20260908a" />
+    <link rel="stylesheet" href="/cockpit.css?v=20260908c" />
   </head>
   <body class="cockpit-page">
     <a class="skip-link" href="#signal">Skip to Signal &amp; Book</a>
@@ -53,7 +53,7 @@
         <a class="quiet-button lab-link" href="/backtest/" aria-label="Backtest Lab">
           <span class="sigil sigil-flask" aria-hidden="true"></span><span class="action-copy">Backtest Lab</span>
         </a>
-        <span class="guarded-live"><span class="sigil sigil-shield" aria-hidden="true"></span><span class="action-copy">Guarded live</span></span>
+        <span class="guarded-live" title="Preview first. Orders are not sent until you confirm." aria-label="Live trading is preview then confirm"><span class="sigil sigil-shield" aria-hidden="true"></span><span class="action-copy">Live · guarded</span></span>
         <button id="logout-btn" class="quiet-button" type="button">Log out</button>
       </div>
     </nav>
@@ -63,7 +63,7 @@
         <article class="signal-pane" aria-labelledby="signal-title">
           <span class="plate-filigree" aria-hidden="true"></span>
           <div class="pane-heading">
-            <p class="section-label">Council Quest</p>
+            <p class="section-label">Council · today’s pick</p>
             <div class="heading-row">
               <h1 id="signal-title">Today’s Best Signal</h1>
               <button id="board-refresh-btn" class="icon-button" type="button" aria-label="Refresh signal">
@@ -94,7 +94,7 @@
           <span class="plate-filigree" aria-hidden="true"></span>
           <div class="pane-heading book-heading">
             <div>
-              <p class="section-label">Party Ledger</p>
+              <p class="section-label">Book · positions</p>
               <h2 id="positions-title">Open Positions</h2>
             </div>
             <div class="book-pnl">
@@ -110,10 +110,10 @@
           </div>
           <div class="book-tabs" role="tablist" aria-label="Portfolio book view">
             <button id="book-tab-positions" class="book-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="book-positions-panel">
-              Party <span id="book-positions-count">0</span>
+              Positions <span id="book-positions-count">0</span>
             </button>
             <button id="book-tab-orders" class="book-tab" type="button" role="tab" aria-selected="false" aria-controls="book-orders-panel">
-              Quest log <span id="book-orders-count">0</span>
+              Orders <span id="book-orders-count">0</span>
             </button>
           </div>
           <section id="book-positions-panel" class="book-panel" role="tabpanel" aria-labelledby="book-tab-positions">
@@ -146,9 +146,9 @@
       <section class="evidence-ribbon talent-tree" id="research" aria-labelledby="evidence-title">
         <span class="plate-filigree" aria-hidden="true"></span>
         <div class="evidence-intro">
-          <p class="section-label">Talent Tree</p>
+          <p class="section-label">Model mix</p>
           <h2 id="evidence-title">Production v2 is the only live model path</h2>
-          <span>Scout direction → Forge rank → Council execution</span>
+          <span>Scout finds direction → Forge ranks contracts → Council approves or holds</span>
         </div>
         <div class="evidence-metric talent-node is-learned">
           <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:70%"></span></span>
@@ -167,14 +167,14 @@
           <span>Experiment lanes</span><strong>0</strong><small>Single production board</small>
         </div>
         <button id="research-drawer-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="research-drawer">
-          Open spellbook<span class="sigil sigil-book" aria-hidden="true"></span>
+          Open research details<span class="sigil sigil-book" aria-hidden="true"></span>
         </button>
       </section>
 
       <section id="research-drawer" class="research-drawer spellbook" hidden aria-labelledby="research-drawer-title">
         <header class="drawer-header">
           <div>
-            <p class="section-label">Spellbook</p>
+            <p class="section-label">Research</p>
             <h2 id="research-drawer-title">Production model and execution evidence</h2>
           </div>
           <button id="research-drawer-close" class="icon-button" type="button" aria-label="Close research details">
@@ -187,7 +187,7 @@
           <div><strong>Single production authority</strong><span id="research-claims-message">Offline evaluation informs replacement releases; it does not create runtime lanes.</span></div>
         </div>
 
-        <p class="section-label shrine-seals-kicker">Shrine seals</p>
+        <p class="section-label shrine-seals-kicker">Status</p>
         <section class="governance-overview" aria-label="Research governance overview">
           <article id="governance-capture-card" class="governance-overview-card is-hold">
             <span class="plate-filigree" aria-hidden="true"></span>
@@ -226,7 +226,7 @@
         <span class="plate-filigree" aria-hidden="true"></span>
         <span id="realm-broker-status" class="realm-status is-offline">
           <span class="status-dot" aria-hidden="true"></span>
-          <span id="realm-broker-label">Checking Tradier realm…</span>
+          <span id="realm-broker-label">Checking Tradier…</span>
         </span>
         <span>Preview before execution. Orders are not transmitted until confirmation.</span>
         <a href="/admin/">Audit trail<span class="sigil sigil-external" aria-hidden="true"></span></a>
@@ -248,7 +248,7 @@
         <span class="writ-corners" aria-hidden="true"></span>
         <div class="modal-header">
           <div class="writ-heading">
-            <p class="section-label">Sealed writ</p>
+            <p class="section-label">Order ticket</p>
             <h3 id="modal-title">Order Preview</h3>
           </div>
           <button id="modal-close-btn" class="mini-action writ-close" type="button" aria-label="Close preview"><span class="sigil sigil-close" aria-hidden="true"></span></button>
@@ -259,6 +259,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=20260904l"></script>
+    <script type="module" src="/app.js?v=20260908c"></script>
   </body>
 </html>

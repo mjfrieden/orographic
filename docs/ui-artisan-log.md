@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 85 — 2026-09-08 — Clearer Harbor copy and came-close runners
+
+- Cockpit flavor stays, function is labeled in plain English: today’s pick, positions, orders, live guarded, research details, order ticket. HOLD now lists the best options that missed a live gate from existing Council abstain data. Funnel notes, login sign-in copy, and 720px Signal & Book layout stay readable.
+
+Left alone: Scout/Forge/Council math, Tradier preview/submit, auth payload, required DOM ids.
+
 ## Cycle 84 — 2026-09-08 — HOLD funnel plate filigree
 
 - HOLD “Why no trade?” funnel plate closes with gold L-brackets on all four corners, matching the sealed writ and funnel-stage wells. Funnel copy, stage counts, `#signal`, and 720px Signal & Book layout stay.

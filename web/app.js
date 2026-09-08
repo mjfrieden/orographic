@@ -752,8 +752,8 @@ function renderRibbon() {
     realmLabel.textContent = configured
       ? m === "live"
         ? "Connected to Tradier Brokerage"
-        : "Tradier sandbox realm"
-      : "Tradier realm offline";
+        : "Tradier sandbox"
+      : "Tradier offline";
   }
 }
 
@@ -912,7 +912,7 @@ function renderOrders() {
   if (!rows.length) {
     tbody.innerHTML = `<tr><td colspan="7" class="ledger-empty">No recent orders found.</td></tr>`;
     if (log) {
-      log.innerHTML = `<li class="quest-empty">No quests in the log.</li>`;
+      log.innerHTML = `<li class="quest-empty">No recent orders.</li>`;
     }
     return;
   }
@@ -1039,10 +1039,10 @@ function noTradeFunnelHtml(payload) {
     || 0,
   );
   const stages = [
-    { label: "Universe", value: Number(summary.universe_size || 0), note: "symbols reviewed" },
-    { label: "Scout", value: Number(summary.scout_signal_count || 0), note: "live-policy signals" },
-    { label: "Forge", value: Number(summary.forge_candidate_count || 0), note: "executable contracts" },
-    { label: "Council", value: Number(councilSummary.live_count || 0), note: "live approvals" },
+    { label: "Universe", value: Number(summary.universe_size || 0), note: "symbols scanned" },
+    { label: "Scout", value: Number(summary.scout_signal_count || 0), note: "direction signals" },
+    { label: "Forge", value: Number(summary.forge_candidate_count || 0), note: "ranked contracts" },
+    { label: "Council", value: Number(councilSummary.live_count || 0), note: "approved to trade" },
   ];
   return `
     <details class="no-trade-funnel" open>
@@ -1053,7 +1053,106 @@ function noTradeFunnelHtml(payload) {
             <span>${escapeHtml(stage.label)}</span><strong>${integer(stage.value)}</strong><small>${escapeHtml(stage.note)}</small>
           </div>`).join("")}
       </div>
-      <p>${sigil("eye")}${integer(researchObservations)} research-only no-trade observations were retained separately and had no live-policy effect.</p>
+      <p>${sigil("eye")}${integer(researchObservations)} research-only observations. They did not change the live hold.</p>
+    </details>`;
+}
+
+const GATE_REASON_LABELS = {
+  entry_spread: "wide entry spread",
+  stale_last_trade: "stale last trade",
+  after_friction_edge: "after-cost edge too low",
+  expected_utility: "expected utility too low",
+  big_win_probability: "big-win odds too low",
+  fill_quality: "fill quality",
+  execution_policy: "execution policy",
+  high_extrinsic: "high extrinsic value",
+  wide_spread: "wide spread",
+  symbol_probation: "symbol probation",
+};
+
+const FAIL_BUCKET_LABELS = {
+  execution_policy: "execution policy",
+  fill_quality: "fill quality",
+  tail_utility: "downside utility",
+  mixed_policy: "multiple live gates",
+  symbol_probation: "symbol probation",
+  score_only: "score gate",
+  extrinsic_only: "extrinsic gate",
+  score_and_extrinsic: "score and extrinsic gates",
+  model_no_trade: "model no-trade",
+  sentinel_no_trade_pressure: "no-trade pressure",
+};
+
+function humanGateLabel(token) {
+  const raw = String(token || "").replace(/^execution:/, "");
+  return GATE_REASON_LABELS[raw] || raw.replaceAll("_", " ") || "live gate";
+}
+
+function shortExpiry(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return String(value || "—");
+  const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
+  if (!Number.isFinite(date.getTime())) return String(value);
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function flattenCameClose(payload, exclude = new Set()) {
+  const buckets = payload?.council?.summary?.abstain_audit?.best_rejected_candidates || {};
+  const byContract = new Map();
+  for (const [bucket, list] of Object.entries(buckets)) {
+    for (const candidate of list || []) {
+      const key = String(candidate.contract_symbol || "");
+      if (!key || exclude.has(key)) continue;
+      const score = Number(candidate.effective_candidate_score ?? candidate.forge_score ?? 0);
+      const existing = byContract.get(key);
+      if (existing && existing.score >= score) continue;
+      byContract.set(key, { candidate, bucket, score });
+    }
+  }
+  return [...byContract.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5);
+}
+
+function cameCloseReasons(candidate, bucket) {
+  const reasons = [];
+  for (const token of candidate.execution_policy_reasons || []) {
+    reasons.push(humanGateLabel(token));
+  }
+  if (candidate.tail_gate_passed === false) {
+    for (const token of candidate.tail_gate_reasons || []) {
+      reasons.push(humanGateLabel(token));
+    }
+  }
+  const unique = [...new Set(reasons.filter(Boolean))].slice(0, 3);
+  if (unique.length) return unique.join(" · ");
+  return FAIL_BUCKET_LABELS[bucket] || humanGateLabel(bucket);
+}
+
+function cameCloseHtml(payload, liveContract = "") {
+  const rows = flattenCameClose(payload, liveContract ? new Set([liveContract]) : new Set());
+  if (!rows.length) return "";
+  return `
+    <details class="came-close" open>
+      <summary><span>Came close</span><strong>Best options that missed a live gate</strong></summary>
+      <ol class="came-close-list">
+        ${rows.map(({ candidate, bucket }) => {
+          const side = String(candidate.option_type || "option").toUpperCase();
+          const strike = Number(candidate.strike);
+          const strikeLabel = Number.isFinite(strike)
+            ? `$${strike % 1 === 0 ? integer(strike) : strike.toFixed(2)}`
+            : "—";
+          return `<li>
+            <div class="came-close-head">
+              <strong>${escapeHtml(candidate.symbol || "—")}</strong>
+              <span>${escapeHtml(side)} ${escapeHtml(strikeLabel)} · ${escapeHtml(shortExpiry(candidate.expiry))}</span>
+            </div>
+            <code>${escapeHtml(candidate.contract_symbol || "—")}</code>
+            <p>Blocked: ${escapeHtml(cameCloseReasons(candidate, bucket))}</p>
+            <small>Score ${escapeHtml(Number(candidate.effective_candidate_score ?? candidate.forge_score ?? 0).toFixed(2))} · after-cost edge ${pct(candidate.expected_edge_after_friction_pct)}</small>
+          </li>`;
+        }).join("")}
+      </ol>
     </details>`;
 }
 
@@ -1085,14 +1184,15 @@ function renderCockpitSignal(payload) {
         ${legendaryCardChrome({
           ticker: "HOLD",
           gem: "—",
-          rarity: "No legendary drawn",
+          rarity: "No trade selected",
           hold: true,
         })}
         <div class="card-body">
           <span class="signal-state is-hold">Hold</span>
-          <p class="signal-lead">Council found no contract with sufficient after-cost edge and acceptable risk.</p>
-          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>Abstention is an active portfolio decision. Refresh after the next model run.</p></div>
+          <p class="signal-lead">No option cleared every live cost and risk gate.</p>
+          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>This is an active hold. Refresh after the next scan.</p></div>
           ${noTradeFunnelHtml(payload)}
+          ${cameCloseHtml(payload)}
           <div class="signal-metrics">
             <div class="signal-metric"><span>Live candidates</span><strong>0</strong><small>No contract cleared Council.</small></div>
             <div class="signal-metric"><span>Regime</span><strong>${escapeHtml(String(payload?.regime?.mode || "—").replaceAll("_", " "))}</strong><small>${escapeHtml(payload?.regime?.source_symbol || "Market")}</small></div>
@@ -1132,7 +1232,7 @@ function renderCockpitSignal(payload) {
       ${legendaryCardChrome({
         ticker: escapeHtml(candidate.symbol || "—"),
         gem: gemLabel,
-        rarity: "Legendary signal",
+        rarity: "Selected contract",
         hold: false,
       })}
       <div class="card-body">
@@ -1166,6 +1266,7 @@ function renderCockpitSignal(payload) {
           ${candidate.path_hazard_stop_probability != null ? `<div><span>Exit stop incidence</span><strong>${pct(candidate.path_hazard_stop_probability, 0)}</strong><small>${escapeHtml(String(candidate.path_exit_shadow_action || "hold_to_planned_exit").replaceAll("_", " "))}</small></div>` : ""}
         </div>
       </details>
+      ${cameCloseHtml(payload, candidate.contract_symbol)}
       <div class="signal-order-row">
         <div class="signal-quantity-control stone-tablet">
           <span>Contracts</span>
@@ -1352,9 +1453,9 @@ function renderCockpitPositions() {
       <div class="party-empty" role="status">
         <div class="position-loading">No open positions. The book is clear.</div>
         <div class="party-slots" aria-hidden="true">
-          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
-          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
-          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">Empty slot</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">No position</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">No position</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">No position</div></div>
         </div>
       </div>`;
     return;
