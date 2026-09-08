@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 84 — 2026-09-08 — HOLD funnel plate filigree
+
+- HOLD “Why no trade?” funnel plate closes with gold L-brackets on all four corners, matching the sealed writ and funnel-stage wells. Funnel copy, stage counts, `#signal`, and 720px Signal & Book layout stay. Cycle 83 (dungeon quest-receipt filters) remains on unmerged PR #34, so this run stayed on the live cockpit.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, backtest dungeon.
+
 ## Cycle 82 — 2026-09-04 — Dungeon friction-note shrine-seal filigree
 
 - Research dungeon Executable pricing note closes with gold L-brackets on all four corners, matching Reliquary wells. Pricing copy, lock sigil, coverage grid, and dungeon nav at 820px stay.
