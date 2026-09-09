@@ -43,6 +43,10 @@ def _dataset_rows(path: Path) -> int:
     return -1
 
 
+def _present_rows(count: int) -> int:
+    return 0 if count < 0 else count
+
+
 def _int(value: object) -> int:
     try:
         return int(value or 0)
@@ -115,6 +119,7 @@ def build_scan_health_summary(
     combined_dataset: Path,
     canonical_manifest: Path | None = None,
     cirrus_materialization: Path | None = None,
+    mart_sync: Path | None = None,
     output: Path | None = None,
     max_run_age_minutes: int = 240,
     min_quote_coverage_pct: float = 0.95,
@@ -142,10 +147,13 @@ def build_scan_health_summary(
     canonical = _load_json(canonical_manifest) if canonical_manifest is not None else {}
     canonical_evidence = canonical.get("evidence") if isinstance(canonical.get("evidence"), dict) else {}
     cirrus = _load_json(cirrus_materialization) if cirrus_materialization is not None else {}
+    mart_sync_payload = _load_json(mart_sync) if mart_sync is not None else {}
 
     recommendation_rows = _dataset_rows(recommendation_dataset)
     moonshot_rows = _dataset_rows(moonshot_dataset)
     combined_rows = _dataset_rows(combined_dataset)
+    moonshot_dataset_missing = moonshot_rows < 0
+    effective_moonshot_rows = _present_rows(moonshot_rows)
     total_with_marks = prospective["with_any_mark"] + moonshot["with_any_mark"]
     total_missing_quotes = prospective["missing_outcome_quotes"] + moonshot["missing_outcome_quotes"]
     overall_quote_coverage = (
@@ -263,9 +271,10 @@ def build_scan_health_summary(
     _check(
         checks,
         "combined_dataset_consistency",
-        combined_rows == recommendation_rows + moonshot_rows and combined_rows >= 0,
+        combined_rows == recommendation_rows + effective_moonshot_rows and combined_rows >= 0,
         actual=combined_rows,
-        expected=recommendation_rows + moonshot_rows,
+        expected=recommendation_rows + effective_moonshot_rows,
+        moonshot_dataset_missing=moonshot_dataset_missing,
     )
     if canonical_manifest is not None:
         canonical_checks = canonical.get("checks") if isinstance(canonical.get("checks"), dict) else {}
@@ -337,6 +346,15 @@ def build_scan_health_summary(
             "http_429_responses": _int(audit_summary.get("event_feed_http_429_responses")),
             "note": "Market and option collection can remain healthy while event evidence is degraded.",
         })
+    mart_status = str(mart_sync_payload.get("status") or "")
+    if mart_sync_payload and mart_status not in {"ready_two_source", "published"}:
+        warnings.append({
+            "name": "shared_mart_not_two_source",
+            "status": mart_status or "missing",
+            "source_systems": mart_sync_payload.get("source_systems") or [],
+            "note": mart_sync_payload.get("next_action")
+            or "Restore a current Cirrus export and rebuild the shared research mart.",
+        })
     report = {
         "artifact": "scan_health_summary",
         "schema_version": 1,
@@ -388,6 +406,13 @@ def build_scan_health_summary(
             "canonical_bundle_id": canonical.get("bundle_id"),
             "canonical_manifest_path": str(canonical_manifest) if canonical_manifest is not None else None,
             "cirrus_materialization": cirrus,
+            "shared_mart_sync": {
+                "status": mart_sync_payload.get("status"),
+                "mart_id": mart_sync_payload.get("mart_id"),
+                "source_systems": mart_sync_payload.get("source_systems"),
+                "generated_at_utc": mart_sync_payload.get("generated_at_utc"),
+                "next_action": mart_sync_payload.get("next_action"),
+            } if mart_sync_payload else None,
         },
         "publishing": {
             "dashboard_push_status": dashboard_push_status,
@@ -420,6 +445,11 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=Path("engine/data/options/blended/partitioned/canonical_materialization.json"),
     )
+    parser.add_argument(
+        "--mart-sync",
+        type=Path,
+        default=Path("web/data/diagnostics/shared_mart_sync_latest.json"),
+    )
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/scan_health_summary.json"))
     parser.add_argument("--max-run-age-minutes", type=int, default=240)
     parser.add_argument("--min-quote-coverage-pct", type=float, default=0.95)
@@ -444,6 +474,7 @@ def main() -> int:
         combined_dataset=args.combined_dataset,
         canonical_manifest=args.canonical_manifest,
         cirrus_materialization=args.cirrus_materialization,
+        mart_sync=args.mart_sync,
         output=args.output,
         max_run_age_minutes=max(int(args.max_run_age_minutes), 1),
         min_quote_coverage_pct=max(min(float(args.min_quote_coverage_pct), 1.0), 0.0),

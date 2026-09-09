@@ -74,6 +74,50 @@ def summarize_picks(picks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _compact_scores(pick: dict[str, Any]) -> dict[str, float]:
+    scores = pick.get("scores") if isinstance(pick.get("scores"), dict) else {}
+    compact: dict[str, float] = {}
+    for key in (
+        "final_candidate_score",
+        "expected_tail_utility",
+        "forge_score",
+        "learned_rank_score",
+        "prob_big_win",
+    ):
+        value = _number(scores.get(key) if key in scores else pick.get(key))
+        if value is not None:
+            compact[key] = value
+    return compact
+
+
+def _compact_trajectory(pick: dict[str, Any]) -> dict[str, Any]:
+    outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    raw = outcomes.get("trajectory_marks") if isinstance(outcomes.get("trajectory_marks"), list) else []
+    quote = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
+    ask = _number(quote.get("ask"))
+    first_hit = None
+    valid = 0
+    for mark in raw:
+        if not isinstance(mark, dict):
+            continue
+        pnl = _number(mark.get("pnl_pct_from_emission"))
+        if pnl is None and ask is not None and ask > 0:
+            bid = _number(mark.get("bid"))
+            if bid is not None and bid >= 0:
+                pnl = bid / ask - 1.0
+        if pnl is None:
+            continue
+        valid += 1
+        if first_hit is None and (pnl >= 0.25 or pnl <= -0.50):
+            first_hit = {
+                "captured_at_utc": mark.get("captured_at_utc"),
+                "bid": mark.get("bid"),
+                "pnl_pct_from_emission": pnl,
+                "event": "target_25_bid" if pnl >= 0.25 else "stop_50_bid",
+            }
+    return {"mark_count": valid, "first_hit": first_hit}
+
+
 def _compact_pick(pick: dict[str, Any], entry_run: Any) -> dict[str, Any]:
     outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
     fixed = outcomes.get("fixed_exit_marks") if isinstance(outcomes.get("fixed_exit_marks"), dict) else {}
@@ -82,18 +126,24 @@ def _compact_pick(pick: dict[str, Any], entry_run: Any) -> dict[str, Any]:
         for name, mark in fixed.items()
         if isinstance(mark, dict) and _number(mark.get("pnl_pct_from_emission")) is not None
     }
-    return {
+    compact: dict[str, Any] = {
         "run_generated_at_utc": pick.get("run_generated_at_utc") or entry_run,
         "lane": pick.get("lane"),
         "symbol": pick.get("symbol"),
         "contract_symbol": pick.get("contract_symbol"),
+        "option_type": pick.get("option_type"),
         "emission_quote": pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {},
         "outcomes": {
             "status": outcomes.get("status", "pending"),
             "fixed_exit_marks": compact_marks,
             "path_rules": outcomes.get("path_rules") if isinstance(outcomes.get("path_rules"), dict) else {},
+            "trajectory_overlay": _compact_trajectory(pick),
         },
     }
+    scores = _compact_scores(pick)
+    if scores:
+        compact["scores"] = scores
+    return compact
 
 
 def build_dashboard_summary(ledger: dict[str, Any], *, recent_entries: int = 8) -> dict[str, Any]:
