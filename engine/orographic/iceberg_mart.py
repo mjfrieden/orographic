@@ -66,6 +66,29 @@ def _literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+def _attach_iceberg_catalog(
+    connection: Any,
+    *,
+    catalog: str,
+    catalog_uri: str,
+    warehouse: str,
+    token: str,
+) -> None:
+    connection.execute("INSTALL iceberg")
+    connection.execute("LOAD iceberg")
+    connection.execute("INSTALL httpfs")
+    connection.execute("LOAD httpfs")
+    connection.execute(
+        "CREATE OR REPLACE SECRET r2_mart_secret (TYPE ICEBERG, TOKEN "
+        + _literal(token)
+        + ")"
+    )
+    connection.execute(
+        f"ATTACH {_literal(warehouse)} AS {catalog} "
+        f"(TYPE ICEBERG, ENDPOINT {_literal(catalog_uri)})"
+    )
+
+
 def publish_iceberg_mart(
     *,
     mart_dir: str | Path,
@@ -93,18 +116,12 @@ def publish_iceberg_mart(
     schema = plan["namespace"]
     connection = duckdb.connect()
     try:
-        connection.execute("INSTALL iceberg")
-        connection.execute("LOAD iceberg")
-        connection.execute("INSTALL httpfs")
-        connection.execute("LOAD httpfs")
-        connection.execute(
-            "CREATE OR REPLACE SECRET r2_mart_secret (TYPE ICEBERG, TOKEN "
-            + _literal(token)
-            + ")"
-        )
-        connection.execute(
-            f"ATTACH {_literal(warehouse)} AS {catalog} "
-            f"(TYPE ICEBERG, ENDPOINT {_literal(catalog_uri)})"
+        _attach_iceberg_catalog(
+            connection,
+            catalog=catalog,
+            catalog_uri=catalog_uri,
+            warehouse=warehouse,
+            token=token,
         )
         connection.execute(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
         for table in plan["tables"]:
@@ -163,6 +180,69 @@ def publication_environment() -> dict[str, str]:
     }
 
 
+def inspect_iceberg_source(
+    *,
+    source_system: str = "cirrus",
+    catalog_name: str = "r2_mart",
+    namespace: str = "research_mart",
+) -> dict[str, Any]:
+    """Read Cirrus (or Orographic) recency from the published Iceberg catalog.
+
+    This is observation-only. A catalog hit is not a current Cirrus export and
+    must not flip ``cirrus_pin`` to ``current``.
+    """
+    env = publication_environment()
+    missing = [name for name, value in env.items() if not value]
+    if missing:
+        return {"status": "skipped_missing_credentials", "missing": missing}
+    wanted = str(source_system or "cirrus")
+    catalog = _identifier(catalog_name, label="catalog name")
+    schema = _identifier(namespace, label="namespace")
+    try:
+        import duckdb
+    except ImportError as exc:  # pragma: no cover - depends on optional runtime
+        raise RuntimeError("DuckDB is required for Iceberg inspection") from exc
+
+    connection = duckdb.connect()
+    try:
+        _attach_iceberg_catalog(
+            connection,
+            catalog=catalog,
+            catalog_uri=env["catalog_uri"],
+            warehouse=env["warehouse"],
+            token=env["token"],
+        )
+        recs = connection.execute(
+            f"SELECT COUNT(*) AS rows, "
+            f"MIN(CAST(decision_at_utc AS VARCHAR)) AS min_decision_at_utc, "
+            f"MAX(CAST(decision_at_utc AS VARCHAR)) AS max_decision_at_utc, "
+            f"COUNT(DISTINCT underlying_symbol) AS symbols "
+            f"FROM {catalog}.{schema}.recommendations "
+            f"WHERE source_system = ?",
+            [wanted],
+        ).fetchone()
+        publication = connection.execute(
+            f"SELECT mart_id, CAST(generated_at_utc AS VARCHAR) "
+            f"FROM {catalog}.{schema}.mart_publications "
+            f"WHERE status = 'published' "
+            f"ORDER BY generated_at_utc DESC LIMIT 1"
+        ).fetchone()
+    finally:
+        connection.close()
+    rows = int(recs[0] or 0) if recs else 0
+    return {
+        "status": "inspected" if rows else "empty_source",
+        "source_system": wanted,
+        "recommendation_rows": rows,
+        "min_decision_at_utc": recs[1] if recs else None,
+        "max_decision_at_utc": recs[2] if recs else None,
+        "symbols": int(recs[3] or 0) if recs else 0,
+        "latest_publication_mart_id": publication[0] if publication else None,
+        "latest_publication_at_utc": publication[1] if publication else None,
+        "current_export": False,
+    }
+
+
 def verify_iceberg_mart(
     *,
     manifest: dict[str, Any],
@@ -182,16 +262,12 @@ def verify_iceberg_mart(
 
     connection = duckdb.connect()
     try:
-        connection.execute("INSTALL iceberg")
-        connection.execute("LOAD iceberg")
-        connection.execute(
-            "CREATE OR REPLACE SECRET r2_mart_secret (TYPE ICEBERG, TOKEN "
-            + _literal(env["token"])
-            + ")"
-        )
-        connection.execute(
-            f"ATTACH {_literal(env['warehouse'])} AS {catalog} "
-            f"(TYPE ICEBERG, ENDPOINT {_literal(env['catalog_uri'])})"
+        _attach_iceberg_catalog(
+            connection,
+            catalog=catalog,
+            catalog_uri=env["catalog_uri"],
+            warehouse=env["warehouse"],
+            token=env["token"],
         )
         actual_rows = {
             name: int(connection.execute(f"SELECT COUNT(*) FROM {catalog}.{schema}.{name}").fetchone()[0])

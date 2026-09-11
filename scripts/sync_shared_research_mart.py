@@ -17,6 +17,7 @@ from engine.orographic.shared_mart_consumers import (  # noqa: E402
     build_shared_mart_consumer_bundle,
 )
 from engine.orographic.shared_mart_shadow import build_shared_mart_shadow_evidence  # noqa: E402
+from engine.orographic.iceberg_mart import inspect_iceberg_source  # noqa: E402
 from engine.orographic.shared_research_mart import (  # noqa: E402
     build_shared_research_mart,
     validate_cirrus_export,
@@ -371,6 +372,14 @@ def _restore_shared_mart_archive(
     }
 
 
+def _inspect_iceberg_cirrus() -> dict:
+    """Best-effort Iceberg recency probe. Never fails the mart sync."""
+    try:
+        return inspect_iceberg_source(source_system="cirrus")
+    except Exception as exc:  # noqa: BLE001 - catalog outages must not block sync
+        return {"status": "inspect_failed", "error": str(exc), "current_export": False}
+
+
 def _copy_mart(source: Path, dest: Path) -> None:
     dest_resolved = dest.resolve()
     source_resolved = source.resolve()
@@ -462,6 +471,7 @@ def main() -> int:
         print(json.dumps(payload, indent=2))
         return 0 if args.allow_missing else 1
 
+    iceberg = _inspect_iceberg_cirrus()
     cirrus_dir = None
     restore_info: dict | None = None
     for candidate in _candidate_cirrus_dirs(args.cirrus_export_dir):
@@ -511,6 +521,7 @@ def main() -> int:
                 "cirrus_export_is_current": False,
                 "orographic_refreshed": refreshed,
                 "reused_from_mart_id": refresh.get("reused_from_mart_id"),
+                "iceberg": iceberg,
                 "restore": {
                     **(restore_info or {}),
                     "archive": archive,
@@ -546,6 +557,11 @@ def main() -> int:
                 "training_rows": payload.get("training_rows"),
                 "orographic_refreshed": refreshed,
                 "archive": archive.get("object_key"),
+                "iceberg": {
+                    "status": iceberg.get("status"),
+                    "max_decision_at_utc": iceberg.get("max_decision_at_utc"),
+                    "recommendation_rows": iceberg.get("recommendation_rows"),
+                },
             }, indent=2))
             return 0
         payload = {
@@ -556,6 +572,7 @@ def main() -> int:
             "source_systems": ["orographic"],
             "restore": restore_info,
             "archive": archive,
+            "iceberg": iceberg,
             "production_changes_allowed": False,
             "orographic_canonical_bundle": str(canonical / "evidence_manifest.json"),
             "next_action": _missing_cirrus_next_action(restore_info),
@@ -592,6 +609,7 @@ def main() -> int:
         "cirrus_pin": cirrus_pin,
         "cirrus_export_is_current": cirrus_pin != "fallback",
         "restore": restore_info,
+        "iceberg": iceberg,
         "production_changes_allowed": False,
         "next_action": (
             "Keep using the mart for observation-only backtests; do not route from it."

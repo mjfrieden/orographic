@@ -9,6 +9,7 @@ from unittest import mock
 import pandas as pd
 
 from scripts.sync_shared_research_mart import (
+    _inspect_iceberg_cirrus,
     _missing_cirrus_next_action,
     _restore_cirrus_from_r2,
 )
@@ -96,6 +97,30 @@ class SharedMartCirrusRestoreTests(unittest.TestCase):
         self.assertIn("orographic/cirrus/", search)
         self.assertNotIn("orographic/research-data/", search)
         self.assertEqual(discovery["bucket_roots"], ["Cirrus/", "orographic/"])
+
+    def test_iceberg_inspect_swallows_catalog_errors(self) -> None:
+        with mock.patch(
+            "scripts.sync_shared_research_mart.inspect_iceberg_source",
+            side_effect=RuntimeError("catalog down"),
+        ):
+            info = _inspect_iceberg_cirrus()
+        self.assertEqual(info["status"], "inspect_failed")
+        self.assertIn("catalog down", info["error"])
+        self.assertFalse(info["current_export"])
+
+    def test_iceberg_inspect_does_not_claim_current_export(self) -> None:
+        with mock.patch(
+            "scripts.sync_shared_research_mart.inspect_iceberg_source",
+            return_value={
+                "status": "inspected",
+                "recommendation_rows": 89,
+                "max_decision_at_utc": "2026-08-21T00:00:00+00:00",
+                "current_export": False,
+            },
+        ):
+            info = _inspect_iceberg_cirrus()
+        self.assertEqual(info["status"], "inspected")
+        self.assertFalse(info["current_export"])
 
     def test_discover_lists_shared_mart_archive_children(self) -> None:
         from scripts.sync_shared_research_mart import _discover_cirrus_search_prefixes

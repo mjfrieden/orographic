@@ -8,11 +8,14 @@ on:
       - "scripts/sync_shared_research_mart.py"
       - "scripts/restore_research_artifacts_from_r2.py"
       - "scripts/upload_research_artifacts_to_r2.py"
+      - "scripts/publish_shared_research_mart.py"
+      - "scripts/verify_shared_research_mart.py"
       - "scripts/build_weekly_alpha_review.py"
       - "engine/orographic/weekly_alpha_review.py"
       - "engine/orographic/shared_research_mart.py"
       - "engine/orographic/shared_mart_consumers.py"
       - "engine/orographic/shared_mart_shadow.py"
+      - "engine/orographic/iceberg_mart.py"
   push:
     branches:
       - main
@@ -21,11 +24,14 @@ on:
       - "scripts/sync_shared_research_mart.py"
       - "scripts/restore_research_artifacts_from_r2.py"
       - "scripts/upload_research_artifacts_to_r2.py"
+      - "scripts/publish_shared_research_mart.py"
+      - "scripts/verify_shared_research_mart.py"
       - "scripts/build_weekly_alpha_review.py"
       - "engine/orographic/weekly_alpha_review.py"
       - "engine/orographic/shared_research_mart.py"
       - "engine/orographic/shared_mart_consumers.py"
       - "engine/orographic/shared_mart_shadow.py"
+      - "engine/orographic/iceberg_mart.py"
 
 concurrency:
   group: orographic-research-write-${{ github.ref }}
@@ -43,6 +49,9 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
       OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+      OROGRAPHIC_R2_DATA_CATALOG_URI: https://catalog.cloudflarestorage.com/fb7bb10f51e3f6c0fe572d28a3a7e1f4/orographic-research-data
+      OROGRAPHIC_R2_DATA_CATALOG_WAREHOUSE: fb7bb10f51e3f6c0fe572d28a3a7e1f4_orographic-research-data
+      OROGRAPHIC_R2_DATA_CATALOG_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
       PYTHONPATH: .
     steps:
       - uses: actions/checkout@v6
@@ -81,6 +90,32 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
           python scripts/sync_shared_research_mart.py --allow-missing
+
+      - name: Publish two-source mart to Iceberg
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
+        run: |
+          status="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("web/data/diagnostics/shared_mart_sync_latest.json")
+          payload = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+          print(payload.get("status") or "")
+          PY
+          )"
+          if [ "$status" != "ready_two_source" ]; then
+            echo "Skipping Iceberg publish; mart status=${status:-none}."
+            exit 0
+          fi
+          if [ ! -f output/shared_research_mart/mart_manifest.json ]; then
+            echo "Skipping Iceberg publish; local mart directory is missing."
+            exit 0
+          fi
+          python scripts/publish_shared_research_mart.py \
+            --mart-dir output/shared_research_mart \
+            --apply
+          python scripts/verify_shared_research_mart.py \
+            --mart-dir output/shared_research_mart
 
       - name: Persist a local Cirrus export to the current R2 prefix
         if: ${{ github.event_name != 'pull_request' }}
