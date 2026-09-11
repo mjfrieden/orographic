@@ -772,6 +772,8 @@ def _cirrus_comparison(
         "mart_stale": stale,
         "cirrus_pin": cirrus_pin or None,
         "cirrus_export_is_current": False if stale and cirrus_pin == "fallback" else mart_sync.get("cirrus_export_is_current"),
+        "orographic_refreshed": mart_sync.get("orographic_refreshed"),
+        "training_rows": mart_sync.get("training_rows"),
         "paired_executable_outcomes": paired,
         "paired_market_dates": cross.get("paired_market_dates"),
         "avg_orographic_minus_cirrus_return": cross.get("avg_orographic_minus_cirrus_return"),

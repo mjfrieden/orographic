@@ -6,6 +6,8 @@ import tempfile
 import unittest
 from unittest import mock
 
+import pandas as pd
+
 from scripts.sync_shared_research_mart import (
     _missing_cirrus_next_action,
     _restore_cirrus_from_r2,
@@ -154,6 +156,76 @@ class SharedMartCirrusRestoreTests(unittest.TestCase):
         self.assertFalse(_cirrus_like_search_prefix("orographic/research-data/"))
         self.assertTrue(_cirrus_like_search_prefix("Cirrus/"))
         self.assertTrue(_cirrus_like_search_prefix("orographic/cirrus/"))
+
+    def test_refresh_replaces_orographic_and_keeps_archived_cirrus(self) -> None:
+        from engine.orographic.shared_research_mart import build_shared_research_mart
+        from engine.tests.test_shared_research_mart import _write_cirrus_export, _write_orographic_canonical
+        from scripts.sync_shared_research_mart import refresh_orographic_on_restored_mart
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            frozen_canonical = _write_orographic_canonical(
+                root / "frozen_src", rec_id="oro-old", symbol="BBB", with_features=False
+            )
+            cirrus = root / "cirrus"
+            cirrus.mkdir()
+            _write_cirrus_export(cirrus)
+            frozen = root / "frozen"
+            frozen_manifest = build_shared_research_mart(
+                orographic_canonical_dir=frozen_canonical,
+                cirrus_export_dir=cirrus,
+                output_dir=frozen,
+            )
+            current = _write_orographic_canonical(
+                root / "current_src", rec_id="oro-new", symbol="CCC", with_features=True
+            )
+            dest = root / "live_mart"
+            result = refresh_orographic_on_restored_mart(
+                canonical_dir=current,
+                frozen_mart_dir=frozen,
+                output_dir=dest,
+            )
+            self.assertTrue(result["orographic_refreshed"])
+            self.assertEqual(result["status"], "refreshed")
+            self.assertEqual(result["reused_from_mart_id"], frozen_manifest["mart_id"])
+            self.assertNotEqual(result["mart_id"], frozen_manifest["mart_id"])
+            recs = pd.read_parquet(dest / "recommendations.parquet")
+            oro = recs[recs["source_system"] == "orographic"]
+            self.assertEqual(set(oro["source_recommendation_id"]), {"oro-new"})
+
+    def test_refresh_falls_back_to_frozen_archive_when_rebuild_fails(self) -> None:
+        from engine.orographic.shared_research_mart import build_shared_research_mart
+        from engine.tests.test_shared_research_mart import _write_cirrus_export, _write_orographic_canonical
+        from scripts.sync_shared_research_mart import refresh_orographic_on_restored_mart
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            frozen_canonical = _write_orographic_canonical(
+                root / "frozen_src", rec_id="oro-old", symbol="BBB", with_features=False
+            )
+            cirrus = root / "cirrus"
+            cirrus.mkdir()
+            _write_cirrus_export(cirrus)
+            frozen = root / "frozen"
+            frozen_manifest = build_shared_research_mart(
+                orographic_canonical_dir=frozen_canonical,
+                cirrus_export_dir=cirrus,
+                output_dir=frozen,
+            )
+            dest = root / "live_mart"
+            with mock.patch(
+                "scripts.sync_shared_research_mart.build_shared_research_mart",
+                side_effect=ValueError("no cirrus rows"),
+            ):
+                result = refresh_orographic_on_restored_mart(
+                    canonical_dir=root / "missing",
+                    frozen_mart_dir=frozen,
+                    output_dir=dest,
+                )
+            self.assertFalse(result["orographic_refreshed"])
+            self.assertEqual(result["status"], "copied_frozen")
+            self.assertEqual(result["mart_id"], frozen_manifest["mart_id"])
+            self.assertIn("no cirrus rows", result["refresh_error"])
 
 
 if __name__ == "__main__":

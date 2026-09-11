@@ -74,11 +74,33 @@ def _weekly_alpha_block(
         title = "Cirrus export missing"
     elif verdict in {"insufficient_paired_evidence", "stale_mart_insufficient_for_alpha", ""}:
         status = "hold"
-        headline = (
-            f"Only {paired} paired executable Cirrus/Orographic outcomes exist. "
-            "Do not claim alpha until 30 independent dates clear."
-        )
-        title = "Insufficient paired evidence"
+        pin = str(cirrus.get("cirrus_pin") or mart.get("cirrus_pin") or "")
+        refreshed = cirrus.get("orographic_refreshed")
+        if refreshed is None:
+            refreshed = mart.get("orographic_refreshed")
+        training = cirrus.get("training_rows")
+        if training is None:
+            training = mart.get("training_rows")
+        if pin == "fallback":
+            title = "Stale Cirrus fallback"
+            if refreshed:
+                headline = (
+                    f"Two-source mart uses current Orographic features ({training or 0} training rows) "
+                    f"and dated Cirrus rows. Only {paired} paired executable outcomes exist. "
+                    "Do not claim alpha until a current Cirrus export lands."
+                )
+            else:
+                headline = (
+                    "Two-source mart is a dated Cirrus fallback. "
+                    f"Only {paired} paired executable outcomes exist. "
+                    "Do not claim alpha until a current Cirrus export lands."
+                )
+        else:
+            headline = (
+                f"Only {paired} paired executable Cirrus/Orographic outcomes exist. "
+                "Do not claim alpha until 30 independent dates clear."
+            )
+            title = "Insufficient paired evidence"
     else:
         status = "hold"
         headline = "Weekly Cirrus comparison has not been published yet."

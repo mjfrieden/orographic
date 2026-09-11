@@ -30,6 +30,11 @@ def parse_args() -> argparse.Namespace:
         help="Optional neutral Cirrus research export containing manifest.json.",
     )
     parser.add_argument(
+        "--cirrus-mart-dir",
+        type=Path,
+        help="Optional validated mart snapshot to reuse Cirrus rows from when no export is present.",
+    )
+    parser.add_argument(
         "--output-dir",
         type=Path,
         default=Path("output/shared_research_mart"),
@@ -42,6 +47,7 @@ def main() -> int:
     manifest = build_shared_research_mart(
         orographic_canonical_dir=args.orographic_canonical_dir,
         cirrus_export_dir=args.cirrus_export_dir,
+        cirrus_mart_dir=args.cirrus_mart_dir,
         output_dir=args.output_dir,
     )
     validate_shared_research_mart(args.output_dir)

@@ -45,6 +45,11 @@ python scripts/upload_research_artifacts_to_r2.py --mode cirrus \
 
 If `output/canonical_evidence` is not on disk yet, the sync also accepts
 `output/restored_canonical_evidence` so a restore-only runner still rebuilds the mart.
+When no Cirrus export exists but `shared-research-mart/staging/*.tar.gz` does, the sync
+restores that dated two-source archive, then rebuilds with current Orographic canonical
+evidence while keeping the archived Cirrus rows. That refresh is still
+`cirrus_pin=fallback` and is not weekly alpha versus Cirrus; it only fills
+`orographic_training_v1` with post-August point-in-time Orographic features.
 Missing Cirrus data fails closed to that diagnostic and does not block the live scan.
 The diagnostic records every `cirrus/` prefix that contains a `manifest.json` so an
 empty `current` key is distinguishable from a bundle uploaded to the wrong path.

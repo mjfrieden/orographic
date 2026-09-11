@@ -371,6 +371,51 @@ def _restore_shared_mart_archive(
     }
 
 
+def _copy_mart(source: Path, dest: Path) -> None:
+    dest_resolved = dest.resolve()
+    source_resolved = source.resolve()
+    if dest_resolved == source_resolved:
+        return
+    _reset_dir(dest)
+    dest.rmdir()
+    shutil.copytree(source, dest)
+
+
+def refresh_orographic_on_restored_mart(
+    *,
+    canonical_dir: Path,
+    frozen_mart_dir: Path,
+    output_dir: Path,
+) -> dict:
+    """Rebuild with current Orographic canonical while keeping archived Cirrus rows."""
+    frozen_manifest = validate_shared_research_mart(frozen_mart_dir)
+    reused_id = frozen_manifest.get("mart_id")
+    try:
+        manifest = build_shared_research_mart(
+            orographic_canonical_dir=canonical_dir,
+            cirrus_mart_dir=frozen_mart_dir,
+            output_dir=output_dir,
+        )
+        return {
+            "status": "refreshed",
+            "orographic_refreshed": True,
+            "reused_from_mart_id": reused_id,
+            "mart_id": manifest.get("mart_id"),
+            "manifest": manifest,
+        }
+    except Exception as exc:  # noqa: BLE001 - keep the dated archive if refresh fails
+        _copy_mart(frozen_mart_dir, output_dir)
+        copied = validate_shared_research_mart(output_dir)
+        return {
+            "status": "copied_frozen",
+            "orographic_refreshed": False,
+            "reused_from_mart_id": reused_id,
+            "mart_id": copied.get("mart_id"),
+            "refresh_error": str(exc),
+            "manifest": copied,
+        }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Keep the Cirrus + Orographic shared research mart in sync with this repo."
@@ -430,12 +475,18 @@ def main() -> int:
     if cirrus_dir is None:
         archive = _restore_shared_mart_archive(
             restore_info=restore_info,
-            output_dir=args.mart_dir,
+            output_dir=Path("output/restored_shared_research_mart"),
             allow_missing=args.allow_missing,
         )
         if archive.get("status") == "restored":
-            mart_dir = Path(str(archive["mart_dir"]))
-            manifest = validate_shared_research_mart(mart_dir)
+            frozen_mart = Path(str(archive["mart_dir"]))
+            refresh = refresh_orographic_on_restored_mart(
+                canonical_dir=canonical,
+                frozen_mart_dir=frozen_mart,
+                output_dir=args.mart_dir,
+            )
+            mart_dir = args.mart_dir
+            manifest = refresh["manifest"]
             consumer = build_shared_mart_consumer_bundle(mart_dir, args.consumer_dir)
             shadow = build_shared_mart_shadow_evidence(args.consumer_dir)
             args.shadow_output.parent.mkdir(parents=True, exist_ok=True)
@@ -445,6 +496,7 @@ def main() -> int:
                 for row in manifest.get("sources") or []
                 if isinstance(row, dict) and row.get("source_system")
             }) or ["cirrus", "orographic"]
+            refreshed = bool(refresh.get("orographic_refreshed"))
             payload = {
                 "artifact": "orographic_shared_mart_sync",
                 "schema_version": 1,
@@ -457,17 +509,33 @@ def main() -> int:
                 "shadow_status": shadow.get("status"),
                 "cirrus_pin": "fallback",
                 "cirrus_export_is_current": False,
+                "orographic_refreshed": refreshed,
+                "reused_from_mart_id": refresh.get("reused_from_mart_id"),
                 "restore": {
                     **(restore_info or {}),
                     "archive": archive,
+                    "refresh": {
+                        "status": refresh.get("status"),
+                        "orographic_refreshed": refreshed,
+                        "reused_from_mart_id": refresh.get("reused_from_mart_id"),
+                        "refresh_error": refresh.get("refresh_error"),
+                    },
                     "cirrus_pin": "fallback",
                 },
                 "production_changes_allowed": False,
                 "next_action": (
-                    "Two-source mart restored from shared-research-mart/staging. "
-                    "It is a dated fallback, not weekly alpha versus Cirrus. Publish a current "
-                    "Cirrus options_research_bundle with python scripts/upload_research_artifacts_to_r2.py "
-                    "--mode cirrus <bundle-dir>."
+                    "Two-source mart rebuilt from current Orographic canonical and Cirrus rows in "
+                    "shared-research-mart/staging. It is a dated Cirrus fallback, not weekly alpha "
+                    "versus Cirrus. Publish a current Cirrus options_research_bundle with python "
+                    "scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir>."
+                    if refreshed
+                    else (
+                        "Two-source mart restored from shared-research-mart/staging. "
+                        "Orographic refresh failed, so the frozen archive was kept. It is a dated "
+                        "fallback, not weekly alpha versus Cirrus. Publish a current Cirrus "
+                        "options_research_bundle with python scripts/upload_research_artifacts_to_r2.py "
+                        "--mode cirrus <bundle-dir>."
+                    )
                 ),
             }
             _write(args.output, payload)
@@ -476,6 +544,7 @@ def main() -> int:
                 "mart_id": payload.get("mart_id"),
                 "cirrus_pin": payload["cirrus_pin"],
                 "training_rows": payload.get("training_rows"),
+                "orographic_refreshed": refreshed,
                 "archive": archive.get("object_key"),
             }, indent=2))
             return 0

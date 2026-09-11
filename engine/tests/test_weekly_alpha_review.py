@@ -403,11 +403,15 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
                 "status": "ready_two_source",
                 "cirrus_pin": "fallback",
                 "cirrus_export_is_current": False,
+                "orographic_refreshed": True,
+                "training_rows": 12,
             },
         )
         self.assertTrue(review["cirrus"]["mart_stale"])
         self.assertEqual(review["alpha_verdict"], "stale_mart_insufficient_for_alpha")
         self.assertEqual(review["cirrus"]["cirrus_pin"], "fallback")
+        self.assertTrue(review["cirrus"]["orographic_refreshed"])
+        self.assertEqual(review["cirrus"]["training_rows"], 12)
         self.assertTrue(any("--mode cirrus" in action for action in review["next_actions"]))
 
 

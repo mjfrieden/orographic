@@ -119,8 +119,8 @@ def _clean(value: Any) -> Any:
     if isinstance(value, (list, tuple)):
         return [_clean(item) for item in value]
     if isinstance(value, pd.Timestamp):
-        return value.isoformat()
-    if value is pd.NA:
+        return None if pd.isna(value) else value.isoformat()
+    if value is pd.NA or value is pd.NaT:
         return None
     if isinstance(value, float) and math.isnan(value):
         return None
@@ -651,11 +651,45 @@ def _validate_tables(frames: dict[str, pd.DataFrame]) -> dict[str, Any]:
     return {"status": "passed" if not failures else "failed", "checks": checks, "failures": failures}
 
 
+def load_source_rows_from_mart(
+    mart_dir: str | Path,
+    source_system: str,
+) -> tuple[dict[str, list[dict[str, Any]]], dict[str, Any]]:
+    """Load one source system's conformed rows from a validated mart snapshot."""
+    root = Path(mart_dir)
+    manifest = validate_shared_research_mart(root)
+    wanted = str(source_system)
+    rows = {name: [] for name in TABLE_CONTRACTS}
+    for name, contract in TABLE_CONTRACTS.items():
+        artifact = dict(manifest.get("artifacts") or {}).get(name, {})
+        path = root / str(artifact.get("path") or f"{name}.parquet")
+        frame = pd.read_parquet(path)
+        if frame.empty:
+            continue
+        if "source_system" in frame.columns:
+            frame = frame.loc[frame["source_system"].astype(str) == wanted].copy()
+        for record in _frame_records(frame):
+            rows[name].append({column: record.get(column) for column in contract.columns})
+    source_meta = next(
+        (
+            dict(row)
+            for row in (manifest.get("sources") or [])
+            if isinstance(row, dict) and str(row.get("source_system")) == wanted
+        ),
+        {"source_system": wanted},
+    )
+    source_meta["reused_from_mart_id"] = manifest.get("mart_id")
+    if not rows["recommendations"]:
+        raise ValueError(f"Shared research mart has no {wanted} recommendations: {root}")
+    return rows, source_meta
+
+
 def build_shared_research_mart(
     *,
     orographic_canonical_dir: str | Path,
     output_dir: str | Path,
     cirrus_export_dir: str | Path | None = None,
+    cirrus_mart_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     orographic_dir = Path(orographic_canonical_dir)
     orographic_manifest = validate_canonical_bundle(orographic_dir)
@@ -675,6 +709,16 @@ def build_shared_research_mart(
             "bundle_id": cirrus_manifest.get("bundle_id"),
             "manifest_file": "manifest.json",
             "manifest_sha256": _sha256(cirrus_dir / "manifest.json"),
+        })
+    elif cirrus_mart_dir is not None:
+        cirrus_rows, cirrus_source = load_source_rows_from_mart(cirrus_mart_dir, "cirrus")
+        source_rows.append(cirrus_rows)
+        sources.append({
+            "source_system": "cirrus",
+            "bundle_id": cirrus_source.get("bundle_id"),
+            "manifest_file": cirrus_source.get("manifest_file") or "mart_manifest.json",
+            "manifest_sha256": cirrus_source.get("manifest_sha256"),
+            "reused_from_mart_id": cirrus_source.get("reused_from_mart_id"),
         })
 
     frames: dict[str, pd.DataFrame] = {}

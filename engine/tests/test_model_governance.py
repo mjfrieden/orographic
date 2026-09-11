@@ -51,6 +51,35 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertAlmostEqual(weekly["live_week_mean_return"], -0.4085)
         self.assertIn("Live week -40.85%", weekly["headline"])
 
+    def test_weekly_alpha_surfaces_refreshed_fallback_mart(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={"checks": [{"name": "trajectory_capture_health", "passed": True}]},
+            weekly_review={
+                "alpha_verdict": "stale_mart_insufficient_for_alpha",
+                "production": {"week_live_marks": {"resolved": 1, "mean_return": -0.4085}},
+                "cirrus": {
+                    "alpha_verdict": "stale_mart_insufficient_for_alpha",
+                    "mart_sync_status": "ready_two_source",
+                    "cirrus_pin": "fallback",
+                    "orographic_refreshed": True,
+                    "training_rows": 18,
+                    "paired_executable_outcomes": 0,
+                },
+            },
+            mart_sync={
+                "status": "ready_two_source",
+                "cirrus_pin": "fallback",
+                "orographic_refreshed": True,
+                "training_rows": 18,
+            },
+        )
+        weekly = report["weekly_alpha"]
+        self.assertEqual(weekly["status"], "hold")
+        self.assertEqual(weekly["title"], "Stale Cirrus fallback")
+        self.assertIn("current Orographic features", weekly["headline"])
+        self.assertIn("18 training rows", weekly["headline"])
+        self.assertIn("Live week -40.85%", weekly["headline"])
+
     def test_missing_weekly_review_is_awaiting_comparison(self) -> None:
         report = build_model_governance_summary(scan_health={})
         self.assertEqual(report["weekly_alpha"]["title"], "Awaiting comparison")

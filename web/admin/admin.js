@@ -367,6 +367,8 @@ function renderMartAudit(payload, sync, weekly) {
       ["Mart ID", payload.mart_id || "--"],
       ["Mart sync", martSyncLabel(syncStatus)],
       ["Cirrus pin", String(cirrusPin).replaceAll("_", " ")],
+      ["Orographic refresh", sync.orographic_refreshed ? "current canonical" : (sync.orographic_refreshed === false ? "frozen archive" : "--")],
+      ["Training rows", integer(sync.training_rows ?? cirrus.training_rows)],
       ["Cirrus R2 prefixes", integer(listed.length)],
       ["R2 bucket roots", (restore.bucket_roots || []).map((row) => String(row).replace(/\/$/, "")).join(" · ") || "--"],
       ["Shared mart roots", (restore.shared_mart_roots || []).map((row) => String(row).replace(/\/$/, "")).join(" · ") || "--"],
