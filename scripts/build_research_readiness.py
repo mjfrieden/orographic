@@ -19,6 +19,22 @@ def _load(path: Path) -> dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _load_audit(path: Path) -> dict[str, Any]:
+    payload = _load(path)
+    if payload.get("status"):
+        return payload
+    for fallback in (
+        Path("web/data/diagnostics/research_data_capture_audit_latest.json"),
+        Path("output/research_datasets/research_data_capture_audit.json"),
+    ):
+        if fallback == path:
+            continue
+        alt = _load(fallback)
+        if alt.get("status"):
+            return alt
+    return payload
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Build fail-closed research-readiness health for Orographic."
@@ -37,7 +53,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--research-audit",
         type=Path,
-        default=Path("output/research_datasets/research_data_capture_audit.json"),
+        default=Path("web/data/diagnostics/research_data_capture_audit_latest.json"),
     )
     parser.add_argument(
         "--event-coverage",
@@ -85,7 +101,7 @@ def main() -> int:
         snapshot=_load(args.snapshot),
         prospective_ledger=_load(args.prospective_ledger),
         moonshot_ledger=_load(args.moonshot_ledger),
-        research_audit=_load(args.research_audit),
+        research_audit=_load_audit(args.research_audit),
         event_coverage=_load(args.event_coverage),
         promotion_comparison=_load(args.promotion_comparison),
         operational_health=_load(args.operational_health),

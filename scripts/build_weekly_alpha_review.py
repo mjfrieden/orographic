@@ -84,6 +84,11 @@ def parse_args() -> argparse.Namespace:
         default=Path("web/data/diagnostics/trajectory_exit_overlay_latest.json"),
     )
     parser.add_argument(
+        "--early-harvest-output",
+        type=Path,
+        default=Path("web/data/diagnostics/early_harvest_overlay_latest.json"),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("web/data/diagnostics/weekly_alpha_review_latest.json"),
@@ -124,6 +129,9 @@ def main() -> int:
     overlay = artifact.get("exit_overlay") or {}
     args.overlay_output.parent.mkdir(parents=True, exist_ok=True)
     args.overlay_output.write_text(json.dumps(overlay, indent=2) + "\n", encoding="utf-8")
+    early = artifact.get("early_harvest_overlay") or {}
+    args.early_harvest_output.parent.mkdir(parents=True, exist_ok=True)
+    args.early_harvest_output.write_text(json.dumps(early, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({
         "status": "written",
         "alpha_verdict": artifact["alpha_verdict"],
@@ -131,6 +139,7 @@ def main() -> int:
         "challenger": artifact["challenger_to_open"]["experiment_id"],
         "holdout_mean_lift": artifact["challenger_to_open"]["mean_return_lift"],
         "overlay_mean_lift": (overlay.get("overall") or {}).get("mean_return_lift"),
+        "early_harvest_mean_lift": (early.get("overall") or {}).get("mean_return_lift"),
         "output": str(args.output),
     }, indent=2))
     return 0

@@ -14,6 +14,19 @@ def _load_json(path: Path) -> dict[str, Any]:
     return loaded if isinstance(loaded, dict) else {}
 
 
+def _load_audit(path: Path, fallbacks: list[Path] | None = None) -> dict[str, Any]:
+    payload = _load_json(path)
+    if payload.get("status"):
+        return payload
+    for fallback in fallbacks or []:
+        if fallback == path:
+            continue
+        alt = _load_json(fallback)
+        if alt.get("status"):
+            return alt
+    return payload
+
+
 def _parse_dt(raw: object) -> datetime | None:
     if not isinstance(raw, str) or not raw.strip():
         return None
@@ -128,6 +141,7 @@ def build_scan_health_summary(
     dashboard_push_status: str = "unknown",
     dashboard_deploy_status: str = "unknown",
     now_utc: datetime | None = None,
+    research_audit_fallbacks: list[Path] | None = None,
 ) -> dict[str, Any]:
     now = (now_utc or datetime.now(UTC)).astimezone(UTC)
     payload = _load_json(snapshot)
@@ -140,7 +154,7 @@ def build_scan_health_summary(
 
     prospective = _ledger_health(prospective_ledger)
     moonshot = _ledger_health(moonshot_ledger)
-    audit = _load_json(research_audit)
+    audit = _load_audit(research_audit, research_audit_fallbacks)
     audit_summary = audit.get("summary") if isinstance(audit.get("summary"), dict) else {}
     archive = _load_json(archive_manifest)
     archive_summary = archive.get("summary") if isinstance(archive.get("summary"), dict) else {}
@@ -434,7 +448,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--snapshot", type=Path, default=Path("web/data/latest_run.json"))
     parser.add_argument("--prospective-ledger", type=Path, default=Path("web/data/diagnostics/prospective_pick_ledger.json"))
     parser.add_argument("--moonshot-ledger", type=Path, default=Path("web/data/diagnostics/moonshot_prospective_ledger.json"))
-    parser.add_argument("--research-audit", type=Path, default=Path("output/research_datasets/research_data_capture_audit.json"))
+    parser.add_argument("--research-audit", type=Path, default=Path("web/data/diagnostics/research_data_capture_audit_latest.json"))
     parser.add_argument("--archive-manifest", type=Path, default=Path("engine/data/live_options_archive/coverage_manifest.json"))
     parser.add_argument("--recommendation-dataset", type=Path, default=Path("output/research_datasets/option_recommendation_outcomes.parquet"))
     parser.add_argument("--moonshot-dataset", type=Path, default=Path("output/research_datasets/moonshot_outcomes.parquet"))
@@ -482,6 +496,10 @@ def main() -> int:
         r2_status=str(args.r2_status or "unknown"),
         dashboard_push_status=str(args.dashboard_push_status or "unknown"),
         dashboard_deploy_status=str(args.dashboard_deploy_status or "unknown"),
+        research_audit_fallbacks=[
+            Path("web/data/diagnostics/research_data_capture_audit_latest.json"),
+            Path("output/research_datasets/research_data_capture_audit.json"),
+        ],
     )
     print(json.dumps(
         {

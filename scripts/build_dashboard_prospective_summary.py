@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import argparse
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
+import re
 from typing import Any
 
 
 DEFAULT_INPUT = Path("web/data/diagnostics/prospective_pick_ledger.json")
 DEFAULT_OUTPUT = Path("web/data/diagnostics/prospective_dashboard_summary_latest.json")
+DEFAULT_RECENT_ENTRIES = 18
+DEFAULT_MIN_CALENDAR_DAYS = 7
+MAX_COMPACT_ENTRIES = 24
 
 
 def _number(value: Any) -> float | None:
@@ -130,8 +134,8 @@ def _compact_pick(pick: dict[str, Any], entry_run: Any) -> dict[str, Any]:
         "run_generated_at_utc": pick.get("run_generated_at_utc") or entry_run,
         "lane": pick.get("lane"),
         "symbol": pick.get("symbol"),
+        "option_type": _compact_option_type(pick),
         "contract_symbol": pick.get("contract_symbol"),
-        "option_type": pick.get("option_type"),
         "emission_quote": pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {},
         "outcomes": {
             "status": outcomes.get("status", "pending"),
@@ -146,7 +150,62 @@ def _compact_pick(pick: dict[str, Any], entry_run: Any) -> dict[str, Any]:
     return compact
 
 
-def build_dashboard_summary(ledger: dict[str, Any], *, recent_entries: int = 8) -> dict[str, Any]:
+def _compact_option_type(pick: dict[str, Any]) -> str | None:
+    explicit = pick.get("option_type")
+    if explicit in {"call", "put"}:
+        return explicit
+    contract = str(pick.get("contract_symbol") or "").upper()
+    match = re.search(r"\d{6}([CP])\d+$", contract)
+    if match:
+        return "call" if match.group(1) == "C" else "put"
+    return explicit if isinstance(explicit, str) and explicit else None
+
+
+def _parse_dt(value: object) -> datetime | None:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
+
+
+def select_recent_entries(
+    entries: list[Any],
+    *,
+    recent_entries: int = DEFAULT_RECENT_ENTRIES,
+    min_calendar_days: int = DEFAULT_MIN_CALENDAR_DAYS,
+    max_entries: int = MAX_COMPACT_ENTRIES,
+) -> list[Any]:
+    """Keep a full calendar week of scans, not just the last handful of jobs."""
+    valid = [entry for entry in entries if isinstance(entry, dict)]
+    if not valid:
+        return []
+    floor = max(int(recent_entries), 1)
+    cap = max(int(max_entries), floor)
+    last = _parse_dt(valid[-1].get("run_generated_at_utc"))
+    if last is None:
+        return valid[-floor:]
+    cutoff = last - timedelta(days=max(int(min_calendar_days), 0))
+    if int(min_calendar_days) <= 0:
+        return valid[-floor:]
+    weekish = [
+        entry
+        for entry in valid
+        if (_parse_dt(entry.get("run_generated_at_utc")) or last) >= cutoff
+    ]
+    if len(weekish) >= floor:
+        return weekish[-cap:]
+    return valid[-floor:]
+
+
+def build_dashboard_summary(
+    ledger: dict[str, Any],
+    *,
+    recent_entries: int = DEFAULT_RECENT_ENTRIES,
+    min_calendar_days: int = DEFAULT_MIN_CALENDAR_DAYS,
+) -> dict[str, Any]:
     entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
     all_picks: list[dict[str, Any]] = []
     for entry in entries:
@@ -160,7 +219,11 @@ def build_dashboard_summary(ledger: dict[str, Any], *, recent_entries: int = 8) 
                 all_picks.append(rendered)
 
     compact_entries = []
-    for entry in entries[-max(int(recent_entries), 1) :]:
+    for entry in select_recent_entries(
+        entries,
+        recent_entries=recent_entries,
+        min_calendar_days=min_calendar_days,
+    ):
         if not isinstance(entry, dict):
             continue
         compact_entries.append(
@@ -193,13 +256,18 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Build the compact prospective artifact published to Cloudflare Pages.")
     parser.add_argument("--input", type=Path, default=DEFAULT_INPUT)
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
-    parser.add_argument("--recent-entries", type=int, default=8)
+    parser.add_argument("--recent-entries", type=int, default=DEFAULT_RECENT_ENTRIES)
+    parser.add_argument("--min-calendar-days", type=int, default=DEFAULT_MIN_CALENDAR_DAYS)
     args = parser.parse_args()
 
     ledger = json.loads(args.input.read_text(encoding="utf-8"))
     if not isinstance(ledger, dict):
         raise SystemExit(f"Expected a JSON object in {args.input}")
-    rendered = build_dashboard_summary(ledger, recent_entries=args.recent_entries)
+    rendered = build_dashboard_summary(
+        ledger,
+        recent_entries=args.recent_entries,
+        min_calendar_days=args.min_calendar_days,
+    )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(rendered, indent=2) + "\n", encoding="utf-8")
     print(

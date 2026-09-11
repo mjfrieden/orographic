@@ -36,6 +36,33 @@ def _write(path: Path, payload: dict) -> None:
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 
+def _candidate_canonical_dirs(explicit: Path | None) -> list[Path]:
+    dirs = []
+    if explicit is not None:
+        dirs.append(explicit)
+    dirs.extend(
+        [
+            Path("output/canonical_evidence"),
+            Path("output/restored_canonical_evidence"),
+        ]
+    )
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for path in dirs:
+        resolved = path
+        if resolved in seen:
+            continue
+        seen.add(resolved)
+        unique.append(resolved)
+    return unique
+
+
+def _valid_canonical_dir(path: Path) -> Path | None:
+    if (path / "evidence_manifest.json").exists():
+        return path
+    return None
+
+
 def _candidate_cirrus_dirs(explicit: Path | None) -> list[Path]:
     dirs = []
     if explicit is not None:
@@ -118,15 +145,23 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    canonical = args.orographic_canonical_dir
-    if not (canonical / "evidence_manifest.json").exists():
+    canonical = None
+    for candidate in _candidate_canonical_dirs(args.orographic_canonical_dir):
+        canonical = _valid_canonical_dir(candidate)
+        if canonical is not None:
+            break
+    if canonical is None:
         payload = {
             "artifact": "orographic_shared_mart_sync",
             "schema_version": 1,
             "generated_at_utc": _now_iso(),
             "status": "missing_orographic_canonical",
-            "source_systems": ["orographic"] if canonical.exists() else [],
-            "next_action": "Build output/canonical_evidence before attempting a mart sync.",
+            "source_systems": [],
+            "checked_dirs": [str(path) for path in _candidate_canonical_dirs(args.orographic_canonical_dir)],
+            "next_action": (
+                "Build output/canonical_evidence, or restore it to "
+                "output/restored_canonical_evidence, before attempting a mart sync."
+            ),
         }
         _write(args.output, payload)
         print(json.dumps(payload, indent=2))

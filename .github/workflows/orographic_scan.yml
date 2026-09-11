@@ -205,7 +205,7 @@ jobs:
 
       - name: Audit research data capture
         run: |
-          python scripts/audit_research_data_capture.py
+          python scripts/audit_research_data_capture.py --warn-only
 
       - name: Consolidate canonical evidence
         run: |
@@ -246,7 +246,9 @@ jobs:
 
       - name: Build compact dashboard prospective summary
         run: |
-          python scripts/build_dashboard_prospective_summary.py
+          python scripts/build_dashboard_prospective_summary.py \
+            --recent-entries 18 \
+            --min-calendar-days 7
 
       - name: Validate refreshed snapshot
         run: |
@@ -433,7 +435,9 @@ jobs:
             web/data/diagnostics/shared_mart_shadow_evidence_latest.json \
             web/data/diagnostics/research_readiness_health_latest.json \
             web/data/diagnostics/weekly_alpha_review_latest.json \
-            web/data/diagnostics/trajectory_exit_overlay_latest.json
+            web/data/diagnostics/trajectory_exit_overlay_latest.json \
+            web/data/diagnostics/early_harvest_overlay_latest.json \
+            web/data/diagnostics/research_data_capture_audit_latest.json
           if git diff --cached --quiet; then
             echo "health_summary_changed=false" >> "$GITHUB_OUTPUT"
             echo "No scan health summary changes to commit."

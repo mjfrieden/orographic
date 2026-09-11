@@ -13,9 +13,12 @@ from typing import Any
 
 
 ARTIFACT = "trajectory_exit_overlay_v1"
+EARLY_HARVEST_ARTIFACT = "early_harvest_overlay_v1"
 SCHEMA_VERSION = 1
 TARGET_RETURN = 0.25
 STOP_RETURN = -0.50
+EARLY_HARVEST_TARGET_RETURN = 0.10
+EARLY_HARVEST_STOP_RETURN = -0.40
 AUTHORITY = "observation_only_never_used_for_routing"
 
 
@@ -74,6 +77,21 @@ def _trajectory_marks(pick: dict[str, Any]) -> list[dict[str, Any]]:
     return [hit] if hit is not None else []
 
 
+def trajectory_mark_count(pick: dict[str, Any]) -> int:
+    """Count raw marks, or the compact dashboard mark_count when full paths are absent."""
+    outcomes = _as_dict(pick.get("outcomes"))
+    raw = [row for row in _as_list(outcomes.get("trajectory_marks")) if isinstance(row, dict)]
+    if raw:
+        return len(raw)
+    overlay = _as_dict(outcomes.get("trajectory_overlay"))
+    count = overlay.get("mark_count")
+    if isinstance(count, int) and count >= 0:
+        return count
+    if isinstance(count, float) and count >= 0 and count == int(count):
+        return int(count)
+    return len(_trajectory_marks(pick))
+
+
 def _friday_return(pick: dict[str, Any]) -> tuple[float | None, str | None]:
     outcomes = _as_dict(pick.get("outcomes"))
     marks = _as_dict(outcomes.get("fixed_exit_marks"))
@@ -90,8 +108,13 @@ def _friday_return(pick: dict[str, Any]) -> tuple[float | None, str | None]:
     return None, None
 
 
-def evaluate_pick_overlay(pick: dict[str, Any]) -> dict[str, Any] | None:
-    """Score one pick: harvest at +25% bid, stop at -50% bid, else hold to Friday."""
+def evaluate_pick_overlay(
+    pick: dict[str, Any],
+    *,
+    target_return: float = TARGET_RETURN,
+    stop_return: float = STOP_RETURN,
+) -> dict[str, Any] | None:
+    """Score one pick: harvest at the target bid, stop at the stop bid, else hold to Friday."""
     ask = _entry_ask(pick)
     if ask is None:
         return None
@@ -100,20 +123,36 @@ def evaluate_pick_overlay(pick: dict[str, Any]) -> dict[str, Any] | None:
     overlay_reason = "unresolved"
     overlay_at = None
     valid_marks = 0
+    target_label = f"target_{int(round(target_return * 100))}_bid"
+    stop_label = f"stop_{int(round(abs(stop_return) * 100))}_bid"
     for mark in _trajectory_marks(pick):
         value = _mark_return(ask, mark)
         if value is None:
             continue
         valid_marks += 1
         captured = str(mark.get("captured_at_utc") or "") or None
-        if value >= TARGET_RETURN:
-            overlay_return = TARGET_RETURN
-            overlay_reason = "target_25_bid"
+        event = str(mark.get("event") or "")
+        # Compact first-hit rows record the +25/-50 crossing. A tighter overlay
+        # must have been touched first, so credit the tighter threshold rather
+        # than the recorded 25/50 fill.
+        if event == "target_25_bid" and value >= target_return:
+            overlay_return = target_return
+            overlay_reason = target_label
             overlay_at = captured
             break
-        if value <= STOP_RETURN:
-            overlay_return = STOP_RETURN
-            overlay_reason = "stop_50_bid"
+        if event == "stop_50_bid" and value <= stop_return:
+            overlay_return = stop_return
+            overlay_reason = stop_label
+            overlay_at = captured
+            break
+        if value >= target_return:
+            overlay_return = target_return
+            overlay_reason = target_label
+            overlay_at = captured
+            break
+        if value <= stop_return:
+            overlay_return = stop_return
+            overlay_reason = stop_label
             overlay_at = captured
             break
     if overlay_return is None and hold_return is not None:
@@ -143,9 +182,14 @@ def evaluate_trajectory_exit_overlay(
     start: datetime | None = None,
     end: datetime | None = None,
     as_of_utc: datetime | None = None,
+    target_return: float = TARGET_RETURN,
+    stop_return: float = STOP_RETURN,
+    artifact: str = ARTIFACT,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     marks_seen = 0
+    target_label = f"target_{int(round(target_return * 100))}_bid"
+    stop_label = f"stop_{int(round(abs(stop_return) * 100))}_bid"
     for entry in _as_list(ledger.get("entries")):
         if not isinstance(entry, dict):
             continue
@@ -157,16 +201,18 @@ def evaluate_trajectory_exit_overlay(
         for pick in _as_list(entry.get("picks")):
             if not isinstance(pick, dict):
                 continue
-            marks_seen += len(_trajectory_marks(pick))
-            scored = evaluate_pick_overlay(pick)
+            marks_seen += trajectory_mark_count(pick)
+            scored = evaluate_pick_overlay(
+                pick, target_return=target_return, stop_return=stop_return
+            )
             if scored is not None:
                 rows.append(scored)
 
     lifts = [float(row["return_lift"]) for row in rows]
     overlay_returns = [float(row["overlay_return"]) for row in rows]
     hold_returns = [float(row["hold_return"]) for row in rows]
-    target_hits = sum(1 for row in rows if row["overlay_reason"] == "target_25_bid")
-    stop_hits = sum(1 for row in rows if row["overlay_reason"] == "stop_50_bid")
+    target_hits = sum(1 for row in rows if row["overlay_reason"] == target_label)
+    stop_hits = sum(1 for row in rows if row["overlay_reason"] == stop_label)
     mean_lift = round(sum(lifts) / len(lifts), 4) if lifts else None
     live_rows = [row for row in rows if row.get("lane") == "live"]
     live_lifts = [float(row["return_lift"]) for row in live_rows]
@@ -179,15 +225,15 @@ def evaluate_trajectory_exit_overlay(
         and stop_hits >= 10
     )
     return {
-        "artifact": ARTIFACT,
+        "artifact": artifact,
         "schema_version": SCHEMA_VERSION,
         "generated_at_utc": generated.isoformat(),
         "authority": AUTHORITY,
         "production_effect": "none",
-        "replaces": "path_hazard_challenger",
+        "replaces": "path_hazard_challenger" if artifact == ARTIFACT else ARTIFACT,
         "policy": {
-            "target_return": TARGET_RETURN,
-            "stop_return": STOP_RETURN,
+            "target_return": target_return,
+            "stop_return": stop_return,
             "fill_rule": "recorded bid at or beyond the target/stop; midpoint touches never count",
             "fallback": "hold to the latest resolved fixed-exit window, preferring Friday close",
         },
@@ -218,3 +264,22 @@ def evaluate_trajectory_exit_overlay(
             )
         ),
     }
+
+
+def evaluate_early_harvest_overlay(
+    ledger: dict[str, Any],
+    *,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    as_of_utc: datetime | None = None,
+) -> dict[str, Any]:
+    """Tighter +10% / -40% overlay. Replaces the inert +25/-50 overlay when that policy never fills."""
+    return evaluate_trajectory_exit_overlay(
+        ledger,
+        start=start,
+        end=end,
+        as_of_utc=as_of_utc,
+        target_return=EARLY_HARVEST_TARGET_RETURN,
+        stop_return=EARLY_HARVEST_STOP_RETURN,
+        artifact=EARLY_HARVEST_ARTIFACT,
+    )

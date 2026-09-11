@@ -5,7 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from scripts.build_dashboard_prospective_summary import build_dashboard_summary
+from scripts.build_dashboard_prospective_summary import build_dashboard_summary, select_recent_entries
 
 
 def _pick(*, lane: str, status: str, value: float | None, run: str) -> dict:
@@ -50,7 +50,7 @@ class DashboardProspectiveSummaryTests(unittest.TestCase):
             ],
         }
 
-        rendered = build_dashboard_summary(ledger, recent_entries=2)
+        rendered = build_dashboard_summary(ledger, recent_entries=2, min_calendar_days=0)
 
         self.assertEqual(rendered["source_entry_count"], 3)
         self.assertEqual(len(rendered["entries"]), 2)
@@ -87,6 +87,30 @@ class DashboardProspectiveSummaryTests(unittest.TestCase):
         self.assertEqual(compact["scores"]["final_candidate_score"], 0.88)
         self.assertEqual(compact["outcomes"]["trajectory_overlay"]["mark_count"], 2)
         self.assertEqual(compact["outcomes"]["trajectory_overlay"]["first_hit"]["event"], "target_25_bid")
+
+    def test_compact_pick_infers_option_type_from_occ_symbol(self) -> None:
+        rendered = build_dashboard_summary({
+            "entries": [{
+                "run_generated_at_utc": "2026-09-09T17:11:18+00:00",
+                "picks": [{
+                    "lane": "live",
+                    "symbol": "SBUX",
+                    "contract_symbol": "SBUX260918C00100000",
+                    "emission_quote": {"ask": 2.17},
+                    "outcomes": {"status": "partial", "fixed_exit_marks": {}},
+                }],
+            }]
+        })
+        self.assertEqual(rendered["entries"][0]["picks"][0]["option_type"], "call")
+
+    def test_select_recent_entries_keeps_a_calendar_week(self) -> None:
+        entries = [
+            {"run_generated_at_utc": f"2026-09-{day:02d}T14:00:00+00:00", "picks": []}
+            for day in range(4, 11)
+        ]
+        selected = select_recent_entries(entries, recent_entries=3, min_calendar_days=7)
+        self.assertEqual(len(selected), 7)
+        self.assertEqual(selected[0]["run_generated_at_utc"], "2026-09-04T14:00:00+00:00")
 
     def test_real_ledger_projection_stays_well_below_pages_limit(self) -> None:
         source = Path("web/data/diagnostics/prospective_pick_ledger.json")

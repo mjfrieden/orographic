@@ -257,6 +257,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-recommendation-rows", type=int, default=0)
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/research_data_capture_audit.json"))
     parser.add_argument(
+        "--diagnostic-output",
+        type=Path,
+        default=Path("web/data/diagnostics/research_data_capture_audit_latest.json"),
+        help="Git-committed copy so scan health can see audit status after the job workspace is gone.",
+    )
+    parser.add_argument(
+        "--warn-only",
+        action="store_true",
+        help="Write the audit even when checks fail, and exit 0 so mart consolidation can continue.",
+    )
+    parser.add_argument(
         "--event-quality-report",
         type=Path,
         default=Path("engine/data/event_observatory/event_observatory.parquet.quality.json"),
@@ -296,11 +307,15 @@ def main() -> int:
         event_feed_health=args.event_feed_health,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(json.dumps(report, indent=2), encoding="utf-8")
+    payload = json.dumps(report, indent=2) + "\n"
+    args.output.write_text(payload, encoding="utf-8")
+    if args.diagnostic_output is not None:
+        args.diagnostic_output.parent.mkdir(parents=True, exist_ok=True)
+        args.diagnostic_output.write_text(payload, encoding="utf-8")
     print(json.dumps(report["summary"], indent=2))
     if report["status"] != "passed":
         print(json.dumps(report["failed_checks"], indent=2), file=sys.stderr)
-        return 1
+        return 0 if args.warn_only else 1
     return 0
 
 

@@ -29,8 +29,13 @@ analytical publication target, not the only copy of the evidence.
 
 The production scan workflow restores a Cirrus export from
 `r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current` when present,
-rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. Missing Cirrus
-data fails closed to that diagnostic and does not block the live scan.
+rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. If
+`output/canonical_evidence` is not on disk yet, the sync also accepts
+`output/restored_canonical_evidence` so a restore-only runner still rebuilds the mart.
+Missing Cirrus data fails closed to that diagnostic and does not block the live scan.
+Research-data audits are persisted to
+`web/data/diagnostics/research_data_capture_audit_latest.json` and are warn-only in the
+scan job so a Moonshot/dataset mismatch cannot skip mart consolidation.
 
 ## Conformed tables
 
