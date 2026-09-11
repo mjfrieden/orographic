@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 86 — 2026-09-10 — Dungeon control-rail field filigree
+
+- Research dungeon shrine-control fields (study window, universe, symbols, budget, ceiling, expiry, entry/exit stress) close with gold L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover/focus fill. Marcellus 11px matches quest-receipt filters. `#run-strict`, `#run-coverage`, `#prepare-run`, `#copy-command`, and dungeon nav at 820px stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, login (PR #37 still open).
+
 ## Cycle 85 — 2026-09-08 — Clearer Harbor copy and came-close runners
 
 - Cockpit flavor stays, function is labeled in plain English: today’s pick, positions, orders, live guarded, research details, order ticket. HOLD now lists the best options that missed a live gate from existing Council abstain data. Funnel notes, login sign-in copy, and 720px Signal & Book layout stay readable.
