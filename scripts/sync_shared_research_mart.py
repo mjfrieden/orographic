@@ -23,6 +23,7 @@ from engine.orographic.shared_research_mart import (  # noqa: E402
     validate_shared_research_mart,
 )
 from scripts.restore_research_artifacts_from_r2 import (  # noqa: E402
+    _list_delimited_index,
     _list_delimited_prefixes,
     _list_objects,
     cirrus_bundle_prefixes,
@@ -153,15 +154,41 @@ def _discover_cirrus_search_prefixes(
         for item in (*bucket_roots, *orographic_roots)
         if _cirrus_like_search_prefix(item)
     ]
+    shared_mart_roots: list[str] = []
+    shared_mart_objects: list[dict] = []
+    if any(item.rstrip("/") == "shared-research-mart" or item.startswith("shared-research-mart/") for item in bucket_roots):
+        index = _list_delimited_index(
+            account_id=account_id,
+            api_token=api_token,
+            bucket=bucket,
+            prefix="shared-research-mart/",
+        )
+        shared_mart_roots = list(index.get("delimited") or [])
+        shared_mart_objects = list(index.get("objects") or [])
+        extras.extend(
+            item if item.endswith("/") else f"{item}/"
+            for item in shared_mart_roots
+            if _cirrus_like_search_prefix(item)
+        )
     search = list(dict.fromkeys([*CIRRUS_EXPORT_SEARCH_PREFIXES, *extras]))
-    return search, {"bucket_roots": bucket_roots, "orographic_roots": orographic_roots}
+    return search, {
+        "bucket_roots": bucket_roots,
+        "orographic_roots": orographic_roots,
+        "shared_mart_roots": shared_mart_roots,
+        "shared_mart_objects": [str(row.get("key") or "") for row in shared_mart_objects[:50]],
+    }
 
 
 def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
     bucket, account_id, api_token, current_prefix = _cirrus_credentials()
     if not all((bucket, account_id, api_token)):
         return {"status": "skipped_missing_credentials", "prefix": current_prefix, "objects": 0}
-    discovery: dict[str, list[str]] = {"bucket_roots": [], "orographic_roots": []}
+    discovery: dict[str, list[str]] = {
+        "bucket_roots": [],
+        "orographic_roots": [],
+        "shared_mart_roots": [],
+        "shared_mart_objects": [],
+    }
     search_prefixes = list(CIRRUS_EXPORT_SEARCH_PREFIXES)
     try:
         search_prefixes, discovery = _discover_cirrus_search_prefixes(
@@ -208,6 +235,8 @@ def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
         "listed_search_prefixes": search_prefixes,
         "bucket_roots": discovery.get("bucket_roots") or [],
         "orographic_roots": discovery.get("orographic_roots") or [],
+        "shared_mart_roots": discovery.get("shared_mart_roots") or [],
+        "shared_mart_objects": discovery.get("shared_mart_objects") or [],
         "prefix": current_prefix,
     }
     errors: list[dict[str, str]] = []

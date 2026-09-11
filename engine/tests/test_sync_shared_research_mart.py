@@ -95,6 +95,45 @@ class SharedMartCirrusRestoreTests(unittest.TestCase):
         self.assertNotIn("orographic/research-data/", search)
         self.assertEqual(discovery["bucket_roots"], ["Cirrus/", "orographic/"])
 
+    def test_discover_lists_shared_mart_archive_children(self) -> None:
+        from scripts.sync_shared_research_mart import _discover_cirrus_search_prefixes
+
+        def fake_delimited(**kwargs):
+            prefix = str(kwargs.get("prefix") or "")
+            if prefix == "":
+                return ["orographic/", "shared-research-mart/"]
+            if prefix == "orographic/":
+                return ["orographic/evidence-canonical/"]
+            return []
+
+        with (
+            mock.patch(
+                "scripts.sync_shared_research_mart._list_delimited_prefixes",
+                side_effect=lambda **kwargs: fake_delimited(**kwargs),
+            ),
+            mock.patch(
+                "scripts.sync_shared_research_mart._list_delimited_index",
+                return_value={
+                    "delimited": [
+                        "shared-research-mart/2026-08-24/",
+                        "shared-research-mart/cirrus/",
+                    ],
+                    "objects": [{"key": "shared-research-mart/latest.tar.gz", "size": 12}],
+                },
+            ),
+        ):
+            search, discovery = _discover_cirrus_search_prefixes(
+                account_id="account",
+                api_token="token",
+                bucket="bucket",
+            )
+        self.assertIn("shared-research-mart/cirrus/", search)
+        self.assertEqual(
+            discovery["shared_mart_roots"],
+            ["shared-research-mart/2026-08-24/", "shared-research-mart/cirrus/"],
+        )
+        self.assertEqual(discovery["shared_mart_objects"], ["shared-research-mart/latest.tar.gz"])
+
     def test_research_data_prefix_is_never_cirrus_like(self) -> None:
         from scripts.sync_shared_research_mart import _cirrus_like_search_prefix
 

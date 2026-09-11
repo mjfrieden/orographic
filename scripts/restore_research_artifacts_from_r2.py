@@ -89,6 +89,54 @@ def _list_delimited_prefixes(
     return delimited
 
 
+def _list_delimited_index(
+    *,
+    account_id: str,
+    api_token: str,
+    bucket: str,
+    prefix: str = "",
+) -> dict[str, list]:
+    """List one folder level: child prefixes plus files in that folder only."""
+    delimited: list[str] = []
+    objects: list[dict[str, Any]] = []
+    cursor = ""
+    while True:
+        query: dict[str, str | int] = {"prefix": prefix, "delimiter": "/", "per_page": 1000}
+        if cursor:
+            query["cursor"] = cursor
+        url = (
+            "https://api.cloudflare.com/client/v4/accounts/"
+            f"{account_id}/r2/buckets/{bucket}/objects?{urlencode(query)}"
+        )
+        request = Request(url, headers={"Authorization": f"Bearer {api_token}"})
+        with urlopen(request, timeout=60) as response:  # noqa: S310 - fixed Cloudflare API origin
+            payload = json.loads(response.read().decode("utf-8"))
+        if not payload.get("success"):
+            raise RuntimeError(f"Cloudflare R2 object listing failed: {payload.get('errors')}")
+        objects.extend(row for row in payload.get("result", []) if isinstance(row, dict))
+        info = payload.get("result_info") if isinstance(payload.get("result_info"), dict) else {}
+        for item in info.get("delimited") or []:
+            if isinstance(item, str) and item and item not in delimited:
+                delimited.append(item)
+        if not info.get("is_truncated"):
+            break
+        cursor = str(info.get("cursor") or "")
+        if not cursor:
+            raise RuntimeError("Cloudflare R2 object listing was truncated without a cursor.")
+    return {
+        "delimited": delimited,
+        "objects": [
+            {
+                "key": str(row.get("key") or ""),
+                "size": row.get("size"),
+                "last_modified": row.get("last_modified"),
+            }
+            for row in objects
+            if row.get("key")
+        ],
+    }
+
+
 def _safe_relative(key: str, prefix: str) -> Path:
     relative = PurePosixPath(key).relative_to(PurePosixPath(prefix))
     if any(part in {"", ".", ".."} for part in relative.parts):

@@ -369,6 +369,7 @@ function renderMartAudit(payload, sync, weekly) {
       ["Cirrus pin", String(cirrusPin).replaceAll("_", " ")],
       ["Cirrus R2 prefixes", integer(listed.length)],
       ["R2 bucket roots", (restore.bucket_roots || []).map((row) => String(row).replace(/\/$/, "")).join(" · ") || "--"],
+      ["Shared mart roots", (restore.shared_mart_roots || []).map((row) => String(row).replace(/\/$/, "")).join(" · ") || "--"],
       ["Alpha vs Cirrus", String(verdict).replaceAll("_", " ")],
       ["Live week return", liveLabel],
       ["Paired executable", integer(cirrus.paired_executable_outcomes ?? gates.paired_executable_outcomes?.actual)],
