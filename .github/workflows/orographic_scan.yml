@@ -416,10 +416,10 @@ jobs:
             --dashboard-push-status "${{ steps.push_snapshot.outcome || 'skipped' }}" \
             --dashboard-deploy-status "${{ steps.deploy_pages.outcome || 'skipped' }}" \
             --warn-only
-          python scripts/build_model_governance_summary.py
           python scripts/build_rebuild_readiness.py
           python scripts/build_research_readiness.py --warn-only
           python scripts/build_weekly_alpha_review.py
+          python scripts/build_model_governance_summary.py
 
       - name: Commit scan health summary
         id: health_summary

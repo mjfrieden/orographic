@@ -192,6 +192,13 @@ function renderModelGovernance() {
   if (authorityCard) authorityCard.className = "governance-overview-card is-pass";
   setText("governance-authority-status", "Protected");
   setText("governance-authority-note", "Only Council's production board can influence Tradier execution.");
+
+  const weekly = governance.weekly_alpha || {};
+  const weeklyTone = evidenceStatus(weekly.status || "hold");
+  const weeklyCard = document.getElementById("governance-weekly-card");
+  if (weeklyCard) weeklyCard.className = `governance-overview-card is-${weeklyTone}`;
+  setText("governance-weekly-status", weekly.title || "Awaiting comparison");
+  setText("governance-weekly-note", weekly.headline || "Weekly alpha versus Cirrus has not been published yet.");
   setText("governance-generated", governance.generated_at_utc ? `Updated ${formatTs(governance.generated_at_utc)}` : "Governance artifact unavailable");
 }
 

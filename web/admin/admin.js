@@ -314,33 +314,58 @@ async function loadOrderLedger() {
 }
 
 async function loadMartAudit() {
-  const response = await fetch("/data/diagnostics/shared_mart_shadow_evidence_latest.json", {
-    cache: "no-store",
-  });
-  if (!response.ok) throw new Error("Shared-mart audit artifact is unavailable.");
-  renderMartAudit(await response.json());
+  const [shadowResult, syncResult, weeklyResult] = await Promise.allSettled([
+    fetch("/data/diagnostics/shared_mart_shadow_evidence_latest.json", { cache: "no-store" }),
+    fetch("/data/diagnostics/shared_mart_sync_latest.json", { cache: "no-store" }),
+    fetch("/data/diagnostics/weekly_alpha_review_latest.json", { cache: "no-store" }),
+  ]);
+  if (shadowResult.status !== "fulfilled" || !shadowResult.value.ok) {
+    throw new Error("Shared-mart audit artifact is unavailable.");
+  }
+  const shadow = await shadowResult.value.json();
+  const sync = syncResult.status === "fulfilled" && syncResult.value.ok
+    ? await syncResult.value.json()
+    : {};
+  const weekly = weeklyResult.status === "fulfilled" && weeklyResult.value.ok
+    ? await weeklyResult.value.json()
+    : {};
+  renderMartAudit(shadow, sync, weekly);
 }
 
-function renderMartAudit(payload) {
+function martSyncLabel(status) {
+  const value = String(status || "missing").replaceAll("_", " ");
+  return value || "missing";
+}
+
+function renderMartAudit(payload, sync, weekly) {
   const bundle = payload.consumer_bundle || {};
   const views = bundle.views || {};
   const gates = payload.shadow_entry_gates || {};
   const execution = payload.execution_quality || {};
+  const cirrus = weekly.cirrus || {};
+  const live = (weekly.production || {}).week_live_marks || {};
+  const syncStatus = cirrus.mart_sync_status || sync.status || bundle.status || "missing";
   const status = document.getElementById("admin-mart-status");
   if (status) {
-    status.textContent = bundle.status === "ready" ? "Validated · observation only" : "Audit required";
-    status.classList.toggle("is-ready", bundle.status === "ready");
+    const readyTwoSource = syncStatus === "ready_two_source";
+    status.textContent = readyTwoSource ? "Validated · observation only" : martSyncLabel(syncStatus);
+    status.classList.toggle("is-ready", readyTwoSource);
   }
   const summary = document.getElementById("admin-mart-summary");
   if (summary) {
     const pairedDates = gates.paired_market_dates || {};
     const coverage = Number(execution.executable_recommendations || 0) / Math.max(Number(execution.recommendations || 0), 1);
+    const liveMean = Number(live.mean_return);
+    const liveLabel = Number.isFinite(liveMean) ? percent(liveMean) : "--";
+    const verdict = cirrus.alpha_verdict || weekly.alpha_verdict || "--";
     summary.innerHTML = [
       ["Mart ID", payload.mart_id || "--"],
-      ["Source systems", (bundle.source_systems || []).join(" + ") || "--"],
-      ["Consumer schema", payload.consumer_schema_version || "--"],
-      ["Generated", formatDateTime(payload.generated_at_utc)],
+      ["Mart sync", martSyncLabel(syncStatus)],
+      ["Alpha vs Cirrus", String(verdict).replaceAll("_", " ")],
+      ["Live week return", liveLabel],
+      ["Paired executable", integer(cirrus.paired_executable_outcomes ?? gates.paired_executable_outcomes?.actual)],
       ["Paired-date gate", `${integer(pairedDates.actual)} / ${integer(pairedDates.required)}`],
+      ["Source systems", (bundle.source_systems || []).join(" + ") || "--"],
       ["Executable coverage", percent(coverage)],
     ].map(([label, value]) => `<article class="summary-item admin-card inventory-slot"><span class="summary-label">${escapeHtml(label)}</span><span class="summary-value">${escapeHtml(value)}</span></article>`).join("");
   }

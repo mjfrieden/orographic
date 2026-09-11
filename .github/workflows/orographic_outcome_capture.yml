@@ -116,6 +116,7 @@ jobs:
             --workflow-started-at-utc "${{ steps.capture_start.outputs.started_at_utc }}" \
             --scheduler "${{ inputs.scheduler || 'manual' }}" \
             --output web/data/diagnostics/outcome_capture_health_latest.json
+          python scripts/build_weekly_alpha_review.py
           python scripts/build_model_governance_summary.py \
             --capture-health web/data/diagnostics/outcome_capture_health_latest.json
           python scripts/build_rebuild_readiness.py

@@ -30,6 +30,31 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertEqual(report["summary"]["experiment_lanes"], 0)
         self.assertEqual(report["data_capture"]["canonical_bundle_id"], "bundle-1")
 
+    def test_weekly_alpha_surfaces_missing_cirrus_export(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={"checks": [{"name": "trajectory_capture_health", "passed": True}]},
+            weekly_review={
+                "alpha_verdict": "insufficient_paired_evidence",
+                "production": {"week_live_marks": {"resolved": 1, "mean_return": -0.4085}},
+                "cirrus": {
+                    "alpha_verdict": "insufficient_paired_evidence",
+                    "mart_sync_status": "cirrus_export_unavailable",
+                    "paired_executable_outcomes": 0,
+                },
+            },
+            mart_sync={"status": "cirrus_export_unavailable"},
+        )
+        weekly = report["weekly_alpha"]
+        self.assertEqual(weekly["status"], "hold")
+        self.assertEqual(weekly["title"], "Cirrus export missing")
+        self.assertEqual(weekly["mart_sync_status"], "cirrus_export_unavailable")
+        self.assertAlmostEqual(weekly["live_week_mean_return"], -0.4085)
+        self.assertIn("Live week -40.85%", weekly["headline"])
+
+    def test_missing_weekly_review_is_awaiting_comparison(self) -> None:
+        report = build_model_governance_summary(scan_health={})
+        self.assertEqual(report["weekly_alpha"]["title"], "Awaiting comparison")
+
     def test_missing_trajectory_health_is_hold(self) -> None:
         report = build_model_governance_summary(scan_health={})
         self.assertEqual(report["data_capture"]["status"], "hold")

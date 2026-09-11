@@ -27,6 +27,76 @@ def _generated_at(value: dict[str, Any]) -> datetime | None:
     return parsed.replace(tzinfo=UTC) if parsed.tzinfo is None else parsed.astimezone(UTC)
 
 
+def _pct(value: object) -> str | None:
+    try:
+        amount = float(value)
+    except (TypeError, ValueError):
+        return None
+    if amount != amount:
+        return None
+    return f"{amount:.2%}"
+
+
+def _weekly_alpha_block(
+    weekly_review: dict[str, Any] | None,
+    mart_sync: dict[str, Any] | None,
+) -> dict[str, Any]:
+    weekly = _dict(weekly_review)
+    mart = _dict(mart_sync)
+    cirrus = _dict(weekly.get("cirrus"))
+    live = _dict(_dict(weekly.get("production")).get("week_live_marks"))
+    verdict = str(cirrus.get("alpha_verdict") or weekly.get("alpha_verdict") or "")
+    sync_status = str(cirrus.get("mart_sync_status") or mart.get("status") or "missing")
+    paired = cirrus.get("paired_executable_outcomes")
+    if paired is None:
+        paired = 0
+    live_mean = live.get("mean_return")
+    live_resolved = _int(live.get("resolved"))
+    live_label = _pct(live_mean)
+    if not weekly and not mart:
+        status = "hold"
+        title = "Awaiting comparison"
+        headline = "Weekly Cirrus comparison has not been published yet."
+    elif verdict == "orographic_ahead":
+        status = "pass"
+        headline = "Orographic is ahead of Cirrus on paired executable outcomes."
+        title = "Ahead of Cirrus"
+    elif verdict == "cirrus_ahead":
+        status = "hold"
+        headline = "Cirrus is ahead on paired executable outcomes. Keep production_v2."
+        title = "Trailing Cirrus"
+    elif sync_status == "cirrus_export_unavailable":
+        status = "hold"
+        headline = (
+            "Cirrus export is missing from R2, so the shared mart is not two-source. "
+            "Alpha versus Cirrus cannot be claimed."
+        )
+        title = "Cirrus export missing"
+    elif verdict in {"insufficient_paired_evidence", "stale_mart_insufficient_for_alpha", ""}:
+        status = "hold"
+        headline = (
+            f"Only {paired} paired executable Cirrus/Orographic outcomes exist. "
+            "Do not claim alpha until 30 independent dates clear."
+        )
+        title = "Insufficient paired evidence"
+    else:
+        status = "hold"
+        headline = "Weekly Cirrus comparison has not been published yet."
+        title = "Awaiting comparison"
+    if live_label is not None and live_resolved:
+        headline = f"Live week {live_label} on {live_resolved} resolved pick. " + headline
+    return {
+        "status": status,
+        "title": title,
+        "headline": headline,
+        "alpha_verdict": verdict or None,
+        "mart_sync_status": sync_status,
+        "paired_executable_outcomes": paired,
+        "live_week_mean_return": live_mean,
+        "live_week_resolved": live_resolved,
+    }
+
+
 def build_model_governance_summary(
     *,
     scan_health: dict[str, Any],
@@ -38,6 +108,8 @@ def build_model_governance_summary(
     scout_pair_readiness: dict[str, Any] | None = None,
     payoff_stack_audit: dict[str, Any] | None = None,
     capture_health: dict[str, Any] | None = None,
+    weekly_review: dict[str, Any] | None = None,
+    mart_sync: dict[str, Any] | None = None,
     now_utc: datetime | None = None,
 ) -> dict[str, Any]:
     """Return one production model, one authority path, and capture health.
@@ -79,7 +151,7 @@ def build_model_governance_summary(
     generated = (now_utc or datetime.now(UTC)).astimezone(UTC).isoformat().replace("+00:00", "Z")
     return {
         "artifact": "model_governance_summary",
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at_utc": generated,
         "status": "fail" if capture_status == "fail" else "pass",
         "headline": "The active tail-utility ranker is the only scoring and execution path.",
@@ -112,5 +184,6 @@ def build_model_governance_summary(
             "stale_quotes_last_run": _int(labels.get("trajectory_quotes_stale_last_run")),
             "canonical_bundle_id": research.get("canonical_bundle_id"),
         },
+        "weekly_alpha": _weekly_alpha_block(weekly_review, mart_sync),
         "summary": {"production_models": 1, "experiment_lanes": 0},
     }
