@@ -49,10 +49,9 @@ def _candidate_cirrus_dirs(explicit: Path | None) -> list[Path]:
     seen: set[Path] = set()
     unique: list[Path] = []
     for path in dirs:
-        resolved = path if path.exists() else path
-        if resolved in seen:
+        if path in seen:
             continue
-        seen.add(resolved)
+        seen.add(path)
         unique.append(path)
     return unique
 
@@ -152,6 +151,7 @@ def main() -> int:
             "source_systems": ["orographic"],
             "restore": restore_info,
             "production_changes_allowed": False,
+            "orographic_canonical_bundle": str(canonical / "evidence_manifest.json"),
             "next_action": (
                 "Publish a current Cirrus options_research_bundle to "
                 f"r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/{CIRRUS_EXPORT_PREFIX} "

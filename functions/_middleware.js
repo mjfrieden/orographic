@@ -1,17 +1,5 @@
 import { htmlResponse, loginRedirect, readSession } from "./_lib/auth.js";
-
-function isPublicPath(pathname) {
-  return (
-    pathname === "/login" ||
-    pathname === "/login/" ||
-    pathname === "/styles.css" ||
-    pathname.startsWith("/assets/") ||
-    pathname === "/api/login" ||
-    pathname === "/api/logout" ||
-    pathname === "/api/ai/sentinel" ||
-    pathname === "/api/internal/positions/capture"
-  );
-}
+import { isPublicPath } from "./_lib/public_paths.js";
 
 export async function onRequest(context) {
   const { request } = context;

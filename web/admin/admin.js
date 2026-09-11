@@ -106,12 +106,36 @@ function buildTrendPoints(items) {
     .join(" ");
 }
 
+function friendlyLoadError(error) {
+  const text = String(error?.message || error || "Unknown error");
+  if (
+    text.includes("Unexpected token") ||
+    text.includes("<!DOCTYPE") ||
+    text.includes("is not valid JSON") ||
+    text.includes("Failed to fetch")
+  ) {
+    return "History store is unreachable in this preview.";
+  }
+  return text;
+}
+
+function renderBlankMap(container, message) {
+  if (!container) return;
+  container.innerHTML = `
+    <div class="admin-trend-chart map-parchment map-empty">
+      <span class="map-compass" aria-hidden="true"></span>
+      <p class="map-cartouche">Marked value</p>
+      <p class="map-empty-copy">${escapeHtml(message)}</p>
+    </div>
+  `;
+}
+
 function renderOverview(items) {
   const container = document.getElementById("admin-overview-grid");
   if (!container) return;
   if (!items.length) {
     container.innerHTML = `
-      <article class="summary-item admin-card">
+        <article class="summary-item admin-card inventory-slot">
         <span class="summary-label">No History</span>
         <span class="summary-value">No hosted captures found yet.</span>
       </article>
@@ -158,7 +182,7 @@ function renderOverview(items) {
   container.innerHTML = cards
     .map(
       (card) => `
-        <article class="summary-item admin-card">
+        <article class="summary-item admin-card inventory-slot">
           <span class="summary-label">${escapeHtml(card.label)}</span>
           <span class="summary-value ${card.className || ""}">${escapeHtml(card.value)}</span>
         </article>
@@ -171,7 +195,7 @@ function renderTrend(items) {
   const container = document.getElementById("admin-trend-panel");
   if (!container) return;
   if (!items.length) {
-    container.innerHTML = `<div class="admin-trend-empty">No hosted history yet.</div>`;
+    renderBlankMap(container, "The parchment is still blank. No hosted history yet.");
     return;
   }
 
@@ -182,7 +206,9 @@ function renderTrend(items) {
   const delta = latest.marketValue - earliest.marketValue;
 
   container.innerHTML = `
-    <div class="admin-trend-chart">
+    <div class="admin-trend-chart map-parchment">
+      <span class="map-compass" aria-hidden="true"></span>
+      <p class="map-cartouche">Marked value</p>
       <svg viewBox="0 0 100 36" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="history-line" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -316,7 +342,7 @@ function renderMartAudit(payload) {
       ["Generated", formatDateTime(payload.generated_at_utc)],
       ["Paired-date gate", `${integer(pairedDates.actual)} / ${integer(pairedDates.required)}`],
       ["Executable coverage", percent(coverage)],
-    ].map(([label, value]) => `<article class="summary-item admin-card"><span class="summary-label">${escapeHtml(label)}</span><span class="summary-value">${escapeHtml(value)}</span></article>`).join("");
+    ].map(([label, value]) => `<article class="summary-item admin-card inventory-slot"><span class="summary-label">${escapeHtml(label)}</span><span class="summary-value">${escapeHtml(value)}</span></article>`).join("");
   }
   const tbody = document.getElementById("admin-mart-views-tbody");
   if (tbody) {
@@ -384,7 +410,7 @@ function renderOrderLedger(events) {
           </td>
           <td>${escapeHtml(event.event_type || "--")}</td>
           <td>${escapeHtml(event.lane || "unknown")}</td>
-          <td style="font-family:var(--font-data);font-size:.72rem;word-break:break-all">${escapeHtml(event.option_symbol || "--")}${exitPolicy}</td>
+          <td class="ledger-contract">${escapeHtml(event.option_symbol || "--")}${exitPolicy}</td>
           <td>${escapeHtml(event.side || "--")}</td>
           <td class="is-num">${escapeHtml(integer(event.quantity))}</td>
           <td class="is-num">${escapeHtml(money(event.limit_price))}</td>
@@ -413,27 +439,27 @@ async function initAdminHistory() {
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="admin-history-loading">${escapeHtml(String(orderEvents.error?.message || orderEvents.error || "Unable to load order provenance."))}</td>
+            <td colspan="8" class="admin-history-loading">${escapeHtml(friendlyLoadError(orderEvents.error))}</td>
           </tr>
         `;
       }
     }
   } catch (error) {
-    const message = String(error?.message || error || "Unknown error");
+    const message = friendlyLoadError(error);
     const overview = document.getElementById("admin-overview-grid");
     const trend = document.getElementById("admin-trend-panel");
     const tbody = document.getElementById("admin-history-tbody");
     const orderTbody = document.getElementById("admin-order-ledger-tbody");
     if (overview) {
       overview.innerHTML = `
-        <article class="summary-item admin-card">
+        <article class="summary-item admin-card inventory-slot">
           <span class="summary-label">Load Failed</span>
           <span class="summary-value">${escapeHtml(message)}</span>
         </article>
       `;
     }
     if (trend) {
-      trend.innerHTML = `<div class="admin-trend-empty">${escapeHtml(message)}</div>`;
+      renderBlankMap(trend, message);
     }
     if (tbody) {
       tbody.innerHTML = `

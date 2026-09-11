@@ -174,8 +174,36 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(manifest["views"]["orographic_execution_quality_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["orographic_exit_replay_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["cirrus_orographic_disagreement_v1"]["rows"], 1)
+            self.assertEqual(manifest["views"]["mart_data_quality_v1"]["rows"], 2)
+            self.assertEqual(manifest["views"]["orographic_training_funnel_v1"]["rows"], 2)
             disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
             self.assertEqual(disagreement.iloc[0]["comparison_cohort"], "same_side_different_contract")
+
+            quality = pd.read_parquet(output / "mart_data_quality_v1.parquet").set_index("source_system")
+            oro_quality = quality.loc["orographic"]
+            self.assertEqual(oro_quality["recommendations"], 1)
+            self.assertEqual(oro_quality["feature_coverage_rate"], 1.0)
+            self.assertEqual(oro_quality["path_quote_coverage_rate"], 1.0)
+            self.assertEqual(oro_quality["executable_outcome_coverage_rate"], 1.0)
+            self.assertEqual(oro_quality["critical_null_rate"], 0.0)
+            self.assertEqual(oro_quality["integrity_anomaly_rate"], 0.0)
+
+            funnel = pd.read_parquet(
+                output / "orographic_training_funnel_v1.parquet"
+            ).set_index("source_system")
+            oro_funnel = funnel.loc["orographic"]
+            self.assertEqual(oro_funnel["recommendations"], 1)
+            self.assertEqual(oro_funnel["with_point_in_time_feature"], 1)
+            self.assertEqual(oro_funnel["with_valid_label_outcome"], 1)
+            self.assertEqual(oro_funnel["training_eligible_recommendations"], 1)
+            # The funnel training-row count must equal the pinned training view.
+            self.assertEqual(
+                int(oro_funnel["training_rows"]),
+                manifest["views"]["orographic_training_v1"]["rows"],
+            )
+            self.assertEqual(oro_funnel["dropped_missing_feature"], 0)
+            self.assertEqual(oro_funnel["training_eligibility_rate"], 1.0)
+
             validate_shared_mart_consumer_bundle(output)
 
             shadow = build_shared_mart_shadow_evidence(output)
@@ -188,6 +216,118 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(
                 shadow["consumer_bundle"]["views"]["orographic_training_v1"]["rows"], 1
             )
+            self.assertEqual(shadow["data_quality"]["cohorts"], 2)
+            self.assertTrue(shadow["data_quality"]["integrity_clean"])
+            self.assertEqual(shadow["data_quality"]["worst_critical_null_rate"], 0.0)
+            self.assertEqual(shadow["data_quality"]["worst_integrity_anomaly_rate"], 0.0)
+            self.assertTrue(shadow["training_funnel"]["training_mart_usable"])
+            self.assertEqual(shadow["training_funnel"]["training_rows"], 2)
+            self.assertEqual(shadow["training_funnel"]["training_eligible_recommendations"], 2)
+            self.assertEqual(shadow["training_funnel"]["dropped_missing_feature"], 0)
+            self.assertEqual(shadow["training_funnel"]["min_training_eligibility_rate"], 1.0)
+
+    def test_data_quality_view_flags_anomalies(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            mart = root / "mart"
+            mart.mkdir()
+            _write_mart(mart)
+
+            # Corrupt one Orographic recommendation (crossed entry quote, null score)
+            # and one path quote (crossed) to exercise the data-quality detectors.
+            recs = pd.read_parquet(mart / "recommendations.parquet")
+            recs.loc[recs["recommendation_key"] == "orographic:rec-1", "entry_bid"] = 1.5
+            recs.loc[recs["recommendation_key"] == "orographic:rec-1", "entry_ask"] = 1.0
+            recs.loc[recs["recommendation_key"] == "orographic:rec-1", "score"] = None
+            recs.to_parquet(mart / "recommendations.parquet", index=False)
+
+            quotes = pd.read_parquet(mart / "option_quotes.parquet")
+            quotes.loc[quotes["quote_key"] == "orographic:quote-1", "bid"] = 2.0
+            quotes.loc[quotes["quote_key"] == "orographic:quote-1", "ask"] = 1.0
+            quotes.to_parquet(mart / "option_quotes.parquet", index=False)
+
+            # Re-pin manifest hashes/rows after mutation.
+            manifest = json.loads((mart / "mart_manifest.json").read_text(encoding="utf-8"))
+            for name in ("recommendations", "option_quotes"):
+                path = mart / f"{name}.parquet"
+                manifest["artifacts"][name]["sha256"] = _sha(path)
+                manifest["artifacts"][name]["rows"] = len(pd.read_parquet(path))
+            identity = {
+                "schema_version": manifest["schema_version"],
+                "sources": manifest["sources"],
+                "artifacts": manifest["artifacts"],
+                "validation": manifest["validation"],
+            }
+            manifest["mart_id"] = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            (mart / "mart_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            output = root / "consumers"
+            build_shared_mart_consumer_bundle(mart, output)
+
+            quality = pd.read_parquet(output / "mart_data_quality_v1.parquet").set_index("source_system")
+            oro_quality = quality.loc["orographic"]
+            self.assertEqual(oro_quality["crossed_entry_rate"], 1.0)
+            self.assertEqual(oro_quality["score_null_rate"], 1.0)
+            self.assertEqual(oro_quality["path_crossed_quote_rate"], 1.0)
+            self.assertEqual(oro_quality["integrity_anomaly_rate"], 1.0)
+            self.assertEqual(oro_quality["critical_null_rate"], 1.0)
+
+            shadow = build_shared_mart_shadow_evidence(output)
+            self.assertFalse(shadow["data_quality"]["integrity_clean"])
+            self.assertEqual(shadow["data_quality"]["worst_integrity_anomaly_rate"], 1.0)
+            self.assertEqual(shadow["data_quality"]["cohorts_with_integrity_anomalies"], 1)
+            self.assertEqual(shadow["data_quality"]["cohorts_with_null_gaps"], 1)
+
+    def test_training_funnel_attributes_missing_feature_dropoff(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            mart = root / "mart"
+            mart.mkdir()
+            _write_mart(mart)
+
+            # Drop the Orographic feature snapshot so its only recommendation can
+            # no longer become a training row. This is exactly the structurally
+            # empty training set that point-in-time features were added to fix.
+            features = pd.read_parquet(mart / "feature_snapshots.parquet")
+            features = features[features["source_system"] != "orographic"]
+            features.to_parquet(mart / "feature_snapshots.parquet", index=False)
+
+            manifest = json.loads((mart / "mart_manifest.json").read_text(encoding="utf-8"))
+            path = mart / "feature_snapshots.parquet"
+            manifest["artifacts"]["feature_snapshots"]["sha256"] = _sha(path)
+            manifest["artifacts"]["feature_snapshots"]["rows"] = len(pd.read_parquet(path))
+            identity = {
+                "schema_version": manifest["schema_version"],
+                "sources": manifest["sources"],
+                "artifacts": manifest["artifacts"],
+                "validation": manifest["validation"],
+            }
+            manifest["mart_id"] = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            (mart / "mart_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            output = root / "consumers"
+            build_shared_mart_consumer_bundle(mart, output)
+
+            funnel = pd.read_parquet(
+                output / "orographic_training_funnel_v1.parquet"
+            ).set_index("source_system")
+            oro_funnel = funnel.loc["orographic"]
+            self.assertEqual(oro_funnel["with_any_feature"], 0)
+            self.assertEqual(oro_funnel["with_valid_label_outcome"], 1)
+            self.assertEqual(oro_funnel["training_eligible_recommendations"], 0)
+            self.assertEqual(oro_funnel["training_rows"], 0)
+            self.assertEqual(oro_funnel["dropped_missing_feature"], 1)
+            self.assertEqual(oro_funnel["training_eligibility_rate"], 0.0)
+
+            # Cirrus still yields a training row, so the mart stays usable overall.
+            shadow = build_shared_mart_shadow_evidence(output)
+            self.assertTrue(shadow["training_funnel"]["training_mart_usable"])
+            self.assertEqual(shadow["training_funnel"]["dropped_missing_feature"], 1)
+            self.assertEqual(shadow["training_funnel"]["min_training_eligibility_rate"], 0.0)
 
 
 if __name__ == "__main__":

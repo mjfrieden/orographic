@@ -145,28 +145,6 @@ html {
 body {
   min-height: 100vh;
   background-color: var(--bg-page);
-  background-image:
-    radial-gradient(
-      ellipse 120% 60% at 75% 0%,
-      rgba(240, 156, 91, 0.12) 0%,
-      transparent 55%
-    ),
-    radial-gradient(
-      ellipse 100% 80% at 10% 100%,
-      rgba(78, 205, 196, 0.08) 0%,
-      transparent 50%
-    ),
-    url("/harbor-hero.png");
-  background-size:
-    auto,
-    auto,
-    100% auto;
-  background-position:
-    top,
-    bottom,
-    top center;
-  background-repeat: no-repeat, no-repeat, no-repeat;
-  background-attachment: fixed, fixed, fixed;
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.6;
@@ -461,9 +439,9 @@ body {
   max-width: 680px;
 }
 .eyebrow {
-  font-family: var(--font-data);
+  font-family: var(--font-ui);
   font-size: 0.7rem;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--teal);
@@ -627,9 +605,9 @@ section + section {
   gap: 20px;
 }
 .section-kicker {
-  font-family: var(--font-data);
-  font-size: 0.65rem;
-  font-weight: 500;
+  font-family: var(--font-ui);
+  font-size: 0.7rem;
+  font-weight: 400;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--teal-dim);
@@ -2192,6 +2170,61 @@ section + section {
   margin-top: 20px;
 }
 
+.login-page .field,
+.portal-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.login-page .field span,
+.portal-form .field span {
+  font-family: var(--font-data);
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.login-page .field input,
+.portal-form .field input {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  font-family: var(--font-data);
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  outline: none;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+.login-page .field input:focus,
+.portal-form .field input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(78, 205, 196, 0.12);
+}
+.login-page .error,
+.portal-page .error {
+  font-family: var(--font-data);
+  font-size: 0.75rem;
+  color: var(--crimson);
+  margin-top: 8px;
+  min-height: 1.2em;
+}
+.login-page .error:not(:empty),
+.portal-page .error:not(:empty) {
+  padding: 8px 12px;
+  border-radius: var(--r-sm);
+  background: var(--crimson-dim);
+  border: 1px solid rgba(224, 82, 82, 0.3);
+}
+.login-page .primary-action,
+.portal-form .primary-action {
+  width: 100%;
+  min-height: 46px;
+  margin-top: 4px;
+}
+
 /* ── Responsive ── */
 @media (max-width: 1100px) {
   .battle-grid {
@@ -2217,10 +2250,6 @@ section + section {
   }
 }
 @media (max-width: 600px) {
-  body {
-    background-attachment: scroll, scroll, scroll;
-    background-size: auto, auto, cover;
-  }
   .shell {
     padding: 0 12px 60px;
   }
@@ -2942,9 +2971,9 @@ section + section {
   border-color: rgba(239, 111, 111, 0.55);
   background: rgba(239, 111, 111, 0.08);
 }
-.research-claims-banner .material-symbols-outlined { color: #e8b44d; font-size: 21px; }
-.research-claims-banner.is-pass .material-symbols-outlined { color: #68b98a; }
-.research-claims-banner.is-fail .material-symbols-outlined { color: #ef6f6f; }
+.research-claims-banner .sigil { color: #e8b44d; width: 21px; height: 21px; }
+.research-claims-banner.is-pass .sigil { color: #68b98a; }
+.research-claims-banner.is-fail .sigil { color: #ef6f6f; }
 .research-claims-banner div { display: grid; gap: 1px; }
 .research-claims-banner strong {
   color: #f2d59b;

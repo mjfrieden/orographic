@@ -16,7 +16,22 @@ from .evidence_store import validate_canonical_bundle
 
 
 MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v1"
-OROGRAPHIC_FEATURE_SCHEMA_VERSION = "orographic_recommendation_features_v1"
+
+# Point-in-time-safe feature schema for Orographic recommendation-time evidence.
+# Only fields known at decision time (scores, risk features, entry quote, regime
+# context) are captured. Post-decision `outcomes` are intentionally excluded so
+# the shared training view stays leakage-free.
+OROGRAPHIC_FEATURE_SCHEMA_VERSION = "orographic_pick_features_v1"
+
+# Decision-time pick sections that are safe to expose as model features. Each is
+# recorded by Forge/Council at scan emission time, i.e. at or before the
+# recommendation decision timestamp.
+OROGRAPHIC_FEATURE_SECTIONS: tuple[str, ...] = (
+    "scores",
+    "risk_features",
+    "underlying",
+    "emission_quote",
+)
 
 
 @dataclass(frozen=True)
@@ -98,57 +113,6 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _sha256_text(value: str) -> str:
-    return hashlib.sha256(value.encode("utf-8")).hexdigest()
-
-
-def _iso_max(*values: str | None) -> str | None:
-    candidates = [value for value in values if value]
-    if not candidates:
-        return None
-
-    def _key(value: str) -> datetime:
-        try:
-            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-        except ValueError:
-            return datetime.min.replace(tzinfo=UTC)
-        return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
-
-    return max(candidates, key=_key)
-
-
-def _orographic_features(pick: dict[str, Any]) -> dict[str, Any]:
-    """Point-in-time contract features available at recommendation time."""
-    features: dict[str, Any] = {}
-    scores = pick.get("scores") if isinstance(pick.get("scores"), dict) else {}
-    risk = pick.get("risk_features") if isinstance(pick.get("risk_features"), dict) else {}
-    quote = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
-    for source in (risk, scores):
-        for key, value in source.items():
-            number = _number(value)
-            if number is not None:
-                features[str(key)] = number
-    for key, out_key in (
-        ("spread_pct", "entry_spread_pct"),
-        ("open_interest", "entry_open_interest"),
-        ("volume", "entry_volume"),
-        ("contract_cost", "entry_contract_cost"),
-        ("bid", "entry_bid"),
-        ("ask", "entry_ask"),
-        ("mid", "entry_mid"),
-    ):
-        number = _number(quote.get(key))
-        if number is not None:
-            features[out_key] = number
-    dte = _number(pick.get("days_to_expiry"))
-    if dte is not None:
-        features["dte"] = dte
-    option_type = _text(pick.get("option_type"))
-    if option_type:
-        features["option_type_is_call"] = 1.0 if option_type.lower() == "call" else 0.0
-    return features
-
-
 def _clean(value: Any) -> Any:
     if isinstance(value, dict):
         return {str(key): _clean(item) for key, item in value.items()}
@@ -217,6 +181,44 @@ def _model_version(payload: dict[str, Any]) -> str:
         "model_artifacts": _nested(payload, "context", "model_artifacts"),
     }
     return hashlib.sha256(_json(identity).encode("utf-8")).hexdigest()[:20]
+
+
+def _orographic_feature_payload(pick: dict[str, Any]) -> dict[str, Any] | None:
+    """Extract decision-time features from an Orographic pick.
+
+    Returns a flat, point-in-time-safe feature mapping or ``None`` when the pick
+    carries no usable recommendation-time signal. Post-decision fields such as
+    ``outcomes`` and ``notes`` are never included.
+    """
+    features: dict[str, Any] = {}
+    for section in OROGRAPHIC_FEATURE_SECTIONS:
+        block = pick.get(section)
+        if not isinstance(block, dict):
+            continue
+        for key, value in block.items():
+            if isinstance(value, (dict, list)):
+                continue
+            if value is None:
+                continue
+            features[f"{section}.{key}"] = value
+
+    context = pick.get("context") if isinstance(pick.get("context"), dict) else {}
+    regime = context.get("regime") if isinstance(context.get("regime"), dict) else {}
+    for key in ("mode", "bias"):
+        value = regime.get(key)
+        if value is not None and not isinstance(value, (dict, list)):
+            features[f"regime.{key}"] = value
+    for key in ("ranker_mode", "path_model_mode"):
+        value = context.get(key)
+        if value is not None and not isinstance(value, (dict, list)):
+            features[f"context.{key}"] = value
+
+    for key in ("option_type", "strike", "days_to_expiry"):
+        value = pick.get(key)
+        if value is not None and not isinstance(value, (dict, list)):
+            features[key] = value
+
+    return features or None
 
 
 def _read_manifest(path: Path) -> dict[str, Any]:
@@ -304,7 +306,7 @@ def _orographic_rows(
                     "lane": _text(pick.get("lane")),
                     "model_version": _model_version({**entry, "context": pick.get("context")}),
                     "decision_at_utc": source_run_id,
-                    "available_at_utc": _iso_max(_text(quote.get("captured_at_utc")), source_run_id),
+                    "available_at_utc": _text(quote.get("captured_at_utc")) or source_run_id,
                     "underlying_symbol": _text(pick.get("symbol") or pick.get("underlying")),
                     "contract_symbol": _text(pick.get("contract_symbol")),
                     "option_type": _text(pick.get("option_type")),
@@ -319,22 +321,30 @@ def _orographic_rows(
                     "source_payload_json": _json(pick),
                 })
                 known_recommendations.add(rec_key)
-                features = _orographic_features(pick)
-                features_json = _json(features)
-                result["feature_snapshots"].append({
-                    "feature_key": f"{rec_key}|{OROGRAPHIC_FEATURE_SCHEMA_VERSION}",
-                    "recommendation_key": rec_key,
-                    "source_system": "orographic",
-                    "feature_schema_version": OROGRAPHIC_FEATURE_SCHEMA_VERSION,
-                    "available_at_utc": source_run_id,
-                    "features_sha256": _sha256_text(features_json),
-                    "features_json": features_json,
-                    "source_metadata_json": _json({
-                        "lane": _text(pick.get("lane")),
-                        "contract_symbol": _text(pick.get("contract_symbol")),
-                    }),
-                    "source_bundle_id": bundle_id,
-                })
+
+                feature_payload = _orographic_feature_payload(pick)
+                if feature_payload is not None:
+                    features_json = _json(feature_payload)
+                    # Features are recorded by the scan at the decision instant.
+                    # Anchor availability to the decision timestamp so the
+                    # point-in-time guard (available_at <= decision_at) always holds.
+                    feature_available = source_run_id
+                    result["feature_snapshots"].append({
+                        "feature_key": f"{rec_key}|{OROGRAPHIC_FEATURE_SCHEMA_VERSION}",
+                        "recommendation_key": rec_key,
+                        "source_system": "orographic",
+                        "feature_schema_version": OROGRAPHIC_FEATURE_SCHEMA_VERSION,
+                        "available_at_utc": feature_available,
+                        "features_sha256": hashlib.sha256(features_json.encode("utf-8")).hexdigest(),
+                        "features_json": features_json,
+                        "source_metadata_json": _json({
+                            "cohort": cohort,
+                            "lane": _text(pick.get("lane")),
+                            "model_version": _model_version({**entry, "context": pick.get("context")}),
+                            "feature_sections": list(OROGRAPHIC_FEATURE_SECTIONS),
+                        }),
+                        "source_bundle_id": bundle_id,
+                    })
 
     outcome_path = canonical_dir / "recommendation_outcomes.parquet"
     outcomes = pd.read_parquet(outcome_path) if outcome_path.exists() else pd.DataFrame()

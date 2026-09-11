@@ -169,7 +169,7 @@ def build_audit_report(
         checks.append(
             {
                 "name": "event_quality_report_exists",
-                "passed": True,
+                "passed": event_quality_report.exists(),
                 "actual": str(event_quality_report),
             }
         )
@@ -177,7 +177,7 @@ def build_audit_report(
         checks.append(
             {
                 "name": "event_coverage_report_exists",
-                "passed": True,
+                "passed": event_coverage_report.exists(),
                 "actual": str(event_coverage_report),
             }
         )

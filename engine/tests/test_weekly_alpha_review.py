@@ -6,45 +6,131 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from engine.orographic.weekly_alpha_review import HOLD_OUT_CHALLENGER, build_weekly_alpha_review
+from engine.orographic.trajectory_exit_overlay import (
+    ARTIFACT as TRAJECTORY_EXIT_OVERLAY,
+    evaluate_pick_overlay,
+    evaluate_trajectory_exit_overlay,
+)
+from engine.orographic.weekly_alpha_review import (
+    HOLD_OUT_CHALLENGER,
+    PRODUCTION_LANE,
+    build_weekly_alpha_review,
+)
 from scripts.audit_research_data_capture import build_audit_report
 from scripts.build_scan_health_summary import build_scan_health_summary
 
 import pandas as pd
 
 
-class WeeklyAlphaReviewTests(unittest.TestCase):
-    def test_opens_holdout_challenger_and_keeps_single_production_lane(self) -> None:
-        as_of = datetime(2026, 9, 2, 16, 0, tzinfo=UTC)
-        snapshot = {
-            "generated_at_utc": "2026-09-02T14:24:00+00:00",
-            "scan_settings": {"model_stack": "production_v2"},
-            "regime": {"mode": "neutral"},
-            "council": {
-                "live_board": [{
-                    "symbol": "WFC", "contract_symbol": "WFC260911C00088000",
-                    "option_type": "call", "ask": 2.14, "spread_pct": 0.0676,
-                    "prob_big_win": 0.59, "expected_tail_utility": 0.66,
-                }]
+def _mark(window: str, pnl: float) -> dict:
+    return {window: {"pnl_pct_from_emission": pnl}}
+
+
+class TrajectoryExitOverlayTests(unittest.TestCase):
+    def test_target_fill_requires_recorded_bid_not_midpoint(self) -> None:
+        pick = {
+            "lane": "live",
+            "symbol": "XLE",
+            "contract_symbol": "XLE1",
+            "emission_quote": {"ask": 1.0},
+            "outcomes": {
+                "trajectory_marks": [
+                    {"captured_at_utc": "2026-09-08T16:00:00+00:00", "bid": 1.10, "ask": 1.40},
+                    {"captured_at_utc": "2026-09-08T17:00:00+00:00", "bid": 1.25, "ask": 1.30},
+                ],
+                "fixed_exit_marks": _mark("friday_close", -0.40),
             },
         }
+        scored = evaluate_pick_overlay(pick)
+        assert scored is not None
+        self.assertEqual(scored["overlay_return"], 0.25)
+        self.assertEqual(scored["overlay_reason"], "target_25_bid")
+        self.assertAlmostEqual(scored["return_lift"], 0.65)
+
+    def test_overlay_summary_stays_observation_only(self) -> None:
+        ledger = {
+            "entries": [{
+                "run_generated_at_utc": "2026-09-08T14:00:00+00:00",
+                "picks": [{
+                    "lane": "live",
+                    "symbol": "WFC",
+                    "emission_quote": {"ask": 2.0},
+                    "outcomes": {
+                        "trajectory_marks": [
+                            {"captured_at_utc": "2026-09-08T16:00:00+00:00", "pnl_pct_from_emission": -0.55},
+                        ],
+                        "fixed_exit_marks": _mark("friday_close", -0.20),
+                    },
+                }],
+            }]
+        }
+        report = evaluate_trajectory_exit_overlay(ledger, as_of_utc=datetime(2026, 9, 9, tzinfo=UTC))
+        self.assertEqual(report["artifact"], TRAJECTORY_EXIT_OVERLAY)
+        self.assertEqual(report["authority"], "observation_only_never_used_for_routing")
+        self.assertFalse(report["promotion_ready"])
+        self.assertEqual(report["coverage"]["stop_hits"], 1)
+        self.assertEqual(report["overall"]["mean_return_lift"], -0.3)
+
+    def test_compact_dashboard_first_hit_is_enough_to_score_overlay(self) -> None:
+        pick = {
+            "lane": "live",
+            "emission_quote": {"ask": 1.0},
+            "outcomes": {
+                "trajectory_overlay": {
+                    "mark_count": 12,
+                    "first_hit": {
+                        "captured_at_utc": "2026-09-08T17:00:00+00:00",
+                        "bid": 1.25,
+                        "pnl_pct_from_emission": 0.25,
+                        "event": "target_25_bid",
+                    },
+                },
+                "fixed_exit_marks": {"friday_close": {"pnl_pct_from_emission": -0.20}},
+            },
+        }
+        scored = evaluate_pick_overlay(pick)
+        assert scored is not None
+        self.assertEqual(scored["overlay_reason"], "target_25_bid")
+        self.assertAlmostEqual(scored["return_lift"], 0.45)
+
+
+class WeeklyAlphaReviewTests(unittest.TestCase):
+    def test_selects_holdout_by_decision_score_not_realized_pnl(self) -> None:
+        as_of = datetime(2026, 9, 9, 16, 0, tzinfo=UTC)
+        snapshot = {
+            "generated_at_utc": "2026-09-09T14:10:23+00:00",
+            "scan_settings": {"model_stack": "production_v2"},
+            "regime": {"mode": "neutral"},
+            "council": {"live_board": [], "abstain": True},
+        }
         board = {"entries": [
-            {"run_generated_at_utc": "2026-09-01T14:13:49+00:00", "abstain": False,
+            {"run_generated_at_utc": "2026-09-08T14:13:49+00:00", "abstain": False,
              "live_board": [{"symbol": "BAC", "contract_symbol": "BAC1", "option_type": "call", "ask": 1.0}]},
-            {"run_generated_at_utc": "2026-09-01T17:14:42+00:00", "abstain": True, "live_board": []},
+            {"run_generated_at_utc": "2026-09-08T17:14:42+00:00", "abstain": True, "live_board": []},
         ]}
         dashboard = {"entries": [{
-            "run_generated_at_utc": "2026-09-01T14:13:49+00:00",
+            "run_generated_at_utc": "2026-09-08T14:13:49+00:00",
             "picks": [
                 {
                     "lane": "live", "symbol": "BAC", "contract_symbol": "BAC1",
-                    "emission_quote": {"spread_pct": 0.03},
-                    "outcomes": {"fixed_exit_marks": {"end_of_day": {"pnl_pct_from_emission": -0.17}}},
+                    "scores": {"final_candidate_score": 0.91},
+                    "outcomes": {"fixed_exit_marks": _mark("end_of_day", -0.17)},
+                },
+                {
+                    "lane": "council_holdout", "symbol": "CHERRY", "contract_symbol": "CHERRY1",
+                    "scores": {"final_candidate_score": 0.40},
+                    "outcomes": {"fixed_exit_marks": _mark("end_of_day", 0.80)},
                 },
                 {
                     "lane": "council_holdout", "symbol": "XLE", "contract_symbol": "XLE1",
-                    "emission_quote": {"spread_pct": 0.06},
-                    "outcomes": {"fixed_exit_marks": {"end_of_day": {"pnl_pct_from_emission": 0.62}}},
+                    "scores": {"final_candidate_score": 0.88},
+                    "outcomes": {
+                        "fixed_exit_marks": _mark("end_of_day", 0.10),
+                        "trajectory_marks": [
+                            {"captured_at_utc": "2026-09-08T16:00:00+00:00", "bid": 1.3, "ask": 1.35},
+                        ],
+                    },
+                    "emission_quote": {"ask": 1.0},
                 },
             ],
         }]}
@@ -57,6 +143,7 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
             rebuild_readiness={"status": "hold_collecting_executable_evidence", "production_model_change_allowed": False},
             mart_shadow={
                 "mart_id": "abc",
+                "generated_at_utc": "2026-08-24T03:36:22+00:00",
                 "cross_system_comparison": {"paired_executable_outcomes": 0, "paired_market_dates": 3},
                 "execution_quality": {"executable_win_rate": 0.34, "avg_executable_return": -0.02},
             },
@@ -68,14 +155,19 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         )
 
         self.assertEqual(review["alpha_verdict"], "insufficient_paired_evidence")
+        self.assertTrue(review["cirrus"]["mart_stale"])
         self.assertEqual(review["challenger_to_open"]["experiment_id"], HOLD_OUT_CHALLENGER)
-        self.assertEqual(review["challenger_to_open"]["mean_return_lift"], 0.79)
+        self.assertEqual(review["challenger_to_open"]["rows"][0]["holdout_top1_symbol"], "XLE")
+        self.assertEqual(review["challenger_to_open"]["mean_return_lift"], 0.27)
         actions = {row["lane"]: row["action"] for row in review["lane_decisions"]}
-        self.assertEqual(actions["production_v2_council_live_board"], "keep")
+        self.assertEqual(actions[PRODUCTION_LANE], "keep")
         self.assertEqual(actions["moonshot"], "remain_retired")
         self.assertEqual(actions["path_hazard_challenger"], "replace")
-        self.assertEqual(actions[HOLD_OUT_CHALLENGER], "open_observation_only")
+        self.assertEqual(actions[TRAJECTORY_EXIT_OVERLAY], "open_observation_only")
+        self.assertEqual(actions[HOLD_OUT_CHALLENGER], "keep_observation_only")
         self.assertFalse(review["kill_switch"]["rebuild_production_change_allowed"])
+        self.assertEqual(review["platform"]["feature_snapshot_schema"], "orographic_pick_features_v1")
+        self.assertEqual(review["research_evidence_source"], "dashboard_summary")
 
 
 class RetiredMoonshotDatasetTests(unittest.TestCase):
@@ -108,19 +200,19 @@ class RetiredMoonshotDatasetTests(unittest.TestCase):
         self.assertEqual(checks["combined_dataset_consistency"]["expected"], 1)
 
     def test_scan_health_treats_missing_moonshot_dataset_as_zero_rows(self) -> None:
-        now = datetime(2026, 9, 2, 14, 30, tzinfo=UTC)
+        now = datetime(2026, 9, 9, 14, 30, tzinfo=UTC)
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             snapshot = root / "latest_run.json"
             snapshot.write_text(json.dumps({
-                "generated_at_utc": "2026-09-02T14:24:00+00:00",
+                "generated_at_utc": "2026-09-09T14:10:23+00:00",
                 "regime": {"mode": "neutral"},
                 "summary": {"scout_signal_count": 8, "forge_candidate_count": 3},
                 "council": {"abstain": False, "summary": {"live_count": 1, "shadow_count": 0}},
             }))
             ledger = root / "ledger.json"
             ledger.write_text(json.dumps({
-                "updated_at_utc": "2026-09-02T14:26:00+00:00",
+                "updated_at_utc": "2026-09-09T14:11:00+00:00",
                 "outcome_summary": {
                     "picks": 1, "pending": 0, "partial": 0, "complete": 1,
                     "with_any_mark": 1, "with_all_fixed_marks": 1,

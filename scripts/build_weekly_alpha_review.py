@@ -34,6 +34,11 @@ def parse_args() -> argparse.Namespace:
         default=Path("web/data/diagnostics/prospective_dashboard_summary_latest.json"),
     )
     parser.add_argument(
+        "--prospective-ledger",
+        type=Path,
+        default=Path("web/data/diagnostics/prospective_pick_ledger.json"),
+    )
+    parser.add_argument(
         "--scan-health",
         type=Path,
         default=Path("web/data/diagnostics/scan_health_summary_latest.json"),
@@ -74,6 +79,11 @@ def parse_args() -> argparse.Namespace:
         default=Path("web/data/diagnostics/exit_policy_shadow_latest.json"),
     )
     parser.add_argument(
+        "--overlay-output",
+        type=Path,
+        default=Path("web/data/diagnostics/trajectory_exit_overlay_latest.json"),
+    )
+    parser.add_argument(
         "--output",
         type=Path,
         default=Path("web/data/diagnostics/weekly_alpha_review_latest.json"),
@@ -107,14 +117,20 @@ def main() -> int:
         path_hazard=_load(args.path_hazard),
         promotion=_load(args.promotion),
         exit_shadow=_load(args.exit_shadow),
+        prospective_ledger=_load(args.prospective_ledger),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
+    overlay = artifact.get("exit_overlay") or {}
+    args.overlay_output.parent.mkdir(parents=True, exist_ok=True)
+    args.overlay_output.write_text(json.dumps(overlay, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({
         "status": "written",
         "alpha_verdict": artifact["alpha_verdict"],
         "live_emissions": len(artifact["production"]["week"]["live_emissions"]),
         "challenger": artifact["challenger_to_open"]["experiment_id"],
+        "holdout_mean_lift": artifact["challenger_to_open"]["mean_return_lift"],
+        "overlay_mean_lift": (overlay.get("overall") or {}).get("mean_return_lift"),
         "output": str(args.output),
     }, indent=2))
     return 0

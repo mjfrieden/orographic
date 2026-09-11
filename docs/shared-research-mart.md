@@ -27,6 +27,11 @@ flowchart LR
 The existing hashed Parquet bundles remain the recovery and migration path. Iceberg is an
 analytical publication target, not the only copy of the evidence.
 
+The production scan workflow restores a Cirrus export from
+`r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current` when present,
+rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. Missing Cirrus
+data fails closed to that diagnostic and does not block the live scan.
+
 ## Conformed tables
 
 | Table | Grain | Primary key |
@@ -41,6 +46,13 @@ analytical publication target, not the only copy of the evidence.
 Every table retains `source_system` or an explicit parent carrying it, and all model-facing facts
 retain source bundle identity. Orographic primary and Moonshot cohorts remain separate. Cirrus
 research, live, shadow, and board lanes remain distinguishable through `lane`.
+
+Both systems now populate `feature_snapshots`. Cirrus contributes its candidate feature snapshots;
+Orographic contributes one `orographic_pick_features_v1` snapshot per pick, built from decision-time
+scores, risk features, entry-quote fields, and regime context. Post-decision `outcomes` fields are
+never captured as features, and every Orographic feature snapshot is anchored to the recommendation
+decision timestamp so `available_at_utc <= decision_at_utc` always holds. This is what makes the
+`orographic_training_v1` consumer view non-empty and unblocks the training-source rebuild gate.
 
 ## Point-in-time and execution rules
 
@@ -141,27 +153,9 @@ Mart `bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64` was publ
 
 No production selector, model, trade gate, or execution setting is changed by the mart.
 
-## Scan-workflow sync
-
-The scheduled Orographic scan keeps the mart aligned with this repo:
-
-1. Restore Orographic canonical evidence and, when present, the Cirrus export from
-   `r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current`.
-2. Run `scripts/sync_shared_research_mart.py --allow-missing`. A missing Cirrus export is a
-   diagnostic, not a live-scan failure. A two-source mart is required before consumers, Iceberg
-   publication, or rebuild-readiness promotion.
-3. Persist `web/data/diagnostics/shared_mart_sync_latest.json` and refresh
-   `shared_mart_shadow_evidence_latest.json` plus `weekly_alpha_review_latest.json`.
-4. Orographic feature snapshots now come from recommendation-time scores, risk features, and
-   entry quotes (`orographic_recommendation_features_v1`) so `orographic_training_v1` is no longer
-   an empty join.
-
-Publish a current Cirrus `options_research_bundle` to that R2 prefix after Cirrus marks and
-settlement. The mart still refuses a one-system publication.
-
 ## Orographic consumer rollout
 
-Orographic materializes five versioned views from one validated local mart snapshot:
+Orographic materializes seven versioned views from one validated local mart snapshot:
 
 | View | Purpose | Initial authority |
 | --- | --- | --- |
@@ -170,13 +164,54 @@ Orographic materializes five versioned views from one validated local mart snaps
 | `orographic_exit_replay_v1` | Executable ask-to-bid quote paths for frozen exit-policy replay | Shadow only |
 | `cirrus_orographic_disagreement_v1` | One top daily recommendation per system and symbol | Research only |
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
+| `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
+| `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |
+
+### Data-quality scorecard (`mart_data_quality_v1`)
+
+One row per `(source_system, cohort)` measuring whether the mart is trustworthy enough to train and
+compare on. It surfaces, without any routing authority:
+
+- Coverage: `feature_coverage_rate`, `path_quote_coverage_rate`, `executable_outcome_coverage_rate`.
+- Decision-field null rates: `entry_mid_null_rate`, `score_null_rate`, `strike_null_rate`,
+  `expiry_null_rate`, `contract_symbol_null_rate`, `underlying_null_rate`, rolled into `critical_null_rate`.
+- Quote integrity: `crossed_entry_rate`, `nonpositive_entry_mid_rate`, `path_crossed_quote_rate`,
+  `path_null_iv_rate`, `path_null_delta_rate`, plus entry-spread stats
+  (`avg_entry_spread_pct`, `median_entry_spread_pct`, `wide_entry_spread_rate`), rolled into
+  `integrity_anomaly_rate`.
+
+`scripts/build_shared_mart_shadow_evidence.py` folds this into a `data_quality` block (worst null and
+integrity rates, minimum coverage, and how many cohorts show gaps) so regressions in incoming data are
+visible before they silently degrade training or paired comparisons.
+
+### Training-readiness funnel (`orographic_training_funnel_v1`)
+
+One row per `(source_system, cohort)` answering the operative question — *can this mart actually be
+used to train and improve the models?* It reproduces the exact join semantics of
+`orographic_training_v1` (a point-in-time feature with `available_at_utc <= decision_at_utc`, an
+executable non-excluded outcome, and a label available at or after the decision) and reports the yield
+and where recommendations are lost:
+
+- Funnel counts: `recommendations`, `with_any_feature`, `with_point_in_time_feature`,
+  `with_executable_outcome`, `with_valid_label_outcome`, `training_eligible_recommendations`, and
+  `training_rows` (matches the `orographic_training_v1` row count for Orographic cohorts).
+- Mutually exclusive drop-off reasons, attributed in funnel order: `dropped_missing_feature`,
+  `dropped_feature_not_point_in_time`, `dropped_missing_executable_outcome`, and
+  `dropped_label_before_decision`.
+- Rates: `point_in_time_feature_coverage_rate`, `valid_label_coverage_rate`, and
+  `training_eligibility_rate`.
+
+The shadow evidence rollup folds this into a `training_funnel` block (including a `training_mart_usable`
+flag that is true once any training-eligible rows exist), so a structurally empty training set — the
+failure mode the point-in-time Orographic feature snapshots were added to fix — is visible directly in
+the committed diagnostics rather than only as a blocked rebuild gate.
 
 Build them with `scripts/build_shared_mart_consumers.py`. The generated consumer manifest pins the
 source `mart_id`, requires both systems, hashes every output, and grants no scoring, Council, sizing,
 or order-routing authority. `scripts/build_rebuild_readiness.py` treats this bundle as a required
 fail-closed gate before a fold-frozen challenger can become eligible for promotion review.
 
-`scripts/build_shared_mart_shadow_evidence.py` turns the five views into one compact diagnostic.
+`scripts/build_shared_mart_shadow_evidence.py` turns these views into one compact diagnostic.
 It requires 30 paired executable cross-system outcomes and 30 independent paired market dates
 before recommending that a single liquidity veto enter shadow evaluation. Passing those entry gates
 still grants no production authority; production promotion remains governed by the stricter rebuild
