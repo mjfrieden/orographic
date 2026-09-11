@@ -53,6 +53,10 @@ class SharedMartCirrusRestoreTests(unittest.TestCase):
                     clear=False,
                 ),
                 mock.patch(
+                    "scripts.sync_shared_research_mart._list_delimited_prefixes",
+                    return_value=[],
+                ),
+                mock.patch(
                     "scripts.sync_shared_research_mart._list_objects",
                     return_value=objects,
                 ),
@@ -72,6 +76,31 @@ class SharedMartCirrusRestoreTests(unittest.TestCase):
         self.assertEqual(info["prefix"], "cirrus/options_research_bundle/2026-08-24")
         self.assertEqual(info["listed_objects"], 1)
         self.assertEqual(info["objects"], 4)
+        self.assertEqual(info["bucket_roots"], [])
+
+    def test_discover_adds_case_variant_cirrus_root(self) -> None:
+        from scripts.sync_shared_research_mart import _discover_cirrus_search_prefixes
+
+        with mock.patch(
+            "scripts.sync_shared_research_mart._list_delimited_prefixes",
+            side_effect=[["Cirrus/", "orographic/"], ["orographic/cirrus/", "orographic/research-data/"]],
+        ):
+            search, discovery = _discover_cirrus_search_prefixes(
+                account_id="account",
+                api_token="token",
+                bucket="bucket",
+            )
+        self.assertIn("Cirrus/", search)
+        self.assertIn("orographic/cirrus/", search)
+        self.assertNotIn("orographic/research-data/", search)
+        self.assertEqual(discovery["bucket_roots"], ["Cirrus/", "orographic/"])
+
+    def test_research_data_prefix_is_never_cirrus_like(self) -> None:
+        from scripts.sync_shared_research_mart import _cirrus_like_search_prefix
+
+        self.assertFalse(_cirrus_like_search_prefix("orographic/research-data/"))
+        self.assertTrue(_cirrus_like_search_prefix("Cirrus/"))
+        self.assertTrue(_cirrus_like_search_prefix("orographic/cirrus/"))
 
 
 if __name__ == "__main__":

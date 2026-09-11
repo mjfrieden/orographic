@@ -23,6 +23,7 @@ from engine.orographic.shared_research_mart import (  # noqa: E402
     validate_shared_research_mart,
 )
 from scripts.restore_research_artifacts_from_r2 import (  # noqa: E402
+    _list_delimited_prefixes,
     _list_objects,
     cirrus_bundle_prefixes,
     restore_prefix,
@@ -119,14 +120,58 @@ def _cirrus_credentials() -> tuple[str, str, str, str]:
     return bucket, account_id, api_token, prefix
 
 
+def _cirrus_like_search_prefix(prefix: str) -> bool:
+    lowered = prefix.lower().replace("\\", "/")
+    if "research-data" in lowered or "live_options" in lowered:
+        return False
+    return "cirrus" in lowered or "options_research_bundle" in lowered
+
+
+def _discover_cirrus_search_prefixes(
+    *,
+    account_id: str,
+    api_token: str,
+    bucket: str,
+) -> tuple[list[str], dict[str, list[str]]]:
+    """Find Cirrus-like folder roots without listing the live-options archive."""
+    bucket_roots = _list_delimited_prefixes(
+        account_id=account_id,
+        api_token=api_token,
+        bucket=bucket,
+        prefix="",
+    )
+    orographic_roots: list[str] = []
+    if any(item.rstrip("/") == "orographic" or item.startswith("orographic/") for item in bucket_roots):
+        orographic_roots = _list_delimited_prefixes(
+            account_id=account_id,
+            api_token=api_token,
+            bucket=bucket,
+            prefix="orographic/",
+        )
+    extras = [
+        item if item.endswith("/") else f"{item}/"
+        for item in (*bucket_roots, *orographic_roots)
+        if _cirrus_like_search_prefix(item)
+    ]
+    search = list(dict.fromkeys([*CIRRUS_EXPORT_SEARCH_PREFIXES, *extras]))
+    return search, {"bucket_roots": bucket_roots, "orographic_roots": orographic_roots}
+
+
 def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
     bucket, account_id, api_token, current_prefix = _cirrus_credentials()
     if not all((bucket, account_id, api_token)):
         return {"status": "skipped_missing_credentials", "prefix": current_prefix, "objects": 0}
+    discovery: dict[str, list[str]] = {"bucket_roots": [], "orographic_roots": []}
+    search_prefixes = list(CIRRUS_EXPORT_SEARCH_PREFIXES)
     try:
+        search_prefixes, discovery = _discover_cirrus_search_prefixes(
+            account_id=account_id,
+            api_token=api_token,
+            bucket=bucket,
+        )
         listed: list[dict] = []
         seen_keys: set[str] = set()
-        for search_prefix in CIRRUS_EXPORT_SEARCH_PREFIXES:
+        for search_prefix in search_prefixes:
             for row in _list_objects(
                 account_id=account_id,
                 api_token=api_token,
@@ -146,6 +191,7 @@ def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
             "prefix": current_prefix,
             "error": str(exc),
             "objects": 0,
+            **discovery,
         }
     candidates = cirrus_bundle_prefixes(listed)
     listed_prefixes = [
@@ -159,7 +205,9 @@ def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
     base = {
         "listed_objects": len(listed),
         "listed_prefixes": listed_prefixes,
-        "listed_search_prefixes": list(CIRRUS_EXPORT_SEARCH_PREFIXES),
+        "listed_search_prefixes": search_prefixes,
+        "bucket_roots": discovery.get("bucket_roots") or [],
+        "orographic_roots": discovery.get("orographic_roots") or [],
         "prefix": current_prefix,
     }
     errors: list[dict[str, str]] = []

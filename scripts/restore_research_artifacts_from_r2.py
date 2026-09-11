@@ -54,6 +54,41 @@ def _list_objects(
     return objects
 
 
+def _list_delimited_prefixes(
+    *,
+    account_id: str,
+    api_token: str,
+    bucket: str,
+    prefix: str = "",
+) -> list[str]:
+    """List folder-like prefixes without enumerating every object under them."""
+    delimited: list[str] = []
+    cursor = ""
+    while True:
+        query: dict[str, str | int] = {"prefix": prefix, "delimiter": "/", "per_page": 1000}
+        if cursor:
+            query["cursor"] = cursor
+        url = (
+            "https://api.cloudflare.com/client/v4/accounts/"
+            f"{account_id}/r2/buckets/{bucket}/objects?{urlencode(query)}"
+        )
+        request = Request(url, headers={"Authorization": f"Bearer {api_token}"})
+        with urlopen(request, timeout=60) as response:  # noqa: S310 - fixed Cloudflare API origin
+            payload = json.loads(response.read().decode("utf-8"))
+        if not payload.get("success"):
+            raise RuntimeError(f"Cloudflare R2 object listing failed: {payload.get('errors')}")
+        info = payload.get("result_info") if isinstance(payload.get("result_info"), dict) else {}
+        for item in info.get("delimited") or []:
+            if isinstance(item, str) and item and item not in delimited:
+                delimited.append(item)
+        if not info.get("is_truncated"):
+            break
+        cursor = str(info.get("cursor") or "")
+        if not cursor:
+            raise RuntimeError("Cloudflare R2 object listing was truncated without a cursor.")
+    return delimited
+
+
 def _safe_relative(key: str, prefix: str) -> Path:
     relative = PurePosixPath(key).relative_to(PurePosixPath(prefix))
     if any(part in {"", ".", ".."} for part in relative.parts):
@@ -93,11 +128,13 @@ def cirrus_bundle_prefixes(objects: list[dict[str, Any]]) -> list[dict[str, Any]
         if not key.endswith("/manifest.json"):
             continue
         prefix = key[: -len("/manifest.json")].strip("/")
+        lowered = prefix.lower()
         looks_cirrus = (
-            prefix.startswith(CIRRUS_EXPORT_ROOT)
-            or prefix.startswith("orographic/cirrus/")
-            or prefix == "options_research_bundle"
-            or "/options_research_bundle" in f"/{prefix}"
+            lowered.startswith(CIRRUS_EXPORT_ROOT)
+            or lowered.startswith("orographic/cirrus/")
+            or lowered == "options_research_bundle"
+            or "/options_research_bundle" in f"/{lowered}"
+            or lowered.startswith("cirrus/")
         )
         if not looks_cirrus or prefix in seen:
             continue

@@ -87,6 +87,17 @@ class R2EvidenceScriptTests(unittest.TestCase):
         self.assertTrue(prefixes[0]["is_current"])
         self.assertFalse(prefixes[1]["is_current"])
 
+    def test_cirrus_prefixes_accept_capitalized_root(self) -> None:
+        prefixes = cirrus_bundle_prefixes(
+            [
+                {
+                    "key": "Cirrus/options_research_bundle/current/manifest.json",
+                    "last_modified": "2026-09-11T00:00:00Z",
+                },
+            ]
+        )
+        self.assertEqual(prefixes[0]["prefix"], "Cirrus/options_research_bundle/current")
+
     def test_cirrus_prefixes_accept_misrooted_options_research_bundle(self) -> None:
         prefixes = cirrus_bundle_prefixes(
             [
