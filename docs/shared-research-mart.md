@@ -196,7 +196,7 @@ Orographic materializes seven versioned views from one validated local mart snap
 | `orographic_training_v1` | Point-in-time Orographic features joined to executable labels | Observation only |
 | `orographic_execution_quality_v1` | Spread, liquidity, quote, feature, and outcome coverage | Research; later shadow veto |
 | `orographic_exit_replay_v1` | Executable ask-to-bid quote paths for frozen exit-policy replay | Shadow only |
-| `cirrus_orographic_disagreement_v1` | One top daily production recommendation per system and symbol (Orographic primary vs Cirrus prospective; executable labels outrank paper picks) | Research only |
+| `cirrus_orographic_disagreement_v1` | One top daily production recommendation per system and symbol (Orographic primary vs Cirrus prospective; America/New_York session dates; executable labels outrank paper picks) | Research only |
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
 | `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
 | `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |

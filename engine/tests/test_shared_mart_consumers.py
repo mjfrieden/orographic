@@ -371,6 +371,40 @@ class SharedMartConsumerTests(unittest.TestCase):
             shadow = build_shared_mart_shadow_evidence(output)
             self.assertEqual(shadow["cross_system_comparison"]["paired_executable_outcomes"], 1)
 
+    def test_disagreement_pairs_on_new_york_session_dates(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            mart = root / "mart"
+            mart.mkdir()
+            _write_mart(mart)
+            recs = pd.read_parquet(mart / "recommendations.parquet")
+            recs.loc[recs["source_system"] == "cirrus", "decision_at_utc"] = "2026-08-22T00:30:00+00:00"
+            recs.loc[recs["source_system"] == "cirrus", "available_at_utc"] = "2026-08-22T00:30:00+00:00"
+            recs.loc[recs["source_system"] == "cirrus", "underlying_symbol"] = "aaa"
+            recs.loc[recs["source_system"] == "cirrus", "source_payload_json"] = "{}"
+            recs.to_parquet(mart / "recommendations.parquet", index=False)
+            manifest = json.loads((mart / "mart_manifest.json").read_text(encoding="utf-8"))
+            manifest["artifacts"]["recommendations"]["sha256"] = _sha(mart / "recommendations.parquet")
+            identity = {
+                "schema_version": manifest["schema_version"],
+                "sources": manifest["sources"],
+                "artifacts": manifest["artifacts"],
+                "validation": manifest["validation"],
+            }
+            manifest["mart_id"] = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            (mart / "mart_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            output = root / "consumers"
+            build_shared_mart_consumer_bundle(mart, output)
+            disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
+            self.assertEqual(len(disagreement), 1)
+            self.assertEqual(str(disagreement.iloc[0]["market_date"]), "2026-08-21")
+            shadow = build_shared_mart_shadow_evidence(output)
+            self.assertEqual(shadow["cross_system_comparison"]["paired_comparisons"], 1)
+            self.assertEqual(shadow["cross_system_comparison"]["paired_executable_outcomes"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

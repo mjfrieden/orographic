@@ -179,9 +179,19 @@ VIEW_SQL: dict[str, str] = {
             SELECT
                 r.*,
                 o.executable_return,
-                CAST(r.decision_at_utc AS DATE) AS market_date,
+                coalesce(
+                    try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                    CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ) AT TIME ZONE 'America/New_York') AS DATE)
+                ) AS market_date,
+                upper(replace(replace(trim(CAST(r.underlying_symbol AS VARCHAR)), '/', '.'), '-', '.')) AS join_symbol,
                 row_number() OVER (
-                    PARTITION BY CAST(r.decision_at_utc AS DATE), r.underlying_symbol, r.source_system
+                    PARTITION BY
+                        coalesce(
+                            try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                            CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ) AT TIME ZONE 'America/New_York') AS DATE)
+                        ),
+                        upper(replace(replace(trim(CAST(r.underlying_symbol AS VARCHAR)), '/', '.'), '-', '.')),
+                        r.source_system
                     ORDER BY (o.executable_return IS NOT NULL) DESC, r.score DESC NULLS LAST, r.recommendation_key
                 ) AS daily_rank
             FROM recommendations r
@@ -232,7 +242,7 @@ VIEW_SQL: dict[str, str] = {
         FROM oro o
         FULL OUTER JOIN cirrus c
           ON o.market_date = c.market_date
-         AND o.underlying_symbol = c.underlying_symbol
+         AND o.join_symbol = c.join_symbol
     """,
     "orographic_model_monitoring_v1": """
         SELECT
