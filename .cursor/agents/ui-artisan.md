@@ -116,7 +116,8 @@ Audit juice shipped:
 83. Research dungeon quest-receipt filters close with gold filigree. **Shipped in cycle 83.**
 84. HOLD “Why no trade?” funnel plate closes with gold filigree. **Shipped in cycle 84.**
 85. Harbor copy pairs flavor with function; HOLD shows came-close runners. **Shipped in cycle 85.**
-86. Research dungeon shrine-control fields close with gold filigree. **Shipped in cycle 86.**
+86. Research dungeon shrine-control fields close with gold filigree. **Shipped in cycle 86 (PR #39).**
+87. Cockpit character-plate topbar gives the action rail room to breathe. **Shipped in cycle 87.**
 
 ## Done when
 

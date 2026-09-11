@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 87 — 2026-09-11 — Cockpit character-plate topbar breathing room
+
+- Signal & Book topbar lets Backtest Lab, Live · guarded, and Log out size to content instead of squeezing into `minmax(200px, 0.8fr)`. Labels stay on one line; the action rail no longer overlaps Connectivity. Closed the HOLD rarity-gem rule that cycle 85 left unclosed, so the 1100px and 720px topbar overlays apply again: icon actions and hidden Account below 1100, Log out on row 1 at 720, Signal & Book stacking. `#logout-btn` keeps the gold gate chrome.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, auth, required DOM ids, login (PR #37), dungeon (PR #39).
+
 ## Cycle 86 — 2026-09-10 — Dungeon control-rail field filigree
 
 - Research dungeon shrine-control fields (study window, universe, symbols, budget, ceiling, expiry, entry/exit stress) close with gold L-brackets: gold ticks on the stone rest state, dark ticks on the live gold hover/focus fill. Marcellus 11px matches quest-receipt filters. `#run-strict`, `#run-coverage`, `#prepare-run`, `#copy-command`, and dungeon nav at 820px stay.
