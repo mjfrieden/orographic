@@ -21,6 +21,7 @@ HOLD_OUT_CHALLENGER = "holdout_top1_vs_live_v1"
 TIGHT_SPREAD_CHALLENGER = "tight_spread_holdout_v1"
 PAIRED_OPPOSITE_CHALLENGER = "paired_opposite_side_v1"
 FRICTION_VETO_VALUE = "friction_veto_value_v1"
+RESEARCH_SIDE_SPLIT = "research_side_split_v1"
 MART_STALE_AFTER = timedelta(days=7)
 
 
@@ -121,11 +122,10 @@ def _lane_scorecard(entries: list[dict[str, Any]]) -> dict[str, Any]:
     by_lane: dict[str, dict[str, Any]] = {}
     counts = Counter(str(pick.get("lane") or "unknown") for pick in week_picks)
     for lane, count in counts.items():
+        lane_picks = [pick for pick in week_picks if str(pick.get("lane") or "unknown") == lane]
         resolved: list[float] = []
         windows: Counter[str] = Counter()
-        for pick in week_picks:
-            if str(pick.get("lane") or "unknown") != lane:
-                continue
+        for pick in lane_picks:
             window, pnl = _latest_mark(pick)
             if pnl is not None and window is not None:
                 resolved.append(pnl)
@@ -134,6 +134,7 @@ def _lane_scorecard(entries: list[dict[str, Any]]) -> dict[str, Any]:
             "picks": count,
             "mark_windows": dict(windows),
             **_summarize_returns(resolved),
+            "by_option_type": _side_scorecard(lane_picks),
         }
     return {"picks": len(week_picks), "lanes": by_lane}
 
@@ -245,6 +246,27 @@ def _option_type(pick: dict[str, Any]) -> str:
     if match:
         return "call" if match.group(1) == "C" else "put"
     return ""
+
+
+def _side_scorecard(picks: list[dict[str, Any]]) -> dict[str, Any]:
+    by_side: dict[str, dict[str, Any]] = {}
+    for side in ("call", "put"):
+        side_picks = [pick for pick in picks if _option_type(pick) == side]
+        if not side_picks:
+            continue
+        resolved: list[float] = []
+        windows: Counter[str] = Counter()
+        for pick in side_picks:
+            window, pnl = _latest_mark(pick)
+            if pnl is not None and window is not None:
+                resolved.append(pnl)
+                windows[window] += 1
+        by_side[side] = {
+            "picks": len(side_picks),
+            "mark_windows": dict(windows),
+            **_summarize_returns(resolved),
+        }
+    return by_side
 
 
 def _challenger_reason(paired: list[dict[str, Any]], mean_lift: float | None, *, empty: str) -> str:
@@ -385,6 +407,76 @@ def _paired_opposite_challenger(entries: list[dict[str, Any]]) -> dict[str, Any]
     }
 
 
+def _research_side_split(lanes: dict[str, Any]) -> dict[str, Any]:
+    """Puts versus calls on the only research surface that made money this week.
+
+    Decision-time production still emits one Council contract. This split is
+    observation-only: a one-week put/call gap is a tape, not a Scout rewrite.
+    """
+    paired = _as_dict(_as_dict(lanes.get("paired_side_observation")).get("by_option_type"))
+    live = _as_dict(_as_dict(lanes.get("live")).get("by_option_type"))
+    call = _as_dict(paired.get("call"))
+    put = _as_dict(paired.get("put"))
+    live_call = int(_as_dict(live.get("call")).get("picks") or 0)
+    live_put = int(_as_dict(live.get("put")).get("picks") or 0)
+    call_mean = _number(call.get("mean_return"))
+    put_mean = _number(put.get("mean_return"))
+    if call_mean is None:
+        call_mean = _number(_as_dict(live.get("call")).get("mean_return"))
+    if put_mean is None:
+        put_mean = _number(_as_dict(live.get("put")).get("mean_return"))
+    put_beats_call = (
+        call_mean is not None
+        and put_mean is not None
+        and put_mean > call_mean
+    )
+    live_on_losing_side = bool(
+        put_beats_call and live_call > 0 and live_put == 0 and (call_mean or 0) < 0
+    )
+    if call_mean is None or put_mean is None:
+        reason = (
+            "Paired-side observations are not yet split into resolved calls and puts. "
+            "Keep capturing both OCC sides; do not change Scout."
+        )
+        action = "open_observation_only"
+    else:
+        if call.get("resolved") and put.get("resolved"):
+            reason = (
+                f"Paired-side puts returned {put_mean:.2%} ({put.get('resolved')} resolved, "
+                f"win rate {put.get('win_rate')}) versus calls {call_mean:.2%} "
+                f"({call.get('resolved')} resolved, win rate {call.get('win_rate')}). "
+            )
+        else:
+            reason = (
+                f"Resolved puts returned {put_mean:.2%} versus calls {call_mean:.2%} "
+                "after filling a missing OCC side from the live lane. "
+            )
+        if live_on_losing_side:
+            reason += (
+                "This week's live emission was a call on the losing side. "
+                "Keep as observation-only; a one-week tape is not a production side change."
+            )
+        else:
+            reason += "Keep collecting Friday-close labels; do not change Scout side."
+        action = "keep_observation_only"
+    return {
+        "experiment_id": RESEARCH_SIDE_SPLIT,
+        "authority": "observation_only_never_used_for_routing",
+        "selection_rule": "split paired_side_observation marks by inferred OCC option_type",
+        "paired_side_calls": call or None,
+        "paired_side_puts": put or None,
+        "live_call_picks": live_call,
+        "live_put_picks": live_put,
+        "put_minus_call_return": (
+            round(put_mean - call_mean, 4) if put_mean is not None and call_mean is not None else None
+        ),
+        "live_emitted_losing_side": live_on_losing_side,
+        "action": action,
+        "promotion_ready": False,
+        "reason": reason,
+    }
+
+
 def _friction_veto_value(lanes: dict[str, Any]) -> dict[str, Any]:
     veto = _as_dict(lanes.get("friction_veto"))
     mean = _number(veto.get("mean_return"))
@@ -469,6 +561,7 @@ def _lane_decisions(
     tight_spread: dict[str, Any],
     opposite: dict[str, Any],
     friction: dict[str, Any],
+    side_split: dict[str, Any],
     overlay: dict[str, Any],
     early_harvest: dict[str, Any],
     payoff: dict[str, Any],
@@ -631,6 +724,14 @@ def _lane_decisions(
             "gate_working": friction.get("gate_working"),
         },
         {
+            "lane": RESEARCH_SIDE_SPLIT,
+            "action": side_split.get("action") or "keep_observation_only",
+            "authority": "observation_only",
+            "reason": side_split.get("reason"),
+            "put_minus_call_return": side_split.get("put_minus_call_return"),
+            "live_emitted_losing_side": side_split.get("live_emitted_losing_side"),
+        },
+        {
             "lane": "cirrus_paired_alpha",
             "action": "collect",
             "authority": "observation_only",
@@ -711,6 +812,7 @@ def build_weekly_alpha_review(
     tight_spread = _tight_spread_challenger(research_entries)
     opposite = _paired_opposite_challenger(research_entries)
     friction = _friction_veto_value(lanes["lanes"])
+    side_split = _research_side_split(lanes["lanes"])
     overlay = evaluate_trajectory_exit_overlay(
         {"entries": research_entries},
         start=start,
@@ -731,6 +833,7 @@ def build_weekly_alpha_review(
         tight_spread=tight_spread,
         opposite=opposite,
         friction=friction,
+        side_split=side_split,
         overlay=overlay,
         early_harvest=early_harvest,
         payoff=payoff_challenger,
@@ -751,7 +854,7 @@ def build_weekly_alpha_review(
     }
     return {
         "artifact": "orographic_weekly_alpha_review",
-        "schema_version": 3,
+        "schema_version": 4,
         "generated_at_utc": as_of_utc.astimezone(UTC).replace(microsecond=0).isoformat(),
         "week_start_utc": start.replace(microsecond=0).isoformat(),
         "week_end_utc": end.replace(microsecond=0).isoformat(),
@@ -778,6 +881,7 @@ def build_weekly_alpha_review(
         "tight_spread_challenger": tight_spread,
         "paired_opposite_challenger": opposite,
         "friction_veto_value": friction,
+        "research_side_split": side_split,
         "exit_overlay": overlay,
         "early_harvest_overlay": early_harvest,
         "lane_decisions": decisions,
@@ -802,6 +906,7 @@ def build_weekly_alpha_review(
             f"Keep {FRICTION_VETO_VALUE} as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
             f"Collect {PAIRED_OPPOSITE_CHALLENGER} and {TIGHT_SPREAD_CHALLENGER} as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
             f"Score {EARLY_HARVEST_ARTIFACT} (+10/-40) alongside {TRAJECTORY_EXIT_OVERLAY}; do not change live exits.",
+            f"Keep {RESEARCH_SIDE_SPLIT} observation-only; a one-week put/call gap is not a Scout rewrite.",
             "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart.",
         ],
     }

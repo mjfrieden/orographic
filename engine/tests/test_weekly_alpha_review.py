@@ -18,6 +18,7 @@ from engine.orographic.weekly_alpha_review import (
     HOLD_OUT_CHALLENGER,
     PAIRED_OPPOSITE_CHALLENGER,
     PRODUCTION_LANE,
+    RESEARCH_SIDE_SPLIT,
     TIGHT_SPREAD_CHALLENGER,
     build_weekly_alpha_review,
 )
@@ -137,6 +138,32 @@ class TrajectoryExitOverlayTests(unittest.TestCase):
         self.assertEqual(scored["overlay_reason"], "target_10_bid")
         self.assertAlmostEqual(scored["overlay_return"], 0.10)
         self.assertAlmostEqual(scored["return_lift"], 0.50)
+
+    def test_compact_crossings_score_a_ten_percent_fill_without_a_25_hit(self) -> None:
+        pick = {
+            "lane": "live",
+            "emission_quote": {"ask": 1.0},
+            "outcomes": {
+                "trajectory_overlay": {
+                    "mark_count": 6,
+                    "first_hit": None,
+                    "min_bid_pnl": -0.08,
+                    "max_bid_pnl": 0.12,
+                    "crossings": {
+                        "target_10_bid": {
+                            "captured_at_utc": "2026-09-09T18:00:00+00:00",
+                            "pnl_pct_from_emission": 0.12,
+                            "event": "target_10_bid",
+                        },
+                    },
+                },
+                "fixed_exit_marks": {"next_day_close": {"pnl_pct_from_emission": -0.40}},
+            },
+        }
+        scored = evaluate_pick_overlay(pick, target_return=0.10, stop_return=-0.40)
+        assert scored is not None
+        self.assertEqual(scored["overlay_reason"], "target_10_bid")
+        self.assertAlmostEqual(scored["overlay_return"], 0.10)
 
     def test_early_harvest_overlay_stays_observation_only(self) -> None:
         ledger = {
@@ -297,7 +324,7 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
             mart_sync={"status": "missing_orographic_canonical"},
         )
 
-        self.assertEqual(review["schema_version"], 3)
+        self.assertEqual(review["schema_version"], 4)
         self.assertEqual(review["challenger_to_open"]["experiment_id"], PAIRED_OPPOSITE_CHALLENGER)
         self.assertAlmostEqual(review["paired_opposite_challenger"]["mean_return_lift"], 0.7908)
         self.assertAlmostEqual(review["tight_spread_challenger"]["mean_return_lift"], 0.2499)
@@ -306,6 +333,9 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         self.assertEqual(review["friction_veto_value"]["action"], "keep_as_gate")
         self.assertEqual(review["production"]["week_live_marks"]["resolved"], 1)
         self.assertAlmostEqual(review["production"]["week_live_marks"]["mean_return"], -0.4085)
+        self.assertAlmostEqual(review["research_side_split"]["put_minus_call_return"], 0.7908)
+        self.assertTrue(review["research_side_split"]["live_emitted_losing_side"])
+        self.assertFalse(review["research_side_split"]["promotion_ready"])
         actions = {row["lane"]: row["action"] for row in review["lane_decisions"]}
         self.assertEqual(actions[PRODUCTION_LANE], "keep")
         self.assertEqual(actions[FRICTION_VETO_VALUE], "keep_as_gate")
@@ -313,6 +343,7 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         self.assertEqual(actions[EARLY_HARVEST_ARTIFACT], "hold_do_not_promote")
         self.assertEqual(actions[PAIRED_OPPOSITE_CHALLENGER], "keep_observation_only")
         self.assertEqual(actions[TIGHT_SPREAD_CHALLENGER], "keep_observation_only")
+        self.assertEqual(actions[RESEARCH_SIDE_SPLIT], "keep_observation_only")
         self.assertFalse(review["kill_switch"]["rebuild_production_change_allowed"])
 
     def test_infers_opposite_side_from_occ_contract_when_option_type_is_absent(self) -> None:

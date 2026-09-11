@@ -87,6 +87,36 @@ class DashboardProspectiveSummaryTests(unittest.TestCase):
         self.assertEqual(compact["scores"]["final_candidate_score"], 0.88)
         self.assertEqual(compact["outcomes"]["trajectory_overlay"]["mark_count"], 2)
         self.assertEqual(compact["outcomes"]["trajectory_overlay"]["first_hit"]["event"], "target_25_bid")
+        self.assertAlmostEqual(compact["outcomes"]["trajectory_overlay"]["min_bid_pnl"], 0.10)
+        self.assertAlmostEqual(compact["outcomes"]["trajectory_overlay"]["max_bid_pnl"], 0.30)
+        self.assertEqual(
+            compact["outcomes"]["trajectory_overlay"]["crossings"]["target_10_bid"]["event"],
+            "target_10_bid",
+        )
+        self.assertNotIn("stop_50_bid", compact["outcomes"]["trajectory_overlay"]["crossings"])
+
+    def test_compact_trajectory_records_a_25_stop_without_waiting_for_50(self) -> None:
+        pick = {
+            "lane": "live",
+            "symbol": "SBUX",
+            "emission_quote": {"ask": 2.0},
+            "outcomes": {
+                "status": "partial",
+                "fixed_exit_marks": {"next_day_close": {"pnl_pct_from_emission": -0.40}},
+                "trajectory_marks": [
+                    {"captured_at_utc": "2026-09-09T18:00:00+00:00", "bid": 1.90},
+                    {"captured_at_utc": "2026-09-10T18:00:00+00:00", "bid": 1.40},
+                ],
+            },
+        }
+        rendered = build_dashboard_summary(
+            {"entries": [{"run_generated_at_utc": "2026-09-09T17:00:00+00:00", "picks": [pick]}]}
+        )
+        overlay = rendered["entries"][0]["picks"][0]["outcomes"]["trajectory_overlay"]
+        self.assertIsNone(overlay["first_hit"])
+        self.assertAlmostEqual(overlay["min_bid_pnl"], -0.30)
+        self.assertIn("stop_25_bid", overlay["crossings"])
+        self.assertNotIn("stop_50_bid", overlay["crossings"])
 
     def test_compact_pick_infers_option_type_from_occ_symbol(self) -> None:
         rendered = build_dashboard_summary({

@@ -73,6 +73,11 @@ def _trajectory_marks(pick: dict[str, Any]) -> list[dict[str, Any]]:
     if rows:
         return sorted(rows, key=lambda row: str(row.get("captured_at_utc") or ""))
     overlay = _as_dict(outcomes.get("trajectory_overlay"))
+    crossings = [
+        row for row in _as_dict(overlay.get("crossings")).values() if isinstance(row, dict)
+    ]
+    if crossings:
+        return sorted(crossings, key=lambda row: str(row.get("captured_at_utc") or ""))
     hit = overlay.get("first_hit") if isinstance(overlay.get("first_hit"), dict) else None
     return [hit] if hit is not None else []
 

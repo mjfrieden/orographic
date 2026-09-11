@@ -101,6 +101,11 @@ def _compact_trajectory(pick: dict[str, Any]) -> dict[str, Any]:
     ask = _number(quote.get("ask"))
     first_hit = None
     valid = 0
+    min_bid_pnl: float | None = None
+    max_bid_pnl: float | None = None
+    crossings: dict[str, dict[str, Any]] = {}
+    targets = ((0.10, "target_10_bid"), (0.25, "target_25_bid"), (0.40, "target_40_bid"))
+    stops = ((-0.15, "stop_15_bid"), (-0.25, "stop_25_bid"), (-0.40, "stop_40_bid"), (-0.50, "stop_50_bid"))
     for mark in raw:
         if not isinstance(mark, dict):
             continue
@@ -112,14 +117,29 @@ def _compact_trajectory(pick: dict[str, Any]) -> dict[str, Any]:
         if pnl is None:
             continue
         valid += 1
+        min_bid_pnl = pnl if min_bid_pnl is None else min(min_bid_pnl, pnl)
+        max_bid_pnl = pnl if max_bid_pnl is None else max(max_bid_pnl, pnl)
+        captured = {
+            "captured_at_utc": mark.get("captured_at_utc"),
+            "bid": mark.get("bid"),
+            "pnl_pct_from_emission": pnl,
+        }
         if first_hit is None and (pnl >= 0.25 or pnl <= -0.50):
-            first_hit = {
-                "captured_at_utc": mark.get("captured_at_utc"),
-                "bid": mark.get("bid"),
-                "pnl_pct_from_emission": pnl,
-                "event": "target_25_bid" if pnl >= 0.25 else "stop_50_bid",
-            }
-    return {"mark_count": valid, "first_hit": first_hit}
+            first_hit = {**captured, "event": "target_25_bid" if pnl >= 0.25 else "stop_50_bid"}
+        for threshold, event in targets:
+            if event not in crossings and pnl >= threshold:
+                crossings[event] = {**captured, "event": event}
+        for threshold, event in stops:
+            if event not in crossings and pnl <= threshold:
+                crossings[event] = {**captured, "event": event}
+    payload: dict[str, Any] = {"mark_count": valid, "first_hit": first_hit}
+    if min_bid_pnl is not None:
+        payload["min_bid_pnl"] = round(min_bid_pnl, 6)
+    if max_bid_pnl is not None:
+        payload["max_bid_pnl"] = round(max_bid_pnl, 6)
+    if crossings:
+        payload["crossings"] = crossings
+    return payload
 
 
 def _compact_pick(pick: dict[str, Any], entry_run: Any) -> dict[str, Any]:

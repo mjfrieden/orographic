@@ -1,6 +1,6 @@
 {
   "artifact": "orographic_weekly_alpha_review",
-  "schema_version": 3,
+  "schema_version": 4,
   "generated_at_utc": "2026-09-11T14:11:50+00:00",
   "week_start_utc": "2026-09-04T14:11:50+00:00",
   "week_end_utc": "2026-09-11T14:11:50+00:00",
@@ -57,7 +57,20 @@
         "resolved": 44,
         "win_rate": 0.2273,
         "mean_return": -0.2108,
-        "equal_weight_sum": -9.2756
+        "equal_weight_sum": -9.2756,
+        "by_option_type": {
+          "call": {
+            "picks": 52,
+            "mark_windows": {
+              "next_day_close": 28,
+              "end_of_day": 16
+            },
+            "resolved": 44,
+            "win_rate": 0.2273,
+            "mean_return": -0.2108,
+            "equal_weight_sum": -9.2756
+          }
+        }
       },
       "paired_side_observation": {
         "picks": 93,
@@ -68,7 +81,31 @@
         "resolved": 78,
         "win_rate": 0.4744,
         "mean_return": 0.0484,
-        "equal_weight_sum": 3.779
+        "equal_weight_sum": 3.779,
+        "by_option_type": {
+          "call": {
+            "picks": 33,
+            "mark_windows": {
+              "next_day_close": 18,
+              "end_of_day": 10
+            },
+            "resolved": 28,
+            "win_rate": 0.25,
+            "mean_return": -0.2663,
+            "equal_weight_sum": -7.4571
+          },
+          "put": {
+            "picks": 60,
+            "mark_windows": {
+              "next_day_close": 31,
+              "end_of_day": 19
+            },
+            "resolved": 50,
+            "win_rate": 0.6,
+            "mean_return": 0.2247,
+            "equal_weight_sum": 11.2361
+          }
+        }
       },
       "council_holdout": {
         "picks": 14,
@@ -79,7 +116,20 @@
         "resolved": 11,
         "win_rate": 0.5455,
         "mean_return": -0.0484,
-        "equal_weight_sum": -0.5328
+        "equal_weight_sum": -0.5328,
+        "by_option_type": {
+          "call": {
+            "picks": 14,
+            "mark_windows": {
+              "next_day_close": 4,
+              "end_of_day": 7
+            },
+            "resolved": 11,
+            "win_rate": 0.5455,
+            "mean_return": -0.0484,
+            "equal_weight_sum": -0.5328
+          }
+        }
       },
       "live": {
         "picks": 1,
@@ -89,7 +139,19 @@
         "resolved": 1,
         "win_rate": 0.0,
         "mean_return": -0.4085,
-        "equal_weight_sum": -0.4085
+        "equal_weight_sum": -0.4085,
+        "by_option_type": {
+          "call": {
+            "picks": 1,
+            "mark_windows": {
+              "next_day_close": 1
+            },
+            "resolved": 1,
+            "win_rate": 0.0,
+            "mean_return": -0.4085,
+            "equal_weight_sum": -0.4085
+          }
+        }
       }
     }
   },
@@ -179,6 +241,40 @@
     "action": "keep_as_gate",
     "promotion_ready": false,
     "reason": "Vetoed names returned -21.08% after friction (44 resolved, win rate 0.2273). Negative veto P&L is avoided loss; keep the gate."
+  },
+  "research_side_split": {
+    "experiment_id": "research_side_split_v1",
+    "authority": "observation_only_never_used_for_routing",
+    "selection_rule": "split paired_side_observation marks by inferred OCC option_type",
+    "paired_side_calls": {
+      "picks": 33,
+      "mark_windows": {
+        "next_day_close": 18,
+        "end_of_day": 10
+      },
+      "resolved": 28,
+      "win_rate": 0.25,
+      "mean_return": -0.2663,
+      "equal_weight_sum": -7.4571
+    },
+    "paired_side_puts": {
+      "picks": 60,
+      "mark_windows": {
+        "next_day_close": 31,
+        "end_of_day": 19
+      },
+      "resolved": 50,
+      "win_rate": 0.6,
+      "mean_return": 0.2247,
+      "equal_weight_sum": 11.2361
+    },
+    "live_call_picks": 1,
+    "live_put_picks": 0,
+    "put_minus_call_return": 0.491,
+    "live_emitted_losing_side": true,
+    "action": "keep_observation_only",
+    "promotion_ready": false,
+    "reason": "Paired-side puts returned 22.47% (50 resolved, win rate 0.6) versus calls -26.63% (28 resolved, win rate 0.25). This week's live emission was a call on the losing side. Keep as observation-only; a one-week tape is not a production side change."
   },
   "exit_overlay": {
     "artifact": "trajectory_exit_overlay_v1",
@@ -334,6 +430,14 @@
       "gate_working": true
     },
     {
+      "lane": "research_side_split_v1",
+      "action": "keep_observation_only",
+      "authority": "observation_only",
+      "reason": "Paired-side puts returned 22.47% (50 resolved, win rate 0.6) versus calls -26.63% (28 resolved, win rate 0.25). This week's live emission was a call on the losing side. Keep as observation-only; a one-week tape is not a production side change.",
+      "put_minus_call_return": 0.491,
+      "live_emitted_losing_side": true
+    },
+    {
       "lane": "cirrus_paired_alpha",
       "action": "collect",
       "authority": "observation_only",
@@ -375,6 +479,7 @@
     "Keep friction_veto_value_v1 as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
     "Collect paired_opposite_side_v1 and tight_spread_holdout_v1 as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
     "Score early_harvest_overlay_v1 (+10/-40) alongside trajectory_exit_overlay_v1; do not change live exits.",
+    "Keep research_side_split_v1 observation-only; a one-week put/call gap is not a Scout rewrite.",
     "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart."
   ]
 }
