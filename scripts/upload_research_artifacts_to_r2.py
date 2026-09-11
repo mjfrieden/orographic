@@ -23,6 +23,13 @@ ARCHIVE_ROOT = "orographic/research-data"
 CANONICAL_PREFIX = "orographic/evidence-canonical/current"
 CIRRUS_EXPORT_ROOT = "cirrus"
 CIRRUS_EXPORT_PREFIX = "cirrus/options_research_bundle/current"
+# Cheap extra listings for bundles uploaded under the wrong root. Do not list
+# orographic/research-data/ — that prefix is the live-options archive.
+CIRRUS_EXPORT_SEARCH_PREFIXES = (
+    "cirrus/",
+    "orographic/cirrus/",
+    "options_research_bundle/",
+)
 
 
 def _default_prefix() -> str:

@@ -228,6 +228,27 @@ jobs:
         run: |
           python scripts/sync_shared_research_mart.py --allow-missing
 
+      - name: Persist a local Cirrus export to the current R2 prefix
+        if: ${{ env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          pin="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("web/data/diagnostics/shared_mart_sync_latest.json")
+          payload = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+          print(payload.get("cirrus_pin") or "")
+          PY
+          )"
+          if [ "$pin" = "local" ] && [ -f ../Cirrus/analysis/output/options_research_bundle/manifest.json ]; then
+            python scripts/upload_research_artifacts_to_r2.py --mode cirrus \
+              ../Cirrus/analysis/output/options_research_bundle
+          else
+            echo "No local Cirrus export to persist (pin=${pin:-none})."
+          fi
+
       - name: Build matched Scout pair readiness
         run: |
           python scripts/build_scout_pair_readiness.py --warn-only

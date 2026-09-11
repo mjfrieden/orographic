@@ -29,9 +29,12 @@ analytical publication target, not the only copy of the evidence.
 
 The production scan workflow restores a Cirrus export from
 `r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current` when present,
-falls back to the newest valid dated prefix under `cirrus/` if `current` is empty,
+falls back to the newest valid dated prefix under `cirrus/`, `orographic/cirrus/`, or
+`options_research_bundle/` if `current` is empty,
 rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. A fallback
 rebuild is pinned as `cirrus_pin=fallback` and is not weekly alpha versus Cirrus.
+After Cirrus is published, `Sync shared research mart` can be dispatched without waiting
+for the next live scan.
 Publish a current bundle with:
 
 ```bash

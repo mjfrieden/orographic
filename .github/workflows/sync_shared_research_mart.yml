@@ -1,0 +1,124 @@
+name: Sync shared research mart
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: orographic-research-write-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_R2_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r engine/requirements-mart.txt
+
+      - name: Validate required configuration
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_R2_API_TOKEN"
+          test -n "$OROGRAPHIC_RESEARCH_R2_BUCKET"
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Restore canonical evidence from R2
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/restore_research_artifacts_from_r2.py \
+            --mode canonical \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            --output-dir output/restored_canonical_evidence \
+            --allow-missing
+
+      - name: Sync shared Cirrus/Orographic research mart
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          python scripts/sync_shared_research_mart.py --allow-missing
+
+      - name: Persist a local Cirrus export to the current R2 prefix
+        continue-on-error: true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+        run: |
+          pin="$(python - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path("web/data/diagnostics/shared_mart_sync_latest.json")
+          payload = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+          print(payload.get("cirrus_pin") or "")
+          PY
+          )"
+          if [ "$pin" = "local" ] && [ -f ../Cirrus/analysis/output/options_research_bundle/manifest.json ]; then
+            python scripts/upload_research_artifacts_to_r2.py --mode cirrus \
+              ../Cirrus/analysis/output/options_research_bundle
+          else
+            echo "No local Cirrus export to persist (pin=${pin:-none})."
+          fi
+
+      - name: Refresh weekly vs Cirrus diagnostics
+        run: |
+          python scripts/build_rebuild_readiness.py
+          python scripts/build_weekly_alpha_review.py
+          python scripts/build_model_governance_summary.py
+
+      - name: Commit mart sync diagnostics
+        id: diagnostics
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            web/data/diagnostics/shared_mart_sync_latest.json \
+            web/data/diagnostics/shared_mart_shadow_evidence_latest.json \
+            web/data/diagnostics/orographic_rebuild_readiness_latest.json \
+            web/data/diagnostics/weekly_alpha_review_latest.json \
+            web/data/diagnostics/model_governance_summary_latest.json \
+            web/data/diagnostics/trajectory_exit_overlay_latest.json \
+            web/data/diagnostics/early_harvest_overlay_latest.json
+          if git diff --cached --quiet; then
+            echo "diagnostics_changed=false" >> "$GITHUB_OUTPUT"
+            echo "No mart sync diagnostic changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: refresh shared research mart sync"
+          echo "diagnostics_changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Push mart sync diagnostics
+        if: ${{ steps.diagnostics.outputs.diagnostics_changed == 'true' }}
+        continue-on-error: true
+        run: |
+          for attempt in 1 2 3 4; do
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              echo "Mart sync diagnostic push succeeded on attempt ${attempt}."
+              exit 0
+            fi
+            if [ "$attempt" -eq 4 ]; then
+              echo "Mart sync diagnostic push failed after ${attempt} attempts." >&2
+              exit 1
+            fi
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase -X ours "origin/${GITHUB_REF_NAME}"
+            sleep $((attempt * 15))
+          done

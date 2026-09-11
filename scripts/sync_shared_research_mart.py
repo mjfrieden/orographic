@@ -29,7 +29,7 @@ from scripts.restore_research_artifacts_from_r2 import (  # noqa: E402
 )
 from scripts.upload_research_artifacts_to_r2 import (  # noqa: E402
     CIRRUS_EXPORT_PREFIX,
-    CIRRUS_EXPORT_ROOT,
+    CIRRUS_EXPORT_SEARCH_PREFIXES,
 )
 
 
@@ -124,12 +124,20 @@ def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
     if not all((bucket, account_id, api_token)):
         return {"status": "skipped_missing_credentials", "prefix": current_prefix, "objects": 0}
     try:
-        listed = _list_objects(
-            account_id=account_id,
-            api_token=api_token,
-            bucket=bucket,
-            prefix=f"{CIRRUS_EXPORT_ROOT}/",
-        )
+        listed: list[dict] = []
+        seen_keys: set[str] = set()
+        for search_prefix in CIRRUS_EXPORT_SEARCH_PREFIXES:
+            for row in _list_objects(
+                account_id=account_id,
+                api_token=api_token,
+                bucket=bucket,
+                prefix=search_prefix,
+            ):
+                key = str(row.get("key") or "")
+                if not key or key in seen_keys:
+                    continue
+                seen_keys.add(key)
+                listed.append(row)
     except Exception as exc:  # noqa: BLE001 - sync must fail closed to a diagnostic, not the live scan
         if not allow_missing:
             raise
@@ -151,6 +159,7 @@ def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
     base = {
         "listed_objects": len(listed),
         "listed_prefixes": listed_prefixes,
+        "listed_search_prefixes": list(CIRRUS_EXPORT_SEARCH_PREFIXES),
         "prefix": current_prefix,
     }
     errors: list[dict[str, str]] = []

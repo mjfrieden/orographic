@@ -93,7 +93,13 @@ def cirrus_bundle_prefixes(objects: list[dict[str, Any]]) -> list[dict[str, Any]
         if not key.endswith("/manifest.json"):
             continue
         prefix = key[: -len("/manifest.json")].strip("/")
-        if not prefix.startswith(CIRRUS_EXPORT_ROOT) or prefix in seen:
+        looks_cirrus = (
+            prefix.startswith(CIRRUS_EXPORT_ROOT)
+            or prefix.startswith("orographic/cirrus/")
+            or prefix == "options_research_bundle"
+            or "/options_research_bundle" in f"/{prefix}"
+        )
+        if not looks_cirrus or prefix in seen:
             continue
         seen.add(prefix)
         prefixes.append(

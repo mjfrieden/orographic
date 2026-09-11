@@ -87,6 +87,27 @@ class R2EvidenceScriptTests(unittest.TestCase):
         self.assertTrue(prefixes[0]["is_current"])
         self.assertFalse(prefixes[1]["is_current"])
 
+    def test_cirrus_prefixes_accept_misrooted_options_research_bundle(self) -> None:
+        prefixes = cirrus_bundle_prefixes(
+            [
+                {
+                    "key": "orographic/cirrus/options_research_bundle/current/manifest.json",
+                    "last_modified": "2026-09-01T00:00:00Z",
+                },
+                {
+                    "key": "options_research_bundle/manifest.json",
+                    "last_modified": "2026-09-11T00:00:00Z",
+                },
+            ]
+        )
+        self.assertEqual(
+            [row["prefix"] for row in prefixes],
+            [
+                "options_research_bundle",
+                "orographic/cirrus/options_research_bundle/current",
+            ],
+        )
+
     def test_cirrus_upload_publishes_manifest_last(self) -> None:
         from engine.tests.test_shared_research_mart import _write_cirrus_export
 
