@@ -329,6 +329,48 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(shadow["training_funnel"]["dropped_missing_feature"], 1)
             self.assertEqual(shadow["training_funnel"]["min_training_eligibility_rate"], 0.0)
 
+    def test_disagreement_pairs_primary_executable_not_paper_or_moonshot(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            mart = root / "mart"
+            mart.mkdir()
+            _write_mart(mart)
+            recs = pd.read_parquet(mart / "recommendations.parquet")
+            paper = recs.loc[recs["recommendation_key"] == "orographic:rec-1"].copy()
+            paper["recommendation_key"] = "orographic:paper-1"
+            paper["score"] = 0.95
+            paper["contract_symbol"] = "AAA260828C00120000"
+            moonshot = recs.loc[recs["recommendation_key"] == "orographic:rec-1"].copy()
+            moonshot["recommendation_key"] = "orographic:moonshot-1"
+            moonshot["cohort"] = "moonshot"
+            moonshot["lane"] = "moonshot"
+            moonshot["score"] = 0.99
+            moonshot["contract_symbol"] = "AAA260828C00110000"
+            recs = pd.concat([recs, paper, moonshot], ignore_index=True)
+            recs.to_parquet(mart / "recommendations.parquet", index=False)
+            manifest = json.loads((mart / "mart_manifest.json").read_text(encoding="utf-8"))
+            manifest["artifacts"]["recommendations"]["sha256"] = _sha(mart / "recommendations.parquet")
+            manifest["artifacts"]["recommendations"]["rows"] = len(recs)
+            identity = {
+                "schema_version": manifest["schema_version"],
+                "sources": manifest["sources"],
+                "artifacts": manifest["artifacts"],
+                "validation": manifest["validation"],
+            }
+            manifest["mart_id"] = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            (mart / "mart_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            output = root / "consumers"
+            build_shared_mart_consumer_bundle(mart, output)
+            disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
+            self.assertEqual(len(disagreement), 1)
+            self.assertEqual(disagreement.iloc[0]["orographic_recommendation_key"], "orographic:rec-1")
+            self.assertEqual(disagreement.iloc[0]["orographic_cohort"], "primary_prospective")
+            shadow = build_shared_mart_shadow_evidence(output)
+            self.assertEqual(shadow["cross_system_comparison"]["paired_executable_outcomes"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

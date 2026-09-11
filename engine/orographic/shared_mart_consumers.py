@@ -182,11 +182,18 @@ VIEW_SQL: dict[str, str] = {
                 CAST(r.decision_at_utc AS DATE) AS market_date,
                 row_number() OVER (
                     PARTITION BY CAST(r.decision_at_utc AS DATE), r.underlying_symbol, r.source_system
-                    ORDER BY r.score DESC NULLS LAST, r.recommendation_key
+                    ORDER BY (o.executable_return IS NOT NULL) DESC, r.score DESC NULLS LAST, r.recommendation_key
                 ) AS daily_rank
             FROM recommendations r
             LEFT JOIN outcomes o USING (recommendation_key)
-            WHERE r.source_system IN ('cirrus', 'orographic')
+            WHERE (
+                    r.source_system = 'orographic'
+                    AND r.cohort IN ('primary', 'primary_prospective')
+                )
+               OR (
+                    r.source_system = 'cirrus'
+                    AND r.cohort IN ('prospective', 'cirrus_prospective')
+                )
         ), oro AS (
             SELECT * FROM ranked WHERE source_system = 'orographic' AND daily_rank = 1
         ), cirrus AS (
