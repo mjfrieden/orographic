@@ -155,7 +155,7 @@ def _discover_cirrus_search_prefixes(
         if _cirrus_like_search_prefix(item)
     ]
     shared_mart_roots: list[str] = []
-    shared_mart_objects: list[dict] = []
+    shared_mart_objects: list[str] = []
     if any(item.rstrip("/") == "shared-research-mart" or item.startswith("shared-research-mart/") for item in bucket_roots):
         index = _list_delimited_index(
             account_id=account_id,
@@ -164,7 +164,22 @@ def _discover_cirrus_search_prefixes(
             prefix="shared-research-mart/",
         )
         shared_mart_roots = list(index.get("delimited") or [])
-        shared_mart_objects = list(index.get("objects") or [])
+        shared_mart_objects = [str(row.get("key") or "") for row in index.get("objects") or [] if row.get("key")]
+        nested_roots: list[str] = []
+        for child in shared_mart_roots:
+            child_prefix = child if child.endswith("/") else f"{child}/"
+            nested = _list_delimited_index(
+                account_id=account_id,
+                api_token=api_token,
+                bucket=bucket,
+                prefix=child_prefix,
+            )
+            nested_roots.extend(str(item) for item in nested.get("delimited") or [])
+            shared_mart_objects.extend(
+                str(row.get("key") or "") for row in nested.get("objects") or [] if row.get("key")
+            )
+        shared_mart_roots = list(dict.fromkeys([*shared_mart_roots, *nested_roots]))
+        shared_mart_objects = list(dict.fromkeys(shared_mart_objects))
         extras.extend(
             item if item.endswith("/") else f"{item}/"
             for item in shared_mart_roots
@@ -175,7 +190,7 @@ def _discover_cirrus_search_prefixes(
         "bucket_roots": bucket_roots,
         "orographic_roots": orographic_roots,
         "shared_mart_roots": shared_mart_roots,
-        "shared_mart_objects": [str(row.get("key") or "") for row in shared_mart_objects[:50]],
+        "shared_mart_objects": shared_mart_objects[:50],
     }
 
 
