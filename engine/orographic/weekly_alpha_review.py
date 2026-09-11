@@ -498,8 +498,38 @@ def _lane_decisions(
         if isinstance(early_harvest.get("overall"), dict)
         else None
     )
-    overlay_action = "hold_do_not_promote" if overlay_hits else "replace"
-    overlay_replacement = None if overlay_hits else EARLY_HARVEST_ARTIFACT
+    early_beats_hold = early_lift is not None and early_lift > 0
+    early_beats_overlay = (
+        early_lift is not None
+        and overlay_lift is not None
+        and early_lift > overlay_lift
+    )
+    if overlay_hits == 0:
+        overlay_action = "replace"
+        overlay_replacement = EARLY_HARVEST_ARTIFACT
+        overlay_note = (
+            f"Zero target/stop fills this week; {EARLY_HARVEST_ARTIFACT} is the active exit experiment."
+        )
+    elif overlay_lift is not None and overlay_lift <= 0:
+        overlay_action = "hold_do_not_promote"
+        overlay_replacement = None
+        overlay_note = "Fills exist but mean lift versus hold is not positive. No production exit change."
+    else:
+        overlay_action = "hold_do_not_promote"
+        overlay_replacement = None
+        overlay_note = "No production exit change."
+    if early_beats_hold and (overlay_hits == 0 or early_beats_overlay):
+        early_action = "keep_observation_only"
+        early_note = (
+            "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
+            f"Mean lift versus hold {early_lift}. Observation-only; it cannot route exits."
+        )
+    else:
+        early_action = "hold_do_not_promote"
+        early_note = (
+            "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
+            f"Mean lift versus hold {early_lift}. Trails hold and/or the +25 overlay; do not change live exits."
+        )
     return [
         {
             "lane": PRODUCTION_LANE,
@@ -549,23 +579,16 @@ def _lane_decisions(
             "reason": (
                 "Mechanical +25% bid harvest / -50% bid stop versus hold-to-Friday on current trajectory marks. "
                 f"Mean lift versus hold {overlay_lift}. "
-                + (
-                    "No production exit change."
-                    if overlay_hits
-                    else f"Zero target/stop fills this week; {EARLY_HARVEST_ARTIFACT} is the active exit experiment."
-                )
+                + overlay_note
             ),
             "mean_return_lift": overlay_lift,
             "resolved_picks": _as_dict(overlay.get("coverage")).get("resolved_picks"),
         },
         {
             "lane": EARLY_HARVEST_ARTIFACT,
-            "action": "open_observation_only",
+            "action": early_action,
             "authority": "observation_only",
-            "reason": (
-                "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
-                f"Mean lift versus hold {early_lift}. Replaces the inert +25/-50 overlay as the exit research watch."
-            ),
+            "reason": early_note,
             "mean_return_lift": early_lift,
             "resolved_picks": _as_dict(early_harvest.get("coverage")).get("resolved_picks"),
         },

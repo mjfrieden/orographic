@@ -310,7 +310,7 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         self.assertEqual(actions[PRODUCTION_LANE], "keep")
         self.assertEqual(actions[FRICTION_VETO_VALUE], "keep_as_gate")
         self.assertEqual(actions[TRAJECTORY_EXIT_OVERLAY], "replace")
-        self.assertEqual(actions[EARLY_HARVEST_ARTIFACT], "open_observation_only")
+        self.assertEqual(actions[EARLY_HARVEST_ARTIFACT], "hold_do_not_promote")
         self.assertEqual(actions[PAIRED_OPPOSITE_CHALLENGER], "keep_observation_only")
         self.assertEqual(actions[TIGHT_SPREAD_CHALLENGER], "keep_observation_only")
         self.assertFalse(review["kill_switch"]["rebuild_production_change_allowed"])
