@@ -29,10 +29,21 @@ analytical publication target, not the only copy of the evidence.
 
 The production scan workflow restores a Cirrus export from
 `r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current` when present,
-rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. If
-`output/canonical_evidence` is not on disk yet, the sync also accepts
+falls back to the newest valid dated prefix under `cirrus/` if `current` is empty,
+rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. A fallback
+rebuild is pinned as `cirrus_pin=fallback` and is not weekly alpha versus Cirrus.
+Publish a current bundle with:
+
+```bash
+python scripts/upload_research_artifacts_to_r2.py --mode cirrus \
+  ../Cirrus/analysis/output/options_research_bundle
+```
+
+If `output/canonical_evidence` is not on disk yet, the sync also accepts
 `output/restored_canonical_evidence` so a restore-only runner still rebuilds the mart.
 Missing Cirrus data fails closed to that diagnostic and does not block the live scan.
+The diagnostic records every `cirrus/` prefix that contains a `manifest.json` so an
+empty `current` key is distinguishable from a bundle uploaded to the wrong path.
 Research-data audits are persisted to
 `web/data/diagnostics/research_data_capture_audit_latest.json` and are warn-only in the
 scan job so a Moonshot/dataset mismatch cannot skip mart consolidation.
@@ -80,6 +91,15 @@ cd /path/to/Cirrus
 PYTHONPATH=src .venv/bin/python scripts/export_options_research_bundle.py \
   --db state/cirrus_performance.db \
   --output-dir analysis/output/options_research_bundle
+```
+
+Then publish that bundle to the R2 prefix Orographic scans restore, using the same
+Cloudflare R2 token as live scans:
+
+```bash
+cd /path/to/Orographic
+python scripts/upload_research_artifacts_to_r2.py --mode cirrus \
+  ../Cirrus/analysis/output/options_research_bundle
 ```
 
 Then build the shared mart from Orographic:
@@ -149,7 +169,7 @@ Mart `bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64` was publ
 
 ## Production rollout gates
 
-1. Persist the current Cirrus neutral export to durable storage after marks and settlement.
+1. Persist the current Cirrus neutral export to `cirrus/options_research_bundle/current` after marks and settlement (`--mode cirrus`).
 2. Restore both source bundles in the Orographic scan workflow.
 3. Build and validate the two-source mart in CI.
 4. Compare Parquet and Iceberg row counts, keys, and returns for at least three weekly cycles.

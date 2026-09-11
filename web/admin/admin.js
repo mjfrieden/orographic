@@ -344,12 +344,17 @@ function renderMartAudit(payload, sync, weekly) {
   const execution = payload.execution_quality || {};
   const cirrus = weekly.cirrus || {};
   const live = (weekly.production || {}).week_live_marks || {};
+  const restore = sync.restore || {};
+  const listed = Array.isArray(restore.listed_prefixes) ? restore.listed_prefixes : [];
+  const cirrusPin = sync.cirrus_pin || restore.cirrus_pin || "--";
   const syncStatus = cirrus.mart_sync_status || sync.status || bundle.status || "missing";
   const status = document.getElementById("admin-mart-status");
   if (status) {
-    const readyTwoSource = syncStatus === "ready_two_source";
-    status.textContent = readyTwoSource ? "Validated · observation only" : martSyncLabel(syncStatus);
-    status.classList.toggle("is-ready", readyTwoSource);
+    const readyCurrent = syncStatus === "ready_two_source" && cirrusPin !== "fallback";
+    status.textContent = readyCurrent
+      ? "Validated · observation only"
+      : martSyncLabel(cirrusPin === "fallback" ? "stale_cirrus_fallback" : syncStatus);
+    status.classList.toggle("is-ready", readyCurrent);
   }
   const summary = document.getElementById("admin-mart-summary");
   if (summary) {
@@ -361,6 +366,8 @@ function renderMartAudit(payload, sync, weekly) {
     summary.innerHTML = [
       ["Mart ID", payload.mart_id || "--"],
       ["Mart sync", martSyncLabel(syncStatus)],
+      ["Cirrus pin", String(cirrusPin).replaceAll("_", " ")],
+      ["Cirrus R2 prefixes", integer(listed.length)],
       ["Alpha vs Cirrus", String(verdict).replaceAll("_", " ")],
       ["Live week return", liveLabel],
       ["Paired executable", integer(cirrus.paired_executable_outcomes ?? gates.paired_executable_outcomes?.actual)],

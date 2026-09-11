@@ -7,6 +7,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 
 if __package__ in {None, ""}:
@@ -21,8 +22,15 @@ from engine.orographic.shared_research_mart import (  # noqa: E402
     validate_cirrus_export,
     validate_shared_research_mart,
 )
-from scripts.restore_research_artifacts_from_r2 import restore_prefix  # noqa: E402
-from scripts.upload_research_artifacts_to_r2 import CIRRUS_EXPORT_PREFIX  # noqa: E402
+from scripts.restore_research_artifacts_from_r2 import (  # noqa: E402
+    _list_objects,
+    cirrus_bundle_prefixes,
+    restore_prefix,
+)
+from scripts.upload_research_artifacts_to_r2 import (  # noqa: E402
+    CIRRUS_EXPORT_PREFIX,
+    CIRRUS_EXPORT_ROOT,
+)
 
 
 def _now_iso() -> str:
@@ -93,7 +101,13 @@ def _valid_cirrus_dir(path: Path) -> Path | None:
     return path
 
 
-def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
+def _reset_dir(path: Path) -> None:
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+
+
+def _cirrus_credentials() -> tuple[str, str, str, str]:
     bucket = os.getenv("OROGRAPHIC_RESEARCH_R2_BUCKET", "").strip()
     account_id = os.getenv("CLOUDFLARE_ACCOUNT_ID", "").strip()
     api_token = (
@@ -102,23 +116,101 @@ def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
         or ""
     ).strip()
     prefix = os.getenv("OROGRAPHIC_CIRRUS_EXPORT_R2_PREFIX", CIRRUS_EXPORT_PREFIX).strip()
+    return bucket, account_id, api_token, prefix
+
+
+def _restore_cirrus_from_r2(output_dir: Path, allow_missing: bool) -> dict:
+    bucket, account_id, api_token, current_prefix = _cirrus_credentials()
     if not all((bucket, account_id, api_token)):
-        return {"status": "skipped_missing_credentials", "prefix": prefix, "objects": 0}
+        return {"status": "skipped_missing_credentials", "prefix": current_prefix, "objects": 0}
     try:
-        restored = restore_prefix(
-            bucket=bucket,
+        listed = _list_objects(
             account_id=account_id,
             api_token=api_token,
-            prefix=prefix,
-            output_dir=output_dir,
+            bucket=bucket,
+            prefix=f"{CIRRUS_EXPORT_ROOT}/",
         )
     except Exception as exc:  # noqa: BLE001 - sync must fail closed to a diagnostic, not the live scan
         if not allow_missing:
             raise
-        return {"status": "restore_failed", "prefix": prefix, "error": str(exc), "objects": 0}
-    if restored == 0:
-        return {"status": "missing", "prefix": prefix, "objects": 0}
-    return {"status": "restored", "prefix": prefix, "objects": restored, "output_dir": str(output_dir)}
+        return {
+            "status": "restore_failed",
+            "prefix": current_prefix,
+            "error": str(exc),
+            "objects": 0,
+        }
+    candidates = cirrus_bundle_prefixes(listed)
+    listed_prefixes = [
+        {
+            "prefix": row["prefix"],
+            "is_current": row["is_current"],
+            "last_modified": row.get("last_modified"),
+        }
+        for row in candidates
+    ]
+    base = {
+        "listed_objects": len(listed),
+        "listed_prefixes": listed_prefixes,
+        "prefix": current_prefix,
+    }
+    errors: list[dict[str, str]] = []
+    for candidate in candidates:
+        _reset_dir(output_dir)
+        try:
+            restored = restore_prefix(
+                bucket=bucket,
+                account_id=account_id,
+                api_token=api_token,
+                prefix=str(candidate["prefix"]),
+                output_dir=output_dir,
+            )
+        except Exception as exc:  # noqa: BLE001 - try the next dated prefix
+            errors.append({"prefix": str(candidate["prefix"]), "error": str(exc)})
+            continue
+        if restored == 0:
+            errors.append({"prefix": str(candidate["prefix"]), "error": "empty_prefix"})
+            continue
+        if _valid_cirrus_dir(output_dir) is None:
+            errors.append({"prefix": str(candidate["prefix"]), "error": "invalid_bundle"})
+            continue
+        pin = "current" if candidate.get("is_current") else "fallback"
+        return {
+            **base,
+            "status": "restored",
+            "prefix": str(candidate["prefix"]),
+            "objects": restored,
+            "output_dir": str(output_dir),
+            "cirrus_pin": pin,
+        }
+    if errors:
+        base["restore_errors"] = errors
+    return {**base, "status": "missing", "objects": 0}
+
+
+def _missing_cirrus_next_action(restore_info: dict | None) -> str:
+    listed = []
+    if isinstance(restore_info, dict):
+        listed = [
+            str(row.get("prefix"))
+            for row in restore_info.get("listed_prefixes") or []
+            if isinstance(row, dict) and row.get("prefix")
+        ]
+    publish = (
+        "python scripts/upload_research_artifacts_to_r2.py --mode cirrus "
+        "<cirrus-options_research_bundle>"
+    )
+    if listed:
+        return (
+            "Cirrus objects exist under r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/ but no valid "
+            f"bundle could be restored. Promote a validated prefix to {CIRRUS_EXPORT_PREFIX} with "
+            f"{publish}, or pass --cirrus-export-dir, then rerun this sync. Listed: "
+            + ", ".join(listed)
+        )
+    return (
+        "Publish a current Cirrus options_research_bundle with "
+        f"{publish} to r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/{CIRRUS_EXPORT_PREFIX} "
+        "or pass --cirrus-export-dir, then rerun this sync."
+    )
 
 
 def parse_args() -> argparse.Namespace:
@@ -187,11 +279,7 @@ def main() -> int:
             "restore": restore_info,
             "production_changes_allowed": False,
             "orographic_canonical_bundle": str(canonical / "evidence_manifest.json"),
-            "next_action": (
-                "Publish a current Cirrus options_research_bundle to "
-                f"r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/{CIRRUS_EXPORT_PREFIX} "
-                "or pass --cirrus-export-dir, then rerun this sync."
-            ),
+            "next_action": _missing_cirrus_next_action(restore_info),
         }
         _write(args.output, payload)
         print(json.dumps(payload, indent=2))
@@ -207,6 +295,9 @@ def main() -> int:
     shadow = build_shared_mart_shadow_evidence(args.consumer_dir)
     args.shadow_output.parent.mkdir(parents=True, exist_ok=True)
     args.shadow_output.write_text(json.dumps(shadow, indent=2) + "\n", encoding="utf-8")
+    cirrus_pin = "local"
+    if isinstance(restore_info, dict):
+        cirrus_pin = str(restore_info.get("cirrus_pin") or "fallback")
     payload = {
         "artifact": "orographic_shared_mart_sync",
         "schema_version": 1,
@@ -219,9 +310,19 @@ def main() -> int:
         "training_rows": (consumer.get("views") or {}).get("orographic_training_v1", {}).get("rows"),
         "shadow_status": shadow.get("status"),
         "cirrus_export_dir": str(cirrus_dir),
+        "cirrus_pin": cirrus_pin,
+        "cirrus_export_is_current": cirrus_pin != "fallback",
         "restore": restore_info,
         "production_changes_allowed": False,
-        "next_action": "Keep using the mart for observation-only backtests; do not route from it.",
+        "next_action": (
+            "Keep using the mart for observation-only backtests; do not route from it."
+            if cirrus_pin != "fallback"
+            else (
+                "Two-source mart rebuilt from a dated Cirrus R2 prefix. Promote a current export to "
+                f"{CIRRUS_EXPORT_PREFIX} with python scripts/upload_research_artifacts_to_r2.py "
+                "--mode cirrus <bundle-dir> before claiming weekly alpha versus Cirrus."
+            )
+        ),
     }
     _write(args.output, payload)
     print(json.dumps({key: payload[key] for key in (

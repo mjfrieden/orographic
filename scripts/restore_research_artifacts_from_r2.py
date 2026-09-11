@@ -17,6 +17,8 @@ from engine.orographic.evidence_store import validate_canonical_bundle  # noqa: 
 from scripts.upload_research_artifacts_to_r2 import (  # noqa: E402
     ARCHIVE_ROOT,
     CANONICAL_PREFIX,
+    CIRRUS_EXPORT_PREFIX,
+    CIRRUS_EXPORT_ROOT,
 )
 
 
@@ -77,6 +79,39 @@ def _get_object(bucket: str, key: str, destination: Path) -> None:
     )
 
 
+def cirrus_bundle_prefixes(objects: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return Cirrus export prefixes that contain a commit-point manifest.
+
+    Current (`cirrus/options_research_bundle/current`) sorts first when present.
+    Dated or mis-prefixed siblings follow by last_modified descending so a scan
+    can rebuild the two-source mart from the newest valid fallback.
+    """
+    prefixes: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for row in objects:
+        key = str(row.get("key") or "")
+        if not key.endswith("/manifest.json"):
+            continue
+        prefix = key[: -len("/manifest.json")].strip("/")
+        if not prefix.startswith(CIRRUS_EXPORT_ROOT) or prefix in seen:
+            continue
+        seen.add(prefix)
+        prefixes.append(
+            {
+                "prefix": prefix,
+                "manifest_key": key,
+                "last_modified": row.get("last_modified"),
+                "bytes": row.get("size"),
+                "is_current": prefix == CIRRUS_EXPORT_PREFIX,
+            }
+        )
+    prefixes.sort(
+        key=lambda row: (bool(row["is_current"]), str(row.get("last_modified") or "")),
+        reverse=True,
+    )
+    return prefixes
+
+
 def restore_prefix(
     *,
     bucket: str,
@@ -107,12 +142,12 @@ def restore_prefix(
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Restore Orographic's canonical or legacy research evidence from R2."
+        description="Restore Orographic canonical evidence, a Cirrus options_research_bundle, or legacy research snapshots from R2."
     )
     parser.add_argument("--bucket", default=os.getenv("OROGRAPHIC_RESEARCH_R2_BUCKET", ""))
     parser.add_argument("--account-id", default=os.getenv("CLOUDFLARE_ACCOUNT_ID", ""))
     parser.add_argument("--api-token", default=os.getenv("CLOUDFLARE_API_TOKEN", ""))
-    parser.add_argument("--mode", choices=("canonical", "legacy"), default="canonical")
+    parser.add_argument("--mode", choices=("canonical", "legacy", "cirrus"), default="canonical")
     parser.add_argument("--prefix", default="")
     parser.add_argument("--output-dir", type=Path, default=None)
     parser.add_argument("--max-objects", type=int, default=0)
@@ -135,6 +170,10 @@ def main() -> int:
     if args.mode == "canonical":
         prefix = str(args.prefix or CANONICAL_PREFIX)
         output = args.output_dir or Path("output/restored_canonical_evidence")
+        suffixes = (".json", ".parquet")
+    elif args.mode == "cirrus":
+        prefix = str(args.prefix or CIRRUS_EXPORT_PREFIX)
+        output = args.output_dir or Path("output/cirrus_export")
         suffixes = (".json", ".parquet")
     else:
         prefix = str(args.prefix or ARCHIVE_ROOT)
@@ -164,6 +203,10 @@ def main() -> int:
         raise SystemExit(message)
     if args.mode == "canonical":
         validate_canonical_bundle(output)
+    elif args.mode == "cirrus":
+        from engine.orographic.shared_research_mart import validate_cirrus_export
+
+        validate_cirrus_export(output)
     print(f"Restored {restored} objects from r2://{bucket}/{prefix} into {output}.")
     return 0
 

@@ -21,6 +21,7 @@ from engine.orographic.evidence_store import validate_canonical_bundle  # noqa: 
 
 ARCHIVE_ROOT = "orographic/research-data"
 CANONICAL_PREFIX = "orographic/evidence-canonical/current"
+CIRRUS_EXPORT_ROOT = "cirrus"
 CIRRUS_EXPORT_PREFIX = "cirrus/options_research_bundle/current"
 
 
@@ -189,13 +190,26 @@ def _upload_canonical(*, bucket: str, prefix: str, bundle: Path) -> None:
     _put_object(bucket, f"{prefix}/evidence_manifest.json", manifest_path)
 
 
+def _upload_cirrus(*, bucket: str, prefix: str, bundle: Path) -> None:
+    from engine.orographic.shared_research_mart import validate_cirrus_export
+
+    validate_cirrus_export(bundle)
+    manifest_path = bundle / "manifest.json"
+    files = [path for path in sorted(bundle.rglob("*")) if path.is_file() and path != manifest_path]
+    for file_path in files:
+        relative = str(file_path.relative_to(bundle)).replace("\\", "/")
+        _put_object(bucket, f"{prefix}/{relative}", file_path)
+    # Publish the manifest last so restores treat it as the Cirrus commit point.
+    _put_object(bucket, f"{prefix}/manifest.json", manifest_path)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Upload versioned Orographic research snapshots or the canonical evidence bundle to R2."
+        description="Upload versioned Orographic research snapshots, the canonical evidence bundle, or a Cirrus options_research_bundle to R2."
     )
     parser.add_argument("--bucket", default=os.getenv("OROGRAPHIC_RESEARCH_R2_BUCKET", ""))
     parser.add_argument("--prefix", default="")
-    parser.add_argument("--mode", choices=("archive", "canonical"), default="archive")
+    parser.add_argument("--mode", choices=("archive", "canonical", "cirrus"), default="archive")
     parser.add_argument(
         "paths",
         nargs="*",
@@ -216,6 +230,14 @@ def main() -> int:
         _upload_canonical(
             bucket=bucket,
             prefix=str(args.prefix or CANONICAL_PREFIX).strip().strip("/"),
+            bundle=bundle,
+        )
+        return 0
+    if args.mode == "cirrus":
+        bundle = args.paths[0] if args.paths else Path("output/cirrus_export")
+        _upload_cirrus(
+            bucket=bucket,
+            prefix=str(args.prefix or CIRRUS_EXPORT_PREFIX).strip().strip("/"),
             bundle=bundle,
         )
         return 0

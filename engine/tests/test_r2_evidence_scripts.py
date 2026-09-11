@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from unittest import mock
 
-from scripts.restore_research_artifacts_from_r2 import _safe_relative, restore_prefix
-from scripts.upload_research_artifacts_to_r2 import _archive_manifest, _upload_canonical
+from scripts.restore_research_artifacts_from_r2 import _safe_relative, cirrus_bundle_prefixes, restore_prefix
+from scripts.upload_research_artifacts_to_r2 import _archive_manifest, _upload_canonical, _upload_cirrus
 from engine.orographic.evidence_store import build_canonical_evidence_bundle
 
 
@@ -59,6 +59,55 @@ class R2EvidenceScriptTests(unittest.TestCase):
 
         self.assertGreater(len(uploaded), 1)
         self.assertTrue(uploaded[-1].endswith("/evidence_manifest.json"))
+
+    def test_cirrus_prefixes_prefer_current_then_newest_dated_sibling(self) -> None:
+        prefixes = cirrus_bundle_prefixes(
+            [
+                {
+                    "key": "cirrus/options_research_bundle/2026-08-24/manifest.json",
+                    "last_modified": "2026-08-24T12:00:00Z",
+                },
+                {
+                    "key": "cirrus/options_research_bundle/current/manifest.json",
+                    "last_modified": "2026-08-01T00:00:00Z",
+                },
+                {
+                    "key": "orographic/research-data/manifest.json",
+                    "last_modified": "2026-09-01T00:00:00Z",
+                },
+            ]
+        )
+        self.assertEqual(
+            [row["prefix"] for row in prefixes],
+            [
+                "cirrus/options_research_bundle/current",
+                "cirrus/options_research_bundle/2026-08-24",
+            ],
+        )
+        self.assertTrue(prefixes[0]["is_current"])
+        self.assertFalse(prefixes[1]["is_current"])
+
+    def test_cirrus_upload_publishes_manifest_last(self) -> None:
+        from engine.tests.test_shared_research_mart import _write_cirrus_export
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bundle = Path(tmpdir) / "cirrus"
+            bundle.mkdir()
+            _write_cirrus_export(bundle)
+            uploaded: list[str] = []
+            with mock.patch(
+                "scripts.upload_research_artifacts_to_r2._put_object",
+                side_effect=lambda bucket, key, path: uploaded.append(key),
+            ):
+                _upload_cirrus(
+                    bucket="bucket",
+                    prefix="cirrus/options_research_bundle/current",
+                    bundle=bundle,
+                )
+
+        self.assertGreater(len(uploaded), 1)
+        self.assertTrue(uploaded[-1].endswith("/manifest.json"))
+        self.assertTrue(uploaded[-1].startswith("cirrus/options_research_bundle/current/"))
 
     def test_restore_prefix_downloads_only_selected_suffixes(self) -> None:
         objects = [

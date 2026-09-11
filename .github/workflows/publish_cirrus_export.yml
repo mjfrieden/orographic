@@ -1,0 +1,59 @@
+name: Publish Cirrus research export
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_prefix:
+        description: Existing R2 prefix containing a validated Cirrus options_research_bundle
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: engine/requirements-mart.txt
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Validate required configuration
+        run: |
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$OROGRAPHIC_RESEARCH_R2_BUCKET"
+
+      - name: Install mart dependencies
+        run: python -m pip install -r engine/requirements-mart.txt
+
+      - name: Restore source Cirrus bundle
+        env:
+          SOURCE_PREFIX: ${{ inputs.source_prefix }}
+        run: |
+          python scripts/restore_research_artifacts_from_r2.py \
+            --mode cirrus \
+            --prefix "$SOURCE_PREFIX" \
+            --output-dir output/cirrus_export
+
+      - name: Publish to current Cirrus export prefix
+        run: |
+          python scripts/upload_research_artifacts_to_r2.py \
+            --mode cirrus \
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
+            output/cirrus_export

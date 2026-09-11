@@ -377,6 +377,39 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         self.assertEqual(review["paired_opposite_challenger"]["rows"][0]["opposite_side"], "put")
         self.assertAlmostEqual(review["paired_opposite_challenger"]["mean_return_lift"], 0.7908)
 
+    def test_fallback_cirrus_pin_is_stale_even_when_mart_was_just_rebuilt(self) -> None:
+        as_of = datetime(2026, 9, 11, 16, 0, tzinfo=UTC)
+        review = build_weekly_alpha_review(
+            as_of_utc=as_of,
+            snapshot={
+                "scan_settings": {"model_stack": "production_v2"},
+                "regime": {"mode": "neutral"},
+                "council": {"live_board": [], "abstain": True},
+            },
+            board_history={"entries": []},
+            dashboard={"entries": []},
+            scan_health={"status": "passed", "failed_checks": []},
+            rebuild_readiness={"production_model_change_allowed": False},
+            mart_shadow={
+                "mart_id": "fresh",
+                "generated_at_utc": "2026-09-11T15:00:00+00:00",
+                "cross_system_comparison": {
+                    "paired_executable_outcomes": 31,
+                    "paired_market_dates": 31,
+                    "avg_orographic_minus_cirrus_return": 0.02,
+                },
+            },
+            mart_sync={
+                "status": "ready_two_source",
+                "cirrus_pin": "fallback",
+                "cirrus_export_is_current": False,
+            },
+        )
+        self.assertTrue(review["cirrus"]["mart_stale"])
+        self.assertEqual(review["alpha_verdict"], "stale_mart_insufficient_for_alpha")
+        self.assertEqual(review["cirrus"]["cirrus_pin"], "fallback")
+        self.assertTrue(any("--mode cirrus" in action for action in review["next_actions"]))
+
 
 class RetiredMoonshotDatasetTests(unittest.TestCase):
     def test_audit_passes_when_moonshot_dataset_is_absent(self) -> None:

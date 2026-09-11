@@ -449,6 +449,8 @@
     "mart_sync_status": "cirrus_export_unavailable",
     "mart_generated_at_utc": "2026-08-24T03:36:22+00:00",
     "mart_stale": true,
+    "cirrus_pin": null,
+    "cirrus_export_is_current": null,
     "paired_executable_outcomes": 0,
     "paired_market_dates": 3,
     "avg_orographic_minus_cirrus_return": null,
@@ -476,6 +478,7 @@
   "next_actions": [
     "Keep production_v2 as the only Tradier lane.",
     "Rebuild the two-source mart after each scan when a Cirrus export is present; use restored canonical evidence if consolidate has not written yet.",
+    "Publish Cirrus with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir> so scans restore r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current.",
     "Keep friction_veto_value_v1 as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
     "Collect paired_opposite_side_v1 and tight_spread_holdout_v1 as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
     "Score early_harvest_overlay_v1 (+10/-40) alongside trajectory_exit_overlay_v1; do not change live exits.",

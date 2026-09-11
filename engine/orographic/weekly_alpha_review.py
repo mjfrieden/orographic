@@ -752,6 +752,9 @@ def _cirrus_comparison(
     execution = _as_dict(mart_shadow.get("execution_quality"))
     generated = _parse_dt(mart_shadow.get("generated_at_utc") or mart_sync.get("generated_at_utc"))
     stale = generated is None or (as_of_utc - generated) > MART_STALE_AFTER
+    cirrus_pin = str(mart_sync.get("cirrus_pin") or "")
+    if cirrus_pin == "fallback" or mart_sync.get("cirrus_export_is_current") is False:
+        stale = True
     paired = cross.get("paired_executable_outcomes")
     lift = _number(cross.get("avg_orographic_minus_cirrus_return"))
     if not paired:
@@ -767,6 +770,8 @@ def _cirrus_comparison(
         "mart_sync_status": mart_sync.get("status") or "missing",
         "mart_generated_at_utc": mart_shadow.get("generated_at_utc") or mart_sync.get("generated_at_utc"),
         "mart_stale": stale,
+        "cirrus_pin": cirrus_pin or None,
+        "cirrus_export_is_current": False if stale and cirrus_pin == "fallback" else mart_sync.get("cirrus_export_is_current"),
         "paired_executable_outcomes": paired,
         "paired_market_dates": cross.get("paired_market_dates"),
         "avg_orographic_minus_cirrus_return": cross.get("avg_orographic_minus_cirrus_return"),
@@ -903,6 +908,7 @@ def build_weekly_alpha_review(
         "next_actions": [
             "Keep production_v2 as the only Tradier lane.",
             "Rebuild the two-source mart after each scan when a Cirrus export is present; use restored canonical evidence if consolidate has not written yet.",
+            "Publish Cirrus with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir> so scans restore r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current.",
             f"Keep {FRICTION_VETO_VALUE} as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
             f"Collect {PAIRED_OPPOSITE_CHALLENGER} and {TIGHT_SPREAD_CHALLENGER} as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
             f"Score {EARLY_HARVEST_ARTIFACT} (+10/-40) alongside {TRAJECTORY_EXIT_OVERLAY}; do not change live exits.",
