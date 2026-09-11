@@ -411,6 +411,57 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         self.assertTrue(any("--mode cirrus" in action for action in review["next_actions"]))
 
 
+class ProspectiveLedgerResolutionTests(unittest.TestCase):
+    def test_restored_canonical_ledger_beats_stale_git_copy(self) -> None:
+        from scripts.build_weekly_alpha_review import resolve_prospective_ledger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            git_ledger = root / "git.json"
+            git_ledger.write_text("{}", encoding="utf-8")
+            restored = root / "restored.json"
+            restored.write_text("{}", encoding="utf-8")
+            chosen = resolve_prospective_ledger(
+                git_ledger,
+                canonical=root / "missing_canonical.json",
+                restored=restored,
+                git_ledger=git_ledger,
+            )
+            self.assertEqual(chosen, restored)
+
+    def test_explicit_non_git_path_wins_when_present(self) -> None:
+        from scripts.build_weekly_alpha_review import resolve_prospective_ledger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            explicit = root / "explicit.json"
+            explicit.write_text("{}", encoding="utf-8")
+            restored = root / "restored.json"
+            restored.write_text("{}", encoding="utf-8")
+            chosen = resolve_prospective_ledger(
+                explicit,
+                canonical=root / "missing_canonical.json",
+                restored=restored,
+                git_ledger=root / "git.json",
+            )
+            self.assertEqual(chosen, explicit)
+
+    def test_missing_explicit_path_falls_through_to_restored(self) -> None:
+        from scripts.build_weekly_alpha_review import resolve_prospective_ledger
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            restored = root / "restored.json"
+            restored.write_text("{}", encoding="utf-8")
+            chosen = resolve_prospective_ledger(
+                root / "missing_explicit.json",
+                canonical=root / "missing_canonical.json",
+                restored=restored,
+                git_ledger=root / "git.json",
+            )
+            self.assertEqual(chosen, restored)
+
+
 class RetiredMoonshotDatasetTests(unittest.TestCase):
     def test_audit_passes_when_moonshot_dataset_is_absent(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

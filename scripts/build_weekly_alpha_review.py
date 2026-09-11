@@ -12,6 +12,10 @@ if __package__ in {None, ""}:
 
 from engine.orographic.weekly_alpha_review import build_weekly_alpha_review
 
+GIT_LEDGER = Path("web/data/diagnostics/prospective_pick_ledger.json")
+CANONICAL_LEDGER = Path("output/canonical_evidence/prospective_pick_ledger.json")
+RESTORED_LEDGER = Path("output/restored_canonical_evidence/prospective_pick_ledger.json")
+
 
 def _load(path: Path) -> dict:
     if not path.exists():
@@ -96,8 +100,35 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def resolve_prospective_ledger(
+    explicit: Path,
+    *,
+    canonical: Path = CANONICAL_LEDGER,
+    restored: Path = RESTORED_LEDGER,
+    git_ledger: Path = GIT_LEDGER,
+) -> Path:
+    """Prefer the durable canonical ledger over the git-tracked diagnostic copy.
+
+    The repo ledger is often weeks stale. Scan and mart-sync runners restore or
+    rebuild `output/*/prospective_pick_ledger.json` from R2 first.
+    """
+    ordered: list[Path] = []
+    if explicit != git_ledger:
+        ordered.append(explicit)
+    ordered.extend((canonical, restored, git_ledger))
+    seen: set[Path] = set()
+    for path in ordered:
+        if path in seen:
+            continue
+        seen.add(path)
+        if path.exists():
+            return path
+    return explicit
+
+
 def main() -> int:
     args = parse_args()
+    ledger_path = resolve_prospective_ledger(args.prospective_ledger)
     snapshot = _load(args.snapshot)
     as_of = datetime.now(UTC)
     generated = snapshot.get("generated_at_utc")
@@ -122,8 +153,9 @@ def main() -> int:
         path_hazard=_load(args.path_hazard),
         promotion=_load(args.promotion),
         exit_shadow=_load(args.exit_shadow),
-        prospective_ledger=_load(args.prospective_ledger),
+        prospective_ledger=_load(ledger_path),
     )
+    artifact["research_ledger_path"] = str(ledger_path)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(artifact, indent=2) + "\n", encoding="utf-8")
     overlay = artifact.get("exit_overlay") or {}
@@ -141,6 +173,7 @@ def main() -> int:
         "overlay_mean_lift": (overlay.get("overall") or {}).get("mean_return_lift"),
         "early_harvest_mean_lift": (early.get("overall") or {}).get("mean_return_lift"),
         "output": str(args.output),
+        "prospective_ledger": str(ledger_path),
     }, indent=2))
     return 0
 

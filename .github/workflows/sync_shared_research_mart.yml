@@ -10,6 +10,8 @@ on:
       - "scripts/sync_shared_research_mart.py"
       - "scripts/restore_research_artifacts_from_r2.py"
       - "scripts/upload_research_artifacts_to_r2.py"
+      - "scripts/build_weekly_alpha_review.py"
+      - "engine/orographic/weekly_alpha_review.py"
       - "engine/orographic/shared_research_mart.py"
       - "engine/orographic/shared_mart_consumers.py"
       - "engine/orographic/shared_mart_shadow.py"
@@ -92,7 +94,8 @@ jobs:
       - name: Refresh weekly vs Cirrus diagnostics
         run: |
           python scripts/build_rebuild_readiness.py
-          python scripts/build_weekly_alpha_review.py
+          python scripts/build_weekly_alpha_review.py \
+            --prospective-ledger output/restored_canonical_evidence/prospective_pick_ledger.json
           python scripts/build_model_governance_summary.py
 
       - name: Commit mart sync diagnostics
