@@ -27,6 +27,11 @@ flowchart LR
 The existing hashed Parquet bundles remain the recovery and migration path. Iceberg is an
 analytical publication target, not the only copy of the evidence.
 
+The production scan workflow restores a Cirrus export from
+`r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current` when present,
+rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. Missing Cirrus
+data fails closed to that diagnostic and does not block the live scan.
+
 ## Conformed tables
 
 | Table | Grain | Primary key |
