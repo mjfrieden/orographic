@@ -1,0 +1,33 @@
+{
+  "artifact": "trajectory_exit_overlay_v1",
+  "schema_version": 1,
+  "generated_at_utc": "2026-09-09T14:10:23+00:00",
+  "authority": "observation_only_never_used_for_routing",
+  "production_effect": "none",
+  "replaces": "path_hazard_challenger",
+  "policy": {
+    "target_return": 0.25,
+    "stop_return": -0.5,
+    "fill_rule": "recorded bid at or beyond the target/stop; midpoint touches never count",
+    "fallback": "hold to the latest resolved fixed-exit window, preferring Friday close"
+  },
+  "coverage": {
+    "resolved_picks": 118,
+    "trajectory_marks_seen": 0,
+    "target_hits": 0,
+    "stop_hits": 0,
+    "hold_fallbacks": 118
+  },
+  "overall": {
+    "mean_overlay_return": -0.0321,
+    "mean_hold_return": -0.0321,
+    "mean_return_lift": 0.0,
+    "positive_lift_rate": 0.0
+  },
+  "live": {
+    "resolved_picks": 0,
+    "mean_return_lift": null
+  },
+  "promotion_ready": false,
+  "reason": "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, and a positive mean lift versus hold-to-Friday before any production exit change."
+}

@@ -62,6 +62,31 @@ class DashboardProspectiveSummaryTests(unittest.TestCase):
         self.assertNotIn("trajectory_marks", compact)
         self.assertNotIn("executable_labels", compact)
         self.assertEqual(compact["fixed_exit_marks"]["one_hour"], {"pnl_pct_from_emission": -0.6})
+        self.assertEqual(compact["trajectory_overlay"]["mark_count"], 0)
+        self.assertIsNone(compact["trajectory_overlay"]["first_hit"])
+
+    def test_compact_pick_keeps_decision_scores_and_first_trajectory_hit(self) -> None:
+        pick = {
+            "lane": "council_holdout",
+            "symbol": "XLE",
+            "scores": {"final_candidate_score": 0.88, "expected_tail_utility": 0.61},
+            "emission_quote": {"ask": 1.0},
+            "outcomes": {
+                "status": "partial",
+                "fixed_exit_marks": {"end_of_day": {"pnl_pct_from_emission": 0.10}},
+                "trajectory_marks": [
+                    {"captured_at_utc": "2026-09-08T16:00:00+00:00", "bid": 1.10},
+                    {"captured_at_utc": "2026-09-08T17:00:00+00:00", "bid": 1.30},
+                ],
+            },
+        }
+        rendered = build_dashboard_summary(
+            {"entries": [{"run_generated_at_utc": "2026-09-08T14:00:00+00:00", "picks": [pick]}]}
+        )
+        compact = rendered["entries"][0]["picks"][0]
+        self.assertEqual(compact["scores"]["final_candidate_score"], 0.88)
+        self.assertEqual(compact["outcomes"]["trajectory_overlay"]["mark_count"], 2)
+        self.assertEqual(compact["outcomes"]["trajectory_overlay"]["first_hit"]["event"], "target_25_bid")
 
     def test_real_ledger_projection_stays_well_below_pages_limit(self) -> None:
         source = Path("web/data/diagnostics/prospective_pick_ledger.json")
