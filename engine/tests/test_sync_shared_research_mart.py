@@ -134,6 +134,20 @@ class SharedMartCirrusRestoreTests(unittest.TestCase):
         )
         self.assertEqual(discovery["shared_mart_objects"], ["shared-research-mart/latest.tar.gz"])
 
+    def test_archive_keys_prefer_tar_gz(self) -> None:
+        from scripts.sync_shared_research_mart import _shared_mart_archive_keys
+
+        keys = _shared_mart_archive_keys({
+            "shared_mart_objects": [
+                "shared-research-mart/staging/",
+                "shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz",
+            ]
+        })
+        self.assertEqual(
+            keys,
+            ["shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz"],
+        )
+
     def test_research_data_prefix_is_never_cirrus_like(self) -> None:
         from scripts.sync_shared_research_mart import _cirrus_like_search_prefix
 

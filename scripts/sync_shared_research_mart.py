@@ -23,6 +23,7 @@ from engine.orographic.shared_research_mart import (  # noqa: E402
     validate_shared_research_mart,
 )
 from scripts.restore_research_artifacts_from_r2 import (  # noqa: E402
+    _get_object,
     _list_delimited_index,
     _list_delimited_prefixes,
     _list_objects,
@@ -314,6 +315,62 @@ def _missing_cirrus_next_action(restore_info: dict | None) -> str:
     )
 
 
+def _shared_mart_archive_keys(restore_info: dict | None) -> list[str]:
+    if not isinstance(restore_info, dict):
+        return []
+    keys: list[str] = []
+    for key in restore_info.get("shared_mart_objects") or []:
+        text = str(key or "")
+        if text.endswith(".tar.gz"):
+            keys.append(text)
+    return keys
+
+
+def _restore_shared_mart_archive(
+    *,
+    restore_info: dict | None,
+    output_dir: Path,
+    allow_missing: bool,
+) -> dict:
+    keys = _shared_mart_archive_keys(restore_info)
+    if not keys:
+        return {"status": "missing", "objects": 0}
+    bucket, account_id, api_token, _prefix = _cirrus_credentials()
+    if not all((bucket, account_id, api_token)):
+        return {"status": "skipped_missing_credentials", "objects": 0}
+    object_key = keys[-1]
+    _reset_dir(output_dir)
+    archive_path = output_dir.parent / "shared-research-mart-archive.tar.gz"
+    archive_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        _get_object(bucket, object_key, archive_path)
+        import tarfile
+
+        with tarfile.open(archive_path, "r:gz") as archive:
+            archive.extractall(output_dir, filter="data")
+        manifests = list(output_dir.rglob("mart_manifest.json"))
+        if not manifests:
+            raise ValueError(f"No mart_manifest.json in {object_key}")
+        mart_root = manifests[0].parent
+        validate_shared_research_mart(mart_root)
+    except Exception as exc:  # noqa: BLE001 - fall back to the Cirrus-missing diagnostic
+        if not allow_missing:
+            raise
+        return {
+            "status": "restore_failed",
+            "object_key": object_key,
+            "error": str(exc),
+            "objects": 0,
+        }
+    return {
+        "status": "restored",
+        "object_key": object_key,
+        "mart_dir": str(mart_root),
+        "cirrus_pin": "fallback",
+        "objects": 1,
+    }
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Keep the Cirrus + Orographic shared research mart in sync with this repo."
@@ -371,6 +428,57 @@ def main() -> int:
         cirrus_dir = _valid_cirrus_dir(Path("output/cirrus_export"))
 
     if cirrus_dir is None:
+        archive = _restore_shared_mart_archive(
+            restore_info=restore_info,
+            output_dir=args.mart_dir,
+            allow_missing=args.allow_missing,
+        )
+        if archive.get("status") == "restored":
+            mart_dir = Path(str(archive["mart_dir"]))
+            manifest = validate_shared_research_mart(mart_dir)
+            consumer = build_shared_mart_consumer_bundle(mart_dir, args.consumer_dir)
+            shadow = build_shared_mart_shadow_evidence(args.consumer_dir)
+            args.shadow_output.parent.mkdir(parents=True, exist_ok=True)
+            args.shadow_output.write_text(json.dumps(shadow, indent=2) + "\n", encoding="utf-8")
+            source_systems = sorted({
+                str(row.get("source_system"))
+                for row in manifest.get("sources") or []
+                if isinstance(row, dict) and row.get("source_system")
+            }) or ["cirrus", "orographic"]
+            payload = {
+                "artifact": "orographic_shared_mart_sync",
+                "schema_version": 1,
+                "generated_at_utc": _now_iso(),
+                "status": "ready_two_source",
+                "mart_id": manifest.get("mart_id"),
+                "source_systems": source_systems,
+                "consumer_status": consumer.get("status"),
+                "training_rows": (consumer.get("views") or {}).get("orographic_training_v1", {}).get("rows"),
+                "shadow_status": shadow.get("status"),
+                "cirrus_pin": "fallback",
+                "cirrus_export_is_current": False,
+                "restore": {
+                    **(restore_info or {}),
+                    "archive": archive,
+                    "cirrus_pin": "fallback",
+                },
+                "production_changes_allowed": False,
+                "next_action": (
+                    "Two-source mart restored from shared-research-mart/staging. "
+                    "It is a dated fallback, not weekly alpha versus Cirrus. Publish a current "
+                    "Cirrus options_research_bundle with python scripts/upload_research_artifacts_to_r2.py "
+                    "--mode cirrus <bundle-dir>."
+                ),
+            }
+            _write(args.output, payload)
+            print(json.dumps({
+                "status": payload["status"],
+                "mart_id": payload.get("mart_id"),
+                "cirrus_pin": payload["cirrus_pin"],
+                "training_rows": payload.get("training_rows"),
+                "archive": archive.get("object_key"),
+            }, indent=2))
+            return 0
         payload = {
             "artifact": "orographic_shared_mart_sync",
             "schema_version": 1,
@@ -378,6 +486,7 @@ def main() -> int:
             "status": "cirrus_export_unavailable",
             "source_systems": ["orographic"],
             "restore": restore_info,
+            "archive": archive,
             "production_changes_allowed": False,
             "orographic_canonical_bundle": str(canonical / "evidence_manifest.json"),
             "next_action": _missing_cirrus_next_action(restore_info),
