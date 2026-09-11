@@ -34,7 +34,8 @@ falls back to the newest valid dated prefix under `cirrus/`, `orographic/cirrus/
 rebuilds the two-source mart, and writes `shared_mart_sync_latest.json`. A fallback
 rebuild is pinned as `cirrus_pin=fallback` and is not weekly alpha versus Cirrus.
 After Cirrus is published, `Sync shared research mart` can be dispatched without waiting
-for the next live scan.
+for the next live scan. Merging mart-sync changes onto `main` also runs that workflow so
+the two-source rebuild does not wait for the next Tradier scan.
 Publish a current bundle with:
 
 ```bash
