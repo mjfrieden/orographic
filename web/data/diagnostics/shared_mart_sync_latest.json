@@ -1,17 +1,62 @@
 {
   "artifact": "orographic_shared_mart_sync",
   "schema_version": 1,
-  "generated_at_utc": "2026-09-11T14:16:49+00:00",
-  "status": "cirrus_export_unavailable",
+  "generated_at_utc": "2026-09-11T16:33:26+00:00",
+  "status": "ready_two_source",
+  "mart_id": "39c15ec075640e6d8fce4332beaf65c4c2c57c356e62bb92d3a6c0beb0f8c429",
   "source_systems": [
+    "cirrus",
     "orographic"
   ],
+  "consumer_status": "ready",
+  "training_rows": 1787,
+  "shadow_status": "collecting_shadow_evidence",
+  "cirrus_pin": "fallback",
+  "cirrus_export_is_current": false,
+  "orographic_refreshed": true,
+  "reused_from_mart_id": "bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64",
   "restore": {
-    "status": "missing",
+    "listed_objects": 0,
+    "listed_prefixes": [],
+    "listed_search_prefixes": [
+      "cirrus/",
+      "orographic/cirrus/",
+      "options_research_bundle/"
+    ],
+    "bucket_roots": [
+      "__r2_data_catalog/",
+      "orographic/",
+      "shared-research-mart/"
+    ],
+    "orographic_roots": [
+      "orographic/evidence-canonical/",
+      "orographic/operational-ledgers/",
+      "orographic/research-data/"
+    ],
+    "shared_mart_roots": [
+      "shared-research-mart/staging/"
+    ],
+    "shared_mart_objects": [
+      "shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz"
+    ],
     "prefix": "cirrus/options_research_bundle/current",
-    "objects": 0
+    "status": "missing",
+    "objects": 0,
+    "archive": {
+      "status": "restored",
+      "object_key": "shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz",
+      "mart_dir": "output/restored_shared_research_mart",
+      "cirrus_pin": "fallback",
+      "objects": 1
+    },
+    "refresh": {
+      "status": "refreshed",
+      "orographic_refreshed": true,
+      "reused_from_mart_id": "bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64",
+      "refresh_error": null
+    },
+    "cirrus_pin": "fallback"
   },
   "production_changes_allowed": false,
-  "orographic_canonical_bundle": "output/canonical_evidence/evidence_manifest.json",
-  "next_action": "Publish a current Cirrus options_research_bundle with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <cirrus-options_research_bundle> to r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current or pass --cirrus-export-dir, then rerun this sync."
+  "next_action": "Two-source mart rebuilt from current Orographic canonical and Cirrus rows in shared-research-mart/staging. It is a dated Cirrus fallback, not weekly alpha versus Cirrus. Publish a current Cirrus options_research_bundle with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir>."
 }
