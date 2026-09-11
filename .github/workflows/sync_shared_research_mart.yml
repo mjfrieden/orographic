@@ -2,6 +2,17 @@ name: Sync shared research mart
 
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - ".github/workflows/sync_shared_research_mart.yml"
+      - "scripts/sync_shared_research_mart.py"
+      - "scripts/restore_research_artifacts_from_r2.py"
+      - "scripts/upload_research_artifacts_to_r2.py"
+      - "scripts/build_weekly_alpha_review.py"
+      - "engine/orographic/weekly_alpha_review.py"
+      - "engine/orographic/shared_research_mart.py"
+      - "engine/orographic/shared_mart_consumers.py"
+      - "engine/orographic/shared_mart_shadow.py"
   push:
     branches:
       - main
@@ -72,6 +83,7 @@ jobs:
           python scripts/sync_shared_research_mart.py --allow-missing
 
       - name: Persist a local Cirrus export to the current R2 prefix
+        if: ${{ github.event_name != 'pull_request' }}
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
@@ -98,8 +110,21 @@ jobs:
             --prospective-ledger output/restored_canonical_evidence/prospective_pick_ledger.json
           python scripts/build_model_governance_summary.py
 
+      - name: Upload mart sync diagnostics
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: mart-sync-diagnostics
+          path: |
+            web/data/diagnostics/shared_mart_sync_latest.json
+            web/data/diagnostics/shared_mart_shadow_evidence_latest.json
+            web/data/diagnostics/weekly_alpha_review_latest.json
+            web/data/diagnostics/model_governance_summary_latest.json
+          if-no-files-found: warn
+
       - name: Commit mart sync diagnostics
         id: diagnostics
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -120,7 +145,7 @@ jobs:
           echo "diagnostics_changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Push mart sync diagnostics
-        if: ${{ steps.diagnostics.outputs.diagnostics_changed == 'true' }}
+        if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.diagnostics.outputs.diagnostics_changed == 'true' }}
         continue-on-error: true
         run: |
           for attempt in 1 2 3 4; do
