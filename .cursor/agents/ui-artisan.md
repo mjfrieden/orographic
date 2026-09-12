@@ -118,6 +118,7 @@ Audit juice shipped:
 85. Harbor copy pairs flavor with function; HOLD shows came-close runners. **Shipped in cycle 85.**
 86. Research dungeon shrine-control fields close with gold filigree. **Shipped in cycle 86 (PR #39).**
 87. Cockpit character-plate topbar gives the action rail room to breathe. **Shipped in cycle 87.**
+88. Master Harbor Reliquary mart status becomes a Harbor gold seal. **Shipped in cycle 88.**
 
 ## Done when
 
