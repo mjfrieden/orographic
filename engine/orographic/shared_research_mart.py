@@ -221,6 +221,124 @@ def _orographic_feature_payload(pick: dict[str, Any]) -> dict[str, Any] | None:
     return features or None
 
 
+def _quote_mid(bid: float | None, ask: float | None, mid: float | None) -> float | None:
+    if mid is not None:
+        return mid
+    if bid is not None and ask is not None:
+        return (bid + ask) / 2.0
+    return None
+
+
+def _orographic_path_quote_row(
+    *,
+    recommendation_key: str,
+    cohort: str,
+    contract_symbol: str | None,
+    underlying_symbol: str | None,
+    mark: dict[str, Any],
+    quote_source: str,
+    bundle_id: str,
+) -> dict[str, Any] | None:
+    """Build one recommendation-linked quote row from a path/trajectory mark."""
+    observed = _text(
+        mark.get("captured_at_utc")
+        or mark.get("bid_observed_at_utc")
+        or mark.get("ask_observed_at_utc")
+        or mark.get("retrieved_at_utc")
+        or mark.get("observed_at_utc")
+    )
+    if not observed:
+        return None
+    bid = _number(mark.get("bid"))
+    ask = _number(mark.get("ask"))
+    last_price = _number(mark.get("last") or mark.get("last_price") or mark.get("mark"))
+    mid = _quote_mid(bid, ask, _number(mark.get("mid")))
+    quote_key = "|".join(
+        filter(None, ("orographic_path", recommendation_key, observed, quote_source))
+    )
+    return {
+        "quote_key": quote_key,
+        "source_system": "orographic",
+        "cohort": cohort,
+        "recommendation_key": recommendation_key,
+        "contract_symbol": contract_symbol,
+        "underlying_symbol": underlying_symbol,
+        "observed_at_utc": observed,
+        "available_at_utc": observed,
+        "quote_date": _text(mark.get("quote_date")) or observed[:10],
+        "quote_source": quote_source,
+        "bid": bid,
+        "ask": ask,
+        "last_price": last_price,
+        "mid": mid,
+        "executable_exit": bid,
+        "open_interest": _number(mark.get("open_interest")),
+        "volume": _number(mark.get("volume")),
+        "implied_volatility": _number(mark.get("implied_volatility")),
+        "delta": _number(mark.get("delta")),
+        "gamma": _number(mark.get("gamma")),
+        "theta_per_day": _number(mark.get("theta") or mark.get("theta_per_day")),
+        "vega": _number(mark.get("vega")),
+        "source_bundle_id": bundle_id,
+    }
+
+
+def _orographic_pick_path_quotes(
+    pick: dict[str, Any],
+    *,
+    recommendation_key: str,
+    cohort: str,
+    bundle_id: str,
+) -> list[dict[str, Any]]:
+    """Materialize recommendation-linked quotes from emission, trajectory, and archive paths.
+
+    Shared-market chain quotes remain unlinked. These rows are what
+    ``orographic_exit_replay_v1`` joins on ``recommendation_key``.
+    """
+    contract = _text(pick.get("contract_symbol"))
+    underlying = _text(pick.get("symbol") or pick.get("underlying"))
+    rows: list[dict[str, Any]] = []
+    seen_keys: set[str] = set()
+
+    def _append(mark: Any, quote_source: str) -> None:
+        if not isinstance(mark, dict):
+            return
+        row = _orographic_path_quote_row(
+            recommendation_key=recommendation_key,
+            cohort=cohort,
+            contract_symbol=contract,
+            underlying_symbol=underlying,
+            mark=mark,
+            quote_source=quote_source,
+            bundle_id=bundle_id,
+        )
+        if row is None or row["quote_key"] in seen_keys:
+            return
+        seen_keys.add(row["quote_key"])
+        rows.append(row)
+
+    emission = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
+    if emission:
+        _append(emission, "emission_quote")
+
+    outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    archived = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
+    entry_mark = archived.get("entry_mark")
+    if isinstance(entry_mark, dict):
+        _append(entry_mark, "archived_entry_mark")
+    archived_marks = archived.get("marks")
+    if isinstance(archived_marks, list):
+        for mark in archived_marks:
+            _append(mark, "archived_path_mark")
+
+    trajectory_marks = outcomes.get("trajectory_marks")
+    if isinstance(trajectory_marks, list):
+        for mark in trajectory_marks:
+            _append(mark, "trajectory_mark")
+
+    return rows
+
+
 def _read_manifest(path: Path) -> dict[str, Any]:
     loaded = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(loaded, dict):
@@ -345,6 +463,15 @@ def _orographic_rows(
                         }),
                         "source_bundle_id": bundle_id,
                     })
+
+                result["option_quotes"].extend(
+                    _orographic_pick_path_quotes(
+                        pick,
+                        recommendation_key=rec_key,
+                        cohort=cohort,
+                        bundle_id=bundle_id,
+                    )
+                )
 
     outcome_path = canonical_dir / "recommendation_outcomes.parquet"
     outcomes = pd.read_parquet(outcome_path) if outcome_path.exists() else pd.DataFrame()

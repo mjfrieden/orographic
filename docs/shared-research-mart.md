@@ -79,6 +79,15 @@ never captured as features, and every Orographic feature snapshot is anchored to
 decision timestamp so `available_at_utc <= decision_at_utc` always holds. This is what makes the
 `orographic_training_v1` consumer view non-empty and unblocks the training-source rebuild gate.
 
+`option_quotes` carries two Orographic populations:
+
+- **Shared-market chain quotes** from the live options archive (`recommendation_key` is null). These
+  remain the durable market-data plane for Cirrus replay and coverage audits.
+- **Recommendation-linked path quotes** materialized from each pick's `emission_quote`,
+  `outcomes.trajectory_marks`, and `outcomes.archived_quote_path.marks`, with `recommendation_key`
+  set. These rows are what `orographic_exit_replay_v1` joins so Orographic exit-policy shadow work
+  is no longer Cirrus-only.
+
 ## Point-in-time and execution rules
 
 - Recommendation evidence cannot be available before its decision timestamp.
