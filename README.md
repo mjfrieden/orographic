@@ -197,6 +197,10 @@ the two-source Parquet mart, promotes the current Cirrus bundle to R2, and publi
 corresponding Iceberg snapshot. The live scan keeps a non-blocking R2/archive fallback so a research
 ingestion failure cannot interrupt production scanning.
 
+Use `analysis/shared_mart_data_quality_audit.ipynb` to reproduce the source-freshness, completeness,
+joinability, point-in-time, and cross-system coverage review before changing shared-mart schemas or
+promotion gates.
+
 ```bash
 python scripts/build_shared_research_mart.py \
   --orographic-canonical-dir output/canonical_evidence \

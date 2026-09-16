@@ -324,7 +324,7 @@ def _orographic_pick_path_quotes(
     contract = _text(pick.get("contract_symbol"))
     underlying = _text(pick.get("symbol") or pick.get("underlying"))
     rows: list[dict[str, Any]] = []
-    seen_keys: set[str] = set()
+    seen_observations: set[str] = set()
 
     def _append(mark: Any, quote_source: str) -> None:
         if not isinstance(mark, dict):
@@ -338,9 +338,9 @@ def _orographic_pick_path_quotes(
             quote_source=quote_source,
             bundle_id=bundle_id,
         )
-        if row is None or row["quote_key"] in seen_keys:
+        if row is None or row["observed_at_utc"] in seen_observations:
             return
-        seen_keys.add(row["quote_key"])
+        seen_observations.add(row["observed_at_utc"])
         rows.append(row)
 
     emission = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
@@ -348,6 +348,13 @@ def _orographic_pick_path_quotes(
         _append(emission, "emission_quote")
 
     outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    # Prefer the direct prospective capture when the canonical archived path
+    # repeats the same recommendation/timestamp observation.
+    trajectory_marks = outcomes.get("trajectory_marks")
+    if isinstance(trajectory_marks, list):
+        for mark in trajectory_marks:
+            _append(mark, "trajectory_mark")
+
     archived = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
     entry_mark = archived.get("entry_mark")
     if isinstance(entry_mark, dict):
@@ -356,11 +363,6 @@ def _orographic_pick_path_quotes(
     if isinstance(archived_marks, list):
         for mark in archived_marks:
             _append(mark, "archived_path_mark")
-
-    trajectory_marks = outcomes.get("trajectory_marks")
-    if isinstance(trajectory_marks, list):
-        for mark in trajectory_marks:
-            _append(mark, "trajectory_mark")
 
     return rows
 

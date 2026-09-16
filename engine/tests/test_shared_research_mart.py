@@ -451,10 +451,20 @@ class SharedResearchMartTests(unittest.TestCase):
                         }],
                         "archived_quote_path": {
                             "observation_count": 1,
-                            "marks": [{
-                                "captured_at_utc": archived_ts,
-                                "bid": 1.5, "ask": 1.6, "last": 1.55,
-                            }],
+                            "marks": [
+                                {
+                                    "captured_at_utc": path_ts,
+                                    "bid": 1.3,
+                                    "ask": 1.4,
+                                    "last": 1.35,
+                                },
+                                {
+                                    "captured_at_utc": archived_ts,
+                                    "bid": 1.5,
+                                    "ask": 1.6,
+                                    "last": 1.55,
+                                },
+                            ],
                         },
                     },
                 }],
@@ -498,7 +508,7 @@ class SharedResearchMartTests(unittest.TestCase):
                 (quotes["source_system"] == "orographic")
                 & quotes["recommendation_key"].notna()
             ]
-            self.assertGreaterEqual(len(oro_linked), 3)
+            self.assertEqual(len(oro_linked), 3)
             self.assertTrue(
                 (oro_linked["recommendation_key"] == "orographic|primary|oro-path-1").all()
             )
@@ -528,9 +538,13 @@ class SharedResearchMartTests(unittest.TestCase):
             )
             replay = pd.read_parquet(consumers / "orographic_exit_replay_v1.parquet")
             oro_replay = replay[replay["source_system"] == "orographic"]
-            self.assertGreaterEqual(len(oro_replay), 1)
+            self.assertEqual(len(oro_replay), 2)
             self.assertTrue(
                 (oro_replay["recommendation_key"] == "orographic|primary|oro-path-1").all()
+            )
+            self.assertEqual(
+                set(oro_replay["quote_source"]),
+                {"trajectory_mark", "archived_path_mark"},
             )
 
     def test_validation_rejects_tampered_table(self) -> None:

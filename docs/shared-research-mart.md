@@ -66,6 +66,20 @@ mart, promotes the current Cirrus bundle to R2, and publishes and verifies the I
 materialization or validation failure fails the dedicated sync; the live Orographic scan treats the
 same step as non-blocking and retains the R2/archive fallback.
 
+## Collection quality audit
+
+[`analysis/shared_mart_data_quality_audit.ipynb`](../analysis/shared_mart_data_quality_audit.ipynb)
+profiles the latest validated source bundles and rebuilt shared mart at their actual grains. It checks
+freshness, key integrity, point-in-time feature safety, option-side validity, score coverage,
+post-entry path coverage, executable-label coverage, and same-date/symbol overlap.
+
+The September 15, 2026 audit found that both sources have complete conformed feature and score
+coverage after normalization, but joint evidence is still immature: 10 paired date/symbol rows across
+8 market dates and only 2 paired executable outcomes. Post-entry IV/Greek coverage, Cirrus
+decision-time version provenance, and provider-neutral tables for recommendation legs and experiment
+decisions remain explicit schema-v2 follow-ups. The mart stays observation-only while those gaps and
+the existing promotion gates remain open.
+
 ## Conformed tables
 
 | Table | Grain | Primary key |
