@@ -28,6 +28,9 @@ jobs:
       OROGRAPHIC_INTERNAL_CAPTURE_TOKEN: ${{ secrets.OROGRAPHIC_INTERNAL_CAPTURE_TOKEN }}
       OROGRAPHIC_SENTINEL_URL: ${{ secrets.OROGRAPHIC_SENTINEL_URL }}
       OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+      OROGRAPHIC_R2_DATA_CATALOG_URI: https://catalog.cloudflarestorage.com/fb7bb10f51e3f6c0fe572d28a3a7e1f4/orographic-research-data
+      OROGRAPHIC_R2_DATA_CATALOG_WAREHOUSE: fb7bb10f51e3f6c0fe572d28a3a7e1f4_orographic-research-data
+      OROGRAPHIC_R2_DATA_CATALOG_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
       OROGRAPHIC_SEC_USER_AGENT: ${{ secrets.OROGRAPHIC_SEC_USER_AGENT }}
       OROGRAPHIC_EVENT_FEATURES_PATH: engine/data/event_observatory/daily_event_features.parquet
       OROGRAPHIC_SITE_URL: https://orographic.pages.dev
@@ -221,6 +224,14 @@ jobs:
           python scripts/materialize_canonical_evidence_for_cirrus.py \
             --canonical-dir output/canonical_evidence \
             --output-dir engine/data/options/blended/partitioned
+
+      - name: Materialize current Cirrus research bundle
+        continue-on-error: true
+        env:
+          CIRRUS_BUNDLE_TOKEN: ${{ secrets.OROGRAPHIC_CRON_GITHUB_TOKEN }}
+        run: |
+          python scripts/materialize_cirrus_bundle_from_git.py \
+            --destination ../Cirrus/analysis/output/options_research_bundle
 
       - name: Sync shared Cirrus/Orographic research mart
         env:

@@ -84,6 +84,7 @@ VIEW_SQL: dict[str, str] = {
                 count(*) FILTER (WHERE bid > 0 AND ask >= bid) AS two_sided_quote_observations
             FROM option_quotes
             WHERE recommendation_key IS NOT NULL
+              AND quote_source NOT IN ('scan_entry', 'emission_quote', 'archived_entry_mark')
             GROUP BY recommendation_key
         ), outcome_quality AS (
             SELECT
@@ -166,6 +167,7 @@ VIEW_SQL: dict[str, str] = {
         FROM recommendations r
         JOIN option_quotes q USING (recommendation_key)
         WHERE CAST(q.observed_at_utc AS TIMESTAMPTZ) >= CAST(r.decision_at_utc AS TIMESTAMPTZ)
+          AND q.quote_source NOT IN ('scan_entry', 'emission_quote', 'archived_entry_mark')
           AND coalesce(r.entry_ask, r.entry_mid) > 0
           AND coalesce(q.executable_exit, q.bid) IS NOT NULL
     """,
@@ -274,6 +276,7 @@ VIEW_SQL: dict[str, str] = {
                 count(*) FILTER (WHERE delta IS NULL) AS null_delta_quotes
             FROM option_quotes
             WHERE recommendation_key IS NOT NULL
+              AND quote_source NOT IN ('scan_entry', 'emission_quote', 'archived_entry_mark')
             GROUP BY recommendation_key
         ), outcome_cov AS (
             SELECT

@@ -191,6 +191,16 @@ export into versioned analytical tables for point-in-time backtests and paired m
 It preserves source system, cohort, model version, label contract, and exit policy rather than
 blending the two systems into an untraceable result.
 
+Cirrus publishes its validated bundle to the orphan branch `data/options-research-bundle` after its
+weekday scan. Orographic's scheduled shared-mart sync materializes and validates that branch, rebuilds
+the two-source Parquet mart, promotes the current Cirrus bundle to R2, and publishes and verifies the
+corresponding Iceberg snapshot. The live scan keeps a non-blocking R2/archive fallback so a research
+ingestion failure cannot interrupt production scanning.
+
+Use `analysis/shared_mart_data_quality_audit.ipynb` to reproduce the source-freshness, completeness,
+joinability, point-in-time, and cross-system coverage review before changing shared-mart schemas or
+promotion gates.
+
 ```bash
 python scripts/build_shared_research_mart.py \
   --orographic-canonical-dir output/canonical_evidence \
