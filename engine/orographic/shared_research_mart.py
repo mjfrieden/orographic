@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 from typing import Any, Iterable
 import uuid
@@ -146,6 +147,31 @@ def _number(value: Any) -> float | None:
     except (TypeError, ValueError):
         return None
     return result if math.isfinite(result) else None
+
+
+def _first_number(*values: Any) -> float | None:
+    for value in values:
+        number = _number(value)
+        if number is not None:
+            return number
+    return None
+
+
+def _option_type(direction: Any, contract_symbol: Any) -> str | None:
+    """Normalize source direction values to the option-side contract."""
+
+    normalized = (_text(direction) or "").lower()
+    if normalized in {"call", "put"}:
+        return normalized
+    if normalized in {"bull", "bullish", "up"}:
+        return "call"
+    if normalized in {"bear", "bearish", "down"}:
+        return "put"
+    for leg in (_text(contract_symbol) or "").split("/"):
+        match = re.search(r"\d{6}([CP])\d{8}$", leg.upper())
+        if match:
+            return "call" if match.group(1) == "C" else "put"
+    return None
 
 
 def _integer(value: Any) -> int | None:
@@ -315,7 +341,11 @@ def _orographic_rows(
                     "entry_bid": _number(quote.get("bid")),
                     "entry_ask": _number(quote.get("ask")),
                     "entry_mid": _number(quote.get("mid")),
-                    "score": _number(scores.get("final_candidate_score") or scores.get("forge_score")),
+                    "score": _first_number(
+                        scores.get("final_candidate_score"),
+                        scores.get("forge_score"),
+                        scores.get("scout_score"),
+                    ),
                     "status": _text(_nested(pick, "outcomes", "status")),
                     "source_bundle_id": bundle_id,
                     "source_payload_json": _json(pick),
@@ -476,7 +506,7 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "available_at_utc": _text(row.get("created_ts")) or _text(row.get("scan_generated_at")),
             "underlying_symbol": _text(row.get("ticker")),
             "contract_symbol": _text(row.get("contract_symbol")),
-            "option_type": "put" if _text(row.get("direction")) == "bearish" else "call",
+            "option_type": _option_type(row.get("direction"), row.get("contract_symbol")),
             "expiry_date": _text(row.get("expiry")), "strike": _number(row.get("strike")),
             "entry_bid": _number(row.get("bid")), "entry_ask": _number(row.get("ask")),
             "entry_mid": _number(row.get("mid")), "score": _number(row.get("score")),
@@ -588,6 +618,12 @@ def _validate_tables(frames: dict[str, pd.DataFrame]) -> dict[str, Any]:
     for name, count in orphan_children.items():
         if count:
             failures.append(f"{name}:orphan_recommendations={count}")
+
+    option_types = frames["recommendations"]["option_type"].astype("string").str.lower()
+    invalid_option_types = int((option_types.isna() | ~option_types.isin({"call", "put"})).sum())
+    checks["recommendations_option_type_valid"] = invalid_option_types == 0
+    if invalid_option_types:
+        failures.append(f"recommendations:invalid_option_type={invalid_option_types}")
 
     decisions = frames["recommendations"][["recommendation_key", "decision_at_utc"]].copy()
     decisions["decision_at_utc"] = pd.to_datetime(

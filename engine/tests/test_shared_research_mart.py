@@ -132,6 +132,68 @@ def _write_orographic_canonical(
 
 
 class SharedResearchMartTests(unittest.TestCase):
+    def test_normalizes_cirrus_put_direction_and_orographic_scout_score(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_canonical = _write_orographic_canonical(
+                root / "orographic", rec_id="oro-1", symbol="BBB", with_features=True
+            )
+            primary = json.loads(
+                (source_canonical / "prospective_pick_ledger.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            primary["entries"][0]["picks"][0]["scores"] = {
+                "final_candidate_score": None,
+                "forge_score": None,
+                "scout_score": 0.61,
+            }
+            source_ledger = root / "scout_primary.json"
+            source_ledger.write_text(json.dumps(primary), encoding="utf-8")
+            canonical = root / "scout_canonical"
+            build_canonical_evidence_bundle(
+                source_roots=[root / "orographic" / "orographic_source"],
+                current_prospective_ledger=source_ledger,
+                current_moonshot_ledger=source_canonical
+                / "moonshot_prospective_ledger.json",
+                payoff_evidence=None,
+                strict_outcome_artifacts=[],
+                output_dir=canonical,
+            )
+
+            cirrus = root / "cirrus"
+            cirrus.mkdir()
+            _write_cirrus_export(cirrus)
+            picks = pd.read_parquet(cirrus / "tracked_picks.parquet")
+            picks.loc[0, "direction"] = "put"
+            picks.loc[0, "contract_symbol"] = "AAA260828P00100000"
+            picks.to_parquet(cirrus / "tracked_picks.parquet", index=False)
+            manifest = json.loads((cirrus / "manifest.json").read_text(encoding="utf-8"))
+            manifest["artifacts"]["tracked_picks"]["sha256"] = _sha256(
+                cirrus / "tracked_picks.parquet"
+            )
+            (cirrus / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            mart = root / "mart"
+            built = build_shared_research_mart(
+                orographic_canonical_dir=canonical,
+                cirrus_export_dir=cirrus,
+                output_dir=mart,
+            )
+
+            self.assertTrue(
+                built["validation"]["checks"]["recommendations_option_type_valid"]
+            )
+            recommendations = pd.read_parquet(mart / "recommendations.parquet")
+            cirrus_row = recommendations.loc[
+                recommendations["source_system"] == "cirrus"
+            ].iloc[0]
+            oro_row = recommendations.loc[
+                recommendations["source_system"] == "orographic"
+            ].iloc[0]
+            self.assertEqual(cirrus_row["option_type"], "put")
+            self.assertEqual(oro_row["score"], 0.61)
+
     def test_builds_conformed_mart_with_both_systems(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
