@@ -1,70 +1,39 @@
 {
   "artifact": "orographic_shared_mart_sync",
   "schema_version": 1,
-  "generated_at_utc": "2026-09-15T20:15:22+00:00",
+  "generated_at_utc": "2026-09-16T13:14:54+00:00",
   "status": "ready_two_source",
-  "mart_id": "f8eccc27ebacce6423ee5e4d7f41253bc473f99185976b8cf4fc0f6f71728e8c",
+  "mart_id": "e1391c27d9c1e112dc9784857212fc768959efc5513dcdf880ef97a28e02ea13",
   "source_systems": [
     "cirrus",
     "orographic"
   ],
+  "rows": {
+    "model_runs": 474,
+    "recommendations": 3777,
+    "execution_outcomes": 2260,
+    "option_quotes": 3511590,
+    "feature_snapshots": 3777,
+    "path_exclusions": 0
+  },
   "consumer_status": "ready",
   "training_rows": 2118,
   "shadow_status": "collecting_shadow_evidence",
-  "cirrus_pin": "fallback",
-  "cirrus_export_is_current": false,
-  "orographic_refreshed": true,
-  "reused_from_mart_id": "bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64",
+  "cirrus_export_dir": "../Cirrus/analysis/output/options_research_bundle",
+  "cirrus_pin": "local",
+  "cirrus_export_is_current": true,
+  "restore": null,
   "iceberg": {
-    "status": "skipped_missing_credentials",
-    "missing": [
-      "catalog_uri",
-      "warehouse",
-      "token"
-    ]
-  },
-  "restore": {
-    "listed_objects": 0,
-    "listed_prefixes": [],
-    "listed_search_prefixes": [
-      "cirrus/",
-      "orographic/cirrus/",
-      "options_research_bundle/"
-    ],
-    "bucket_roots": [
-      "__r2_data_catalog/",
-      "orographic/",
-      "shared-research-mart/"
-    ],
-    "orographic_roots": [
-      "orographic/evidence-canonical/",
-      "orographic/operational-ledgers/",
-      "orographic/research-data/"
-    ],
-    "shared_mart_roots": [
-      "shared-research-mart/staging/"
-    ],
-    "shared_mart_objects": [
-      "shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz"
-    ],
-    "prefix": "cirrus/options_research_bundle/current",
-    "status": "missing",
-    "objects": 0,
-    "archive": {
-      "status": "restored",
-      "object_key": "shared-research-mart/staging/bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64.tar.gz",
-      "mart_dir": "output/restored_shared_research_mart",
-      "cirrus_pin": "fallback",
-      "objects": 1
-    },
-    "refresh": {
-      "status": "refreshed",
-      "orographic_refreshed": true,
-      "reused_from_mart_id": "bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64",
-      "refresh_error": null
-    },
-    "cirrus_pin": "fallback"
+    "status": "inspected",
+    "source_system": "cirrus",
+    "recommendation_rows": 103,
+    "min_decision_at_utc": "2026-03-27T15:29:57.466499+00:00",
+    "max_decision_at_utc": "2026-08-21T19:00:44.506146+00:00",
+    "symbols": 12,
+    "latest_publication_mart_id": "22fb8bbc113bb6e2eed877088582421d6e681b8f20f3010bb041cb0a1803ec58",
+    "latest_publication_at_utc": "2026-09-11 18:46:16+00",
+    "current_export": false
   },
   "production_changes_allowed": false,
-  "next_action": "Two-source mart rebuilt from current Orographic canonical and Cirrus rows in shared-research-mart/staging. It is a dated Cirrus fallback, not weekly alpha versus Cirrus. Publish a current Cirrus options_research_bundle with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir>."
+  "next_action": "Keep using the mart for observation-only backtests; do not route from it."
 }
