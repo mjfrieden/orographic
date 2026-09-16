@@ -57,6 +57,15 @@ Research-data audits are persisted to
 `web/data/diagnostics/research_data_capture_audit_latest.json` and are warn-only in the
 scan job so a Moonshot/dataset mismatch cannot skip mart consolidation.
 
+Cirrus also publishes each validated export to the orphan git branch
+`data/options-research-bundle`. Orographic's weekday `Sync shared research mart` job runs after the
+Cirrus scan, clones that branch with `OROGRAPHIC_CRON_GITHUB_TOKEN`, validates every Parquet hash and
+row count, and atomically materializes it at
+`../Cirrus/analysis/output/options_research_bundle`. The dedicated sync then rebuilds the two-source
+mart, promotes the current Cirrus bundle to R2, and publishes and verifies the Iceberg tables. A
+materialization or validation failure fails the dedicated sync; the live Orographic scan treats the
+same step as non-blocking and retains the R2/archive fallback.
+
 ## Conformed tables
 
 | Table | Grain | Primary key |
