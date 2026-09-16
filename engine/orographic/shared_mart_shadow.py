@@ -38,6 +38,8 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         monitoring = _path(root, manifest, "orographic_model_monitoring_v1")
         data_quality = _path(root, manifest, "mart_data_quality_v1")
         training_funnel = _path(root, manifest, "orographic_training_funnel_v1")
+        joint_candidates = _path(root, manifest, "joint_learning_candidates_v1")
+        joint_pairs = _path(root, manifest, "joint_paired_comparisons_v1")
         execution_summary = _record(connection, f"""
             SELECT
                 count(*) AS recommendations,
@@ -134,6 +136,36 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                    min(training_eligibility_rate) AS min_training_eligibility_rate
             FROM read_parquet('{training_funnel}')
         """)
+        joint_learning_summary = _record(connection, f"""
+            SELECT count(*) AS candidate_rows,
+                   count(DISTINCT recommendation_key) AS recommendations,
+                   count(*) FILTER (WHERE feature_provenance = 'legacy_backfill') AS legacy_feature_rows,
+                   count(*) FILTER (WHERE feature_provenance = 'native_decision_time') AS native_feature_rows,
+                   count(*) FILTER (WHERE model_identity_kind = 'lane_only') AS lane_only_model_rows,
+                   count(*) FILTER (WHERE leg_count > 1) AS multi_leg_rows,
+                   count(*) FILTER (WHERE source_specific_training_eligible) AS source_specific_training_rows,
+                   count(*) FILTER (WHERE source_system = 'orographic'
+                                     AND source_specific_training_eligible)
+                       AS orographic_source_specific_training_rows,
+                   count(*) FILTER (WHERE source_system = 'cirrus'
+                                     AND source_specific_training_eligible)
+                       AS cirrus_source_specific_training_rows,
+                   count(*) FILTER (WHERE pooled_training_eligible) AS pooled_training_rows,
+                   count(*) FILTER (WHERE experiment_tag_count > 0) AS experiment_tagged_rows
+            FROM read_parquet('{joint_candidates}')
+        """)
+        comparable_summary = _record(connection, f"""
+            SELECT count(*) FILTER (WHERE direct_return_comparable) AS direct_return_comparable_pairs,
+                   count(DISTINCT market_date) FILTER (WHERE direct_return_comparable)
+                       AS direct_return_comparable_market_dates,
+                   avg(orographic_executable_return - cirrus_executable_return)
+                       FILTER (WHERE direct_return_comparable)
+                       AS avg_direct_comparable_return_difference,
+                   count(*) FILTER (WHERE same_contract) AS same_contract_pairs,
+                   count(*) FILTER (WHERE same_contract AND decision_lag_seconds <= 3600)
+                       AS same_contract_synchronized_pairs
+            FROM read_parquet('{joint_pairs}')
+        """)
     finally:
         connection.close()
 
@@ -146,7 +178,9 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
 
     paired_outcomes = int(disagreement_summary.get("paired_executable_outcomes") or 0)
     paired_market_dates = int(disagreement_summary.get("paired_market_dates") or 0)
-    shadow_ready = paired_outcomes >= 30 and paired_market_dates >= 30
+    comparable_pairs = int(comparable_summary.get("direct_return_comparable_pairs") or 0)
+    comparable_dates = int(comparable_summary.get("direct_return_comparable_market_dates") or 0)
+    shadow_ready = comparable_pairs >= 30 and comparable_dates >= 30
     consumer_views = {
         name: {
             "rows": int(view.get("rows") or 0),
@@ -157,7 +191,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
     }
     return {
         "artifact": "orographic_shared_mart_shadow_evidence",
-        "schema_version": 2,
+        "schema_version": 3,
         "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "mart_id": manifest["mart_id"],
         "consumer_schema_version": manifest["schema_version"],
@@ -172,7 +206,8 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         },
         "execution_quality": execution_summary,
         "exit_replay": exit_summary,
-        "cross_system_comparison": disagreement_summary,
+        "cross_system_comparison": {**disagreement_summary, **comparable_summary},
+        "joint_learning": joint_learning_summary,
         "training_evidence": training_summary,
         "model_monitoring": monitoring_summary,
         "data_quality": {
@@ -190,10 +225,16 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
             "paired_market_dates": {
                 "passed": paired_market_dates >= 30, "actual": paired_market_dates, "required": 30,
             },
+            "direct_return_comparable_pairs": {
+                "passed": comparable_pairs >= 30, "actual": comparable_pairs, "required": 30,
+            },
+            "direct_return_comparable_market_dates": {
+                "passed": comparable_dates >= 30, "actual": comparable_dates, "required": 30,
+            },
         },
         "next_action": (
             "Evaluate one pre-registered liquidity veto in shadow; do not change live routing."
             if shadow_ready
-            else "Collect paired executable outcomes and independent paired market dates."
+            else "Collect synchronized same-contract pairs with a common executable label policy; keep pooled training disabled."
         ),
     }

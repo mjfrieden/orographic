@@ -6,7 +6,12 @@ from pathlib import Path
 import re
 from typing import Any
 
-from .shared_research_mart import TABLE_CONTRACTS, validate_shared_research_mart
+from .shared_research_mart import (
+    LEGACY_MART_SCHEMA_VERSION,
+    LEGACY_TABLE_CONTRACTS,
+    TABLE_CONTRACTS,
+    validate_shared_research_mart,
+)
 
 
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
@@ -37,7 +42,11 @@ def build_iceberg_publication_plan(
             "Shared mart publication requires all sources: " + ", ".join(missing_sources)
         )
     tables = []
-    for name, contract in TABLE_CONTRACTS.items():
+    contracts = (
+        LEGACY_TABLE_CONTRACTS
+        if manifest["schema_version"] == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
+    )
+    for name, contract in contracts.items():
         artifact = manifest["artifacts"][name]
         tables.append({
             "name": name,
@@ -105,6 +114,10 @@ def publish_iceberg_mart(
     plan = build_iceberg_publication_plan(
         mart_dir=mart_dir, catalog_name=catalog_name, namespace=namespace
     )
+    contracts = (
+        LEGACY_TABLE_CONTRACTS
+        if plan["schema_version"] == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
+    )
     try:
         import duckdb
     except ImportError as exc:  # pragma: no cover - depends on optional runtime
@@ -140,8 +153,8 @@ def publish_iceberg_mart(
             if not exists:
                 connection.execute(f"CREATE TABLE {target} AS SELECT * FROM {view}")
                 continue
-            columns = list(TABLE_CONTRACTS[name].columns)
-            keys = list(TABLE_CONTRACTS[name].primary_key)
+            columns = list(contracts[name].columns)
+            keys = list(contracts[name].primary_key)
             join = " AND ".join(f"target.{key} = source.{key}" for key in keys)
             update = ", ".join(f"{column} = source.{column}" for column in columns)
             insert_columns = ", ".join(columns)
@@ -249,6 +262,10 @@ def verify_iceberg_mart(
     catalog_name: str = "r2_mart",
     namespace: str = "research_mart",
 ) -> dict[str, Any]:
+    contracts = (
+        LEGACY_TABLE_CONTRACTS
+        if manifest.get("schema_version") == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
+    )
     env = publication_environment()
     missing = [name for name, value in env.items() if not value]
     if missing:
@@ -271,11 +288,11 @@ def verify_iceberg_mart(
         )
         actual_rows = {
             name: int(connection.execute(f"SELECT COUNT(*) FROM {catalog}.{schema}.{name}").fetchone()[0])
-            for name in TABLE_CONTRACTS
+            for name in contracts
         }
         expected_rows = {
             name: int(manifest["artifacts"][name]["rows"])
-            for name in TABLE_CONTRACTS
+            for name in contracts
         }
         publication_rows = int(
             connection.execute(
@@ -287,7 +304,7 @@ def verify_iceberg_mart(
         connection.close()
     mismatches = {
         name: {"expected": expected_rows[name], "actual": actual_rows[name]}
-        for name in TABLE_CONTRACTS
+        for name in contracts
         if actual_rows[name] != expected_rows[name]
     }
     if mismatches or publication_rows < 1:

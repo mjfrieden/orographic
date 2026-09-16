@@ -14,7 +14,13 @@ from engine.orographic.shared_mart_consumers import (
     validate_shared_mart_consumer_bundle,
 )
 from engine.orographic.shared_mart_shadow import build_shared_mart_shadow_evidence
-from engine.orographic.shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS
+from engine.orographic.shared_research_mart import (
+    LEGACY_MART_SCHEMA_VERSION,
+    MART_SCHEMA_VERSION,
+    TABLE_CONTRACTS,
+    load_source_rows_from_mart,
+    validate_shared_research_mart,
+)
 
 
 def _sha(path: Path) -> str:
@@ -127,6 +133,18 @@ def _write_mart(root: Path) -> None:
             },
         ],
         "path_exclusions": [],
+        "position_legs": [
+            {"leg_key": "orographic:leg-1", "recommendation_key": "orographic:rec-1",
+             "source_system": "orographic", "leg_source": "observed", "role": "long",
+             "quantity": 1, "contract_symbol": "AAA260828C00100000", "strike": 100.0,
+             "source_bundle_id": "oro-bundle"},
+            {"leg_key": "cirrus:leg-1", "recommendation_key": "cirrus:rec-1",
+             "source_system": "cirrus", "leg_source": "observed", "role": "long",
+             "quantity": 1, "contract_symbol": "AAA260828C00105000", "strike": 105.0,
+             "source_bundle_id": "cirrus-bundle"},
+        ],
+        "experiment_tags": [],
+        "experiment_scan_decisions": [],
     }
     artifacts = {}
     for name, contract in TABLE_CONTRACTS.items():
@@ -158,6 +176,30 @@ def _write_mart(root: Path) -> None:
 
 
 class SharedMartConsumerTests(unittest.TestCase):
+    def test_frozen_v1_mart_remains_readable_for_cirrus_reuse(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mart = Path(tmpdir)
+            _write_mart(mart)
+            manifest_path = mart / "mart_manifest.json"
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            manifest["schema_version"] = LEGACY_MART_SCHEMA_VERSION
+            for name in ("position_legs", "experiment_tags", "experiment_scan_decisions"):
+                manifest["artifacts"].pop(name)
+            identity = {key: manifest[key] for key in (
+                "schema_version", "sources", "artifacts", "validation"
+            )}
+            manifest["mart_id"] = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+            validate_shared_research_mart(mart)
+            rows, _ = load_source_rows_from_mart(mart, "cirrus")
+            self.assertEqual(len(rows["recommendations"]), 1)
+            self.assertEqual(rows["position_legs"], [])
+            with self.assertRaisesRegex(ValueError, "rebuilt v2"):
+                build_shared_mart_consumer_bundle(mart, mart / "consumers")
+
     def test_builds_pinned_observation_only_views(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -176,8 +218,16 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(manifest["views"]["cirrus_orographic_disagreement_v1"]["rows"], 1)
             self.assertEqual(manifest["views"]["mart_data_quality_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["orographic_training_funnel_v1"]["rows"], 2)
+            self.assertEqual(manifest["views"]["joint_learning_candidates_v1"]["rows"], 2)
+            self.assertEqual(manifest["views"]["joint_paired_comparisons_v1"]["rows"], 1)
             disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
             self.assertEqual(disagreement.iloc[0]["comparison_cohort"], "same_side_different_contract")
+            pairs = pd.read_parquet(output / "joint_paired_comparisons_v1.parquet")
+            self.assertFalse(bool(pairs.iloc[0]["direct_return_comparable"]))
+            candidates = pd.read_parquet(output / "joint_learning_candidates_v1.parquet")
+            self.assertEqual(
+                set(candidates["source_specific_eligibility_reason"]), {"eligible"}
+            )
 
             quality = pd.read_parquet(output / "mart_data_quality_v1.parquet").set_index("source_system")
             oro_quality = quality.loc["orographic"]
@@ -211,6 +261,9 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertFalse(shadow["production_changes_allowed"])
             self.assertEqual(shadow["cross_system_comparison"]["paired_executable_outcomes"], 1)
             self.assertEqual(shadow["cross_system_comparison"]["paired_market_dates"], 1)
+            self.assertEqual(shadow["cross_system_comparison"]["direct_return_comparable_pairs"], 0)
+            self.assertEqual(shadow["joint_learning"]["source_specific_training_rows"], 2)
+            self.assertEqual(shadow["joint_learning"]["pooled_training_rows"], 0)
             self.assertEqual(shadow["training_evidence"]["market_dates"], 1)
             self.assertEqual(shadow["consumer_bundle"]["source_systems"], ["cirrus", "orographic"])
             self.assertEqual(

@@ -156,6 +156,14 @@ def _mark_payload(quote: dict[str, Any], *, captured_at_utc: str, entry_mark: fl
         "ask": quote.get("ask"),
         "last": quote.get("last"),
         "close": quote.get("close"),
+        "open_interest": quote.get("open_interest"),
+        "volume": quote.get("volume"),
+        "implied_volatility": quote.get("implied_volatility"),
+        "delta": quote.get("delta"),
+        "gamma": quote.get("gamma"),
+        "theta_per_day": quote.get("theta_per_day"),
+        "vega": quote.get("vega"),
+        "greeks_updated_at": quote.get("greeks_updated_at"),
         "pnl_pct_from_emission": pnl_pct,
     }
 
@@ -759,7 +767,7 @@ def fetch_tradier_quotes(
     quotes: dict[str, dict[str, Any]] = {}
     for start in range(0, len(cleaned), effective_batch_size):
         batch = cleaned[start : start + effective_batch_size]
-        url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(batch), 'greeks': 'false'})}"
+        url = f"{base_url}/markets/quotes?{urlencode({'symbols': ','.join(batch), 'greeks': 'true'})}"
         request = Request(url, headers={"Accept": "application/json", "Authorization": f"Bearer {token}"})
         for attempt in range(retries + 1):
             try:

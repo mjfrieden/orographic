@@ -50,6 +50,7 @@ def _weekly_alpha_block(
     paired = cirrus.get("paired_executable_outcomes")
     if paired is None:
         paired = 0
+    comparable = _int(cirrus.get("direct_return_comparable_pairs"))
     live_mean = live.get("mean_return")
     live_resolved = _int(live.get("resolved"))
     live_label = _pct(live_mean)
@@ -59,11 +60,11 @@ def _weekly_alpha_block(
         headline = "Weekly Cirrus comparison has not been published yet."
     elif verdict == "orographic_ahead":
         status = "pass"
-        headline = "Orographic is ahead of Cirrus on paired executable outcomes."
+        headline = "Orographic is ahead of Cirrus on directly comparable executable outcomes."
         title = "Ahead of Cirrus"
     elif verdict == "cirrus_ahead":
         status = "hold"
-        headline = "Cirrus is ahead on paired executable outcomes. Keep production_v2."
+        headline = "Cirrus is ahead on directly comparable executable outcomes. Keep production_v2."
         title = "Trailing Cirrus"
     elif sync_status == "cirrus_export_unavailable":
         status = "hold"
@@ -86,19 +87,19 @@ def _weekly_alpha_block(
             if refreshed:
                 headline = (
                     f"Two-source mart uses current Orographic features ({training or 0} training rows) "
-                    f"and dated Cirrus rows. Only {paired} paired executable outcomes exist. "
+                    f"and dated Cirrus rows. Only {comparable} directly comparable outcomes exist ({paired} raw pairs). "
                     "Do not claim alpha until a current Cirrus export lands."
                 )
             else:
                 headline = (
                     "Two-source mart is a dated Cirrus fallback. "
-                    f"Only {paired} paired executable outcomes exist. "
+                    f"Only {comparable} directly comparable outcomes exist ({paired} raw pairs). "
                     "Do not claim alpha until a current Cirrus export lands."
                 )
         else:
             headline = (
-                f"Only {paired} paired executable Cirrus/Orographic outcomes exist. "
-                "Do not claim alpha until 30 independent dates clear."
+                f"Only {comparable} directly comparable Cirrus/Orographic outcomes exist "
+                f"({paired} raw pairs). Do not claim alpha until 30 independent comparable dates clear."
             )
             title = "Insufficient paired evidence"
     else:

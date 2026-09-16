@@ -75,10 +75,18 @@ post-entry path coverage, executable-label coverage, and same-date/symbol overla
 
 The September 15, 2026 audit found that both sources have complete conformed feature and score
 coverage after normalization, but joint evidence is still immature: 10 paired date/symbol rows across
-8 market dates and only 2 paired executable outcomes. Post-entry IV/Greek coverage, Cirrus
-decision-time version provenance, and provider-neutral tables for recommendation legs and experiment
-decisions remain explicit schema-v2 follow-ups. The mart stays observation-only while those gaps and
-the existing promotion gates remain open.
+8 market dates and only 2 paired executable outcomes. The v2 conformance now retains position legs
+and experiment decisions. New scans can capture path IV/Greeks and Cirrus scan-time code revisions;
+Cirrus path outcomes now retain the selected quote's exact exit timestamp. The historical gaps cannot
+be reconstructed. The mart stays observation-only while those gaps and the existing
+promotion gates remain open.
+
+New Orographic trajectory captures request and retain available option IV, Greeks, open interest,
+and volume alongside bid/ask marks. This does not backfill old paths. Tradier's
+[quote reference](https://docs.tradier.com/docs/quotes) documents the optional fields; its
+[market-data guidance](https://docs.tradier.com/docs/market-data) notes that Greeks are hourly and
+unavailable in the sandbox. A missing or stale Greek therefore cannot be treated as a zero or a
+fresh decision-time feature. Executable return labels continue to rely on bid/ask, not Greeks.
 
 ## Conformed tables
 
@@ -90,6 +98,9 @@ the existing promotion gates remain open.
 | `option_quotes` | One source quote observation | `quote_key` |
 | `feature_snapshots` | One point-in-time feature schema per recommendation | `feature_key` |
 | `path_exclusions` | One exclusion reason per recommendation | `exclusion_key` |
+| `position_legs` | One observed or inferred contract leg per recommendation | `leg_key` |
+| `experiment_tags` | One strategy tag per recommendation | `tag_key` |
+| `experiment_scan_decisions` | One strategy decision per run | `decision_key` |
 
 Every table retains `source_system` or an explicit parent carrying it, and all model-facing facts
 retain source bundle identity. Orographic primary and Moonshot cohorts remain separate. Cirrus
@@ -191,7 +202,7 @@ Install the optional publisher dependency and publish only after reviewing the p
   --apply
 ```
 
-Publication refuses an Orographic-only or Cirrus-only mart. It merges all six data tables and
+Publication refuses an Orographic-only or Cirrus-only mart. It merges all nine data tables and
 commits `mart_publications` last so a consumer can distinguish a completed publication from an
 interrupted one.
 
@@ -221,7 +232,7 @@ No production selector, model, trade gate, or execution setting is changed by th
 
 ## Orographic consumer rollout
 
-Orographic materializes seven versioned views from one validated local mart snapshot:
+Orographic materializes nine versioned views from one validated local mart snapshot:
 
 | View | Purpose | Initial authority |
 | --- | --- | --- |
@@ -232,6 +243,36 @@ Orographic materializes seven versioned views from one validated local mart snap
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
 | `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
 | `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |
+| `joint_learning_candidates_v1` | Recommendation/outcome eligibility, feature provenance, position structure, and experiment context | Source-specific research only; pooled training disabled |
+| `joint_paired_comparisons_v1` | Daily pairs with contract, timing, label-policy, and source-quality comparability checks | Research only |
+
+### Joint-learning contract (mart v2)
+
+The v2 mart retains Cirrus's `position_legs`, `pick_experiment_tags`, and
+`experiment_scan_decisions` as conformed `position_legs`, `experiment_tags`, and
+`experiment_scan_decisions` tables. Orographic single-option recommendations receive
+an explicitly inferred long leg. These tables are keyed to recommendations or runs and
+validated for orphan references; a frozen v1 mart can still be read and upgraded, but
+its missing structure and experiment rows cannot be reconstructed.
+
+`joint_learning_candidates_v1` marks a row eligible for source-specific training only
+when its feature was available by decision time, is not a known legacy backfill, has a
+single long leg, and has a non-excluded executable label available after the decision.
+Cirrus's historical scalar-only backfills are retained for inspection but excluded from
+this stricter pool. The view always sets `pooled_training_eligible` to false: the two
+systems have different feature schemas and exit/label contracts. New Cirrus scans use
+their captured code revision as `model_version`; historical lane strings remain
+identified as `lane_only`, never mistaken for a code/model revision.
+
+`joint_paired_comparisons_v1` permits a direct return comparison only for the same
+contract, decisions and entry/exit observations within 60 minutes, one identical executable label
+contract and exit policy on each side, and source-specific eligibility on both sides. The daily
+symbol disagreement view remains exploratory and its raw paired returns must not be
+read as an alpha estimate. The shadow evidence requires 30 comparable pairs across
+30 independent market dates before calling this comparison ready; it never grants
+production routing or pooled-training authority. Current sources do not yet generate
+identical label policies, so the comparable count is expected to remain zero until a
+common, pre-registered replay policy is implemented.
 
 ### Data-quality scorecard (`mart_data_quality_v1`)
 
@@ -278,7 +319,8 @@ or order-routing authority. `scripts/build_rebuild_readiness.py` treats this bun
 fail-closed gate before a fold-frozen challenger can become eligible for promotion review.
 
 `scripts/build_shared_mart_shadow_evidence.py` turns these views into one compact diagnostic.
-It requires 30 paired executable cross-system outcomes and 30 independent paired market dates
-before recommending that a single liquidity veto enter shadow evaluation. Passing those entry gates
+It requires 30 directly comparable outcomes across 30 independent market dates (in addition to
+the legacy raw-pair counts) before recommending that a single liquidity veto enter shadow evaluation.
+Passing those entry gates
 still grants no production authority; production promotion remains governed by the stricter rebuild
 readiness and paired-day comparison gates.

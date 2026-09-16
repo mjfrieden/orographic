@@ -16,7 +16,8 @@ import pandas as pd
 from .evidence_store import validate_canonical_bundle
 
 
-MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v1"
+MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v2"
+LEGACY_MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v1"
 
 # Point-in-time-safe feature schema for Orographic recommendation-time evidence.
 # Only fields known at decision time (scores, risk features, entry quote, regime
@@ -99,6 +100,35 @@ TABLE_CONTRACTS: dict[str, TableContract] = {
             "reason_code", "details", "excluded_at_utc", "source_bundle_id",
         ),
     ),
+    "position_legs": TableContract(
+        primary_key=("leg_key",),
+        columns=(
+            "leg_key", "recommendation_key", "source_system", "leg_source",
+            "role", "quantity", "contract_symbol", "strike", "source_bundle_id",
+        ),
+    ),
+    "experiment_tags": TableContract(
+        primary_key=("tag_key",),
+        columns=(
+            "tag_key", "recommendation_key", "source_system", "strategy_name",
+            "strategy_score", "experiment_family", "hypothesis_frozen_at_utc",
+            "max_expiry_weeks", "interim_min_paths", "promotion_min_paths",
+            "interim_stop_only", "metadata_json", "created_at_utc", "source_bundle_id",
+        ),
+    ),
+    "experiment_scan_decisions": TableContract(
+        primary_key=("decision_key",),
+        columns=(
+            "decision_key", "run_key", "source_system", "strategy_name", "decision",
+            "candidate_count", "eligible_count", "selected_contract_symbol",
+            "diagnostics_json", "created_at_utc", "source_bundle_id",
+        ),
+    ),
+}
+
+LEGACY_TABLE_CONTRACTS = {
+    name: contract for name, contract in TABLE_CONTRACTS.items()
+    if name not in {"position_legs", "experiment_tags", "experiment_scan_decisions"}
 }
 
 
@@ -584,7 +614,21 @@ def _orographic_rows(
             "implied_volatility": _number(row.get("implied_volatility")),
             "delta": _number(row.get("delta")), "gamma": _number(row.get("gamma")),
             "theta_per_day": _number(row.get("theta") or row.get("theta_per_day")),
-            "vega": _number(row.get("vega")), "source_bundle_id": bundle_id,
+            "vega": _number(row.get("vega")),
+            "source_bundle_id": bundle_id,
+        })
+    for rec in result["recommendations"]:
+        rec_key = rec["recommendation_key"]
+        result["position_legs"].append({
+            "leg_key": f"{rec_key}|inferred_single",
+            "recommendation_key": rec_key,
+            "source_system": "orographic",
+            "leg_source": "inferred_single_from_recommendation",
+            "role": "long",
+            "quantity": 1,
+            "contract_symbol": rec["contract_symbol"],
+            "strike": rec["strike"],
+            "source_bundle_id": bundle_id,
         })
     return result
 
@@ -599,6 +643,11 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "option_quote_snapshots", "option_path_outcomes", "path_exclusions",
         )
     }
+    for name in ("position_legs", "pick_experiment_tags", "experiment_scan_decisions"):
+        frames[name] = (
+            pd.read_parquet(export_dir / f"{name}.parquet")
+            if name in (manifest.get("artifacts") or {}) else pd.DataFrame()
+        )
     picks = {int(row["id"]): row for row in _frame_records(frames["tracked_picks"])}
     exclusions = {
         int(row["tracked_pick_id"]): row for row in _frame_records(frames["path_exclusions"])
@@ -608,6 +657,10 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
         for row in _frame_records(frames["option_quote_snapshots"])
         if _text(row.get("source")) == "live_chain_mark"
     )
+    run_versions = {
+        int(row["id"]): _text(row.get("code_revision"))
+        for row in _frame_records(frames["scan_runs"])
+    }
     for row in _frame_records(frames["scan_runs"]):
         source_id = _text(row.get("id"))
         if not source_id:
@@ -617,7 +670,7 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "source_system": "cirrus", "cohort": "prospective", "source_run_id": source_id,
             "decision_at_utc": _text(row.get("generated_at")),
             "available_at_utc": _text(row.get("created_ts")) or _text(row.get("generated_at")),
-            "model_version": _text(row.get("playbook")) or "cirrus_scan",
+            "model_version": _text(row.get("code_revision")) or _text(row.get("playbook")) or "cirrus_scan",
             "regime_mode": _text(row.get("world_mode")),
             "regime_bias": _number(row.get("world_risk_score")),
             "source_bundle_id": bundle_id, "source_payload_json": _json(row),
@@ -630,7 +683,7 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "run_key": _run_key("cirrus", cohort, row.get("scan_run_id")),
             "source_system": "cirrus", "cohort": cohort,
             "source_recommendation_id": str(pick_id), "lane": _text(row.get("lane")),
-            "model_version": _text(row.get("lane")) or "cirrus_scan",
+            "model_version": run_versions.get(_integer(row.get("scan_run_id"))) or _text(row.get("lane")) or "cirrus_scan",
             "decision_at_utc": _text(row.get("scan_generated_at")),
             "available_at_utc": _text(row.get("created_ts")) or _text(row.get("scan_generated_at")),
             "underlying_symbol": _text(row.get("ticker")),
@@ -641,6 +694,58 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "entry_mid": _number(row.get("mid")), "score": _number(row.get("score")),
             "status": _text(row.get("status")), "source_bundle_id": bundle_id,
             "source_payload_json": _json(row),
+        })
+    legs_by_pick: set[int] = set()
+    for row in _frame_records(frames["position_legs"]):
+        pick_id = int(row["tracked_pick_id"])
+        legs_by_pick.add(pick_id)
+        result["position_legs"].append({
+            "leg_key": f"cirrus|prospective|{pick_id}|{row['id']}",
+            "recommendation_key": _recommendation_key("cirrus", "prospective", pick_id),
+            "source_system": "cirrus", "leg_source": "cirrus_position_legs",
+            "role": _text(row.get("role")), "quantity": _integer(row.get("quantity")),
+            "contract_symbol": _text(row.get("contract_symbol")),
+            "strike": _number(row.get("strike")), "source_bundle_id": bundle_id,
+        })
+    for pick_id, pick in picks.items():
+        if pick_id not in legs_by_pick:
+            rec_key = _recommendation_key("cirrus", "prospective", pick_id)
+            result["position_legs"].append({
+                "leg_key": f"{rec_key}|inferred_single",
+                "recommendation_key": rec_key, "source_system": "cirrus",
+                "leg_source": "inferred_single_from_recommendation", "role": "long",
+                "quantity": 1, "contract_symbol": _text(pick.get("contract_symbol")),
+                "strike": _number(pick.get("strike")), "source_bundle_id": bundle_id,
+            })
+    for row in _frame_records(frames["pick_experiment_tags"]):
+        pick_id = int(row["tracked_pick_id"])
+        result["experiment_tags"].append({
+            "tag_key": f"cirrus|prospective|{pick_id}|{_text(row.get('strategy_name'))}",
+            "recommendation_key": _recommendation_key("cirrus", "prospective", pick_id),
+            "source_system": "cirrus", "strategy_name": _text(row.get("strategy_name")),
+            "strategy_score": _number(row.get("strategy_score")),
+            "experiment_family": _text(row.get("experiment_family")),
+            "hypothesis_frozen_at_utc": _text(row.get("hypothesis_frozen_at")),
+            "max_expiry_weeks": _integer(row.get("max_expiry_weeks")),
+            "interim_min_paths": _integer(row.get("interim_min_paths")),
+            "promotion_min_paths": _integer(row.get("promotion_min_paths")),
+            "interim_stop_only": bool(row.get("interim_stop_only")),
+            "metadata_json": _text(row.get("metadata_json")) or "{}",
+            "created_at_utc": _text(row.get("created_ts")), "source_bundle_id": bundle_id,
+        })
+    for row in _frame_records(frames["experiment_scan_decisions"]):
+        run_id = _text(row.get("scan_run_id"))
+        strategy = _text(row.get("strategy_name"))
+        result["experiment_scan_decisions"].append({
+            "decision_key": f"cirrus|prospective|{run_id}|{strategy}",
+            "run_key": _run_key("cirrus", "prospective", run_id),
+            "source_system": "cirrus", "strategy_name": strategy,
+            "decision": _text(row.get("decision")),
+            "candidate_count": _integer(row.get("candidate_count")),
+            "eligible_count": _integer(row.get("eligible_count")),
+            "selected_contract_symbol": _text(row.get("selected_contract_symbol")),
+            "diagnostics_json": _text(row.get("diagnostics_json")) or "{}",
+            "created_at_utc": _text(row.get("created_ts")), "source_bundle_id": bundle_id,
         })
     for row in _frame_records(frames["option_path_outcomes"]):
         pick_id = int(row["tracked_pick_id"])
@@ -658,7 +763,7 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "recommendation_key": rec_key, "source_system": "cirrus",
             "cohort": "prospective", "exit_policy": "cirrus_path_25_25_v1",
             "entry_at_utc": _text(pick.get("scan_generated_at")),
-            "exit_at_utc": _text(row.get("strategy_exit_date")),
+            "exit_at_utc": _text(row.get("strategy_exit_ts")) or _text(row.get("strategy_exit_date")),
             "label_available_at_utc": _text(row.get("updated_ts")),
             "entry_price": _number(pick.get("ask") or pick.get("mid") or pick.get("bid")),
             "exit_price": _number(row.get("strategy_exit_price")),
@@ -713,10 +818,13 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
     return result
 
 
-def _validate_tables(frames: dict[str, pd.DataFrame]) -> dict[str, Any]:
+def _validate_tables(
+    frames: dict[str, pd.DataFrame],
+    contracts: dict[str, TableContract] = TABLE_CONTRACTS,
+) -> dict[str, Any]:
     failures: list[str] = []
     checks: dict[str, Any] = {}
-    for name, contract in TABLE_CONTRACTS.items():
+    for name, contract in contracts.items():
         frame = frames[name]
         missing = sorted(set(contract.columns) - set(frame.columns))
         duplicate_count = int(frame.duplicated(list(contract.primary_key)).sum()) if not frame.empty else 0
@@ -737,7 +845,16 @@ def _validate_tables(frames: dict[str, pd.DataFrame]) -> dict[str, Any]:
     orphan_children = {
         name: int((~frames[name]["recommendation_key"].isin(rec_keys)).sum())
         for name in ("execution_outcomes", "feature_snapshots", "path_exclusions")
+        if name in frames
     }
+    for name in ("position_legs", "experiment_tags"):
+        if name in frames:
+            orphan_children[name] = int((~frames[name]["recommendation_key"].isin(rec_keys)).sum())
+    if "experiment_scan_decisions" in frames:
+        orphan_decisions = int((~frames["experiment_scan_decisions"]["run_key"].isin(run_keys)).sum())
+        checks["experiment_decisions_have_runs"] = orphan_decisions == 0
+        if orphan_decisions:
+            failures.append(f"experiment_scan_decisions:orphan_runs={orphan_decisions}")
     quote_children = frames["option_quotes"]["recommendation_key"].dropna()
     orphan_children["option_quotes"] = int((~quote_children.isin(rec_keys)).sum())
     checks["recommendations_have_runs"] = orphan_recommendations == 0
@@ -827,6 +944,8 @@ def load_source_rows_from_mart(
     rows = {name: [] for name in TABLE_CONTRACTS}
     for name, contract in TABLE_CONTRACTS.items():
         artifact = dict(manifest.get("artifacts") or {}).get(name, {})
+        if not artifact:
+            continue  # v1 frozen marts did not carry the v2 structure/experiment tables.
         path = root / str(artifact.get("path") or f"{name}.parquet")
         frame = pd.read_parquet(path)
         if frame.empty:
@@ -951,7 +1070,8 @@ def validate_shared_research_mart(directory: str | Path) -> dict[str, Any]:
     failures: list[str] = []
     if manifest.get("artifact") != "cirrus_orographic_shared_research_mart":
         failures.append("artifact")
-    if manifest.get("schema_version") != MART_SCHEMA_VERSION:
+    schema_version = manifest.get("schema_version")
+    if schema_version not in {MART_SCHEMA_VERSION, LEGACY_MART_SCHEMA_VERSION}:
         failures.append("schema_version")
     if _nested(manifest, "validation", "status") != "passed":
         failures.append("stored_validation")
@@ -965,7 +1085,11 @@ def validate_shared_research_mart(directory: str | Path) -> dict[str, Any]:
     if manifest.get("mart_id") != expected_mart_id:
         failures.append("mart_id")
     frames: dict[str, pd.DataFrame] = {}
-    for name, contract in TABLE_CONTRACTS.items():
+    contracts = (
+        LEGACY_TABLE_CONTRACTS
+        if schema_version == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
+    )
+    for name, contract in contracts.items():
         artifact = dict(manifest.get("artifacts") or {}).get(name, {})
         path = root / str(artifact.get("path") or f"{name}.parquet")
         if not path.exists():
@@ -980,8 +1104,8 @@ def validate_shared_research_mart(directory: str | Path) -> dict[str, Any]:
             failures.append(f"rows:{name}")
         if list(artifact.get("primary_key") or []) != list(contract.primary_key):
             failures.append(f"primary_key:{name}")
-    if len(frames) == len(TABLE_CONTRACTS):
-        validation = _validate_tables(frames)
+    if len(frames) == len(contracts):
+        validation = _validate_tables(frames, contracts)
         failures.extend(validation["failures"])
     if failures:
         raise ValueError("Shared research mart validation failed: " + ", ".join(failures))

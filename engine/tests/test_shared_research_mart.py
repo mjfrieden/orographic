@@ -10,6 +10,7 @@ import pandas as pd
 
 from engine.orographic.evidence_store import build_canonical_evidence_bundle
 from engine.orographic.shared_research_mart import (
+    _orographic_path_quote_row,
     build_shared_research_mart,
     validate_shared_research_mart,
 )
@@ -51,14 +52,29 @@ def _write_cirrus_export(root: Path) -> None:
             "tracked_pick_id": 10, "observation_count": 2,
             "strategy_return": 0.25, "strategy_exit_price": 1.5,
             "strategy_exit_date": "2026-08-21", "strategy_exit_reason": "take_profit",
+            "strategy_exit_ts": "2026-08-21T20:00:00+00:00",
             "updated_ts": "2026-08-21T20:00:01+00:00",
         }]),
         "path_exclusions": pd.DataFrame(columns=[
             "tracked_pick_id", "reason_code", "details", "excluded_ts"
         ]),
         "position_legs": pd.DataFrame([{
-            "tracked_pick_id": 10, "role": "long", "quantity": 1,
+            "id": 1, "tracked_pick_id": 10, "role": "long", "quantity": 1,
             "contract_symbol": "AAA260828C00100000", "strike": 100.0,
+        }]),
+        "pick_experiment_tags": pd.DataFrame([{
+            "id": 1, "tracked_pick_id": 10, "strategy_name": "test_shadow",
+            "strategy_score": 0.8, "experiment_family": "directional",
+            "hypothesis_frozen_at": "2026-08-20T00:00:00+00:00",
+            "max_expiry_weeks": 8, "interim_min_paths": 30,
+            "promotion_min_paths": 100, "interim_stop_only": 1,
+            "metadata_json": "{}", "created_ts": "2026-08-21T19:00:01+00:00",
+        }]),
+        "experiment_scan_decisions": pd.DataFrame([{
+            "id": 1, "scan_run_id": 1, "strategy_name": "test_shadow",
+            "decision": "selected", "candidate_count": 3, "eligible_count": 1,
+            "selected_contract_symbol": "AAA260828C00100000",
+            "diagnostics_json": "{}", "created_ts": "2026-08-21T19:00:01+00:00",
         }]),
     }
     artifacts = {}
@@ -132,6 +148,24 @@ def _write_orographic_canonical(
 
 
 class SharedResearchMartTests(unittest.TestCase):
+    def test_orographic_path_quote_keeps_optional_liquidity_and_greeks(self) -> None:
+        row = _orographic_path_quote_row(
+            recommendation_key="orographic|primary|test",
+            cohort="primary", contract_symbol="AAA260828C00100000",
+            underlying_symbol="AAA",
+            mark={
+                "captured_at_utc": "2026-08-21T20:00:00+00:00",
+                "bid": 1.0, "ask": 1.2, "open_interest": 120,
+                "volume": 15, "implied_volatility": 0.35,
+                "delta": 0.42, "gamma": 0.04, "theta_per_day": -0.02, "vega": 0.09,
+            },
+            quote_source="trajectory_mark", bundle_id="bundle",
+        )
+        self.assertIsNotNone(row)
+        self.assertEqual(row["open_interest"], 120)
+        self.assertEqual(row["implied_volatility"], 0.35)
+        self.assertEqual(row["delta"], 0.42)
+
     def test_normalizes_cirrus_put_direction_and_orographic_scout_score(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -168,9 +202,15 @@ class SharedResearchMartTests(unittest.TestCase):
             picks.loc[0, "direction"] = "put"
             picks.loc[0, "contract_symbol"] = "AAA260828P00100000"
             picks.to_parquet(cirrus / "tracked_picks.parquet", index=False)
+            runs = pd.read_parquet(cirrus / "scan_runs.parquet")
+            runs["code_revision"] = "a" * 40
+            runs.to_parquet(cirrus / "scan_runs.parquet", index=False)
             manifest = json.loads((cirrus / "manifest.json").read_text(encoding="utf-8"))
             manifest["artifacts"]["tracked_picks"]["sha256"] = _sha256(
                 cirrus / "tracked_picks.parquet"
+            )
+            manifest["artifacts"]["scan_runs"]["sha256"] = _sha256(
+                cirrus / "scan_runs.parquet"
             )
             (cirrus / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
 
@@ -192,6 +232,7 @@ class SharedResearchMartTests(unittest.TestCase):
                 recommendations["source_system"] == "orographic"
             ].iloc[0]
             self.assertEqual(cirrus_row["option_type"], "put")
+            self.assertEqual(cirrus_row["model_version"], "a" * 40)
             self.assertEqual(oro_row["score"], 0.61)
 
     def test_builds_conformed_mart_with_both_systems(self) -> None:
@@ -255,9 +296,14 @@ class SharedResearchMartTests(unittest.TestCase):
             self.assertEqual(manifest["artifacts"]["model_runs"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["recommendations"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["execution_outcomes"]["rows"], 2)
+            self.assertEqual(manifest["artifacts"]["position_legs"]["rows"], 2)
+            self.assertEqual(manifest["artifacts"]["experiment_tags"]["rows"], 1)
+            self.assertEqual(manifest["artifacts"]["experiment_scan_decisions"]["rows"], 1)
             self.assertEqual(manifest["mart_id"], repeated["mart_id"])
             outcomes = pd.read_parquet(mart / "execution_outcomes.parquet")
             self.assertTrue(outcomes["is_executable"].all())
+            cirrus_outcome = outcomes.loc[outcomes["source_system"] == "cirrus"].iloc[0]
+            self.assertEqual(cirrus_outcome["exit_at_utc"], "2026-08-21T20:00:00+00:00")
             self.assertEqual(set(outcomes["source_system"]), {"cirrus", "orographic"})
             validate_shared_research_mart(mart)
 

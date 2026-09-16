@@ -579,6 +579,7 @@ def _lane_decisions(
             _as_dict(mart_shadow.get("shadow_entry_gates")).get("paired_executable_outcomes")
         ).get("actual")
     paired_outcomes = int(paired_raw or 0)
+    comparable_pairs = int(cross.get("direct_return_comparable_pairs") or 0)
     holdout_action = (
         "keep_observation_only" if int(challenger.get("paired_scans") or 0) > 0 else "open_observation_only"
     )
@@ -736,8 +737,9 @@ def _lane_decisions(
             "action": "collect",
             "authority": "observation_only",
             "reason": (
-                f"Only {paired_outcomes} paired executable Cirrus/Orographic outcomes exist; "
-                "alpha versus Cirrus cannot be claimed until 30 paired market dates clear."
+                f"Only {comparable_pairs} directly comparable Cirrus/Orographic outcomes exist "
+                f"({paired_outcomes} raw pairs); alpha cannot be claimed until 30 comparable "
+                "pairs across 30 independent market dates clear."
             ),
         },
     ]
@@ -756,11 +758,13 @@ def _cirrus_comparison(
     if cirrus_pin == "fallback" or mart_sync.get("cirrus_export_is_current") is False:
         stale = True
     paired = cross.get("paired_executable_outcomes")
-    lift = _number(cross.get("avg_orographic_minus_cirrus_return"))
-    if not paired:
-        verdict = "insufficient_paired_evidence"
-    elif stale:
+    comparable_pairs = int(cross.get("direct_return_comparable_pairs") or 0)
+    comparable_dates = int(cross.get("direct_return_comparable_market_dates") or 0)
+    lift = _number(cross.get("avg_direct_comparable_return_difference"))
+    if stale and paired:
         verdict = "stale_mart_insufficient_for_alpha"
+    elif comparable_pairs < 30 or comparable_dates < 30 or lift is None:
+        verdict = "insufficient_paired_evidence"
     elif lift is not None and lift > 0:
         verdict = "orographic_ahead"
     else:
@@ -776,7 +780,9 @@ def _cirrus_comparison(
         "training_rows": mart_sync.get("training_rows"),
         "paired_executable_outcomes": paired,
         "paired_market_dates": cross.get("paired_market_dates"),
-        "avg_orographic_minus_cirrus_return": cross.get("avg_orographic_minus_cirrus_return"),
+        "direct_return_comparable_pairs": comparable_pairs,
+        "direct_return_comparable_market_dates": comparable_dates,
+        "avg_orographic_minus_cirrus_return": lift,
         "orographic_only": cross.get("orographic_only"),
         "cirrus_only": cross.get("cirrus_only"),
         "orographic_executable_win_rate": execution.get("executable_win_rate"),

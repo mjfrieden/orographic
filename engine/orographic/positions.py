@@ -140,12 +140,21 @@ def normalize_quotes(payload: dict[str, Any] | None) -> dict[str, dict[str, Any]
         symbol = str(quote.get("symbol") or "").strip().upper()
         if not symbol:
             continue
+        greeks = quote.get("greeks") if isinstance(quote.get("greeks"), dict) else {}
         normalized[symbol] = {
             "symbol": symbol,
             "bid": _as_number(quote.get("bid")),
             "ask": _as_number(quote.get("ask")),
             "last": _as_number(quote.get("last")),
             "close": _as_number(quote.get("close")),
+            "open_interest": _as_number(quote.get("open_interest")),
+            "volume": _as_number(quote.get("volume")),
+            "implied_volatility": _as_number(greeks.get("mid_iv")) or _as_number(greeks.get("smv_vol")),
+            "delta": _as_number(greeks.get("delta")),
+            "gamma": _as_number(greeks.get("gamma")),
+            "theta_per_day": _as_number(greeks.get("theta")),
+            "vega": _as_number(greeks.get("vega")),
+            "greeks_updated_at": str(greeks.get("updated_at") or "") or None,
             "bid_observed_at_utc": _market_timestamp_utc(quote.get("bid_date")),
             "ask_observed_at_utc": _market_timestamp_utc(quote.get("ask_date")),
             "trade_observed_at_utc": _market_timestamp_utc(quote.get("trade_date")),

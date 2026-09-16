@@ -5,6 +5,9 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from .shared_mart_consumers import CONSUMER_SCHEMA_VERSION
+from .shared_research_mart import MART_SCHEMA_VERSION
+
 
 def _gate(passed: bool, *, actual: object, required: object) -> dict[str, Any]:
     return {"passed": bool(passed), "actual": actual, "required": required}
@@ -42,11 +45,15 @@ def build_rebuild_readiness(
         "orographic_exit_replay_v1",
         "cirrus_orographic_disagreement_v1",
         "orographic_model_monitoring_v1",
+        "joint_learning_candidates_v1",
+        "joint_paired_comparisons_v1",
     }
     mart_consumer_ready = (
         mart_consumer.get("artifact") == "orographic_shared_mart_consumer_bundle"
         and mart_consumer.get("status") == "ready"
         and mart_consumer.get("production_authority") == "observation_only_never_used_for_routing"
+        and mart_consumer.get("schema_version") == CONSUMER_SCHEMA_VERSION
+        and mart_consumer.get("mart_schema_version") == MART_SCHEMA_VERSION
         and required_consumer_views.issubset(consumer_views)
         and set(mart_consumer.get("source_systems") or []) == {"cirrus", "orographic"}
     )
