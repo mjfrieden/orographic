@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import re
 import shutil
 from typing import Any, Iterable
 import uuid
@@ -148,6 +149,31 @@ def _number(value: Any) -> float | None:
     return result if math.isfinite(result) else None
 
 
+def _first_number(*values: Any) -> float | None:
+    for value in values:
+        number = _number(value)
+        if number is not None:
+            return number
+    return None
+
+
+def _option_type(direction: Any, contract_symbol: Any) -> str | None:
+    """Normalize source direction values to the option-side contract."""
+
+    normalized = (_text(direction) or "").lower()
+    if normalized in {"call", "put"}:
+        return normalized
+    if normalized in {"bull", "bullish", "up"}:
+        return "call"
+    if normalized in {"bear", "bearish", "down"}:
+        return "put"
+    for leg in (_text(contract_symbol) or "").split("/"):
+        match = re.search(r"\d{6}([CP])\d{8}$", leg.upper())
+        if match:
+            return "call" if match.group(1) == "C" else "put"
+    return None
+
+
 def _integer(value: Any) -> int | None:
     number = _number(value)
     return int(number) if number is not None else None
@@ -219,6 +245,126 @@ def _orographic_feature_payload(pick: dict[str, Any]) -> dict[str, Any] | None:
             features[key] = value
 
     return features or None
+
+
+def _quote_mid(bid: float | None, ask: float | None, mid: float | None) -> float | None:
+    if mid is not None:
+        return mid
+    if bid is not None and ask is not None:
+        return (bid + ask) / 2.0
+    return None
+
+
+def _orographic_path_quote_row(
+    *,
+    recommendation_key: str,
+    cohort: str,
+    contract_symbol: str | None,
+    underlying_symbol: str | None,
+    mark: dict[str, Any],
+    quote_source: str,
+    bundle_id: str,
+) -> dict[str, Any] | None:
+    """Build one recommendation-linked quote row from a path/trajectory mark."""
+    observed = _text(
+        mark.get("captured_at_utc")
+        or mark.get("bid_observed_at_utc")
+        or mark.get("ask_observed_at_utc")
+        or mark.get("retrieved_at_utc")
+        or mark.get("observed_at_utc")
+    )
+    if not observed:
+        return None
+    bid = _number(mark.get("bid"))
+    ask = _number(mark.get("ask"))
+    last_price = _number(mark.get("last") or mark.get("last_price") or mark.get("mark"))
+    mid = _quote_mid(bid, ask, _number(mark.get("mid")))
+    quote_key = "|".join(
+        filter(None, ("orographic_path", recommendation_key, observed, quote_source))
+    )
+    return {
+        "quote_key": quote_key,
+        "source_system": "orographic",
+        "cohort": cohort,
+        "recommendation_key": recommendation_key,
+        "contract_symbol": contract_symbol,
+        "underlying_symbol": underlying_symbol,
+        "observed_at_utc": observed,
+        "available_at_utc": observed,
+        "quote_date": _text(mark.get("quote_date")) or observed[:10],
+        "quote_source": quote_source,
+        "bid": bid,
+        "ask": ask,
+        "last_price": last_price,
+        "mid": mid,
+        "executable_exit": bid,
+        "open_interest": _number(mark.get("open_interest")),
+        "volume": _number(mark.get("volume")),
+        "implied_volatility": _number(mark.get("implied_volatility")),
+        "delta": _number(mark.get("delta")),
+        "gamma": _number(mark.get("gamma")),
+        "theta_per_day": _number(mark.get("theta") or mark.get("theta_per_day")),
+        "vega": _number(mark.get("vega")),
+        "source_bundle_id": bundle_id,
+    }
+
+
+def _orographic_pick_path_quotes(
+    pick: dict[str, Any],
+    *,
+    recommendation_key: str,
+    cohort: str,
+    bundle_id: str,
+) -> list[dict[str, Any]]:
+    """Materialize recommendation-linked quotes from emission, trajectory, and archive paths.
+
+    Shared-market chain quotes remain unlinked. These rows are what
+    ``orographic_exit_replay_v1`` joins on ``recommendation_key``.
+    """
+    contract = _text(pick.get("contract_symbol"))
+    underlying = _text(pick.get("symbol") or pick.get("underlying"))
+    rows: list[dict[str, Any]] = []
+    seen_observations: set[str] = set()
+
+    def _append(mark: Any, quote_source: str) -> None:
+        if not isinstance(mark, dict):
+            return
+        row = _orographic_path_quote_row(
+            recommendation_key=recommendation_key,
+            cohort=cohort,
+            contract_symbol=contract,
+            underlying_symbol=underlying,
+            mark=mark,
+            quote_source=quote_source,
+            bundle_id=bundle_id,
+        )
+        if row is None or row["observed_at_utc"] in seen_observations:
+            return
+        seen_observations.add(row["observed_at_utc"])
+        rows.append(row)
+
+    emission = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
+    if emission:
+        _append(emission, "emission_quote")
+
+    outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+    # Prefer the direct prospective capture when the canonical archived path
+    # repeats the same recommendation/timestamp observation.
+    trajectory_marks = outcomes.get("trajectory_marks")
+    if isinstance(trajectory_marks, list):
+        for mark in trajectory_marks:
+            _append(mark, "trajectory_mark")
+
+    archived = outcomes.get("archived_quote_path") if isinstance(outcomes.get("archived_quote_path"), dict) else {}
+    entry_mark = archived.get("entry_mark")
+    if isinstance(entry_mark, dict):
+        _append(entry_mark, "archived_entry_mark")
+    archived_marks = archived.get("marks")
+    if isinstance(archived_marks, list):
+        for mark in archived_marks:
+            _append(mark, "archived_path_mark")
+
+    return rows
 
 
 def _read_manifest(path: Path) -> dict[str, Any]:
@@ -315,7 +461,11 @@ def _orographic_rows(
                     "entry_bid": _number(quote.get("bid")),
                     "entry_ask": _number(quote.get("ask")),
                     "entry_mid": _number(quote.get("mid")),
-                    "score": _number(scores.get("final_candidate_score") or scores.get("forge_score")),
+                    "score": _first_number(
+                        scores.get("final_candidate_score"),
+                        scores.get("forge_score"),
+                        scores.get("scout_score"),
+                    ),
                     "status": _text(_nested(pick, "outcomes", "status")),
                     "source_bundle_id": bundle_id,
                     "source_payload_json": _json(pick),
@@ -345,6 +495,15 @@ def _orographic_rows(
                         }),
                         "source_bundle_id": bundle_id,
                     })
+
+                result["option_quotes"].extend(
+                    _orographic_pick_path_quotes(
+                        pick,
+                        recommendation_key=rec_key,
+                        cohort=cohort,
+                        bundle_id=bundle_id,
+                    )
+                )
 
     outcome_path = canonical_dir / "recommendation_outcomes.parquet"
     outcomes = pd.read_parquet(outcome_path) if outcome_path.exists() else pd.DataFrame()
@@ -476,7 +635,7 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "available_at_utc": _text(row.get("created_ts")) or _text(row.get("scan_generated_at")),
             "underlying_symbol": _text(row.get("ticker")),
             "contract_symbol": _text(row.get("contract_symbol")),
-            "option_type": "put" if _text(row.get("direction")) == "bearish" else "call",
+            "option_type": _option_type(row.get("direction"), row.get("contract_symbol")),
             "expiry_date": _text(row.get("expiry")), "strike": _number(row.get("strike")),
             "entry_bid": _number(row.get("bid")), "entry_ask": _number(row.get("ask")),
             "entry_mid": _number(row.get("mid")), "score": _number(row.get("score")),
@@ -588,6 +747,12 @@ def _validate_tables(frames: dict[str, pd.DataFrame]) -> dict[str, Any]:
     for name, count in orphan_children.items():
         if count:
             failures.append(f"{name}:orphan_recommendations={count}")
+
+    option_types = frames["recommendations"]["option_type"].astype("string").str.lower()
+    invalid_option_types = int((option_types.isna() | ~option_types.isin({"call", "put"})).sum())
+    checks["recommendations_option_type_valid"] = invalid_option_types == 0
+    if invalid_option_types:
+        failures.append(f"recommendations:invalid_option_type={invalid_option_types}")
 
     decisions = frames["recommendations"][["recommendation_key", "decision_at_utc"]].copy()
     decisions["decision_at_utc"] = pd.to_datetime(

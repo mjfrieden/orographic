@@ -132,6 +132,68 @@ def _write_orographic_canonical(
 
 
 class SharedResearchMartTests(unittest.TestCase):
+    def test_normalizes_cirrus_put_direction_and_orographic_scout_score(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source_canonical = _write_orographic_canonical(
+                root / "orographic", rec_id="oro-1", symbol="BBB", with_features=True
+            )
+            primary = json.loads(
+                (source_canonical / "prospective_pick_ledger.json").read_text(
+                    encoding="utf-8"
+                )
+            )
+            primary["entries"][0]["picks"][0]["scores"] = {
+                "final_candidate_score": None,
+                "forge_score": None,
+                "scout_score": 0.61,
+            }
+            source_ledger = root / "scout_primary.json"
+            source_ledger.write_text(json.dumps(primary), encoding="utf-8")
+            canonical = root / "scout_canonical"
+            build_canonical_evidence_bundle(
+                source_roots=[root / "orographic" / "orographic_source"],
+                current_prospective_ledger=source_ledger,
+                current_moonshot_ledger=source_canonical
+                / "moonshot_prospective_ledger.json",
+                payoff_evidence=None,
+                strict_outcome_artifacts=[],
+                output_dir=canonical,
+            )
+
+            cirrus = root / "cirrus"
+            cirrus.mkdir()
+            _write_cirrus_export(cirrus)
+            picks = pd.read_parquet(cirrus / "tracked_picks.parquet")
+            picks.loc[0, "direction"] = "put"
+            picks.loc[0, "contract_symbol"] = "AAA260828P00100000"
+            picks.to_parquet(cirrus / "tracked_picks.parquet", index=False)
+            manifest = json.loads((cirrus / "manifest.json").read_text(encoding="utf-8"))
+            manifest["artifacts"]["tracked_picks"]["sha256"] = _sha256(
+                cirrus / "tracked_picks.parquet"
+            )
+            (cirrus / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+            mart = root / "mart"
+            built = build_shared_research_mart(
+                orographic_canonical_dir=canonical,
+                cirrus_export_dir=cirrus,
+                output_dir=mart,
+            )
+
+            self.assertTrue(
+                built["validation"]["checks"]["recommendations_option_type_valid"]
+            )
+            recommendations = pd.read_parquet(mart / "recommendations.parquet")
+            cirrus_row = recommendations.loc[
+                recommendations["source_system"] == "cirrus"
+            ].iloc[0]
+            oro_row = recommendations.loc[
+                recommendations["source_system"] == "orographic"
+            ].iloc[0]
+            self.assertEqual(cirrus_row["option_type"], "put")
+            self.assertEqual(oro_row["score"], 0.61)
+
     def test_builds_conformed_mart_with_both_systems(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -346,6 +408,143 @@ class SharedResearchMartTests(unittest.TestCase):
             consumer_manifest = build_shared_mart_consumer_bundle(mart, consumers)
             self.assertGreaterEqual(
                 consumer_manifest["views"]["orographic_training_v1"]["rows"], 1
+            )
+
+
+    def test_orographic_picks_emit_recommendation_linked_path_quotes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            source = root / "orographic_source"
+            source.mkdir()
+            primary = root / "primary.json"
+            moonshot = root / "moonshot.json"
+            decision = "2026-08-21T19:00:00+00:00"
+            path_ts = "2026-08-21T20:15:00+00:00"
+            archived_ts = "2026-08-21T21:00:00+00:00"
+            primary.write_text(json.dumps({"entries": [{
+                "run_generated_at_utc": decision,
+                "regime": {"mode": "risk_on", "bias": 0.3},
+                "picks": [{
+                    "recommendation_id": "oro-path-1",
+                    "symbol": "BBB",
+                    "contract_symbol": "BBB260828C00100000",
+                    "option_type": "call",
+                    "expiry": "2026-08-28",
+                    "strike": 100.0,
+                    "lane": "primary",
+                    "days_to_expiry": 7,
+                    "emission_quote": {
+                        "bid": 1.0, "ask": 1.2, "mid": 1.1,
+                        "captured_at_utc": decision,
+                    },
+                    "scores": {"final_candidate_score": 0.82, "forge_score": 0.7},
+                    "risk_features": {"delta": 0.5, "implied_volatility": 0.4},
+                    "context": {
+                        "regime": {"mode": "risk_on", "bias": 0.3},
+                        "ranker_mode": "production_v2",
+                    },
+                    "outcomes": {
+                        "status": "settled",
+                        "trajectory_marks": [{
+                            "captured_at_utc": path_ts,
+                            "bid": 1.3, "ask": 1.4, "last": 1.35,
+                        }],
+                        "archived_quote_path": {
+                            "observation_count": 1,
+                            "marks": [
+                                {
+                                    "captured_at_utc": path_ts,
+                                    "bid": 1.3,
+                                    "ask": 1.4,
+                                    "last": 1.35,
+                                },
+                                {
+                                    "captured_at_utc": archived_ts,
+                                    "bid": 1.5,
+                                    "ask": 1.6,
+                                    "last": 1.55,
+                                },
+                            ],
+                        },
+                    },
+                }],
+            }]}), encoding="utf-8")
+            moonshot.write_text(json.dumps({"entries": []}), encoding="utf-8")
+            pd.DataFrame([{
+                "recommendation_id": "oro-path-1", "run_generated_at_utc": decision,
+                "source_artifact": "prospective_pick_ledger", "fixed_exit_window": "friday_close",
+                "symbol": "BBB", "contract_symbol": "BBB260828C00100000", "option_type": "call",
+                "expiry": "2026-08-28", "strike": 100.0, "entry_price": 1.2, "exit_price": 1.5,
+                "pnl_pct": 0.25, "entry_quote_observed_at_utc": decision,
+                "exit_quote_observed_at_utc": "2026-08-22T19:00:00+00:00",
+                "executable_label_available_at_utc": "2026-08-22T19:00:01+00:00",
+                "executable_label_contract_id": "orographic.v2",
+                "executable_label_contract_version": 2,
+            }]).to_parquet(source / "recommendation_outcomes.parquet", index=False)
+            pd.DataFrame([{
+                "contract_symbol": "BBB260828C00100000", "underlying_symbol": "BBB",
+                "chain_snapshot_at_utc": decision, "quote_date": "2026-08-21",
+                "bid": 1.0, "ask": 1.2,
+            }]).to_parquet(source / "live_option_quotes.parquet", index=False)
+            canonical = root / "canonical"
+            build_canonical_evidence_bundle(
+                source_roots=[source], current_prospective_ledger=primary,
+                current_moonshot_ledger=moonshot, payoff_evidence=None,
+                strict_outcome_artifacts=[], output_dir=canonical,
+            )
+            cirrus = root / "cirrus"
+            cirrus.mkdir()
+            _write_cirrus_export(cirrus)
+            mart = root / "mart"
+            manifest = build_shared_research_mart(
+                orographic_canonical_dir=canonical,
+                cirrus_export_dir=cirrus,
+                output_dir=mart,
+            )
+            self.assertEqual(manifest["validation"]["status"], "passed")
+
+            quotes = pd.read_parquet(mart / "option_quotes.parquet")
+            oro_linked = quotes[
+                (quotes["source_system"] == "orographic")
+                & quotes["recommendation_key"].notna()
+            ]
+            self.assertEqual(len(oro_linked), 3)
+            self.assertTrue(
+                (oro_linked["recommendation_key"] == "orographic|primary|oro-path-1").all()
+            )
+            sources = set(oro_linked["quote_source"])
+            self.assertIn("emission_quote", sources)
+            self.assertIn("trajectory_mark", sources)
+            self.assertIn("archived_path_mark", sources)
+
+            # Shared-market chain quotes remain intentionally unlinked.
+            oro_market = quotes[
+                (quotes["source_system"] == "orographic")
+                & quotes["recommendation_key"].isna()
+            ]
+            self.assertGreaterEqual(len(oro_market), 1)
+
+            try:
+                import duckdb  # noqa: F401
+            except ImportError:
+                self.skipTest("duckdb not installed")
+            from engine.orographic.shared_mart_consumers import (
+                build_shared_mart_consumer_bundle,
+            )
+            consumers = root / "consumers"
+            consumer_manifest = build_shared_mart_consumer_bundle(mart, consumers)
+            self.assertGreaterEqual(
+                consumer_manifest["views"]["orographic_exit_replay_v1"]["rows"], 1
+            )
+            replay = pd.read_parquet(consumers / "orographic_exit_replay_v1.parquet")
+            oro_replay = replay[replay["source_system"] == "orographic"]
+            self.assertEqual(len(oro_replay), 2)
+            self.assertTrue(
+                (oro_replay["recommendation_key"] == "orographic|primary|oro-path-1").all()
+            )
+            self.assertEqual(
+                set(oro_replay["quote_source"]),
+                {"trajectory_mark", "archived_path_mark"},
             )
 
     def test_validation_rejects_tampered_table(self) -> None:

@@ -1,11 +1,21 @@
 name: Sync shared research mart
 
 on:
+  schedule:
+    # Cirrus runs at 16:00 UTC; leave time for its scan and data-branch publish.
+    - cron: "30 17 * * 1-5"
   workflow_dispatch:
+    inputs:
+      cirrus_bundle_ref:
+        description: Cirrus git ref containing the validated options research bundle
+        required: false
+        default: data/options-research-bundle
+        type: string
   pull_request:
     paths:
       - ".github/workflows/sync_shared_research_mart.yml"
       - "scripts/sync_shared_research_mart.py"
+      - "scripts/materialize_cirrus_bundle_from_git.py"
       - "scripts/restore_research_artifacts_from_r2.py"
       - "scripts/upload_research_artifacts_to_r2.py"
       - "scripts/publish_shared_research_mart.py"
@@ -22,6 +32,7 @@ on:
     paths:
       - ".github/workflows/sync_shared_research_mart.yml"
       - "scripts/sync_shared_research_mart.py"
+      - "scripts/materialize_cirrus_bundle_from_git.py"
       - "scripts/restore_research_artifacts_from_r2.py"
       - "scripts/upload_research_artifacts_to_r2.py"
       - "scripts/publish_shared_research_mart.py"
@@ -84,6 +95,15 @@ jobs:
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
             --output-dir output/restored_canonical_evidence \
             --allow-missing
+
+      - name: Materialize current Cirrus research bundle
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          CIRRUS_BUNDLE_TOKEN: ${{ secrets.OROGRAPHIC_CRON_GITHUB_TOKEN }}
+          CIRRUS_BUNDLE_REF: ${{ github.event.inputs.cirrus_bundle_ref || 'data/options-research-bundle' }}
+        run: |
+          python scripts/materialize_cirrus_bundle_from_git.py \
+            --destination ../Cirrus/analysis/output/options_research_bundle
 
       - name: Sync shared Cirrus/Orographic research mart
         env:

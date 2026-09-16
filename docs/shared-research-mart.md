@@ -57,6 +57,29 @@ Research-data audits are persisted to
 `web/data/diagnostics/research_data_capture_audit_latest.json` and are warn-only in the
 scan job so a Moonshot/dataset mismatch cannot skip mart consolidation.
 
+Cirrus also publishes each validated export to the orphan git branch
+`data/options-research-bundle`. Orographic's weekday `Sync shared research mart` job runs after the
+Cirrus scan, clones that branch with `OROGRAPHIC_CRON_GITHUB_TOKEN`, validates every Parquet hash and
+row count, and atomically materializes it at
+`../Cirrus/analysis/output/options_research_bundle`. The dedicated sync then rebuilds the two-source
+mart, promotes the current Cirrus bundle to R2, and publishes and verifies the Iceberg tables. A
+materialization or validation failure fails the dedicated sync; the live Orographic scan treats the
+same step as non-blocking and retains the R2/archive fallback.
+
+## Collection quality audit
+
+[`analysis/shared_mart_data_quality_audit.ipynb`](../analysis/shared_mart_data_quality_audit.ipynb)
+profiles the latest validated source bundles and rebuilt shared mart at their actual grains. It checks
+freshness, key integrity, point-in-time feature safety, option-side validity, score coverage,
+post-entry path coverage, executable-label coverage, and same-date/symbol overlap.
+
+The September 15, 2026 audit found that both sources have complete conformed feature and score
+coverage after normalization, but joint evidence is still immature: 10 paired date/symbol rows across
+8 market dates and only 2 paired executable outcomes. Post-entry IV/Greek coverage, Cirrus
+decision-time version provenance, and provider-neutral tables for recommendation legs and experiment
+decisions remain explicit schema-v2 follow-ups. The mart stays observation-only while those gaps and
+the existing promotion gates remain open.
+
 ## Conformed tables
 
 | Table | Grain | Primary key |
@@ -78,6 +101,15 @@ scores, risk features, entry-quote fields, and regime context. Post-decision `ou
 never captured as features, and every Orographic feature snapshot is anchored to the recommendation
 decision timestamp so `available_at_utc <= decision_at_utc` always holds. This is what makes the
 `orographic_training_v1` consumer view non-empty and unblocks the training-source rebuild gate.
+
+`option_quotes` carries two Orographic populations:
+
+- **Shared-market chain quotes** from the live options archive (`recommendation_key` is null). These
+  remain the durable market-data plane for Cirrus replay and coverage audits.
+- **Recommendation-linked path quotes** materialized from each pick's `emission_quote`,
+  `outcomes.trajectory_marks`, and `outcomes.archived_quote_path.marks`, with `recommendation_key`
+  set. These rows are what `orographic_exit_replay_v1` joins so Orographic exit-policy shadow work
+  is no longer Cirrus-only.
 
 ## Point-in-time and execution rules
 
