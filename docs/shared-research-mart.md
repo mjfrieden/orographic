@@ -208,6 +208,12 @@ Publication refuses an Orographic-only or Cirrus-only mart. It merges all ten da
 commits `mart_publications` last so a consumer can distinguish a completed publication from an
 interrupted one.
 
+Iceberg data tables retain rows from older source bundles. A current-publication query must use
+the `bundle_id` values in the latest `mart_publications.sources_json` as a `source_bundle_id`
+filter; an unfiltered table count includes historical rows and is not a snapshot count. Publication
+verification checks counts within those bundle IDs and reports retained historical rows
+separately. The main-branch workflow treats a failed publication or verification as a failed run.
+
 ### Initial production publication
 
 Mart `bfc84a047c5c0e947c02a75de885e8bba2c513b6aa07af8f62976e4672979b64` was published to

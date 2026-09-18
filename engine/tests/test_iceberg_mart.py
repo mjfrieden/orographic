@@ -89,7 +89,10 @@ class IcebergMartTests(unittest.TestCase):
                 self.last_sql = sql
                 self.last_params = params
                 if "mart_publications" in sql:
-                    return FakeResult(("bfc84a0", "2026-08-24T03:25:26+00:00"))
+                    return FakeResult((
+                        "bfc84a0", "2026-08-24T03:25:26+00:00",
+                        json.dumps([{"source_system": "cirrus", "bundle_id": "cirrus-current"}]),
+                    ))
                 return FakeResult((89, "2026-07-01T00:00:00+00:00", "2026-08-21T00:00:00+00:00", 12))
 
             def close(self):
@@ -121,7 +124,61 @@ class IcebergMartTests(unittest.TestCase):
         self.assertEqual(info["recommendation_rows"], 89)
         self.assertEqual(info["max_decision_at_utc"], "2026-08-21T00:00:00+00:00")
         self.assertEqual(info["latest_publication_mart_id"], "bfc84a0")
+        self.assertTrue(info["snapshot_scoped"])
         self.assertFalse(info["current_export"])
+
+    def test_verify_scopes_counts_to_published_bundles(self) -> None:
+        class FakeResult:
+            def __init__(self, row):
+                self.row = row
+
+            def fetchone(self):
+                return self.row
+
+        class FakeConnection:
+            def execute(self, sql, params=None):
+                if "mart_publications" in sql:
+                    return FakeResult((1,))
+                self.last_count_params = params
+                if ".path_exclusions" in sql:
+                    return FakeResult((4, 0))
+                if ".model_runs" in sql:
+                    return FakeResult((7, 2))
+                return FakeResult((2, 2))
+
+            def close(self):
+                return None
+
+        connection = FakeConnection()
+        fake_duckdb = mock.Mock()
+        fake_duckdb.connect.return_value = connection
+        manifest = {
+            "schema_version": MART_SCHEMA_VERSION,
+            "mart_id": "current-mart",
+            "sources": [
+                {"source_system": "cirrus", "bundle_id": "cirrus-current"},
+                {"source_system": "orographic", "bundle_id": "oro-current"},
+            ],
+            "artifacts": {
+                name: {"rows": 0 if name == "path_exclusions" else 2}
+                for name in TABLE_CONTRACTS
+            },
+        }
+        with (
+            mock.patch.dict(os.environ, {
+                "OROGRAPHIC_R2_DATA_CATALOG_URI": "https://catalog.example/mart",
+                "OROGRAPHIC_R2_DATA_CATALOG_WAREHOUSE": "warehouse",
+                "OROGRAPHIC_R2_DATA_CATALOG_TOKEN": "token",
+            }, clear=True),
+            mock.patch.dict(sys.modules, {"duckdb": fake_duckdb}),
+            mock.patch("engine.orographic.iceberg_mart._attach_iceberg_catalog"),
+        ):
+            result = verify_iceberg_mart(manifest=manifest)
+        self.assertEqual(result["status"], "verified")
+        self.assertEqual(result["row_counts"]["model_runs"], 2)
+        self.assertEqual(result["retained_historical_rows"]["model_runs"], 5)
+        self.assertEqual(result["retained_historical_rows"]["path_exclusions"], 4)
+        self.assertEqual(connection.last_count_params, ["cirrus-current", "oro-current"])
 
 
 if __name__ == "__main__":

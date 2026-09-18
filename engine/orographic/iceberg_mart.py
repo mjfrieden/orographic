@@ -15,6 +15,17 @@ from .shared_research_mart import (
 IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
+def _publication_bundle_ids(manifest: dict[str, Any]) -> list[str]:
+    bundle_ids = sorted({
+        str(source.get("bundle_id") or "").strip()
+        for source in (manifest.get("sources") or [])
+        if isinstance(source, dict)
+    })
+    if not bundle_ids or any(not bundle_id for bundle_id in bundle_ids):
+        raise ValueError("Publication verification requires source bundle IDs")
+    return bundle_ids
+
+
 def _identifier(value: str, *, label: str) -> str:
     if not IDENTIFIER.fullmatch(value):
         raise ValueError(f"Invalid {label}: {value!r}")
@@ -217,20 +228,31 @@ def inspect_iceberg_source(
             warehouse=env["warehouse"],
             token=env["token"],
         )
+        publication = connection.execute(
+            f"SELECT mart_id, CAST(generated_at_utc AS VARCHAR), sources_json "
+            f"FROM {catalog}.{schema}.mart_publications "
+            f"WHERE status = 'published' "
+            f"ORDER BY generated_at_utc DESC LIMIT 1"
+        ).fetchone()
+        published_sources = json.loads(publication[2]) if publication and publication[2] else []
+        source_bundle_id = next(
+            (
+                str(source.get("bundle_id"))
+                for source in published_sources
+                if isinstance(source, dict) and source.get("source_system") == wanted
+                   and source.get("bundle_id")
+            ),
+            None,
+        )
         recs = connection.execute(
             f"SELECT COUNT(*) AS rows, "
             f"MIN(CAST(decision_at_utc AS VARCHAR)) AS min_decision_at_utc, "
             f"MAX(CAST(decision_at_utc AS VARCHAR)) AS max_decision_at_utc, "
             f"COUNT(DISTINCT underlying_symbol) AS symbols "
             f"FROM {catalog}.{schema}.recommendations "
-            f"WHERE source_system = ?",
-            [wanted],
-        ).fetchone()
-        publication = connection.execute(
-            f"SELECT mart_id, CAST(generated_at_utc AS VARCHAR) "
-            f"FROM {catalog}.{schema}.mart_publications "
-            f"WHERE status = 'published' "
-            f"ORDER BY generated_at_utc DESC LIMIT 1"
+            f"WHERE source_system = ?"
+            + (" AND source_bundle_id = ?" if source_bundle_id else ""),
+            [wanted, source_bundle_id] if source_bundle_id else [wanted],
         ).fetchone()
     finally:
         connection.close()
@@ -244,6 +266,7 @@ def inspect_iceberg_source(
         "symbols": int(recs[3] or 0) if recs else 0,
         "latest_publication_mart_id": publication[0] if publication else None,
         "latest_publication_at_utc": publication[1] if publication else None,
+        "snapshot_scoped": source_bundle_id is not None,
         "current_export": False,
     }
 
@@ -259,6 +282,7 @@ def verify_iceberg_mart(
     if missing:
         raise ValueError("Missing Iceberg publication configuration: " + ", ".join(missing))
     contracts = contracts_for_schema(manifest.get("schema_version"))
+    bundle_ids = _publication_bundle_ids(manifest)
     catalog = _identifier(catalog_name, label="catalog name")
     schema = _identifier(namespace, label="namespace")
     try:
@@ -275,10 +299,18 @@ def verify_iceberg_mart(
             warehouse=env["warehouse"],
             token=env["token"],
         )
-        actual_rows = {
-            name: int(connection.execute(f"SELECT COUNT(*) FROM {catalog}.{schema}.{name}").fetchone()[0])
+        placeholders = ", ".join("?" for _ in bundle_ids)
+        counts = {
+            name: connection.execute(
+                f"SELECT COUNT(*), COUNT(*) FILTER "
+                f"(WHERE source_bundle_id IN ({placeholders})) "
+                f"FROM {catalog}.{schema}.{name}",
+                bundle_ids,
+            ).fetchone()
             for name in contracts
         }
+        actual_rows = {name: int(row[1]) for name, row in counts.items()}
+        historical_rows = {name: int(row[0]) - int(row[1]) for name, row in counts.items()}
         expected_rows = {
             name: int(manifest["artifacts"][name]["rows"])
             for name in contracts
@@ -305,5 +337,7 @@ def verify_iceberg_mart(
         "status": "verified",
         "mart_id": manifest["mart_id"],
         "row_counts": actual_rows,
+        "retained_historical_rows": historical_rows,
+        "verification_scope": "published_source_bundle_ids",
         "publication_rows": publication_rows,
     }
