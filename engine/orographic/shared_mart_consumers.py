@@ -298,6 +298,55 @@ VIEW_SQL: dict[str, str] = {
         FROM oro o
         FULL OUTER JOIN cirrus c USING (market_date)
     """,
+    "joint_shadow_day_coverage_v1": """
+        WITH ranked_cirrus AS (
+            SELECT r.*,
+                coalesce(
+                    try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                    CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                          AT TIME ZONE 'America/New_York') AS DATE)
+                ) AS market_date,
+                row_number() OVER (
+                    PARTITION BY coalesce(
+                        try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                        CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                              AT TIME ZONE 'America/New_York') AS DATE)
+                    )
+                    ORDER BY r.score DESC NULLS LAST, r.recommendation_key
+                ) AS shadow_day_rank
+            FROM recommendations r
+            WHERE r.source_system = 'cirrus'
+              AND r.cohort IN ('prospective', 'cirrus_prospective')
+              AND r.lane = 'shadow'
+        ), cirrus AS (
+            SELECT * FROM ranked_cirrus WHERE shadow_day_rank = 1
+        ), structure AS (
+            SELECT recommendation_key, count(*) AS leg_count
+            FROM position_legs GROUP BY recommendation_key
+        )
+        SELECT coalesce(o.market_date, c.market_date) AS market_date,
+            o.orographic_recommendation_key,
+            c.recommendation_key AS cirrus_shadow_recommendation_key,
+            o.orographic_underlying_symbol,
+            c.underlying_symbol AS cirrus_shadow_underlying_symbol,
+            o.orographic_contract_symbol,
+            c.contract_symbol AS cirrus_shadow_contract_symbol,
+            o.orographic_decision_at_utc,
+            c.decision_at_utc AS cirrus_shadow_decision_at_utc,
+            abs(date_diff('second', CAST(o.orographic_decision_at_utc AS TIMESTAMPTZ),
+                         CAST(c.decision_at_utc AS TIMESTAMPTZ))) AS decision_lag_seconds,
+            coalesce(upper(replace(replace(trim(o.orographic_underlying_symbol), '/', '.'), '-', '.'))
+                  = upper(replace(replace(trim(c.underlying_symbol), '/', '.'), '-', '.')), false)
+                AS same_underlying,
+            coalesce(o.orographic_contract_symbol = c.contract_symbol, false) AS same_contract,
+            coalesce(s.leg_count, 0) AS cirrus_shadow_leg_count,
+            o.orographic_source_bundle_id,
+            c.source_bundle_id AS cirrus_shadow_source_bundle_id
+        FROM joint_live_day_coverage_v1 o
+        FULL OUTER JOIN cirrus c USING (market_date)
+        LEFT JOIN structure s ON s.recommendation_key = c.recommendation_key
+        WHERE o.orographic_recommendation_key IS NOT NULL OR c.recommendation_key IS NOT NULL
+    """,
     "orographic_model_monitoring_v1": """
         SELECT
             source_system,
@@ -631,6 +680,7 @@ VIEW_KEYS: dict[str, tuple[str, ...]] = {
     "orographic_exit_replay_v1": ("recommendation_key", "quote_key"),
     "cirrus_orographic_disagreement_v1": ("market_date", "underlying_symbol"),
     "joint_live_day_coverage_v1": ("market_date",),
+    "joint_shadow_day_coverage_v1": ("market_date",),
     "orographic_model_monitoring_v1": ("source_system", "cohort", "model_version", "option_type"),
     "mart_data_quality_v1": ("source_system", "cohort"),
     "orographic_training_funnel_v1": ("source_system", "cohort"),

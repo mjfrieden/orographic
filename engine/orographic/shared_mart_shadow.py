@@ -35,6 +35,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         exits = _path(root, manifest, "orographic_exit_replay_v1")
         disagreements = _path(root, manifest, "cirrus_orographic_disagreement_v1")
         live_days = _path(root, manifest, "joint_live_day_coverage_v1")
+        shadow_days = _path(root, manifest, "joint_shadow_day_coverage_v1")
         training = _path(root, manifest, "orographic_training_v1")
         monitoring = _path(root, manifest, "orographic_model_monitoring_v1")
         data_quality = _path(root, manifest, "mart_data_quality_v1")
@@ -112,6 +113,23 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                                      AND decision_lag_seconds <= 3600)
                        AS synchronized_live_market_dates
             FROM read_parquet('{live_days}')
+        """)
+        shadow_day_summary = _record(connection, f"""
+            SELECT count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_shadow_recommendation_key IS NOT NULL)
+                       AS overlapping_live_shadow_market_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_shadow_recommendation_key IS NOT NULL
+                                     AND same_underlying) AS same_underlying_live_shadow_market_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_shadow_recommendation_key IS NOT NULL
+                                     AND cirrus_shadow_leg_count > 1)
+                       AS multi_leg_cirrus_shadow_overlap_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_shadow_recommendation_key IS NOT NULL
+                                     AND decision_lag_seconds <= 3600)
+                       AS synchronized_live_shadow_market_dates
+            FROM read_parquet('{shadow_days}')
         """)
         training_summary = _record(connection, f"""
             SELECT count(*) AS training_rows,
@@ -240,6 +258,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         "cross_system_comparison": {
             **disagreement_summary,
             **live_day_summary,
+            **shadow_day_summary,
             **comparable_summary,
             # Same-contract replay tests label parity, not strategy selection.
             # A future pre-registered cross-contract comparison must fill these.
@@ -282,6 +301,6 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         "next_action": (
             "Evaluate one pre-registered liquidity veto in shadow; do not change live routing."
             if shadow_ready
-            else "Collect synchronized live-lane quote paths and a pre-registered common executable replay; keep pooled training disabled."
+            else "Collect synchronized Orographic-live and Cirrus-shadow quote paths under a pre-registered common replay; keep pooled training disabled."
         ),
     }

@@ -242,6 +242,7 @@ Orographic materializes nine versioned views from one validated local mart snaps
 | `orographic_exit_replay_v1` | Executable ask-to-bid quote paths for frozen exit-policy replay | Shadow only |
 | `cirrus_orographic_disagreement_v1` | One top daily recommendation per system and symbol (Orographic primary vs Cirrus prospective; America/New_York session dates; live lane first, then decision-time score; labels never select a pair) | Research only |
 | `joint_live_day_coverage_v1` | One top decision-time-scored live pick per system per New York market date, including different symbols; measures observation overlap, not return comparability | Diagnostics only |
+| `joint_shadow_day_coverage_v1` | Orographic live pick versus Cirrus shadow challenger by market date, with Cirrus leg count; measures current prospective overlap, not alpha | Diagnostics only |
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
 | `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
 | `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |
@@ -286,6 +287,15 @@ The September 15 snapshot contains 9 common live market dates but no common live
 These 9 dates are collection opportunity, not alpha evidence: a comparison of distinct contracts
 still needs synchronized decision windows, a common executable entry/exit replay, and an explicitly
 defined risk-normalized comparison design.
+
+Cirrus emitted no `live`-lane picks after August 21 in the September 17 export; its current
+prospective candidate is in the `shadow` lane and may be multi-leg. The separate
+`joint_shadow_day_coverage_v1` therefore tracks Orographic-live versus Cirrus-shadow date overlap
+and structure without relabeling the shadow candidate as a live trade. In the September 15 v2
+snapshot, the two lanes overlap on 10 market dates, including September 14, but have not met a
+common executable label contract. Cirrus captured 10 of 10 open-contract marks in its September 17
+scan, while only 1 of 35 historical `live` picks has a post-entry live-chain mark; historical marks
+cannot be recreated from synthetic expiry values.
 
 ### Data-quality scorecard (`mart_data_quality_v1`)
 

@@ -50,7 +50,7 @@ def _write_mart(root: Path) -> None:
             {
                 "recommendation_key": "orographic:rec-1", "run_key": "orographic:run-1",
                 "source_system": "orographic", "cohort": "primary_prospective",
-                "source_recommendation_id": "rec-1", "lane": "primary", "model_version": "oro-v1",
+                "source_recommendation_id": "rec-1", "lane": "live", "model_version": "oro-v1",
                 "decision_at_utc": decision, "available_at_utc": decision,
                 "underlying_symbol": "AAA", "contract_symbol": "AAA260828C00100000",
                 "option_type": "call", "expiry_date": "2026-08-28", "strike": 100.0,
@@ -216,7 +216,8 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(manifest["views"]["orographic_execution_quality_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["orographic_exit_replay_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["cirrus_orographic_disagreement_v1"]["rows"], 1)
-            self.assertEqual(manifest["views"]["joint_live_day_coverage_v1"]["rows"], 0)
+            self.assertEqual(manifest["views"]["joint_live_day_coverage_v1"]["rows"], 1)
+            self.assertEqual(manifest["views"]["joint_shadow_day_coverage_v1"]["rows"], 1)
             self.assertEqual(manifest["views"]["mart_data_quality_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["orographic_training_funnel_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["joint_learning_candidates_v1"]["rows"], 2)
@@ -264,6 +265,8 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(shadow["cross_system_comparison"]["paired_market_dates"], 1)
             self.assertEqual(shadow["cross_system_comparison"]["direct_return_comparable_pairs"], 0)
             self.assertEqual(shadow["cross_system_comparison"]["paired_live_lanes"], 0)
+            self.assertEqual(shadow["cross_system_comparison"]["overlapping_live_shadow_market_dates"], 1)
+            self.assertEqual(shadow["cross_system_comparison"]["multi_leg_cirrus_shadow_overlap_dates"], 0)
             self.assertEqual(shadow["cross_system_comparison"]["live_direct_return_comparable_pairs"], 0)
             self.assertFalse(shadow["shadow_entry_gates"]["live_direct_return_comparable_pairs"]["passed"])
             self.assertEqual(shadow["joint_learning"]["source_specific_training_rows"], 2)

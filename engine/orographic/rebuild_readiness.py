@@ -45,6 +45,7 @@ def build_rebuild_readiness(
         "orographic_exit_replay_v1",
         "cirrus_orographic_disagreement_v1",
         "joint_live_day_coverage_v1",
+        "joint_shadow_day_coverage_v1",
         "orographic_model_monitoring_v1",
         "joint_learning_candidates_v1",
         "joint_paired_comparisons_v1",
