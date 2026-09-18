@@ -13,11 +13,25 @@ import uuid
 from .shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS, validate_shared_research_mart
 
 
-CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v3"
+CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v4"
 PRODUCTION_AUTHORITY = "observation_only_never_used_for_routing"
 
 
 VIEW_SQL: dict[str, str] = {
+    "joint_quote_provenance_v1": """
+        SELECT q.source_system, q.cohort, q.quote_source,
+            coalesce(p.timestamp_basis, 'capture_time_only') AS timestamp_basis,
+            count(*) AS quote_rows,
+            count(*) FILTER (WHERE p.bid_observed_at_utc IS NOT NULL
+                               AND p.ask_observed_at_utc IS NOT NULL)
+                AS both_side_provider_timestamp_rows,
+            count(*) FILTER (WHERE p.last_trade_age_days IS NOT NULL)
+                AS last_trade_recency_rows
+        FROM option_quotes q
+        LEFT JOIN quote_provenance p USING (quote_key)
+        GROUP BY q.source_system, q.cohort, q.quote_source,
+            coalesce(p.timestamp_basis, 'capture_time_only')
+    """,
     "orographic_training_v1": """
         WITH latest_features AS (
             SELECT *, row_number() OVER (
@@ -689,6 +703,8 @@ VIEW_SQL: dict[str, str] = {
         ), ranked_quotes AS (
             SELECT r.recommendation_key, q.quote_key, q.observed_at_utc,
                 q.available_at_utc, q.bid, q.ask, q.quote_source,
+                p.timestamp_basis, p.last_trade_age_days,
+                p.bid_observed_at_utc, p.ask_observed_at_utc,
                 q.source_bundle_id AS quote_source_bundle_id,
                 date_diff('second', CAST(r.decision_at_utc AS TIMESTAMPTZ),
                           CAST(q.observed_at_utc AS TIMESTAMPTZ)) AS elapsed_seconds,
@@ -700,6 +716,7 @@ VIEW_SQL: dict[str, str] = {
                 ) AS quote_rank
             FROM recommendations r
             JOIN option_quotes q USING (recommendation_key)
+            JOIN quote_provenance p USING (quote_key)
             WHERE q.source_system = r.source_system
               AND q.contract_symbol = r.contract_symbol
               AND q.quote_source IN ('trajectory_mark', 'archived_path_mark', 'live_chain_mark')
@@ -736,6 +753,11 @@ VIEW_SQL: dict[str, str] = {
                 END AS structure_class,
                 q.quote_key AS exit_quote_key,
                 q.quote_source AS exit_quote_source,
+                q.timestamp_basis AS exit_timestamp_basis,
+                q.last_trade_age_days AS exit_last_trade_age_days,
+                (q.bid_observed_at_utc IS NOT NULL
+                 AND q.ask_observed_at_utc IS NOT NULL)
+                    AS exit_has_both_side_provider_timestamps,
                 r.decision_at_utc AS entry_at_utc,
                 q.observed_at_utc AS exit_at_utc,
                 q.available_at_utc AS label_available_at_utc,
@@ -795,6 +817,9 @@ VIEW_SQL: dict[str, str] = {
                 c.exit_quote_key AS cirrus_shadow_exit_quote_key,
                 o.exit_at_utc AS orographic_exit_at_utc,
                 c.exit_at_utc AS cirrus_shadow_exit_at_utc,
+                o.exit_timestamp_basis AS orographic_exit_timestamp_basis,
+                c.exit_timestamp_basis AS cirrus_shadow_exit_timestamp_basis,
+                c.exit_last_trade_age_days AS cirrus_shadow_exit_last_trade_age_days,
                 o.equal_premium_return AS orographic_equal_premium_return,
                 c.equal_premium_return AS cirrus_shadow_equal_premium_return,
                 coalesce(ofe.native_point_in_time_feature, false)
@@ -833,6 +858,7 @@ VIEW_SQL: dict[str, str] = {
 
 
 VIEW_KEYS: dict[str, tuple[str, ...]] = {
+    "joint_quote_provenance_v1": ("source_system", "cohort", "quote_source", "timestamp_basis"),
     "orographic_training_v1": ("training_row_key",),
     "orographic_execution_quality_v1": ("recommendation_key",),
     "orographic_exit_replay_v1": ("recommendation_key", "quote_key"),
@@ -869,7 +895,7 @@ def build_shared_mart_consumer_bundle(
     mart_root = Path(mart_dir)
     mart = validate_shared_research_mart(mart_root)
     if mart["schema_version"] != MART_SCHEMA_VERSION:
-        raise ValueError("Joint-learning consumers require a rebuilt v2 shared mart")
+        raise ValueError("Joint-learning consumers require a rebuilt v3 shared mart")
     source_systems = {str(row.get("source_system")) for row in mart.get("sources", [])}
     if source_systems != {"cirrus", "orographic"}:
         raise ValueError("Consumer bundle requires a complete Cirrus and Orographic mart")
