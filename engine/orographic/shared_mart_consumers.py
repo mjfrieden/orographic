@@ -10,10 +10,10 @@ import shutil
 from typing import Any
 import uuid
 
-from .shared_research_mart import TABLE_CONTRACTS, validate_shared_research_mart
+from .shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS, validate_shared_research_mart
 
 
-CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v1"
+CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v2"
 PRODUCTION_AUTHORITY = "observation_only_never_used_for_routing"
 
 
@@ -194,7 +194,8 @@ VIEW_SQL: dict[str, str] = {
                         ),
                         upper(replace(replace(trim(CAST(r.underlying_symbol AS VARCHAR)), '/', '.'), '-', '.')),
                         r.source_system
-                    ORDER BY (o.executable_return IS NOT NULL) DESC, r.score DESC NULLS LAST, r.recommendation_key
+                    ORDER BY CASE WHEN r.lane = 'live' THEN 0 ELSE 1 END,
+                             r.score DESC NULLS LAST, r.recommendation_key
                 ) AS daily_rank
             FROM recommendations r
             LEFT JOIN outcomes o USING (recommendation_key)
@@ -218,6 +219,9 @@ VIEW_SQL: dict[str, str] = {
             c.recommendation_key AS cirrus_recommendation_key,
             o.cohort AS orographic_cohort,
             c.cohort AS cirrus_cohort,
+            o.lane AS orographic_lane,
+            c.lane AS cirrus_lane,
+            coalesce(o.lane = 'live' AND c.lane = 'live', false) AS both_live_lanes,
             o.model_version AS orographic_model_version,
             c.model_version AS cirrus_model_version,
             o.option_type AS orographic_option_type,
@@ -245,6 +249,103 @@ VIEW_SQL: dict[str, str] = {
         FULL OUTER JOIN cirrus c
           ON o.market_date = c.market_date
          AND o.join_symbol = c.join_symbol
+    """,
+    "joint_live_day_coverage_v1": """
+        WITH ranked AS (
+            SELECT r.*,
+                coalesce(
+                    try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                    CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                          AT TIME ZONE 'America/New_York') AS DATE)
+                ) AS market_date,
+                row_number() OVER (
+                    PARTITION BY r.source_system,
+                        coalesce(
+                            try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                            CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                                  AT TIME ZONE 'America/New_York') AS DATE)
+                        )
+                    ORDER BY r.score DESC NULLS LAST, r.recommendation_key
+                ) AS live_day_rank
+            FROM recommendations r
+            WHERE r.lane = 'live'
+              AND ((r.source_system = 'orographic'
+                    AND r.cohort IN ('primary', 'primary_prospective'))
+                OR (r.source_system = 'cirrus'
+                    AND r.cohort IN ('prospective', 'cirrus_prospective')))
+        ), oro AS (
+            SELECT * FROM ranked WHERE source_system = 'orographic' AND live_day_rank = 1
+        ), cirrus AS (
+            SELECT * FROM ranked WHERE source_system = 'cirrus' AND live_day_rank = 1
+        )
+        SELECT coalesce(o.market_date, c.market_date) AS market_date,
+            o.recommendation_key AS orographic_recommendation_key,
+            c.recommendation_key AS cirrus_recommendation_key,
+            o.underlying_symbol AS orographic_underlying_symbol,
+            c.underlying_symbol AS cirrus_underlying_symbol,
+            o.contract_symbol AS orographic_contract_symbol,
+            c.contract_symbol AS cirrus_contract_symbol,
+            o.decision_at_utc AS orographic_decision_at_utc,
+            c.decision_at_utc AS cirrus_decision_at_utc,
+            abs(date_diff('second', CAST(o.decision_at_utc AS TIMESTAMPTZ),
+                         CAST(c.decision_at_utc AS TIMESTAMPTZ))) AS decision_lag_seconds,
+            coalesce(upper(replace(replace(trim(o.underlying_symbol), '/', '.'), '-', '.'))
+                  = upper(replace(replace(trim(c.underlying_symbol), '/', '.'), '-', '.')), false)
+                AS same_underlying,
+            coalesce(o.contract_symbol = c.contract_symbol, false) AS same_contract,
+            o.source_bundle_id AS orographic_source_bundle_id,
+            c.source_bundle_id AS cirrus_source_bundle_id
+        FROM oro o
+        FULL OUTER JOIN cirrus c USING (market_date)
+    """,
+    "joint_shadow_day_coverage_v1": """
+        WITH ranked_cirrus AS (
+            SELECT r.*,
+                coalesce(
+                    try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                    CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                          AT TIME ZONE 'America/New_York') AS DATE)
+                ) AS market_date,
+                row_number() OVER (
+                    PARTITION BY coalesce(
+                        try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                        CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                              AT TIME ZONE 'America/New_York') AS DATE)
+                    )
+                    ORDER BY r.score DESC NULLS LAST, r.recommendation_key
+                ) AS shadow_day_rank
+            FROM recommendations r
+            WHERE r.source_system = 'cirrus'
+              AND r.cohort IN ('prospective', 'cirrus_prospective')
+              AND r.lane = 'shadow'
+        ), cirrus AS (
+            SELECT * FROM ranked_cirrus WHERE shadow_day_rank = 1
+        ), structure AS (
+            SELECT recommendation_key, count(*) AS leg_count
+            FROM position_legs GROUP BY recommendation_key
+        )
+        SELECT coalesce(o.market_date, c.market_date) AS market_date,
+            o.orographic_recommendation_key,
+            c.recommendation_key AS cirrus_shadow_recommendation_key,
+            o.orographic_underlying_symbol,
+            c.underlying_symbol AS cirrus_shadow_underlying_symbol,
+            o.orographic_contract_symbol,
+            c.contract_symbol AS cirrus_shadow_contract_symbol,
+            o.orographic_decision_at_utc,
+            c.decision_at_utc AS cirrus_shadow_decision_at_utc,
+            abs(date_diff('second', CAST(o.orographic_decision_at_utc AS TIMESTAMPTZ),
+                         CAST(c.decision_at_utc AS TIMESTAMPTZ))) AS decision_lag_seconds,
+            coalesce(upper(replace(replace(trim(o.orographic_underlying_symbol), '/', '.'), '-', '.'))
+                  = upper(replace(replace(trim(c.underlying_symbol), '/', '.'), '-', '.')), false)
+                AS same_underlying,
+            coalesce(o.orographic_contract_symbol = c.contract_symbol, false) AS same_contract,
+            coalesce(s.leg_count, 0) AS cirrus_shadow_leg_count,
+            o.orographic_source_bundle_id,
+            c.source_bundle_id AS cirrus_shadow_source_bundle_id
+        FROM joint_live_day_coverage_v1 o
+        FULL OUTER JOIN cirrus c USING (market_date)
+        LEFT JOIN structure s ON s.recommendation_key = c.recommendation_key
+        WHERE o.orographic_recommendation_key IS NOT NULL OR c.recommendation_key IS NOT NULL
     """,
     "orographic_model_monitoring_v1": """
         SELECT
@@ -417,6 +518,159 @@ VIEW_SQL: dict[str, str] = {
         FROM per_rec
         GROUP BY source_system, cohort
     """,
+    "joint_learning_candidates_v1": """
+        WITH latest_features AS (
+            SELECT *, row_number() OVER (
+                PARTITION BY recommendation_key
+                ORDER BY available_at_utc DESC NULLS LAST, feature_key
+            ) AS feature_rank
+            FROM feature_snapshots
+        ), structure AS (
+            SELECT recommendation_key, count(*) AS leg_count,
+                   count(*) FILTER (WHERE role = 'long') AS long_leg_count,
+                   count(*) FILTER (WHERE role = 'short') AS short_leg_count,
+                   bool_or(leg_source = 'inferred_single_from_recommendation') AS has_inferred_leg
+            FROM position_legs GROUP BY recommendation_key
+        ), experiments AS (
+            SELECT recommendation_key, count(*) AS experiment_tag_count,
+                   string_agg(strategy_name, ',' ORDER BY strategy_name) AS strategies
+            FROM experiment_tags GROUP BY recommendation_key
+        )
+        SELECT
+            coalesce(o.outcome_key, r.recommendation_key || '|unlabeled') AS candidate_key,
+            r.recommendation_key, r.run_key, r.source_system, r.cohort, r.lane,
+            r.model_version, r.decision_at_utc, r.underlying_symbol,
+            CASE WHEN r.source_system = 'cirrus'
+                      AND regexp_full_match(r.model_version, '^[0-9a-fA-F]{40}$')
+                    THEN 'code_revision'
+                 WHEN r.source_system = 'cirrus' THEN 'lane_only'
+                 WHEN r.model_version = 'outcome_only' THEN 'outcome_only'
+                 ELSE 'artifact_or_configuration_hash' END AS model_identity_kind,
+            r.contract_symbol, r.option_type, r.expiry_date, r.score,
+            o.outcome_key, o.exit_policy, o.label_contract_id, o.label_contract_version,
+            o.label_available_at_utc, o.executable_return,
+            coalesce(o.is_executable, false) AS is_executable,
+            coalesce(o.is_excluded, false) AS is_excluded,
+            f.feature_schema_version, f.available_at_utc AS feature_available_at_utc,
+            f.features_sha256, f.features_json,
+            CASE
+                WHEN f.feature_key IS NULL THEN 'missing'
+                WHEN json_extract_string(f.source_metadata_json, '$.backfill') IS NOT NULL
+                    THEN 'legacy_backfill'
+                ELSE 'native_decision_time'
+            END AS feature_provenance,
+            coalesce(s.leg_count, 0) AS leg_count,
+            coalesce(s.long_leg_count, 0) AS long_leg_count,
+            coalesce(s.short_leg_count, 0) AS short_leg_count,
+            coalesce(s.has_inferred_leg, false) AS has_inferred_leg,
+            coalesce(e.experiment_tag_count, 0) AS experiment_tag_count,
+            e.strategies,
+            CASE
+                WHEN f.feature_key IS NULL THEN 'missing_feature'
+                WHEN json_extract_string(f.source_metadata_json, '$.backfill') IS NOT NULL
+                    THEN 'legacy_backfilled_feature'
+                WHEN f.available_at_utc IS NULL
+                  OR CAST(f.available_at_utc AS TIMESTAMPTZ) > CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                    THEN 'feature_not_point_in_time'
+                WHEN coalesce(s.leg_count, 0) <> 1
+                  OR coalesce(s.long_leg_count, 0) <> 1
+                  OR coalesce(s.short_leg_count, 0) <> 0
+                    THEN 'not_single_long_option'
+                WHEN NOT coalesce(o.is_executable, false) OR coalesce(o.is_excluded, false)
+                    THEN 'no_executable_label'
+                WHEN o.entry_price IS NULL OR o.entry_price <= 0
+                  OR o.exit_price IS NULL OR o.exit_price < 0
+                  OR o.executable_return IS NULL THEN 'invalid_executable_prices'
+                WHEN o.label_contract_id IS NULL OR o.label_available_at_utc IS NULL
+                  OR CAST(o.label_available_at_utc AS TIMESTAMPTZ)
+                     < CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                    THEN 'invalid_label_provenance'
+                ELSE 'eligible'
+            END AS source_specific_eligibility_reason,
+            coalesce((f.feature_key IS NOT NULL
+              AND CAST(f.available_at_utc AS TIMESTAMPTZ) <= CAST(r.decision_at_utc AS TIMESTAMPTZ)
+              AND json_extract_string(f.source_metadata_json, '$.backfill') IS NULL
+              AND coalesce(s.leg_count, 0) = 1
+              AND coalesce(s.long_leg_count, 0) = 1
+              AND coalesce(s.short_leg_count, 0) = 0
+              AND coalesce(o.is_executable, false)
+              AND NOT coalesce(o.is_excluded, false)
+              AND o.entry_price > 0
+              AND o.exit_price >= 0
+              AND o.executable_return IS NOT NULL
+              AND o.label_contract_id IS NOT NULL
+              AND CAST(o.label_available_at_utc AS TIMESTAMPTZ) >= CAST(r.decision_at_utc AS TIMESTAMPTZ)
+            ), false) AS source_specific_training_eligible,
+            false AS pooled_training_eligible,
+            r.source_bundle_id
+        FROM recommendations r
+        LEFT JOIN execution_outcomes o USING (recommendation_key)
+        LEFT JOIN latest_features f
+          ON f.recommendation_key = r.recommendation_key AND f.feature_rank = 1
+        LEFT JOIN structure s USING (recommendation_key)
+        LEFT JOIN experiments e USING (recommendation_key)
+    """,
+    "joint_paired_comparisons_v1": """
+        WITH labels AS (
+            SELECT recommendation_key,
+                   count(*) FILTER (WHERE is_executable AND NOT is_excluded) AS executable_labels,
+                   count(DISTINCT label_contract_id || ':' || CAST(label_contract_version AS VARCHAR)
+                                  || ':' || exit_policy) FILTER (WHERE is_executable AND NOT is_excluded)
+                       AS label_contracts,
+                   min(label_contract_id || ':' || CAST(label_contract_version AS VARCHAR)
+                       || ':' || exit_policy) FILTER (WHERE is_executable AND NOT is_excluded)
+                       AS only_label_contract,
+                   min(entry_at_utc) FILTER (WHERE is_executable AND NOT is_excluded)
+                       AS entry_at_utc,
+                   min(exit_at_utc) FILTER (WHERE is_executable AND NOT is_excluded)
+                       AS exit_at_utc
+            FROM execution_outcomes GROUP BY recommendation_key
+        ), candidate_quality AS (
+            SELECT recommendation_key,
+                   bool_or(source_specific_training_eligible) AS source_specific_training_eligible
+            FROM joint_learning_candidates_v1 GROUP BY recommendation_key
+        ), comparisons AS (
+        SELECT d.*,
+            o.decision_at_utc AS orographic_decision_at_utc,
+            c.decision_at_utc AS cirrus_decision_at_utc,
+            abs(date_diff('minute', CAST(o.decision_at_utc AS TIMESTAMPTZ),
+                         CAST(c.decision_at_utc AS TIMESTAMPTZ))) AS decision_lag_minutes,
+            abs(date_diff('second', CAST(o.decision_at_utc AS TIMESTAMPTZ),
+                         CAST(c.decision_at_utc AS TIMESTAMPTZ))) AS decision_lag_seconds,
+            ol.only_label_contract AS orographic_label_contract,
+            cl.only_label_contract AS cirrus_label_contract,
+            abs(date_diff('second', CAST(ol.entry_at_utc AS TIMESTAMPTZ),
+                         CAST(cl.entry_at_utc AS TIMESTAMPTZ))) AS entry_lag_seconds,
+            abs(date_diff('second', CAST(ol.exit_at_utc AS TIMESTAMPTZ),
+                         CAST(cl.exit_at_utc AS TIMESTAMPTZ))) AS exit_lag_seconds,
+            coalesce(ol.executable_labels, 0) AS orographic_executable_labels,
+            coalesce(cl.executable_labels, 0) AS cirrus_executable_labels,
+            coalesce(oq.source_specific_training_eligible, false) AS orographic_training_eligible,
+            coalesce(cq.source_specific_training_eligible, false) AS cirrus_training_eligible,
+            coalesce((coalesce(d.same_contract, false)
+              AND abs(date_diff('second', CAST(o.decision_at_utc AS TIMESTAMPTZ),
+                                CAST(c.decision_at_utc AS TIMESTAMPTZ))) <= 3600
+              AND ol.label_contracts = 1 AND cl.label_contracts = 1
+              AND ol.only_label_contract = cl.only_label_contract
+              AND abs(date_diff('second', CAST(ol.entry_at_utc AS TIMESTAMPTZ),
+                                CAST(cl.entry_at_utc AS TIMESTAMPTZ))) <= 3600
+              AND abs(date_diff('second', CAST(ol.exit_at_utc AS TIMESTAMPTZ),
+                                CAST(cl.exit_at_utc AS TIMESTAMPTZ))) <= 3600
+              AND coalesce(oq.source_specific_training_eligible, false)
+              AND coalesce(cq.source_specific_training_eligible, false)
+            ), false) AS direct_return_comparable
+        FROM cirrus_orographic_disagreement_v1 d
+        LEFT JOIN recommendations o ON o.recommendation_key = d.orographic_recommendation_key
+        LEFT JOIN recommendations c ON c.recommendation_key = d.cirrus_recommendation_key
+        LEFT JOIN labels ol ON ol.recommendation_key = d.orographic_recommendation_key
+        LEFT JOIN labels cl ON cl.recommendation_key = d.cirrus_recommendation_key
+        LEFT JOIN candidate_quality oq ON oq.recommendation_key = d.orographic_recommendation_key
+        LEFT JOIN candidate_quality cq ON cq.recommendation_key = d.cirrus_recommendation_key
+        )
+        SELECT *, (both_live_lanes AND direct_return_comparable)
+            AS live_direct_return_comparable
+        FROM comparisons
+    """,
 }
 
 
@@ -425,9 +679,13 @@ VIEW_KEYS: dict[str, tuple[str, ...]] = {
     "orographic_execution_quality_v1": ("recommendation_key",),
     "orographic_exit_replay_v1": ("recommendation_key", "quote_key"),
     "cirrus_orographic_disagreement_v1": ("market_date", "underlying_symbol"),
+    "joint_live_day_coverage_v1": ("market_date",),
+    "joint_shadow_day_coverage_v1": ("market_date",),
     "orographic_model_monitoring_v1": ("source_system", "cohort", "model_version", "option_type"),
     "mart_data_quality_v1": ("source_system", "cohort"),
     "orographic_training_funnel_v1": ("source_system", "cohort"),
+    "joint_learning_candidates_v1": ("candidate_key",),
+    "joint_paired_comparisons_v1": ("market_date", "underlying_symbol"),
 }
 
 
@@ -450,6 +708,8 @@ def build_shared_mart_consumer_bundle(
     """Materialize pinned, observation-only research views from one validated mart."""
     mart_root = Path(mart_dir)
     mart = validate_shared_research_mart(mart_root)
+    if mart["schema_version"] != MART_SCHEMA_VERSION:
+        raise ValueError("Joint-learning consumers require a rebuilt v2 shared mart")
     source_systems = {str(row.get("source_system")) for row in mart.get("sources", [])}
     if source_systems != {"cirrus", "orographic"}:
         raise ValueError("Consumer bundle requires a complete Cirrus and Orographic mart")
@@ -506,6 +766,8 @@ def build_shared_mart_consumer_bundle(
                 "may_change_council": False,
                 "may_change_sizing": False,
                 "may_route_orders": False,
+                "may_pool_cross_system_labels": False,
+                "required_joint_comparison_view": "joint_paired_comparisons_v1",
                 "required_gate_artifact": "orographic_rebuild_readiness",
             },
         }

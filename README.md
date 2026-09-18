@@ -232,7 +232,10 @@ The consumer manifest pins every output to one validated `mart_id` and declares
 `observation_only_never_used_for_routing`. Rebuild readiness fails closed when the bundle is absent,
 incomplete, built from only one source, or missing any registered research view.
 The shadow-evidence artifact summarizes execution friction, target/stop touches on executable bid
-paths, daily cross-system comparisons, training coverage, and monitoring cohorts. It can authorize
+paths, daily cross-system comparisons, training coverage, and monitoring cohorts. The v2 mart also
+preserves position legs and Cirrus experiment context, while joint-learning views flag legacy
+backfilled features and require matched contracts, synchronized decisions, and a common label policy
+before comparing returns. Cross-system pooled training stays disabled. The artifact can authorize
 only a pre-registered shadow experiment; it always reports `production_changes_allowed: false`.
 
 The optional Iceberg publisher requires `engine/requirements-mart.txt` and explicit

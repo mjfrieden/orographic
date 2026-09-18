@@ -12,7 +12,7 @@ from unittest import mock
 import pandas as pd
 
 from engine.orographic.iceberg_mart import build_iceberg_publication_plan, verify_iceberg_mart
-from engine.orographic.shared_research_mart import TABLE_CONTRACTS
+from engine.orographic.shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS
 
 
 def _sha(path: Path) -> str:
@@ -31,7 +31,7 @@ class IcebergMartTests(unittest.TestCase):
                 "primary_key": list(contract.primary_key), "columns": list(contract.columns),
             }
         identity = {
-            "schema_version": "cirrus_orographic_research_mart_v1",
+            "schema_version": MART_SCHEMA_VERSION,
             "sources": [{"source_system": source} for source in sources],
             "artifacts": artifacts,
             "validation": {"status": "passed", "checks": {}, "failures": []},

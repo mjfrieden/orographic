@@ -8,6 +8,7 @@ import unittest
 from unittest import mock
 
 from engine.orographic.prospective import (
+    _mark_payload,
     _outcome_summary,
     backfill_executable_labels_from_fixed_marks,
     due_fixed_exit_windows,
@@ -473,12 +474,23 @@ class ProspectiveLedgerTests(unittest.TestCase):
                 return False
 
         def fake_urlopen(request, timeout: int = 20):
-            symbols = parse_qs(urlparse(request.full_url).query)["symbols"][0].split(",")
+            query = parse_qs(urlparse(request.full_url).query)
+            symbols = query["symbols"][0].split(",")
+            self.assertEqual(query["greeks"], ["true"])
             requested_batches.append(symbols)
             payload = {
                 "quotes": {
                     "quote": [
-                        {"symbol": symbol, "bid": 1.0, "ask": 1.2, "last": 1.1, "close": 1.05}
+                        {
+                            "symbol": symbol, "bid": 1.0, "ask": 1.2,
+                            "last": 1.1, "close": 1.05,
+                            "open_interest": 120, "volume": 15,
+                            "greeks": {
+                                "mid_iv": 0.35, "delta": 0.42, "gamma": 0.04,
+                                "theta": -0.02, "vega": 0.09,
+                                "updated_at": "2026-05-15 13:59:03",
+                            },
+                        }
                         for symbol in symbols
                     ]
                 }
@@ -499,6 +511,14 @@ class ProspectiveLedgerTests(unittest.TestCase):
 
         self.assertEqual(requested_batches, [symbols[:2], symbols[2:4], symbols[4:]])
         self.assertEqual(sorted(quotes.keys()), sorted(symbols))
+        mark = _mark_payload(
+            quotes[symbols[0]], captured_at_utc="2026-05-15T14:00:00+00:00", entry_mark=1.0
+        )
+        self.assertEqual(mark["open_interest"], 120)
+        self.assertEqual(mark["volume"], 15)
+        self.assertEqual(mark["implied_volatility"], 0.35)
+        self.assertEqual(mark["delta"], 0.42)
+        self.assertEqual(mark["greeks_updated_at"], "2026-05-15 13:59:03")
 
     def test_fetch_tradier_quotes_retries_transient_timeout(self) -> None:
         class _Response:
