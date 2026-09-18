@@ -113,7 +113,6 @@ jobs:
 
       - name: Publish two-source mart to Iceberg
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
-        continue-on-error: true
         run: |
           status="$(python - <<'PY'
           import json
