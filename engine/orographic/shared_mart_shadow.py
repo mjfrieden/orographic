@@ -34,6 +34,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         execution = _path(root, manifest, "orographic_execution_quality_v1")
         exits = _path(root, manifest, "orographic_exit_replay_v1")
         disagreements = _path(root, manifest, "cirrus_orographic_disagreement_v1")
+        live_days = _path(root, manifest, "joint_live_day_coverage_v1")
         training = _path(root, manifest, "orographic_training_v1")
         monitoring = _path(root, manifest, "orographic_model_monitoring_v1")
         data_quality = _path(root, manifest, "mart_data_quality_v1")
@@ -86,10 +87,31 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                 count(*) FILTER (WHERE comparison_cohort = 'cirrus_only') AS cirrus_only,
                 count(*) FILTER (WHERE orographic_executable_return IS NOT NULL
                                   AND cirrus_executable_return IS NOT NULL) AS paired_executable_outcomes,
+                count(*) FILTER (WHERE both_live_lanes) AS paired_live_lanes,
+                count(*) FILTER (WHERE both_live_lanes
+                                  AND orographic_executable_return IS NOT NULL
+                                  AND cirrus_executable_return IS NOT NULL) AS paired_live_executable_outcomes,
                 avg(orographic_executable_return - cirrus_executable_return)
                     FILTER (WHERE orographic_executable_return IS NOT NULL
                             AND cirrus_executable_return IS NOT NULL) AS avg_orographic_minus_cirrus_return
             FROM read_parquet('{disagreements}')
+        """)
+        live_day_summary = _record(connection, f"""
+            SELECT count(*) AS live_market_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_recommendation_key IS NOT NULL)
+                       AS overlapping_live_market_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_recommendation_key IS NOT NULL
+                                     AND same_underlying) AS same_underlying_live_market_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_recommendation_key IS NOT NULL
+                                     AND same_contract) AS same_contract_live_market_dates,
+                   count(*) FILTER (WHERE orographic_recommendation_key IS NOT NULL
+                                     AND cirrus_recommendation_key IS NOT NULL
+                                     AND decision_lag_seconds <= 3600)
+                       AS synchronized_live_market_dates
+            FROM read_parquet('{live_days}')
         """)
         training_summary = _record(connection, f"""
             SELECT count(*) AS training_rows,
@@ -163,7 +185,14 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                        AS avg_direct_comparable_return_difference,
                    count(*) FILTER (WHERE same_contract) AS same_contract_pairs,
                    count(*) FILTER (WHERE same_contract AND decision_lag_seconds <= 3600)
-                       AS same_contract_synchronized_pairs
+                       AS same_contract_synchronized_pairs,
+                   count(*) FILTER (WHERE live_direct_return_comparable)
+                       AS live_direct_return_comparable_pairs,
+                   count(DISTINCT market_date) FILTER (WHERE live_direct_return_comparable)
+                       AS live_direct_return_comparable_market_dates,
+                   avg(orographic_executable_return - cirrus_executable_return)
+                       FILTER (WHERE live_direct_return_comparable)
+                       AS avg_live_direct_comparable_return_difference
             FROM read_parquet('{joint_pairs}')
         """)
     finally:
@@ -180,7 +209,9 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
     paired_market_dates = int(disagreement_summary.get("paired_market_dates") or 0)
     comparable_pairs = int(comparable_summary.get("direct_return_comparable_pairs") or 0)
     comparable_dates = int(comparable_summary.get("direct_return_comparable_market_dates") or 0)
-    shadow_ready = comparable_pairs >= 30 and comparable_dates >= 30
+    live_comparable_pairs = int(comparable_summary.get("live_direct_return_comparable_pairs") or 0)
+    live_comparable_dates = int(comparable_summary.get("live_direct_return_comparable_market_dates") or 0)
+    shadow_ready = live_comparable_pairs >= 30 and live_comparable_dates >= 30
     consumer_views = {
         name: {
             "rows": int(view.get("rows") or 0),
@@ -206,7 +237,17 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         },
         "execution_quality": execution_summary,
         "exit_replay": exit_summary,
-        "cross_system_comparison": {**disagreement_summary, **comparable_summary},
+        "cross_system_comparison": {
+            **disagreement_summary,
+            **live_day_summary,
+            **comparable_summary,
+            # Same-contract replay tests label parity, not strategy selection.
+            # A future pre-registered cross-contract comparison must fill these.
+            "alpha_comparison_design_id": None,
+            "risk_normalized_live_comparable_pairs": 0,
+            "risk_normalized_live_comparable_market_dates": 0,
+            "avg_risk_normalized_live_return_difference": None,
+        },
         "joint_learning": joint_learning_summary,
         "training_evidence": training_summary,
         "model_monitoring": monitoring_summary,
@@ -231,10 +272,16 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
             "direct_return_comparable_market_dates": {
                 "passed": comparable_dates >= 30, "actual": comparable_dates, "required": 30,
             },
+            "live_direct_return_comparable_pairs": {
+                "passed": live_comparable_pairs >= 30, "actual": live_comparable_pairs, "required": 30,
+            },
+            "live_direct_return_comparable_market_dates": {
+                "passed": live_comparable_dates >= 30, "actual": live_comparable_dates, "required": 30,
+            },
         },
         "next_action": (
             "Evaluate one pre-registered liquidity veto in shadow; do not change live routing."
             if shadow_ready
-            else "Collect synchronized same-contract pairs with a common executable label policy; keep pooled training disabled."
+            else "Collect synchronized live-lane quote paths and a pre-registered common executable replay; keep pooled training disabled."
         ),
     }

@@ -579,7 +579,7 @@ def _lane_decisions(
             _as_dict(mart_shadow.get("shadow_entry_gates")).get("paired_executable_outcomes")
         ).get("actual")
     paired_outcomes = int(paired_raw or 0)
-    comparable_pairs = int(cross.get("direct_return_comparable_pairs") or 0)
+    comparable_pairs = int(cross.get("live_direct_return_comparable_pairs") or 0)
     holdout_action = (
         "keep_observation_only" if int(challenger.get("paired_scans") or 0) > 0 else "open_observation_only"
     )
@@ -737,7 +737,7 @@ def _lane_decisions(
             "action": "collect",
             "authority": "observation_only",
             "reason": (
-                f"Only {comparable_pairs} directly comparable Cirrus/Orographic outcomes exist "
+                f"Only {comparable_pairs} directly comparable live-lane Cirrus/Orographic outcomes exist "
                 f"({paired_outcomes} raw pairs); alpha cannot be claimed until 30 comparable "
                 "pairs across 30 independent market dates clear."
             ),
@@ -758,12 +758,13 @@ def _cirrus_comparison(
     if cirrus_pin == "fallback" or mart_sync.get("cirrus_export_is_current") is False:
         stale = True
     paired = cross.get("paired_executable_outcomes")
-    comparable_pairs = int(cross.get("direct_return_comparable_pairs") or 0)
-    comparable_dates = int(cross.get("direct_return_comparable_market_dates") or 0)
-    lift = _number(cross.get("avg_direct_comparable_return_difference"))
+    comparable_pairs = int(cross.get("risk_normalized_live_comparable_pairs") or 0)
+    comparable_dates = int(cross.get("risk_normalized_live_comparable_market_dates") or 0)
+    design_id = str(cross.get("alpha_comparison_design_id") or "")
+    lift = _number(cross.get("avg_risk_normalized_live_return_difference"))
     if stale and paired:
         verdict = "stale_mart_insufficient_for_alpha"
-    elif comparable_pairs < 30 or comparable_dates < 30 or lift is None:
+    elif not design_id or comparable_pairs < 30 or comparable_dates < 30 or lift is None:
         verdict = "insufficient_paired_evidence"
     elif lift is not None and lift > 0:
         verdict = "orographic_ahead"
@@ -780,8 +781,13 @@ def _cirrus_comparison(
         "training_rows": mart_sync.get("training_rows"),
         "paired_executable_outcomes": paired,
         "paired_market_dates": cross.get("paired_market_dates"),
-        "direct_return_comparable_pairs": comparable_pairs,
-        "direct_return_comparable_market_dates": comparable_dates,
+        "direct_return_comparable_pairs": cross.get("direct_return_comparable_pairs"),
+        "direct_return_comparable_market_dates": cross.get("direct_return_comparable_market_dates"),
+        "live_direct_return_comparable_pairs": cross.get("live_direct_return_comparable_pairs"),
+        "live_direct_return_comparable_market_dates": cross.get("live_direct_return_comparable_market_dates"),
+        "risk_normalized_live_comparable_pairs": comparable_pairs,
+        "risk_normalized_live_comparable_market_dates": comparable_dates,
+        "alpha_comparison_design_id": design_id or None,
         "avg_orographic_minus_cirrus_return": lift,
         "orographic_only": cross.get("orographic_only"),
         "cirrus_only": cross.get("cirrus_only"),

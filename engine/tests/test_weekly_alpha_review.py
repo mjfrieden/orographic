@@ -436,6 +436,29 @@ class CirrusComparisonGateTests(unittest.TestCase):
         self.assertEqual(summary["alpha_verdict"], "insufficient_paired_evidence")
         self.assertIsNone(summary["avg_orographic_minus_cirrus_return"])
 
+    def test_same_contract_live_pairs_cannot_claim_strategy_alpha(self) -> None:
+        summary = _cirrus_comparison(
+            {
+                "generated_at_utc": "2026-09-11T15:00:00+00:00",
+                "cross_system_comparison": {
+                    "paired_executable_outcomes": 50,
+                    "direct_return_comparable_pairs": 31,
+                    "direct_return_comparable_market_dates": 31,
+                    "avg_direct_comparable_return_difference": 0.20,
+                    "live_direct_return_comparable_pairs": 31,
+                    "live_direct_return_comparable_market_dates": 31,
+                    "avg_live_direct_comparable_return_difference": 0.20,
+                },
+            },
+            {"status": "ready_two_source", "cirrus_pin": "current", "cirrus_export_is_current": True},
+            datetime(2026, 9, 11, 16, 0, tzinfo=UTC),
+        )
+        self.assertEqual(summary["alpha_verdict"], "insufficient_paired_evidence")
+        self.assertEqual(summary["direct_return_comparable_pairs"], 31)
+        self.assertEqual(summary["live_direct_return_comparable_pairs"], 31)
+        self.assertEqual(summary["risk_normalized_live_comparable_pairs"], 0)
+        self.assertIsNone(summary["avg_orographic_minus_cirrus_return"])
+
 
 class ProspectiveLedgerResolutionTests(unittest.TestCase):
     def test_restored_canonical_ledger_beats_stale_git_copy(self) -> None:

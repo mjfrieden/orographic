@@ -74,8 +74,9 @@ freshness, key integrity, point-in-time feature safety, option-side validity, sc
 post-entry path coverage, executable-label coverage, and same-date/symbol overlap.
 
 The September 15, 2026 audit found that both sources have complete conformed feature and score
-coverage after normalization, but joint evidence is still immature: 10 paired date/symbol rows across
-8 market dates and only 2 paired executable outcomes. The v2 conformance now retains position legs
+coverage after normalization, but joint evidence is still immature: 10 exploratory paired date/symbol
+rows across 8 market dates and only 2 paired executable outcomes. These include research lanes;
+there are no same-date/symbol live-versus-live pairs in that snapshot. The v2 conformance now retains position legs
 and experiment decisions. New scans can capture path IV/Greeks and Cirrus scan-time code revisions;
 Cirrus path outcomes now retain the selected quote's exact exit timestamp. The historical gaps cannot
 be reconstructed. The mart stays observation-only while those gaps and the existing
@@ -239,7 +240,8 @@ Orographic materializes nine versioned views from one validated local mart snaps
 | `orographic_training_v1` | Point-in-time Orographic features joined to executable labels | Observation only |
 | `orographic_execution_quality_v1` | Spread, liquidity, quote, feature, and outcome coverage | Research; later shadow veto |
 | `orographic_exit_replay_v1` | Executable ask-to-bid quote paths for frozen exit-policy replay | Shadow only |
-| `cirrus_orographic_disagreement_v1` | One top daily production recommendation per system and symbol (Orographic primary vs Cirrus prospective; America/New_York session dates; executable labels outrank paper picks) | Research only |
+| `cirrus_orographic_disagreement_v1` | One top daily recommendation per system and symbol (Orographic primary vs Cirrus prospective; America/New_York session dates; live lane first, then decision-time score; labels never select a pair) | Research only |
+| `joint_live_day_coverage_v1` | One top decision-time-scored live pick per system per New York market date, including different symbols; measures observation overlap, not return comparability | Diagnostics only |
 | `orographic_model_monitoring_v1` | Source/cohort/model/side monitoring aggregates | Diagnostics only |
 | `mart_data_quality_v1` | Per source/cohort null rates, spread anomalies, crossed quotes, and coverage | Diagnostics only |
 | `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |
@@ -268,11 +270,22 @@ identified as `lane_only`, never mistaken for a code/model revision.
 contract, decisions and entry/exit observations within 60 minutes, one identical executable label
 contract and exit policy on each side, and source-specific eligibility on both sides. The daily
 symbol disagreement view remains exploratory and its raw paired returns must not be
-read as an alpha estimate. The shadow evidence requires 30 comparable pairs across
-30 independent market dates before calling this comparison ready; it never grants
+read as an alpha estimate. A separate `live_direct_return_comparable` flag requires both selected
+recommendations to be from the live lane. This live-lane subset can test execution-label parity and
+contribute to a shadow-entry gate, but same-contract agreement cannot establish which system selects
+better trades. The weekly alpha verdict therefore requires a separate pre-registered,
+risk-normalized live strategy comparison with its own design ID, 30 matched market dates, and
+30 eligible pairs; no current mart view supplies that evidence. The shadow evidence requires 30
+live-lane execution-parity pairs across 30 independent market dates before calling that comparison ready; it never grants
 production routing or pooled-training authority. Current sources do not yet generate
 identical label policies, so the comparable count is expected to remain zero until a
 common, pre-registered replay policy is implemented.
+
+`joint_live_day_coverage_v1` reports live-day overlap even when the systems chose different symbols.
+The September 15 snapshot contains 9 common live market dates but no common live symbol/date pair.
+These 9 dates are collection opportunity, not alpha evidence: a comparison of distinct contracts
+still needs synchronized decision windows, a common executable entry/exit replay, and an explicitly
+defined risk-normalized comparison design.
 
 ### Data-quality scorecard (`mart_data_quality_v1`)
 
@@ -319,8 +332,8 @@ or order-routing authority. `scripts/build_rebuild_readiness.py` treats this bun
 fail-closed gate before a fold-frozen challenger can become eligible for promotion review.
 
 `scripts/build_shared_mart_shadow_evidence.py` turns these views into one compact diagnostic.
-It requires 30 directly comparable outcomes across 30 independent market dates (in addition to
-the legacy raw-pair counts) before recommending that a single liquidity veto enter shadow evaluation.
+It requires 30 directly comparable live-lane outcomes across 30 independent market dates (in addition to
+the exploratory raw-pair counts) before recommending that a single liquidity veto enter shadow evaluation.
 Passing those entry gates
 still grants no production authority; production promotion remains governed by the stricter rebuild
 readiness and paired-day comparison gates.

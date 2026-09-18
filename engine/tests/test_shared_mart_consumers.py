@@ -216,6 +216,7 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(manifest["views"]["orographic_execution_quality_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["orographic_exit_replay_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["cirrus_orographic_disagreement_v1"]["rows"], 1)
+            self.assertEqual(manifest["views"]["joint_live_day_coverage_v1"]["rows"], 0)
             self.assertEqual(manifest["views"]["mart_data_quality_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["orographic_training_funnel_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["joint_learning_candidates_v1"]["rows"], 2)
@@ -262,6 +263,9 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(shadow["cross_system_comparison"]["paired_executable_outcomes"], 1)
             self.assertEqual(shadow["cross_system_comparison"]["paired_market_dates"], 1)
             self.assertEqual(shadow["cross_system_comparison"]["direct_return_comparable_pairs"], 0)
+            self.assertEqual(shadow["cross_system_comparison"]["paired_live_lanes"], 0)
+            self.assertEqual(shadow["cross_system_comparison"]["live_direct_return_comparable_pairs"], 0)
+            self.assertFalse(shadow["shadow_entry_gates"]["live_direct_return_comparable_pairs"]["passed"])
             self.assertEqual(shadow["joint_learning"]["source_specific_training_rows"], 2)
             self.assertEqual(shadow["joint_learning"]["pooled_training_rows"], 0)
             self.assertEqual(shadow["training_evidence"]["market_dates"], 1)
@@ -382,7 +386,7 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(shadow["training_funnel"]["dropped_missing_feature"], 1)
             self.assertEqual(shadow["training_funnel"]["min_training_eligibility_rate"], 0.0)
 
-    def test_disagreement_pairs_primary_executable_not_paper_or_moonshot(self) -> None:
+    def test_disagreement_prioritizes_live_lane_without_outcome_selection(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             mart = root / "mart"
@@ -391,6 +395,7 @@ class SharedMartConsumerTests(unittest.TestCase):
             recs = pd.read_parquet(mart / "recommendations.parquet")
             paper = recs.loc[recs["recommendation_key"] == "orographic:rec-1"].copy()
             paper["recommendation_key"] = "orographic:paper-1"
+            paper["lane"] = "shadow"
             paper["score"] = 0.95
             paper["contract_symbol"] = "AAA260828C00120000"
             moonshot = recs.loc[recs["recommendation_key"] == "orographic:rec-1"].copy()
@@ -399,6 +404,8 @@ class SharedMartConsumerTests(unittest.TestCase):
             moonshot["lane"] = "moonshot"
             moonshot["score"] = 0.99
             moonshot["contract_symbol"] = "AAA260828C00110000"
+            recs.loc[recs["recommendation_key"] == "orographic:rec-1", "lane"] = "live"
+            recs.loc[recs["recommendation_key"] == "cirrus:rec-1", "lane"] = "live"
             recs = pd.concat([recs, paper, moonshot], ignore_index=True)
             recs.to_parquet(mart / "recommendations.parquet", index=False)
             manifest = json.loads((mart / "mart_manifest.json").read_text(encoding="utf-8"))
@@ -421,8 +428,41 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(len(disagreement), 1)
             self.assertEqual(disagreement.iloc[0]["orographic_recommendation_key"], "orographic:rec-1")
             self.assertEqual(disagreement.iloc[0]["orographic_cohort"], "primary_prospective")
+            self.assertEqual(disagreement.iloc[0]["orographic_lane"], "live")
             shadow = build_shared_mart_shadow_evidence(output)
             self.assertEqual(shadow["cross_system_comparison"]["paired_executable_outcomes"], 1)
+            self.assertEqual(shadow["cross_system_comparison"]["overlapping_live_market_dates"], 1)
+            self.assertEqual(shadow["cross_system_comparison"]["same_underlying_live_market_dates"], 1)
+            self.assertEqual(shadow["cross_system_comparison"]["same_contract_live_market_dates"], 0)
+
+            # If both recommendations are exploratory, the higher decision-time
+            # score wins even though it has no resolved outcome. The label must
+            # never be used to choose the comparison cohort.
+            recs.loc[recs["recommendation_key"] == "orographic:rec-1", "lane"] = "shadow"
+            recs.to_parquet(mart / "recommendations.parquet", index=False)
+            manifest["artifacts"]["recommendations"]["sha256"] = _sha(mart / "recommendations.parquet")
+            identity = {
+                "schema_version": manifest["schema_version"],
+                "sources": manifest["sources"],
+                "artifacts": manifest["artifacts"],
+                "validation": manifest["validation"],
+            }
+            manifest["mart_id"] = hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+            ).hexdigest()
+            (mart / "mart_manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+            build_shared_mart_consumer_bundle(mart, output)
+            disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
+            self.assertEqual(disagreement.iloc[0]["orographic_recommendation_key"], "orographic:paper-1")
+            self.assertTrue(pd.isna(disagreement.iloc[0]["orographic_executable_return"]))
+            self.assertEqual(
+                build_shared_mart_shadow_evidence(output)["cross_system_comparison"]["paired_executable_outcomes"],
+                0,
+            )
+            self.assertEqual(
+                build_shared_mart_shadow_evidence(output)["cross_system_comparison"]["overlapping_live_market_dates"],
+                0,
+            )
 
     def test_disagreement_pairs_on_new_york_session_dates(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

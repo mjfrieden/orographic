@@ -194,7 +194,8 @@ VIEW_SQL: dict[str, str] = {
                         ),
                         upper(replace(replace(trim(CAST(r.underlying_symbol AS VARCHAR)), '/', '.'), '-', '.')),
                         r.source_system
-                    ORDER BY (o.executable_return IS NOT NULL) DESC, r.score DESC NULLS LAST, r.recommendation_key
+                    ORDER BY CASE WHEN r.lane = 'live' THEN 0 ELSE 1 END,
+                             r.score DESC NULLS LAST, r.recommendation_key
                 ) AS daily_rank
             FROM recommendations r
             LEFT JOIN outcomes o USING (recommendation_key)
@@ -218,6 +219,9 @@ VIEW_SQL: dict[str, str] = {
             c.recommendation_key AS cirrus_recommendation_key,
             o.cohort AS orographic_cohort,
             c.cohort AS cirrus_cohort,
+            o.lane AS orographic_lane,
+            c.lane AS cirrus_lane,
+            coalesce(o.lane = 'live' AND c.lane = 'live', false) AS both_live_lanes,
             o.model_version AS orographic_model_version,
             c.model_version AS cirrus_model_version,
             o.option_type AS orographic_option_type,
@@ -245,6 +249,54 @@ VIEW_SQL: dict[str, str] = {
         FULL OUTER JOIN cirrus c
           ON o.market_date = c.market_date
          AND o.join_symbol = c.join_symbol
+    """,
+    "joint_live_day_coverage_v1": """
+        WITH ranked AS (
+            SELECT r.*,
+                coalesce(
+                    try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                    CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                          AT TIME ZONE 'America/New_York') AS DATE)
+                ) AS market_date,
+                row_number() OVER (
+                    PARTITION BY r.source_system,
+                        coalesce(
+                            try_cast(json_extract_string(r.source_payload_json, '$.scan_date') AS DATE),
+                            CAST((CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                                  AT TIME ZONE 'America/New_York') AS DATE)
+                        )
+                    ORDER BY r.score DESC NULLS LAST, r.recommendation_key
+                ) AS live_day_rank
+            FROM recommendations r
+            WHERE r.lane = 'live'
+              AND ((r.source_system = 'orographic'
+                    AND r.cohort IN ('primary', 'primary_prospective'))
+                OR (r.source_system = 'cirrus'
+                    AND r.cohort IN ('prospective', 'cirrus_prospective')))
+        ), oro AS (
+            SELECT * FROM ranked WHERE source_system = 'orographic' AND live_day_rank = 1
+        ), cirrus AS (
+            SELECT * FROM ranked WHERE source_system = 'cirrus' AND live_day_rank = 1
+        )
+        SELECT coalesce(o.market_date, c.market_date) AS market_date,
+            o.recommendation_key AS orographic_recommendation_key,
+            c.recommendation_key AS cirrus_recommendation_key,
+            o.underlying_symbol AS orographic_underlying_symbol,
+            c.underlying_symbol AS cirrus_underlying_symbol,
+            o.contract_symbol AS orographic_contract_symbol,
+            c.contract_symbol AS cirrus_contract_symbol,
+            o.decision_at_utc AS orographic_decision_at_utc,
+            c.decision_at_utc AS cirrus_decision_at_utc,
+            abs(date_diff('second', CAST(o.decision_at_utc AS TIMESTAMPTZ),
+                         CAST(c.decision_at_utc AS TIMESTAMPTZ))) AS decision_lag_seconds,
+            coalesce(upper(replace(replace(trim(o.underlying_symbol), '/', '.'), '-', '.'))
+                  = upper(replace(replace(trim(c.underlying_symbol), '/', '.'), '-', '.')), false)
+                AS same_underlying,
+            coalesce(o.contract_symbol = c.contract_symbol, false) AS same_contract,
+            o.source_bundle_id AS orographic_source_bundle_id,
+            c.source_bundle_id AS cirrus_source_bundle_id
+        FROM oro o
+        FULL OUTER JOIN cirrus c USING (market_date)
     """,
     "orographic_model_monitoring_v1": """
         SELECT
@@ -528,7 +580,7 @@ VIEW_SQL: dict[str, str] = {
             SELECT recommendation_key,
                    bool_or(source_specific_training_eligible) AS source_specific_training_eligible
             FROM joint_learning_candidates_v1 GROUP BY recommendation_key
-        )
+        ), comparisons AS (
         SELECT d.*,
             o.decision_at_utc AS orographic_decision_at_utc,
             c.decision_at_utc AS cirrus_decision_at_utc,
@@ -565,6 +617,10 @@ VIEW_SQL: dict[str, str] = {
         LEFT JOIN labels cl ON cl.recommendation_key = d.cirrus_recommendation_key
         LEFT JOIN candidate_quality oq ON oq.recommendation_key = d.orographic_recommendation_key
         LEFT JOIN candidate_quality cq ON cq.recommendation_key = d.cirrus_recommendation_key
+        )
+        SELECT *, (both_live_lanes AND direct_return_comparable)
+            AS live_direct_return_comparable
+        FROM comparisons
     """,
 }
 
@@ -574,6 +630,7 @@ VIEW_KEYS: dict[str, tuple[str, ...]] = {
     "orographic_execution_quality_v1": ("recommendation_key",),
     "orographic_exit_replay_v1": ("recommendation_key", "quote_key"),
     "cirrus_orographic_disagreement_v1": ("market_date", "underlying_symbol"),
+    "joint_live_day_coverage_v1": ("market_date",),
     "orographic_model_monitoring_v1": ("source_system", "cohort", "model_version", "option_type"),
     "mart_data_quality_v1": ("source_system", "cohort"),
     "orographic_training_funnel_v1": ("source_system", "cohort"),
