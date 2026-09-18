@@ -42,6 +42,7 @@ class RebuildReadinessTests(unittest.TestCase):
                     "joint_paired_comparisons_v1",
                     "joint_fixed_24h_replay_v1",
                     "joint_fixed_24h_shadow_pairs_v1",
+                    "joint_quote_provenance_v1",
                 )
             },
         }

@@ -97,6 +97,7 @@ fresh decision-time feature. Executable return labels continue to rely on bid/as
 | `recommendations` | One model recommendation or shadow candidate | `recommendation_key` |
 | `execution_outcomes` | One recommendation under one frozen exit policy | `outcome_key` |
 | `option_quotes` | One source quote observation | `quote_key` |
+| `quote_provenance` | One record per recommendation-linked quote, or unlinked quote with additional provider timing | `quote_key` |
 | `feature_snapshots` | One point-in-time feature schema per recommendation | `feature_key` |
 | `path_exclusions` | One exclusion reason per recommendation | `exclusion_key` |
 | `position_legs` | One observed or inferred contract leg per recommendation | `leg_key` |
@@ -203,7 +204,7 @@ Install the optional publisher dependency and publish only after reviewing the p
   --apply
 ```
 
-Publication refuses an Orographic-only or Cirrus-only mart. It merges all nine data tables and
+Publication refuses an Orographic-only or Cirrus-only mart. It merges all ten data tables and
 commits `mart_publications` last so a consumer can distinguish a completed publication from an
 interrupted one.
 
@@ -233,7 +234,7 @@ No production selector, model, trade gate, or execution setting is changed by th
 
 ## Orographic consumer rollout
 
-Orographic materializes nine versioned views from one validated local mart snapshot:
+Orographic materializes fourteen versioned views from one validated local mart snapshot:
 
 | View | Purpose | Initial authority |
 | --- | --- | --- |
@@ -250,6 +251,7 @@ Orographic materializes nine versioned views from one validated local mart snaps
 | `joint_paired_comparisons_v1` | Daily pairs with contract, timing, label-policy, and source-quality comparability checks | Research only |
 | `joint_fixed_24h_replay_v1` | One common decision-ask to observed-bid research label per recommendation, nearest to 24 hours within a fixed ±3-hour window | Observation only |
 | `joint_fixed_24h_shadow_pairs_v1` | Orographic-live versus Cirrus-shadow market dates joined to the common replay with synchronized-decision and feature-provenance checks | Exploratory only; never alpha or routing |
+| `joint_quote_provenance_v1` | Quote counts by source and timestamp basis, including last-trade recency and two-sided provider-time coverage | Observation only |
 
 ### Joint-learning contract (mart v2)
 
@@ -314,9 +316,15 @@ can be replayed. Unsupported structures, missing asks, path exclusions, and
 missing window quotes receive explicit reasons rather than inferred returns.
 
 The resulting `(exit bid / entry ask) - 1` is an equal-premium *research* return, not a verified
-fill or a fully risk-adjusted alpha measure. The mart does not yet preserve Cirrus's upstream
-`quote_age_days` or a symmetric broker quote-age field, so quote freshness remains an explicit
-limitation. `joint_fixed_24h_shadow_pairs_v1` requires both replay rows, native point-in-time
+fill or a fully risk-adjusted alpha measure. The v3 mart preserves `quote_provenance` for
+recommendation-linked quotes and unlinked quotes with additional provider timing, including Cirrus's
+upstream `quote_age_days` as `last_trade_age_days`. That field measures
+time since a contract's last trade, **not** the age of its bid/ask quote. Cirrus's current source
+does not provide separate provider bid and ask timestamps; its `timestamp_basis` therefore remains
+`capture_time_plus_last_trade_recency` (or `capture_time_only` when recency is missing). Orographic
+provider bid/ask timestamps are preserved where captured. Reused Cirrus rows from a v1/v2 mart
+receive `capture_time_only` without invented history. The replay exposes exit provenance but does
+not promote it to verified quote freshness or alpha authority. `joint_fixed_24h_shadow_pairs_v1` requires both replay rows, native point-in-time
 features, and decisions within one hour on the same New York market date. It exposes an
 equal-premium difference only when these conditions hold and always sets
 `production_alpha_eligible=false`. The September 15 snapshot yields 12 Orographic-live and 3

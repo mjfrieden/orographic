@@ -16,7 +16,8 @@ import pandas as pd
 from .evidence_store import validate_canonical_bundle
 
 
-MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v2"
+MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v3"
+V2_MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v2"
 LEGACY_MART_SCHEMA_VERSION = "cirrus_orographic_research_mart_v1"
 
 # Point-in-time-safe feature schema for Orographic recommendation-time evidence.
@@ -85,6 +86,15 @@ TABLE_CONTRACTS: dict[str, TableContract] = {
             "source_bundle_id",
         ),
     ),
+    "quote_provenance": TableContract(
+        primary_key=("quote_key",),
+        columns=(
+            "quote_key", "source_system", "cohort", "capture_at_utc",
+            "bid_observed_at_utc", "ask_observed_at_utc",
+            "last_trade_observed_at_utc", "broker_quote_age_seconds",
+            "last_trade_age_days", "timestamp_basis", "source_bundle_id",
+        ),
+    ),
     "feature_snapshots": TableContract(
         primary_key=("feature_key",),
         columns=(
@@ -126,10 +136,24 @@ TABLE_CONTRACTS: dict[str, TableContract] = {
     ),
 }
 
-LEGACY_TABLE_CONTRACTS = {
+V2_TABLE_CONTRACTS = {
     name: contract for name, contract in TABLE_CONTRACTS.items()
+    if name != "quote_provenance"
+}
+LEGACY_TABLE_CONTRACTS = {
+    name: contract for name, contract in V2_TABLE_CONTRACTS.items()
     if name not in {"position_legs", "experiment_tags", "experiment_scan_decisions"}
 }
+
+
+def contracts_for_schema(schema_version: str) -> dict[str, TableContract]:
+    if schema_version == MART_SCHEMA_VERSION:
+        return TABLE_CONTRACTS
+    if schema_version == V2_MART_SCHEMA_VERSION:
+        return V2_TABLE_CONTRACTS
+    if schema_version == LEGACY_MART_SCHEMA_VERSION:
+        return LEGACY_TABLE_CONTRACTS
+    raise ValueError(f"Unsupported shared mart schema version: {schema_version}")
 
 
 def _now_iso() -> str:
@@ -339,12 +363,50 @@ def _orographic_path_quote_row(
     }
 
 
+def _quote_provenance_row(
+    quote: dict[str, Any],
+    source: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Keep market-data timestamps distinct from capture and last-trade recency."""
+    source = source or {}
+    bid_at = _text(source.get("bid_observed_at_utc"))
+    ask_at = _text(source.get("ask_observed_at_utc"))
+    trade_at = _text(source.get("trade_observed_at_utc"))
+    last_trade_age = _integer(source.get("quote_age_days"))
+    if bid_at and ask_at:
+        basis = "bid_and_ask_provider_time"
+    elif bid_at:
+        basis = "bid_provider_time_only"
+    elif ask_at:
+        basis = "ask_provider_time_only"
+    elif trade_at:
+        basis = "trade_provider_time_only"
+    elif last_trade_age is not None:
+        basis = "capture_time_plus_last_trade_recency"
+    else:
+        basis = "capture_time_only"
+    return {
+        "quote_key": quote["quote_key"],
+        "source_system": quote["source_system"],
+        "cohort": quote["cohort"],
+        "capture_at_utc": quote["observed_at_utc"],
+        "bid_observed_at_utc": bid_at,
+        "ask_observed_at_utc": ask_at,
+        "last_trade_observed_at_utc": trade_at,
+        "broker_quote_age_seconds": _number(source.get("broker_quote_age_seconds")),
+        "last_trade_age_days": last_trade_age,
+        "timestamp_basis": basis,
+        "source_bundle_id": quote["source_bundle_id"],
+    }
+
+
 def _orographic_pick_path_quotes(
     pick: dict[str, Any],
     *,
     recommendation_key: str,
     cohort: str,
     bundle_id: str,
+    provenance_rows: list[dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Materialize recommendation-linked quotes from emission, trajectory, and archive paths.
 
@@ -372,6 +434,8 @@ def _orographic_pick_path_quotes(
             return
         seen_observations.add(row["observed_at_utc"])
         rows.append(row)
+        if provenance_rows is not None:
+            provenance_rows.append(_quote_provenance_row(row, mark))
 
     emission = pick.get("emission_quote") if isinstance(pick.get("emission_quote"), dict) else {}
     if emission:
@@ -532,6 +596,7 @@ def _orographic_rows(
                         recommendation_key=rec_key,
                         cohort=cohort,
                         bundle_id=bundle_id,
+                        provenance_rows=result["quote_provenance"],
                     )
                 )
 
@@ -601,7 +666,7 @@ def _orographic_rows(
         contract = _text(row.get("contract_symbol"))
         source = _text(row.get("canonical_source_file") or row.get("source")) or "orographic_chain"
         quote_key = "orographic_market|" + "|".join(filter(None, (contract, observed, source)))
-        result["option_quotes"].append({
+        quote_row = {
             "quote_key": quote_key, "source_system": "orographic", "cohort": "shared_market",
             "recommendation_key": None, "contract_symbol": contract,
             "underlying_symbol": _text(row.get("underlying_symbol") or row.get("symbol")),
@@ -616,7 +681,11 @@ def _orographic_rows(
             "theta_per_day": _number(row.get("theta") or row.get("theta_per_day")),
             "vega": _number(row.get("vega")),
             "source_bundle_id": bundle_id,
-        })
+        }
+        result["option_quotes"].append(quote_row)
+        provenance = _quote_provenance_row(quote_row, row)
+        if provenance["timestamp_basis"] != "capture_time_only":
+            result["quote_provenance"].append(provenance)
     for rec in result["recommendations"]:
         rec_key = rec["recommendation_key"]
         result["position_legs"].append({
@@ -779,7 +848,7 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
         observed = _text(row.get("observed_ts"))
         source = _text(row.get("source")) or "unknown"
         rec_key = _recommendation_key("cirrus", "prospective", pick_id)
-        result["option_quotes"].append({
+        quote_row = {
             "quote_key": f"cirrus_market|{pick_id}|{observed}|{source}",
             "source_system": "cirrus", "cohort": "prospective",
             "recommendation_key": rec_key, "contract_symbol": _text(pick.get("contract_symbol")),
@@ -793,7 +862,9 @@ def _cirrus_rows(export_dir: Path, manifest: dict[str, Any]) -> dict[str, list[d
             "delta": _number(row.get("delta")), "gamma": _number(row.get("gamma")),
             "theta_per_day": _number(row.get("theta_per_day")), "vega": _number(row.get("vega")),
             "source_bundle_id": bundle_id,
-        })
+        }
+        result["option_quotes"].append(quote_row)
+        result["quote_provenance"].append(_quote_provenance_row(quote_row, row))
     for row in _frame_records(frames["candidate_feature_snapshots"]):
         pick_id = int(row["tracked_pick_id"])
         rec_key = _recommendation_key("cirrus", "prospective", pick_id)
@@ -857,6 +928,47 @@ def _validate_tables(
             failures.append(f"experiment_scan_decisions:orphan_runs={orphan_decisions}")
     quote_children = frames["option_quotes"]["recommendation_key"].dropna()
     orphan_children["option_quotes"] = int((~quote_children.isin(rec_keys)).sum())
+    if "quote_provenance" in frames:
+        quote_keys = set(frames["option_quotes"]["quote_key"])
+        linked_quote_keys = set(frames["option_quotes"].loc[
+            frames["option_quotes"]["recommendation_key"].notna(), "quote_key"
+        ])
+        provenance_keys = set(frames["quote_provenance"]["quote_key"])
+        missing_provenance = len(linked_quote_keys - provenance_keys)
+        orphan_provenance = len(provenance_keys - quote_keys)
+        checks["every_linked_quote_has_provenance"] = missing_provenance == 0
+        checks["provenance_has_quote"] = orphan_provenance == 0
+        if missing_provenance:
+            failures.append(f"quote_provenance:missing_quotes={missing_provenance}")
+        if orphan_provenance:
+            failures.append(f"quote_provenance:orphan_quotes={orphan_provenance}")
+        joined_provenance = frames["quote_provenance"].merge(
+            frames["option_quotes"][["quote_key", "source_system", "cohort", "observed_at_utc"]],
+            on="quote_key", how="inner", suffixes=("_provenance", "_quote"),
+            validate="one_to_one",
+        )
+        mismatched_provenance = int((
+            (joined_provenance["source_system_provenance"] != joined_provenance["source_system_quote"])
+            | (joined_provenance["cohort_provenance"] != joined_provenance["cohort_quote"])
+            | (joined_provenance["capture_at_utc"] != joined_provenance["observed_at_utc"])
+        ).sum())
+        checks["provenance_matches_quote_identity"] = mismatched_provenance == 0
+        if mismatched_provenance:
+            failures.append(f"quote_provenance:mismatched_quote_identity={mismatched_provenance}")
+        allowed_bases = {
+            "bid_and_ask_provider_time", "bid_provider_time_only",
+            "ask_provider_time_only", "trade_provider_time_only",
+            "capture_time_plus_last_trade_recency", "capture_time_only",
+        }
+        invalid_basis = int((~frames["quote_provenance"]["timestamp_basis"].isin(allowed_bases)).sum())
+        checks["provenance_timestamp_basis_valid"] = invalid_basis == 0
+        if invalid_basis:
+            failures.append(f"quote_provenance:invalid_timestamp_basis={invalid_basis}")
+        age = pd.to_numeric(frames["quote_provenance"]["last_trade_age_days"], errors="coerce")
+        negative_age = int((age < 0).sum())
+        checks["last_trade_age_nonnegative"] = negative_age == 0
+        if negative_age:
+            failures.append(f"quote_provenance:negative_last_trade_age={negative_age}")
     checks["recommendations_have_runs"] = orphan_recommendations == 0
     checks["children_have_recommendations"] = all(value == 0 for value in orphan_children.values())
     if orphan_recommendations:
@@ -954,6 +1066,12 @@ def load_source_rows_from_mart(
             frame = frame.loc[frame["source_system"].astype(str) == wanted].copy()
         for record in _frame_records(frame):
             rows[name].append({column: record.get(column) for column in contract.columns})
+    known_provenance = {row["quote_key"] for row in rows["quote_provenance"]}
+    for quote in rows["option_quotes"]:
+        if quote["recommendation_key"] is not None and quote["quote_key"] not in known_provenance:
+            # A v1/v2 mart omitted source quote-clock fields. Do not infer a
+            # provider timestamp or last-trade age from its capture time.
+            rows["quote_provenance"].append(_quote_provenance_row(quote))
     source_meta = next(
         (
             dict(row)
@@ -1071,7 +1189,9 @@ def validate_shared_research_mart(directory: str | Path) -> dict[str, Any]:
     if manifest.get("artifact") != "cirrus_orographic_shared_research_mart":
         failures.append("artifact")
     schema_version = manifest.get("schema_version")
-    if schema_version not in {MART_SCHEMA_VERSION, LEGACY_MART_SCHEMA_VERSION}:
+    if schema_version not in {
+        MART_SCHEMA_VERSION, V2_MART_SCHEMA_VERSION, LEGACY_MART_SCHEMA_VERSION
+    }:
         failures.append("schema_version")
     if _nested(manifest, "validation", "status") != "passed":
         failures.append("stored_validation")
@@ -1085,10 +1205,7 @@ def validate_shared_research_mart(directory: str | Path) -> dict[str, Any]:
     if manifest.get("mart_id") != expected_mart_id:
         failures.append("mart_id")
     frames: dict[str, pd.DataFrame] = {}
-    contracts = (
-        LEGACY_TABLE_CONTRACTS
-        if schema_version == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
-    )
+    contracts = contracts_for_schema(schema_version)
     for name, contract in contracts.items():
         artifact = dict(manifest.get("artifacts") or {}).get(name, {})
         path = root / str(artifact.get("path") or f"{name}.parquet")

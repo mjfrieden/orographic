@@ -47,6 +47,7 @@ def _write_cirrus_export(root: Path) -> None:
             "tracked_pick_id": 10, "observed_date": "2026-08-21",
             "observed_ts": "2026-08-21T20:00:00+00:00", "source": "live_chain_mark",
             "bid": 1.5, "ask": 1.6, "mid": 1.55, "executable_exit": 1.5,
+            "quote_age_days": 2,
         }]),
         "option_path_outcomes": pd.DataFrame([{
             "tracked_pick_id": 10, "observation_count": 2,
@@ -165,6 +166,25 @@ class SharedResearchMartTests(unittest.TestCase):
         self.assertEqual(row["open_interest"], 120)
         self.assertEqual(row["implied_volatility"], 0.35)
         self.assertEqual(row["delta"], 0.42)
+
+    def test_quote_provenance_distinguishes_last_trade_from_bid_ask_time(self) -> None:
+        from engine.orographic.shared_research_mart import _quote_provenance_row
+
+        quote = {
+            "quote_key": "cirrus:quote", "source_system": "cirrus",
+            "cohort": "prospective", "observed_at_utc": "2026-08-21T20:00:00+00:00",
+            "source_bundle_id": "bundle",
+        }
+        cirrus = _quote_provenance_row(quote, {"quote_age_days": 2})
+        self.assertEqual(cirrus["last_trade_age_days"], 2)
+        self.assertEqual(cirrus["timestamp_basis"], "capture_time_plus_last_trade_recency")
+        self.assertIsNone(cirrus["bid_observed_at_utc"])
+        self.assertIsNone(cirrus["ask_observed_at_utc"])
+        broker = _quote_provenance_row(quote, {
+            "bid_observed_at_utc": "2026-08-21T19:59:50+00:00",
+            "ask_observed_at_utc": "2026-08-21T19:59:52+00:00",
+        })
+        self.assertEqual(broker["timestamp_basis"], "bid_and_ask_provider_time")
 
     def test_normalizes_cirrus_put_direction_and_orographic_scout_score(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -293,6 +313,16 @@ class SharedResearchMartTests(unittest.TestCase):
             )
 
             self.assertEqual(manifest["validation"]["status"], "passed")
+
+            provenance = pd.read_parquet(mart / "quote_provenance.parquet")
+            quotes = pd.read_parquet(mart / "option_quotes.parquet")
+            self.assertEqual(
+                len(provenance),
+                int(quotes["recommendation_key"].notna().sum()),
+            )
+            cirrus_mark = provenance.loc[provenance["source_system"] == "cirrus"].iloc[0]
+            self.assertEqual(cirrus_mark["last_trade_age_days"], 2)
+            self.assertEqual(cirrus_mark["timestamp_basis"], "capture_time_plus_last_trade_recency")
             self.assertEqual(manifest["artifacts"]["model_runs"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["recommendations"]["rows"], 2)
             self.assertEqual(manifest["artifacts"]["execution_outcomes"]["rows"], 2)

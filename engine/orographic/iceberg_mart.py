@@ -7,9 +7,7 @@ import re
 from typing import Any
 
 from .shared_research_mart import (
-    LEGACY_MART_SCHEMA_VERSION,
-    LEGACY_TABLE_CONTRACTS,
-    TABLE_CONTRACTS,
+    contracts_for_schema,
     validate_shared_research_mart,
 )
 
@@ -42,10 +40,7 @@ def build_iceberg_publication_plan(
             "Shared mart publication requires all sources: " + ", ".join(missing_sources)
         )
     tables = []
-    contracts = (
-        LEGACY_TABLE_CONTRACTS
-        if manifest["schema_version"] == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
-    )
+    contracts = contracts_for_schema(manifest["schema_version"])
     for name, contract in contracts.items():
         artifact = manifest["artifacts"][name]
         tables.append({
@@ -114,10 +109,7 @@ def publish_iceberg_mart(
     plan = build_iceberg_publication_plan(
         mart_dir=mart_dir, catalog_name=catalog_name, namespace=namespace
     )
-    contracts = (
-        LEGACY_TABLE_CONTRACTS
-        if plan["schema_version"] == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
-    )
+    contracts = contracts_for_schema(plan["schema_version"])
     try:
         import duckdb
     except ImportError as exc:  # pragma: no cover - depends on optional runtime
@@ -262,14 +254,11 @@ def verify_iceberg_mart(
     catalog_name: str = "r2_mart",
     namespace: str = "research_mart",
 ) -> dict[str, Any]:
-    contracts = (
-        LEGACY_TABLE_CONTRACTS
-        if manifest.get("schema_version") == LEGACY_MART_SCHEMA_VERSION else TABLE_CONTRACTS
-    )
     env = publication_environment()
     missing = [name for name, value in env.items() if not value]
     if missing:
         raise ValueError("Missing Iceberg publication configuration: " + ", ".join(missing))
+    contracts = contracts_for_schema(manifest.get("schema_version"))
     catalog = _identifier(catalog_name, label="catalog name")
     schema = _identifier(namespace, label="namespace")
     try:

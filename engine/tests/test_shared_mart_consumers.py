@@ -18,6 +18,7 @@ from engine.orographic.shared_research_mart import (
     LEGACY_MART_SCHEMA_VERSION,
     MART_SCHEMA_VERSION,
     TABLE_CONTRACTS,
+    _quote_provenance_row,
     load_source_rows_from_mart,
     validate_shared_research_mart,
 )
@@ -146,6 +147,7 @@ def _write_mart(root: Path) -> None:
         "experiment_tags": [],
         "experiment_scan_decisions": [],
     }
+    rows["quote_provenance"] = [_quote_provenance_row(quote) for quote in rows["option_quotes"]]
     artifacts = {}
     for name, contract in TABLE_CONTRACTS.items():
         frame = pd.DataFrame(rows[name], columns=contract.columns)
@@ -199,7 +201,7 @@ class SharedMartConsumerTests(unittest.TestCase):
             manifest_path = mart / "mart_manifest.json"
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             manifest["schema_version"] = LEGACY_MART_SCHEMA_VERSION
-            for name in ("position_legs", "experiment_tags", "experiment_scan_decisions"):
+            for name in ("position_legs", "experiment_tags", "experiment_scan_decisions", "quote_provenance"):
                 manifest["artifacts"].pop(name)
             identity = {key: manifest[key] for key in (
                 "schema_version", "sources", "artifacts", "validation"
@@ -213,7 +215,9 @@ class SharedMartConsumerTests(unittest.TestCase):
             rows, _ = load_source_rows_from_mart(mart, "cirrus")
             self.assertEqual(len(rows["recommendations"]), 1)
             self.assertEqual(rows["position_legs"], [])
-            with self.assertRaisesRegex(ValueError, "rebuilt v2"):
+            self.assertEqual(len(rows["quote_provenance"]), 1)
+            self.assertEqual(rows["quote_provenance"][0]["timestamp_basis"], "capture_time_only")
+            with self.assertRaisesRegex(ValueError, "rebuilt v3"):
                 build_shared_mart_consumer_bundle(mart, mart / "consumers")
 
     def test_builds_pinned_observation_only_views(self) -> None:
@@ -240,6 +244,7 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(manifest["views"]["joint_paired_comparisons_v1"]["rows"], 1)
             self.assertEqual(manifest["views"]["joint_fixed_24h_replay_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["joint_fixed_24h_shadow_pairs_v1"]["rows"], 1)
+            self.assertEqual(manifest["views"]["joint_quote_provenance_v1"]["rows"], 2)
             disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
             self.assertEqual(disagreement.iloc[0]["comparison_cohort"], "same_side_different_contract")
             pairs = pd.read_parquet(output / "joint_paired_comparisons_v1.parquet")
@@ -329,7 +334,14 @@ class SharedMartConsumerTests(unittest.TestCase):
             exits["quote_source"] = ["trajectory_mark", "live_chain_mark"]
             quotes = pd.concat([quotes, exits], ignore_index=True)
             quotes.to_parquet(quotes_path, index=False)
-            _repin_mart(mart, ("recommendations", "option_quotes"))
+            provenance_path = mart / "quote_provenance.parquet"
+            provenance = pd.read_parquet(provenance_path)
+            provenance = pd.concat([
+                provenance,
+                pd.DataFrame([_quote_provenance_row(quote) for quote in exits.to_dict("records")]),
+            ], ignore_index=True)
+            provenance.to_parquet(provenance_path, index=False)
+            _repin_mart(mart, ("recommendations", "option_quotes", "quote_provenance"))
 
             output = root / "consumers"
             build_shared_mart_consumer_bundle(mart, output)
