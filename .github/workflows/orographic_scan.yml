@@ -350,35 +350,20 @@ jobs:
         if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' }}
         continue-on-error: true
         run: |
-          for attempt in 1 2 3 4; do
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
-              echo "Snapshot push succeeded on attempt ${attempt}."
-              exit 0
-            fi
-            if [ "$attempt" -eq 4 ]; then
-              echo "Snapshot push failed after ${attempt} attempts." >&2
-              exit 1
-            fi
-            git fetch origin "${GITHUB_REF_NAME}"
-            # During rebase, "ours" is the updated remote branch. Preserve
-            # newer outcome-capture evidence if both jobs touched one file.
-            git rebase -X ours "origin/${GITHUB_REF_NAME}"
-            sleep_seconds=$((attempt * 15))
-            echo "Retrying snapshot push in ${sleep_seconds}s..."
-            sleep "${sleep_seconds}"
-          done
+          python scripts/push_scan_artifacts.py --branch "${GITHUB_REF_NAME}"
 
       - name: Set up Node
-        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && steps.push_snapshot.outcome == 'success' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         uses: actions/setup-node@v6
         with:
           node-version: "22"
 
       - name: Deploy refreshed snapshot to Cloudflare Pages
         id: deploy_pages
-        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && steps.push_snapshot.outcome == 'success' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         continue-on-error: true
         run: |
+          python scripts/validate_publish_snapshot.py
           python scripts/build_pages_bundle.py
           npx wrangler pages deploy output/pages_bundle \
             --project-name orographic \
@@ -483,29 +468,14 @@ jobs:
         if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' }}
         continue-on-error: true
         run: |
-          for attempt in 1 2 3 4; do
-            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
-              echo "Scan health summary push succeeded on attempt ${attempt}."
-              exit 0
-            fi
-            if [ "$attempt" -eq 4 ]; then
-              echo "Scan health summary push failed after ${attempt} attempts." >&2
-              exit 1
-            fi
-            git fetch origin "${GITHUB_REF_NAME}"
-            # Keep concurrently published outcome evidence on conflicts while
-            # replaying the scan-only health summary commit.
-            git rebase -X ours "origin/${GITHUB_REF_NAME}"
-            sleep_seconds=$((attempt * 15))
-            echo "Retrying scan health summary push in ${sleep_seconds}s..."
-            sleep "${sleep_seconds}"
-          done
+          python scripts/push_scan_artifacts.py --branch "${GITHUB_REF_NAME}"
 
       - name: Deploy scan health summary to Cloudflare Pages
         id: deploy_health_summary
-        if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' && steps.push_health_summary.outcome == 'success' && steps.push_snapshot.outcome != 'failure' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         continue-on-error: true
         run: |
+          python scripts/validate_publish_snapshot.py
           python scripts/build_pages_bundle.py
           npx wrangler pages deploy output/pages_bundle \
             --project-name orographic \
@@ -528,7 +498,7 @@ jobs:
       - name: Fail when snapshot push did not reach GitHub
         if: ${{ steps.snapshot.outputs.snapshot_changed == 'true' && steps.push_snapshot.outcome == 'failure' }}
         run: |
-          echo "Snapshot deploy completed, but GitHub push never succeeded." >&2
+          echo "Snapshot publication blocked because GitHub push never succeeded." >&2
           exit 1
 
       - name: Fail when Cloudflare Pages deploy failed
