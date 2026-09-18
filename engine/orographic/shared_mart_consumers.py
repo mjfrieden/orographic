@@ -13,7 +13,7 @@ import uuid
 from .shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS, validate_shared_research_mart
 
 
-CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v2"
+CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v3"
 PRODUCTION_AUTHORITY = "observation_only_never_used_for_routing"
 
 
@@ -671,6 +671,164 @@ VIEW_SQL: dict[str, str] = {
             AS live_direct_return_comparable
         FROM comparisons
     """,
+    "joint_fixed_24h_replay_v1": """
+        WITH structure AS (
+            SELECT recommendation_key,
+                count(*) AS leg_count,
+                count(*) FILTER (WHERE role = 'long' AND quantity = 1) AS long_unit_legs,
+                count(*) FILTER (WHERE role = 'short' AND quantity = -1) AS short_unit_legs,
+                count(DISTINCT regexp_extract(contract_symbol, '([0-9]{6}[CP])[0-9]{8}$', 1))
+                    AS option_family_count,
+                count(DISTINCT regexp_replace(contract_symbol, '[0-9]{6}[CP][0-9]{8}$', ''))
+                    AS option_root_count,
+                max(strike) FILTER (WHERE role = 'long') AS long_strike,
+                max(strike) FILTER (WHERE role = 'short') AS short_strike,
+                bool_and(regexp_full_match(contract_symbol, '.+[0-9]{6}[CP][0-9]{8}'))
+                    AS occ_symbols_valid
+            FROM position_legs GROUP BY recommendation_key
+        ), ranked_quotes AS (
+            SELECT r.recommendation_key, q.quote_key, q.observed_at_utc,
+                q.available_at_utc, q.bid, q.ask, q.quote_source,
+                q.source_bundle_id AS quote_source_bundle_id,
+                date_diff('second', CAST(r.decision_at_utc AS TIMESTAMPTZ),
+                          CAST(q.observed_at_utc AS TIMESTAMPTZ)) AS elapsed_seconds,
+                row_number() OVER (
+                    PARTITION BY r.recommendation_key
+                    ORDER BY abs(date_diff('second', CAST(r.decision_at_utc AS TIMESTAMPTZ),
+                                           CAST(q.observed_at_utc AS TIMESTAMPTZ)) - 86400),
+                             CAST(q.observed_at_utc AS TIMESTAMPTZ), q.quote_key
+                ) AS quote_rank
+            FROM recommendations r
+            JOIN option_quotes q USING (recommendation_key)
+            WHERE q.source_system = r.source_system
+              AND q.contract_symbol = r.contract_symbol
+              AND q.quote_source IN ('trajectory_mark', 'archived_path_mark', 'live_chain_mark')
+              AND q.bid >= 0 AND q.ask > 0 AND q.ask >= q.bid
+              AND CAST(q.available_at_utc AS TIMESTAMPTZ)
+                  >= CAST(q.observed_at_utc AS TIMESTAMPTZ)
+              AND CAST((CAST(q.observed_at_utc AS TIMESTAMPTZ)
+                        AT TIME ZONE 'America/New_York') AS DATE)
+                  <= CAST(r.expiry_date AS DATE)
+              AND date_diff('second', CAST(r.decision_at_utc AS TIMESTAMPTZ),
+                            CAST(q.observed_at_utc AS TIMESTAMPTZ)) BETWEEN 75600 AND 97200
+        ), selected AS (
+            SELECT * FROM ranked_quotes WHERE quote_rank = 1
+        ), exclusions AS (
+            SELECT DISTINCT recommendation_key FROM path_exclusions
+        ), replay AS (
+            SELECT r.recommendation_key, r.run_key, r.source_system, r.cohort,
+                r.lane, r.model_version, r.decision_at_utc,
+                r.underlying_symbol, r.contract_symbol, r.expiry_date,
+                'joint.fixed_24h_ask_to_bid.v1' AS label_contract_id,
+                1 AS label_contract_version,
+                'decision_ask' AS entry_policy,
+                'nearest_24h_bid_within_3h' AS exit_policy,
+                CASE
+                    WHEN s.leg_count = 1 AND s.long_unit_legs = 1
+                        THEN 'single_long_option'
+                    WHEN s.leg_count = 2 AND s.long_unit_legs = 1
+                      AND s.short_unit_legs = 1 AND s.option_family_count = 1
+                      AND s.option_root_count = 1
+                      AND ((r.option_type = 'call' AND s.long_strike < s.short_strike)
+                        OR (r.option_type = 'put' AND s.long_strike > s.short_strike))
+                      AND s.occ_symbols_valid THEN 'debit_vertical_candidate'
+                    ELSE 'unsupported'
+                END AS structure_class,
+                q.quote_key AS exit_quote_key,
+                q.quote_source AS exit_quote_source,
+                r.decision_at_utc AS entry_at_utc,
+                q.observed_at_utc AS exit_at_utc,
+                q.available_at_utc AS label_available_at_utc,
+                q.elapsed_seconds,
+                r.entry_ask AS entry_price,
+                q.bid AS exit_price,
+                q.ask AS exit_ask,
+                r.source_bundle_id,
+                q.quote_source_bundle_id,
+                CASE
+                    WHEN e.recommendation_key IS NOT NULL THEN 'path_excluded'
+                    WHEN r.available_at_utc IS NULL OR
+                         CAST(r.available_at_utc AS TIMESTAMPTZ)
+                             > CAST(r.decision_at_utc AS TIMESTAMPTZ) + INTERVAL '1 second'
+                        THEN 'entry_not_point_in_time'
+                    WHEN r.entry_ask IS NULL OR r.entry_ask <= 0
+                        THEN 'missing_executable_entry_ask'
+                    WHEN r.entry_bid IS NULL OR r.entry_bid < 0
+                      OR r.entry_ask < r.entry_bid THEN 'invalid_entry_quote'
+                    WHEN s.leg_count = 1 AND s.long_unit_legs = 1 THEN
+                        CASE WHEN q.quote_key IS NULL THEN 'missing_fixed_window_quote'
+                             ELSE 'eligible' END
+                    WHEN s.leg_count = 2 AND s.long_unit_legs = 1
+                      AND s.short_unit_legs = 1 AND s.option_family_count = 1
+                      AND s.option_root_count = 1
+                      AND ((r.option_type = 'call' AND s.long_strike < s.short_strike)
+                        OR (r.option_type = 'put' AND s.long_strike > s.short_strike))
+                      AND s.occ_symbols_valid THEN
+                        CASE WHEN q.quote_key IS NULL THEN 'missing_fixed_window_quote'
+                             ELSE 'eligible' END
+                    ELSE 'unsupported_position_structure'
+                END AS replay_eligibility_reason
+            FROM recommendations r
+            LEFT JOIN structure s USING (recommendation_key)
+            LEFT JOIN selected q USING (recommendation_key)
+            LEFT JOIN exclusions e USING (recommendation_key)
+        )
+        SELECT *, replay_eligibility_reason = 'eligible' AS replay_eligible,
+            CASE WHEN replay_eligibility_reason = 'eligible'
+                 THEN (exit_price / entry_price) - 1.0 END AS equal_premium_return
+        FROM replay
+    """,
+    "joint_fixed_24h_shadow_pairs_v1": """
+        WITH feature_quality AS (
+            SELECT recommendation_key,
+                bool_or(CAST(f.available_at_utc AS TIMESTAMPTZ)
+                        <= CAST(r.decision_at_utc AS TIMESTAMPTZ)
+                        AND json_extract_string(f.source_metadata_json, '$.backfill') IS NULL)
+                    AS native_point_in_time_feature
+            FROM feature_snapshots f
+            JOIN recommendations r USING (recommendation_key)
+            GROUP BY recommendation_key
+        ), pairs AS (
+            SELECT d.*, o.replay_eligibility_reason AS orographic_replay_reason,
+                c.replay_eligibility_reason AS cirrus_shadow_replay_reason,
+                o.exit_quote_key AS orographic_exit_quote_key,
+                c.exit_quote_key AS cirrus_shadow_exit_quote_key,
+                o.exit_at_utc AS orographic_exit_at_utc,
+                c.exit_at_utc AS cirrus_shadow_exit_at_utc,
+                o.equal_premium_return AS orographic_equal_premium_return,
+                c.equal_premium_return AS cirrus_shadow_equal_premium_return,
+                coalesce(ofe.native_point_in_time_feature, false)
+                    AS orographic_native_point_in_time_feature,
+                coalesce(cfe.native_point_in_time_feature, false)
+                    AS cirrus_shadow_native_point_in_time_feature,
+                CASE
+                    WHEN d.orographic_recommendation_key IS NULL
+                      OR d.cirrus_shadow_recommendation_key IS NULL THEN 'missing_one_side'
+                    WHEN d.decision_lag_seconds > 3600 THEN 'decision_times_not_synchronized'
+                    WHEN NOT coalesce(o.replay_eligible, false) THEN 'orographic_replay_unavailable'
+                    WHEN NOT coalesce(c.replay_eligible, false) THEN 'cirrus_shadow_replay_unavailable'
+                    WHEN NOT coalesce(ofe.native_point_in_time_feature, false)
+                      OR NOT coalesce(cfe.native_point_in_time_feature, false)
+                        THEN 'point_in_time_feature_unavailable'
+                    ELSE 'eligible'
+                END AS pair_eligibility_reason
+            FROM joint_shadow_day_coverage_v1 d
+            LEFT JOIN joint_fixed_24h_replay_v1 o
+              ON o.recommendation_key = d.orographic_recommendation_key
+            LEFT JOIN joint_fixed_24h_replay_v1 c
+              ON c.recommendation_key = d.cirrus_shadow_recommendation_key
+            LEFT JOIN feature_quality ofe
+              ON ofe.recommendation_key = d.orographic_recommendation_key
+            LEFT JOIN feature_quality cfe
+              ON cfe.recommendation_key = d.cirrus_shadow_recommendation_key
+        )
+        SELECT *, pair_eligibility_reason = 'eligible' AS exploratory_pair_eligible,
+            CASE WHEN pair_eligibility_reason = 'eligible'
+                 THEN orographic_equal_premium_return - cirrus_shadow_equal_premium_return
+            END AS equal_premium_return_difference,
+            false AS production_alpha_eligible
+        FROM pairs
+    """,
 }
 
 
@@ -686,6 +844,8 @@ VIEW_KEYS: dict[str, tuple[str, ...]] = {
     "orographic_training_funnel_v1": ("source_system", "cohort"),
     "joint_learning_candidates_v1": ("candidate_key",),
     "joint_paired_comparisons_v1": ("market_date", "underlying_symbol"),
+    "joint_fixed_24h_replay_v1": ("recommendation_key",),
+    "joint_fixed_24h_shadow_pairs_v1": ("market_date",),
 }
 
 

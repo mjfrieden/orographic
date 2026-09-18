@@ -40,6 +40,8 @@ class RebuildReadinessTests(unittest.TestCase):
                     "orographic_model_monitoring_v1",
                     "joint_learning_candidates_v1",
                     "joint_paired_comparisons_v1",
+                    "joint_fixed_24h_replay_v1",
+                    "joint_fixed_24h_shadow_pairs_v1",
                 )
             },
         }

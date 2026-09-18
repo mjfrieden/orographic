@@ -248,6 +248,8 @@ Orographic materializes nine versioned views from one validated local mart snaps
 | `orographic_training_funnel_v1` | Per source/cohort training-row yield and stage-by-stage drop-off | Diagnostics only |
 | `joint_learning_candidates_v1` | Recommendation/outcome eligibility, feature provenance, position structure, and experiment context | Source-specific research only; pooled training disabled |
 | `joint_paired_comparisons_v1` | Daily pairs with contract, timing, label-policy, and source-quality comparability checks | Research only |
+| `joint_fixed_24h_replay_v1` | One common decision-ask to observed-bid research label per recommendation, nearest to 24 hours within a fixed ±3-hour window | Observation only |
+| `joint_fixed_24h_shadow_pairs_v1` | Orographic-live versus Cirrus-shadow market dates joined to the common replay with synchronized-decision and feature-provenance checks | Exploratory only; never alpha or routing |
 
 ### Joint-learning contract (mart v2)
 
@@ -296,6 +298,31 @@ snapshot, the two lanes overlap on 10 market dates, including September 14, but 
 common executable label contract. Cirrus captured 10 of 10 open-contract marks in its September 17
 scan, while only 1 of 35 historical `live` picks has a post-entry live-chain mark; historical marks
 cannot be recreated from synthetic expiry values.
+
+### Common 24-hour research replay
+
+`joint_fixed_24h_replay_v1` uses the recommendation's observed decision-time ask as the
+premium-at-risk entry and the nearest valid post-entry bid to 24 hours as exit. The exit must fall
+within 21–27 hours of the decision and no later than the contract's New York expiry date. Only
+recommendation-linked `trajectory_mark`, `archived_path_mark`, and `live_chain_mark` quotes with
+nonnegative bid, positive ask, uncrossed spread, matching contract, and valid observation/availability
+ordering qualify. Scan-entry and synthetic expiry-intrinsic marks never qualify. A one-second
+publication tolerance accommodates source-row serialization after the recorded decision; longer
+availability delays fail closed. Single long options and one-long/one-short unit same-family debit
+vertical candidates with the same option root, expiry and side, and debit-oriented strike order
+can be replayed. Unsupported structures, missing asks, path exclusions, and
+missing window quotes receive explicit reasons rather than inferred returns.
+
+The resulting `(exit bid / entry ask) - 1` is an equal-premium *research* return, not a verified
+fill or a fully risk-adjusted alpha measure. The mart does not yet preserve Cirrus's upstream
+`quote_age_days` or a symmetric broker quote-age field, so quote freshness remains an explicit
+limitation. `joint_fixed_24h_shadow_pairs_v1` requires both replay rows, native point-in-time
+features, and decisions within one hour on the same New York market date. It exposes an
+equal-premium difference only when these conditions hold and always sets
+`production_alpha_eligible=false`. The September 15 snapshot yields 12 Orographic-live and 3
+Cirrus-shadow replayable recommendations but zero eligible synchronized pairs; the one date with
+both labels has decisions about three hours apart. No window or timing threshold is tuned to
+make that historical pair pass.
 
 ### Data-quality scorecard (`mart_data_quality_v1`)
 

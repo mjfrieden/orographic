@@ -448,6 +448,8 @@ class CirrusComparisonGateTests(unittest.TestCase):
                     "live_direct_return_comparable_pairs": 31,
                     "live_direct_return_comparable_market_dates": 31,
                     "avg_live_direct_comparable_return_difference": 0.20,
+                    "fixed_24h_exploratory_shadow_pairs": 31,
+                    "fixed_24h_exploratory_shadow_market_dates": 31,
                 },
             },
             {"status": "ready_two_source", "cirrus_pin": "current", "cirrus_export_is_current": True},
@@ -457,6 +459,7 @@ class CirrusComparisonGateTests(unittest.TestCase):
         self.assertEqual(summary["direct_return_comparable_pairs"], 31)
         self.assertEqual(summary["live_direct_return_comparable_pairs"], 31)
         self.assertEqual(summary["risk_normalized_live_comparable_pairs"], 0)
+        self.assertEqual(summary["fixed_24h_exploratory_shadow_pairs"], 31)
         self.assertIsNone(summary["avg_orographic_minus_cirrus_return"])
 
 
