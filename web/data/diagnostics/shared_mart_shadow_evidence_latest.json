@@ -1,56 +1,80 @@
 {
   "artifact": "orographic_shared_mart_shadow_evidence",
-  "schema_version": 3,
-  "generated_at_utc": "2026-09-18T13:59:41+00:00",
-  "mart_id": "c0359a8879dc092d8e307fd7ed0f4f5698e438aafe2c7d8b7090129c7e25bc5a",
-  "consumer_schema_version": "orographic_shared_mart_consumers_v2",
+  "schema_version": 4,
+  "generated_at_utc": "2026-09-18T15:07:18+00:00",
+  "mart_id": "e557b82b12ef84bea6cdf68a8490bc14132e9c8721a1463daf5526526ee437e1",
+  "consumer_schema_version": "orographic_shared_mart_consumers_v4",
   "status": "collecting_shadow_evidence",
   "production_authority": "observation_only_never_used_for_routing",
   "production_changes_allowed": false,
   "consumer_bundle": {
     "status": "ready",
-    "generated_at_utc": "2026-09-18T13:59:41+00:00",
+    "generated_at_utc": "2026-09-18T15:07:18+00:00",
     "source_systems": [
       "cirrus",
       "orographic"
     ],
     "views": {
       "cirrus_orographic_disagreement_v1": {
-        "rows": 1269,
+        "rows": 1280,
         "primary_key": [
           "market_date",
           "underlying_symbol"
         ],
-        "sha256": "0a40a525762801e93c6e7820a03f844ae20212995e029b6bfcd063403f8e77d8"
+        "sha256": "c82646da2c848e29641e8a050b948b2ec5e6e7e6b05291509d2be46dc98cbc27"
+      },
+      "joint_fixed_24h_replay_v1": {
+        "rows": 3952,
+        "primary_key": [
+          "recommendation_key"
+        ],
+        "sha256": "205612e84cad4995fce02414487c6d9c0163994d40f8478aafbfd728a0d856ce"
+      },
+      "joint_fixed_24h_shadow_pairs_v1": {
+        "rows": 54,
+        "primary_key": [
+          "market_date"
+        ],
+        "sha256": "85a6d3bcf4d86ddbd575ad591b9cc62a91a99594632e978ecc7dff70229d25ee"
       },
       "joint_learning_candidates_v1": {
-        "rows": 3923,
+        "rows": 3952,
         "primary_key": [
           "candidate_key"
         ],
-        "sha256": "27a78aed80ee025c6e1d3f59e84d69864fcc80162752b5e0dc90000d5b0da13a"
+        "sha256": "398d8093acbc09ccd7f0d3fc1de576888c4960060005790139a4c4b0902d9292"
       },
       "joint_live_day_coverage_v1": {
-        "rows": 51,
+        "rows": 52,
         "primary_key": [
           "market_date"
         ],
-        "sha256": "96dbebceefa677e5461b92340ca7a7f3f082063e22d49d8a144cb35f5bcfbfc6"
+        "sha256": "3feba959ad789ea47dd82a04c7dd11cbd8507281dd1251ea82987a5fb8716fc5"
       },
       "joint_paired_comparisons_v1": {
-        "rows": 1269,
+        "rows": 1280,
         "primary_key": [
           "market_date",
           "underlying_symbol"
         ],
-        "sha256": "b7fcb441fab85877412b0d6c99e415b0ab49e588ff4066524e620054ed1b8d3b"
+        "sha256": "cbcb5c34d5ab46e04d8f3a174b1ea2a4d466e246f615cc8ed4fba37f1c4be74b"
+      },
+      "joint_quote_provenance_v1": {
+        "rows": 12,
+        "primary_key": [
+          "source_system",
+          "cohort",
+          "quote_source",
+          "timestamp_basis"
+        ],
+        "sha256": "ca4af42777175e1a388870e85877be096deb89eae6b19dd89ee4d1b56bccb598"
       },
       "joint_shadow_day_coverage_v1": {
-        "rows": 53,
+        "rows": 54,
         "primary_key": [
           "market_date"
         ],
-        "sha256": "2cc1a60c459eed8b3df23bea2dc8fdec0f64e12727a7491fbe1eff73cc50f909"
+        "sha256": "bd58e7289ed800dbc9d74e66876098d48a3069355214c04b72904fb237b2797e"
       },
       "mart_data_quality_v1": {
         "rows": 3,
@@ -58,22 +82,22 @@
           "source_system",
           "cohort"
         ],
-        "sha256": "55464c2f58e2c9a346522d86d2b522ec2bc38b81fd0f8622b00cbe857bae579d"
+        "sha256": "0a22a3c0a1e686b944aa429d208d111bb9a648c1bc4c4a651d240d7f087f9407"
       },
       "orographic_execution_quality_v1": {
-        "rows": 3923,
+        "rows": 3952,
         "primary_key": [
           "recommendation_key"
         ],
-        "sha256": "93bfee8ce58115c9fdc81291e53f4fe7a3272a8ec134a6f0e17fb30effde9d06"
+        "sha256": "3b04abd0616acd623673eb9405c5525a5f720fffabd54d7f318c723c7fdcff1b"
       },
       "orographic_exit_replay_v1": {
-        "rows": 65379,
+        "rows": 65734,
         "primary_key": [
           "recommendation_key",
           "quote_key"
         ],
-        "sha256": "7321e7650ec4b1e900ea73c0c958d27d722a855d6110e504b7e6fd0d77500ced"
+        "sha256": "155a50797f28db134009539aad8fc89e0facb668859dd1529d7ae27416bd3cf2"
       },
       "orographic_model_monitoring_v1": {
         "rows": 43,
@@ -83,7 +107,7 @@
           "model_version",
           "option_type"
         ],
-        "sha256": "9cc6ec2e83794fc50a834ffdfbe22669b77f2382b840e58d2dbe7bc4282cd421"
+        "sha256": "418ccac2b460e2c5daced91a826c65d587bf382dc9c09639d94ffae53f252ad4"
       },
       "orographic_training_funnel_v1": {
         "rows": 3,
@@ -91,48 +115,48 @@
           "source_system",
           "cohort"
         ],
-        "sha256": "fac86cb846acf1007fb1f918e247fc9efbd956bafb66e72117b9670b1dd781a7"
+        "sha256": "088c5720f1516ad326296efc7145c893dab8f4671d1125a8338da73b6f972211"
       },
       "orographic_training_v1": {
         "rows": 2118,
         "primary_key": [
           "training_row_key"
         ],
-        "sha256": "4115675b2e6237a95b267c58c3e62485c7f5cfdd34fe3667734f573ec1f49dfd"
+        "sha256": "3a391433f338ac1116cb70a8c0aed22624e3d793a4566a833bbc6ff2ada8de57"
       }
     }
   },
   "execution_quality": {
-    "recommendations": 3923,
+    "recommendations": 3952,
     "source_systems": 2,
     "executable_recommendations": 2155,
-    "recommendations_with_features": 3923,
-    "avg_entry_spread_pct": 0.08426290234198515,
+    "recommendations_with_features": 3952,
+    "avg_entry_spread_pct": 0.08420388804478661,
     "avg_executable_return": -0.15884782410164883,
     "executable_win_rate": 0.2728538283062645
   },
   "exit_replay": {
-    "recommendations": 1907,
-    "quote_observations": 65379,
-    "touched_25_rate": 0.3340325117986366,
-    "touched_40_rate": 0.26743576297850025,
-    "touched_negative_15_rate": 0.7996853696906135,
-    "avg_final_path_return": -0.2480964575020581
+    "recommendations": 1936,
+    "quote_observations": 65734,
+    "touched_25_rate": 0.321797520661157,
+    "touched_40_rate": 0.25516528925619836,
+    "touched_negative_15_rate": 0.7861570247933884,
+    "avg_final_path_return": -0.22322405260622996
   },
   "cross_system_comparison": {
-    "daily_symbol_comparisons": 1269,
+    "daily_symbol_comparisons": 1280,
     "paired_comparisons": 11,
     "paired_market_dates": 9,
     "same_contract": 0,
     "same_side_different_contract": 6,
     "directional_disagreements": 5,
-    "orographic_only": 1133,
+    "orographic_only": 1144,
     "cirrus_only": 125,
     "paired_executable_outcomes": 2,
     "paired_live_lanes": 0,
     "paired_live_executable_outcomes": 0,
     "avg_orographic_minus_cirrus_return": 0.10071766003790569,
-    "live_market_dates": 51,
+    "live_market_dates": 52,
     "overlapping_live_market_dates": 9,
     "same_underlying_live_market_dates": 0,
     "same_contract_live_market_dates": 0,
@@ -149,16 +173,22 @@
     "live_direct_return_comparable_pairs": 0,
     "live_direct_return_comparable_market_dates": 0,
     "avg_live_direct_comparable_return_difference": null,
+    "fixed_24h_exploratory_shadow_pairs": 1,
+    "fixed_24h_exploratory_shadow_market_dates": 1,
+    "avg_fixed_24h_equal_premium_return_difference": -1.6018575851393182,
+    "fixed_24h_unsynchronized_days": 9,
+    "fixed_24h_missing_orographic_replay_days": 0,
+    "fixed_24h_missing_cirrus_shadow_replay_days": 1,
     "alpha_comparison_design_id": null,
     "risk_normalized_live_comparable_pairs": 0,
     "risk_normalized_live_comparable_market_dates": 0,
     "avg_risk_normalized_live_return_difference": null
   },
   "joint_learning": {
-    "candidate_rows": 3923,
-    "recommendations": 3923,
+    "candidate_rows": 3952,
+    "recommendations": 3952,
     "legacy_feature_rows": 113,
-    "native_feature_rows": 3810,
+    "native_feature_rows": 3839,
     "lane_only_model_rows": 152,
     "multi_leg_rows": 23,
     "source_specific_training_rows": 2133,
@@ -166,6 +196,23 @@
     "cirrus_source_specific_training_rows": 15,
     "pooled_training_rows": 0,
     "experiment_tagged_rows": 16
+  },
+  "common_replay": {
+    "label_contract_id": "joint.fixed_24h_ask_to_bid.v1",
+    "entry_policy": "decision_ask",
+    "exit_policy": "nearest_24h_bid_within_3h",
+    "production_alpha_eligible": false,
+    "orographic_live_recommendations": 37,
+    "orographic_live_replays": 15,
+    "cirrus_shadow_recommendations": 39,
+    "cirrus_shadow_replays": 4,
+    "cirrus_shadow_vertical_replays": 4,
+    "fixed_24h_exploratory_shadow_pairs": 1,
+    "fixed_24h_exploratory_shadow_market_dates": 1,
+    "avg_fixed_24h_equal_premium_return_difference": -1.6018575851393182,
+    "fixed_24h_unsynchronized_days": 9,
+    "fixed_24h_missing_orographic_replay_days": 0,
+    "fixed_24h_missing_cirrus_shadow_replay_days": 1
   },
   "training_evidence": {
     "training_rows": 2118,
@@ -177,34 +224,34 @@
   },
   "model_monitoring": {
     "monitoring_cohorts": 43,
-    "recommendations": 3923,
+    "recommendations": 3952,
     "recommendations_with_executable_outcomes": 2155,
-    "recommendations_with_features": 3923
+    "recommendations_with_features": 3952
   },
   "data_quality": {
     "cohorts": 3,
-    "recommendations": 3923,
+    "recommendations": 3952,
     "worst_critical_null_rate": 0.0,
-    "worst_integrity_anomaly_rate": 0.000617093489663684,
+    "worst_integrity_anomaly_rate": 0.0006116207951070336,
     "worst_wide_entry_spread_rate": 0.0,
     "min_feature_coverage_rate": 1.0,
     "min_path_quote_coverage_rate": 0.22641509433962265,
     "min_executable_outcome_coverage_rate": 0.24342105263157895,
-    "avg_entry_spread_pct": 0.07176554530951533,
+    "avg_entry_spread_pct": 0.07173829967504725,
     "cohorts_with_integrity_anomalies": 1,
     "cohorts_with_null_gaps": 0,
     "integrity_clean": false
   },
   "training_funnel": {
-    "recommendations": 3923,
-    "with_any_feature": 3923,
-    "with_point_in_time_feature": 3923,
+    "recommendations": 3952,
+    "with_any_feature": 3952,
+    "with_point_in_time_feature": 3952,
     "with_valid_label_outcome": 2155,
     "training_eligible_recommendations": 2155,
     "training_rows": 2155.0,
     "dropped_missing_feature": 0,
     "dropped_feature_not_point_in_time": 0,
-    "dropped_missing_executable_outcome": 1768,
+    "dropped_missing_executable_outcome": 1797,
     "dropped_label_before_decision": 0,
     "min_point_in_time_feature_coverage_rate": 1.0,
     "min_training_eligibility_rate": 0.24342105263157895,
@@ -242,5 +289,5 @@
       "required": 30
     }
   },
-  "next_action": "Collect synchronized Orographic-live and Cirrus-shadow quote paths under a pre-registered common replay; keep pooled training disabled."
+  "next_action": "Align Orographic-live and Cirrus-shadow decision windows, preserve quote-age provenance, and collect independent common-replay pairs; keep pooled training disabled."
 }
