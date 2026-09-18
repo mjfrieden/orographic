@@ -788,6 +788,8 @@ def _cirrus_comparison(
         "risk_normalized_live_comparable_pairs": comparable_pairs,
         "risk_normalized_live_comparable_market_dates": comparable_dates,
         "alpha_comparison_design_id": design_id or None,
+        "fixed_24h_exploratory_shadow_pairs": cross.get("fixed_24h_exploratory_shadow_pairs"),
+        "fixed_24h_exploratory_shadow_market_dates": cross.get("fixed_24h_exploratory_shadow_market_dates"),
         "avg_orographic_minus_cirrus_return": lift,
         "orographic_only": cross.get("orographic_only"),
         "cirrus_only": cross.get("cirrus_only"),

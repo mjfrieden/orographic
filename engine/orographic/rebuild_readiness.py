@@ -49,6 +49,8 @@ def build_rebuild_readiness(
         "orographic_model_monitoring_v1",
         "joint_learning_candidates_v1",
         "joint_paired_comparisons_v1",
+        "joint_fixed_24h_replay_v1",
+        "joint_fixed_24h_shadow_pairs_v1",
     }
     mart_consumer_ready = (
         mart_consumer.get("artifact") == "orographic_shared_mart_consumer_bundle"

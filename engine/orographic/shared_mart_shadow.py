@@ -42,6 +42,8 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         training_funnel = _path(root, manifest, "orographic_training_funnel_v1")
         joint_candidates = _path(root, manifest, "joint_learning_candidates_v1")
         joint_pairs = _path(root, manifest, "joint_paired_comparisons_v1")
+        fixed_replay = _path(root, manifest, "joint_fixed_24h_replay_v1")
+        fixed_shadow_pairs = _path(root, manifest, "joint_fixed_24h_shadow_pairs_v1")
         execution_summary = _record(connection, f"""
             SELECT
                 count(*) AS recommendations,
@@ -213,6 +215,35 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                        AS avg_live_direct_comparable_return_difference
             FROM read_parquet('{joint_pairs}')
         """)
+        fixed_replay_summary = _record(connection, f"""
+            SELECT count(*) FILTER (WHERE source_system = 'orographic' AND lane = 'live')
+                       AS orographic_live_recommendations,
+                   count(*) FILTER (WHERE source_system = 'orographic' AND lane = 'live'
+                                     AND replay_eligible) AS orographic_live_replays,
+                   count(*) FILTER (WHERE source_system = 'cirrus' AND lane = 'shadow')
+                       AS cirrus_shadow_recommendations,
+                   count(*) FILTER (WHERE source_system = 'cirrus' AND lane = 'shadow'
+                                     AND replay_eligible) AS cirrus_shadow_replays,
+                   count(*) FILTER (WHERE source_system = 'cirrus' AND lane = 'shadow'
+                                     AND structure_class = 'debit_vertical_candidate'
+                                     AND replay_eligible) AS cirrus_shadow_vertical_replays
+            FROM read_parquet('{fixed_replay}')
+        """)
+        fixed_pair_summary = _record(connection, f"""
+            SELECT count(*) FILTER (WHERE exploratory_pair_eligible)
+                       AS fixed_24h_exploratory_shadow_pairs,
+                   count(DISTINCT market_date) FILTER (WHERE exploratory_pair_eligible)
+                       AS fixed_24h_exploratory_shadow_market_dates,
+                   avg(equal_premium_return_difference) FILTER (WHERE exploratory_pair_eligible)
+                       AS avg_fixed_24h_equal_premium_return_difference,
+                   count(*) FILTER (WHERE pair_eligibility_reason = 'decision_times_not_synchronized')
+                       AS fixed_24h_unsynchronized_days,
+                   count(*) FILTER (WHERE pair_eligibility_reason = 'orographic_replay_unavailable')
+                       AS fixed_24h_missing_orographic_replay_days,
+                   count(*) FILTER (WHERE pair_eligibility_reason = 'cirrus_shadow_replay_unavailable')
+                       AS fixed_24h_missing_cirrus_shadow_replay_days
+            FROM read_parquet('{fixed_shadow_pairs}')
+        """)
     finally:
         connection.close()
 
@@ -240,7 +271,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
     }
     return {
         "artifact": "orographic_shared_mart_shadow_evidence",
-        "schema_version": 3,
+        "schema_version": 4,
         "generated_at_utc": datetime.now(UTC).replace(microsecond=0).isoformat(),
         "mart_id": manifest["mart_id"],
         "consumer_schema_version": manifest["schema_version"],
@@ -260,6 +291,7 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
             **live_day_summary,
             **shadow_day_summary,
             **comparable_summary,
+            **fixed_pair_summary,
             # Same-contract replay tests label parity, not strategy selection.
             # A future pre-registered cross-contract comparison must fill these.
             "alpha_comparison_design_id": None,
@@ -268,6 +300,14 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
             "avg_risk_normalized_live_return_difference": None,
         },
         "joint_learning": joint_learning_summary,
+        "common_replay": {
+            "label_contract_id": "joint.fixed_24h_ask_to_bid.v1",
+            "entry_policy": "decision_ask",
+            "exit_policy": "nearest_24h_bid_within_3h",
+            "production_alpha_eligible": False,
+            **fixed_replay_summary,
+            **fixed_pair_summary,
+        },
         "training_evidence": training_summary,
         "model_monitoring": monitoring_summary,
         "data_quality": {
@@ -301,6 +341,6 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
         "next_action": (
             "Evaluate one pre-registered liquidity veto in shadow; do not change live routing."
             if shadow_ready
-            else "Collect synchronized Orographic-live and Cirrus-shadow quote paths under a pre-registered common replay; keep pooled training disabled."
+            else "Align Orographic-live and Cirrus-shadow decision windows, preserve quote-age provenance, and collect independent common-replay pairs; keep pooled training disabled."
         ),
     }

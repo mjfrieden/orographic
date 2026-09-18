@@ -175,6 +175,22 @@ def _write_mart(root: Path) -> None:
     }), encoding="utf-8")
 
 
+def _repin_mart(root: Path, names: tuple[str, ...]) -> None:
+    manifest_path = root / "mart_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    for name in names:
+        path = root / f"{name}.parquet"
+        manifest["artifacts"][name]["sha256"] = _sha(path)
+        manifest["artifacts"][name]["rows"] = len(pd.read_parquet(path))
+    identity = {key: manifest[key] for key in (
+        "schema_version", "sources", "artifacts", "validation"
+    )}
+    manifest["mart_id"] = hashlib.sha256(
+        json.dumps(identity, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+
 class SharedMartConsumerTests(unittest.TestCase):
     def test_frozen_v1_mart_remains_readable_for_cirrus_reuse(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -222,6 +238,8 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(manifest["views"]["orographic_training_funnel_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["joint_learning_candidates_v1"]["rows"], 2)
             self.assertEqual(manifest["views"]["joint_paired_comparisons_v1"]["rows"], 1)
+            self.assertEqual(manifest["views"]["joint_fixed_24h_replay_v1"]["rows"], 2)
+            self.assertEqual(manifest["views"]["joint_fixed_24h_shadow_pairs_v1"]["rows"], 1)
             disagreement = pd.read_parquet(output / "cirrus_orographic_disagreement_v1.parquet")
             self.assertEqual(disagreement.iloc[0]["comparison_cohort"], "same_side_different_contract")
             pairs = pd.read_parquet(output / "joint_paired_comparisons_v1.parquet")
@@ -268,6 +286,9 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(shadow["cross_system_comparison"]["overlapping_live_shadow_market_dates"], 1)
             self.assertEqual(shadow["cross_system_comparison"]["multi_leg_cirrus_shadow_overlap_dates"], 0)
             self.assertEqual(shadow["cross_system_comparison"]["live_direct_return_comparable_pairs"], 0)
+            self.assertEqual(shadow["common_replay"]["orographic_live_replays"], 0)
+            self.assertEqual(shadow["common_replay"]["cirrus_shadow_replays"], 0)
+            self.assertEqual(shadow["common_replay"]["fixed_24h_exploratory_shadow_pairs"], 0)
             self.assertFalse(shadow["shadow_entry_gates"]["live_direct_return_comparable_pairs"]["passed"])
             self.assertEqual(shadow["joint_learning"]["source_specific_training_rows"], 2)
             self.assertEqual(shadow["joint_learning"]["pooled_training_rows"], 0)
@@ -285,6 +306,67 @@ class SharedMartConsumerTests(unittest.TestCase):
             self.assertEqual(shadow["training_funnel"]["training_eligible_recommendations"], 2)
             self.assertEqual(shadow["training_funnel"]["dropped_missing_feature"], 0)
             self.assertEqual(shadow["training_funnel"]["min_training_eligibility_rate"], 1.0)
+
+    def test_fixed_24h_replay_uses_live_bid_and_fails_closed_on_bad_quotes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            mart = root / "mart"
+            mart.mkdir()
+            _write_mart(mart)
+            recommendations_path = mart / "recommendations.parquet"
+            recs = pd.read_parquet(recommendations_path)
+            recs.loc[recs["source_system"] == "cirrus", "available_at_utc"] = (
+                "2026-08-21T19:00:00.000500+00:00"
+            )
+            recs.to_parquet(recommendations_path, index=False)
+            quotes_path = mart / "option_quotes.parquet"
+            quotes = pd.read_parquet(quotes_path)
+            exits = quotes.copy()
+            exits["quote_key"] = ["orographic:fixed-24h", "cirrus:fixed-24h"]
+            exits["observed_at_utc"] = "2026-08-22T19:00:00+00:00"
+            exits["available_at_utc"] = "2026-08-22T19:00:00+00:00"
+            exits["quote_date"] = "2026-08-22"
+            exits["quote_source"] = ["trajectory_mark", "live_chain_mark"]
+            quotes = pd.concat([quotes, exits], ignore_index=True)
+            quotes.to_parquet(quotes_path, index=False)
+            _repin_mart(mart, ("recommendations", "option_quotes"))
+
+            output = root / "consumers"
+            build_shared_mart_consumer_bundle(mart, output)
+            replay = pd.read_parquet(output / "joint_fixed_24h_replay_v1.parquet")
+            self.assertEqual(set(replay["replay_eligibility_reason"]), {"eligible"})
+            self.assertEqual(set(replay["exit_quote_key"]), set(exits["quote_key"]))
+            pairs = pd.read_parquet(output / "joint_fixed_24h_shadow_pairs_v1.parquet")
+            self.assertTrue(bool(pairs.iloc[0]["exploratory_pair_eligible"]))
+            self.assertFalse(bool(pairs.iloc[0]["production_alpha_eligible"]))
+            self.assertAlmostEqual(
+                pairs.iloc[0]["equal_premium_return_difference"],
+                (1.3 / 1.2 - 1.0) - (0.9 / 1.0 - 1.0),
+            )
+            shadow = build_shared_mart_shadow_evidence(output)
+            self.assertEqual(shadow["common_replay"]["orographic_live_replays"], 1)
+            self.assertEqual(shadow["common_replay"]["cirrus_shadow_replays"], 1)
+            self.assertEqual(shadow["common_replay"]["fixed_24h_exploratory_shadow_pairs"], 1)
+            self.assertFalse(shadow["common_replay"]["production_alpha_eligible"])
+
+            # An expiry-derived value or crossed quote is never an executable
+            # 24-hour mark, even when its timestamp is exactly on target.
+            quotes.loc[quotes["quote_key"] == "cirrus:fixed-24h", "quote_source"] = "expiry_intrinsic"
+            quotes.to_parquet(quotes_path, index=False)
+            _repin_mart(mart, ("option_quotes",))
+            build_shared_mart_consumer_bundle(mart, output)
+            pairs = pd.read_parquet(output / "joint_fixed_24h_shadow_pairs_v1.parquet")
+            self.assertEqual(pairs.iloc[0]["pair_eligibility_reason"], "cirrus_shadow_replay_unavailable")
+            self.assertTrue(pd.isna(pairs.iloc[0]["equal_premium_return_difference"]))
+
+            quotes.loc[quotes["quote_key"] == "cirrus:fixed-24h", "quote_source"] = "live_chain_mark"
+            quotes.loc[quotes["quote_key"] == "cirrus:fixed-24h", "bid"] = 1.1
+            quotes.loc[quotes["quote_key"] == "cirrus:fixed-24h", "ask"] = 1.0
+            quotes.to_parquet(quotes_path, index=False)
+            _repin_mart(mart, ("option_quotes",))
+            build_shared_mart_consumer_bundle(mart, output)
+            pairs = pd.read_parquet(output / "joint_fixed_24h_shadow_pairs_v1.parquet")
+            self.assertEqual(pairs.iloc[0]["pair_eligibility_reason"], "cirrus_shadow_replay_unavailable")
 
     def test_data_quality_view_flags_anomalies(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
