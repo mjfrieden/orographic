@@ -1,15 +1,15 @@
 {
   "artifact": "orographic_shared_mart_shadow_evidence",
-  "schema_version": 2,
-  "generated_at_utc": "2026-09-17T20:30:10+00:00",
-  "mart_id": "378ec82106598b2b20467a5f8c4ae3bfdf787ea8edbd73e393cddb3f5b64d6f4",
-  "consumer_schema_version": "orographic_shared_mart_consumers_v1",
+  "schema_version": 3,
+  "generated_at_utc": "2026-09-18T13:59:41+00:00",
+  "mart_id": "c0359a8879dc092d8e307fd7ed0f4f5698e438aafe2c7d8b7090129c7e25bc5a",
+  "consumer_schema_version": "orographic_shared_mart_consumers_v2",
   "status": "collecting_shadow_evidence",
   "production_authority": "observation_only_never_used_for_routing",
   "production_changes_allowed": false,
   "consumer_bundle": {
     "status": "ready",
-    "generated_at_utc": "2026-09-17T20:30:10+00:00",
+    "generated_at_utc": "2026-09-18T13:59:41+00:00",
     "source_systems": [
       "cirrus",
       "orographic"
@@ -21,7 +21,36 @@
           "market_date",
           "underlying_symbol"
         ],
-        "sha256": "aafc8d003e849139296748e5f482d5731f51d7d8ee15f9c19f036d220f3496cf"
+        "sha256": "0a40a525762801e93c6e7820a03f844ae20212995e029b6bfcd063403f8e77d8"
+      },
+      "joint_learning_candidates_v1": {
+        "rows": 3923,
+        "primary_key": [
+          "candidate_key"
+        ],
+        "sha256": "27a78aed80ee025c6e1d3f59e84d69864fcc80162752b5e0dc90000d5b0da13a"
+      },
+      "joint_live_day_coverage_v1": {
+        "rows": 51,
+        "primary_key": [
+          "market_date"
+        ],
+        "sha256": "96dbebceefa677e5461b92340ca7a7f3f082063e22d49d8a144cb35f5bcfbfc6"
+      },
+      "joint_paired_comparisons_v1": {
+        "rows": 1269,
+        "primary_key": [
+          "market_date",
+          "underlying_symbol"
+        ],
+        "sha256": "b7fcb441fab85877412b0d6c99e415b0ab49e588ff4066524e620054ed1b8d3b"
+      },
+      "joint_shadow_day_coverage_v1": {
+        "rows": 53,
+        "primary_key": [
+          "market_date"
+        ],
+        "sha256": "2cc1a60c459eed8b3df23bea2dc8fdec0f64e12727a7491fbe1eff73cc50f909"
       },
       "mart_data_quality_v1": {
         "rows": 3,
@@ -29,14 +58,14 @@
           "source_system",
           "cohort"
         ],
-        "sha256": "2bb960792a48597be473352ca3fe5a4f8750794fc46e432c4364d780a8d19dde"
+        "sha256": "55464c2f58e2c9a346522d86d2b522ec2bc38b81fd0f8622b00cbe857bae579d"
       },
       "orographic_execution_quality_v1": {
         "rows": 3923,
         "primary_key": [
           "recommendation_key"
         ],
-        "sha256": "5c25832cbf41606d8982a14bf67aa243628fcfd03c09d0dc8e9eee37f20d0acf"
+        "sha256": "93bfee8ce58115c9fdc81291e53f4fe7a3272a8ec134a6f0e17fb30effde9d06"
       },
       "orographic_exit_replay_v1": {
         "rows": 65379,
@@ -54,7 +83,7 @@
           "model_version",
           "option_type"
         ],
-        "sha256": "2b84dfd929746ce603cb00eff526d98ef6021105026189d21f9dc04fbe2ca3fa"
+        "sha256": "9cc6ec2e83794fc50a834ffdfbe22669b77f2382b840e58d2dbe7bc4282cd421"
       },
       "orographic_training_funnel_v1": {
         "rows": 3,
@@ -78,7 +107,7 @@
     "source_systems": 2,
     "executable_recommendations": 2155,
     "recommendations_with_features": 3923,
-    "avg_entry_spread_pct": 0.08426290234198514,
+    "avg_entry_spread_pct": 0.08426290234198515,
     "avg_executable_return": -0.15884782410164883,
     "executable_win_rate": 0.2728538283062645
   },
@@ -100,7 +129,43 @@
     "orographic_only": 1133,
     "cirrus_only": 125,
     "paired_executable_outcomes": 2,
-    "avg_orographic_minus_cirrus_return": 0.10071766003790569
+    "paired_live_lanes": 0,
+    "paired_live_executable_outcomes": 0,
+    "avg_orographic_minus_cirrus_return": 0.10071766003790569,
+    "live_market_dates": 51,
+    "overlapping_live_market_dates": 9,
+    "same_underlying_live_market_dates": 0,
+    "same_contract_live_market_dates": 0,
+    "synchronized_live_market_dates": 1,
+    "overlapping_live_shadow_market_dates": 11,
+    "same_underlying_live_shadow_market_dates": 0,
+    "multi_leg_cirrus_shadow_overlap_dates": 2,
+    "synchronized_live_shadow_market_dates": 2,
+    "direct_return_comparable_pairs": 0,
+    "direct_return_comparable_market_dates": 0,
+    "avg_direct_comparable_return_difference": null,
+    "same_contract_pairs": 0,
+    "same_contract_synchronized_pairs": 0,
+    "live_direct_return_comparable_pairs": 0,
+    "live_direct_return_comparable_market_dates": 0,
+    "avg_live_direct_comparable_return_difference": null,
+    "alpha_comparison_design_id": null,
+    "risk_normalized_live_comparable_pairs": 0,
+    "risk_normalized_live_comparable_market_dates": 0,
+    "avg_risk_normalized_live_return_difference": null
+  },
+  "joint_learning": {
+    "candidate_rows": 3923,
+    "recommendations": 3923,
+    "legacy_feature_rows": 113,
+    "native_feature_rows": 3810,
+    "lane_only_model_rows": 152,
+    "multi_leg_rows": 23,
+    "source_specific_training_rows": 2133,
+    "orographic_source_specific_training_rows": 2118,
+    "cirrus_source_specific_training_rows": 15,
+    "pooled_training_rows": 0,
+    "experiment_tagged_rows": 16
   },
   "training_evidence": {
     "training_rows": 2118,
@@ -125,7 +190,7 @@
     "min_feature_coverage_rate": 1.0,
     "min_path_quote_coverage_rate": 0.22641509433962265,
     "min_executable_outcome_coverage_rate": 0.24342105263157895,
-    "avg_entry_spread_pct": 0.07176554530951532,
+    "avg_entry_spread_pct": 0.07176554530951533,
     "cohorts_with_integrity_anomalies": 1,
     "cohorts_with_null_gaps": 0,
     "integrity_clean": false
@@ -155,7 +220,27 @@
       "passed": false,
       "actual": 9,
       "required": 30
+    },
+    "direct_return_comparable_pairs": {
+      "passed": false,
+      "actual": 0,
+      "required": 30
+    },
+    "direct_return_comparable_market_dates": {
+      "passed": false,
+      "actual": 0,
+      "required": 30
+    },
+    "live_direct_return_comparable_pairs": {
+      "passed": false,
+      "actual": 0,
+      "required": 30
+    },
+    "live_direct_return_comparable_market_dates": {
+      "passed": false,
+      "actual": 0,
+      "required": 30
     }
   },
-  "next_action": "Collect paired executable outcomes and independent paired market dates."
+  "next_action": "Collect synchronized Orographic-live and Cirrus-shadow quote paths under a pre-registered common replay; keep pooled training disabled."
 }

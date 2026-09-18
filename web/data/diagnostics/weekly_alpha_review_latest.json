@@ -607,13 +607,13 @@
       "lane": "cirrus_paired_alpha",
       "action": "collect",
       "authority": "observation_only",
-      "reason": "Only 2 paired executable Cirrus/Orographic outcomes exist; alpha versus Cirrus cannot be claimed until 30 paired market dates clear."
+      "reason": "Only 0 directly comparable live-lane Cirrus/Orographic outcomes exist (2 raw pairs); alpha cannot be claimed until 30 comparable pairs across 30 independent market dates clear."
     }
   ],
   "cirrus": {
-    "mart_id": "378ec82106598b2b20467a5f8c4ae3bfdf787ea8edbd73e393cddb3f5b64d6f4",
+    "mart_id": "c0359a8879dc092d8e307fd7ed0f4f5698e438aafe2c7d8b7090129c7e25bc5a",
     "mart_sync_status": "ready_two_source",
-    "mart_generated_at_utc": "2026-09-17T20:30:10+00:00",
+    "mart_generated_at_utc": "2026-09-18T13:59:41+00:00",
     "mart_stale": false,
     "cirrus_pin": "local",
     "cirrus_export_is_current": true,
@@ -621,12 +621,19 @@
     "training_rows": 2118,
     "paired_executable_outcomes": 2,
     "paired_market_dates": 9,
-    "avg_orographic_minus_cirrus_return": 0.10071766003790569,
+    "direct_return_comparable_pairs": 0,
+    "direct_return_comparable_market_dates": 0,
+    "live_direct_return_comparable_pairs": 0,
+    "live_direct_return_comparable_market_dates": 0,
+    "risk_normalized_live_comparable_pairs": 0,
+    "risk_normalized_live_comparable_market_dates": 0,
+    "alpha_comparison_design_id": null,
+    "avg_orographic_minus_cirrus_return": null,
     "orographic_only": 1133,
     "cirrus_only": 125,
     "orographic_executable_win_rate": 0.2728538283062645,
     "orographic_avg_executable_return": -0.15884782410164883,
-    "alpha_verdict": "orographic_ahead"
+    "alpha_verdict": "insufficient_paired_evidence"
   },
   "platform": {
     "scan_health_status": "passed",
@@ -642,7 +649,7 @@
     "reason": "Do not fire the kill switch on intraweek partials, and do not change production artifacts while rebuild readiness is blocked.",
     "rebuild_production_change_allowed": false
   },
-  "alpha_verdict": "orographic_ahead",
+  "alpha_verdict": "insufficient_paired_evidence",
   "next_actions": [
     "Keep production_v2 as the only Tradier lane.",
     "Rebuild the two-source mart after each scan when a Cirrus export is present; use restored canonical evidence if consolidate has not written yet.",
