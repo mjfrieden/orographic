@@ -1,13 +1,13 @@
 {
   "artifact": "board_recommendation_history",
   "schema_version": 2,
-  "updated_at_utc": "2026-09-18T20:10:54+00:00",
+  "updated_at_utc": "2026-09-21T14:10:52+00:00",
   "max_entries": 500,
   "aggregate": {
-    "runs": 311,
+    "runs": 312,
     "live_picks_emitted": 60,
     "shadow_picks_emitted": 555,
-    "abstain_runs": 257,
+    "abstain_runs": 258,
     "abstain_primary_reasons": [
       {
         "reason": "mixed_core_filters",
@@ -22,12 +22,12 @@
         "count": 21
       },
       {
-        "reason": "unknown",
+        "reason": "execution_policy",
         "count": 9
       },
       {
-        "reason": "execution_policy",
-        "count": 8
+        "reason": "unknown",
+        "count": 9
       },
       {
         "reason": "below_live_score",
@@ -150519,6 +150519,276 @@
                 ]
               }
             ]
+          }
+        },
+        "live_side_mix": {
+          "call": 0,
+          "put": 0
+        },
+        "shadow_side_mix": {
+          "call": 0,
+          "put": 0
+        }
+      },
+      "live_board": [],
+      "shadow_board": []
+    },
+    {
+      "run_generated_at_utc": "2026-09-21T14:10:52+00:00",
+      "regime": {
+        "mode": "risk_on",
+        "bias": 0.3116,
+        "source_symbol": "SPY",
+        "notes": []
+      },
+      "scan_settings": {
+        "production_lane_count": 1,
+        "production_lane": "council.live_board",
+        "research_outputs_routable": false,
+        "moonshot_lane_role": "retired",
+        "moonshot_primary_ensemble_effect": "none",
+        "moonshot_outcome_tracking": "historical_ledger_only",
+        "live_size": 1,
+        "shadow_size": 0,
+        "forge_intake": 12,
+        "counterfactual_observation_size": 0,
+        "preserve_shadow_veto_live_policy": false,
+        "universe_size": 100,
+        "minimum_days_to_expiry": 7,
+        "maximum_days_to_expiry": 14,
+        "minimum_live_score": 0.86,
+        "minimum_put_live_score": 0.84,
+        "max_live_extrinsic_ratio": 1.0,
+        "moonshot_size": 0,
+        "moonshot_threshold": 1.0,
+        "moonshot_max_cost_basis": 0.0,
+        "enforce_pre_council_friction_gate": false,
+        "live_execution_policy_enabled": true,
+        "same_contract_cooldown_hours": 72.0,
+        "max_entry_spread_pct": 0.12,
+        "min_execution_open_interest": 150,
+        "min_execution_volume": 25,
+        "min_execution_edge_after_friction_pct": 0.05,
+        "paired_side_capture_enabled": true,
+        "market_shock_control_mode": "active",
+        "model_stack": "production_v2"
+      },
+      "model_modes": {
+        "product_stack": "production_v2",
+        "directional_scout": "artifact",
+        "side_aware_scout": "active",
+        "sentinel": "retired",
+        "payoff_ranker": "active",
+        "path_model": "retired",
+        "side_model_source": "artifact",
+        "ranker_source": "production_payoff_ranker"
+      },
+      "abstain": true,
+      "summary": {
+        "universe_size": 100,
+        "scout_signal_count": 4,
+        "pre_forge_signal_count": 1,
+        "forge_candidate_count": 1,
+        "live_count": 0,
+        "shadow_count": 0,
+        "abstain_audit": {
+          "primary_reason": "execution_policy",
+          "primary_reason_label": "All candidates failed executable-liquidity or repeat-entry controls.",
+          "requested_live_size": 1,
+          "candidate_count": 1,
+          "core_filter_pass_count": 0,
+          "unique_eligible_count": 0,
+          "score_only_fail_count": 0,
+          "extrinsic_only_fail_count": 0,
+          "score_and_extrinsic_fail_count": 0,
+          "model_no_trade_fail_count": 0,
+          "fill_quality_fail_count": 0,
+          "tail_utility_fail_count": 1,
+          "execution_policy_fail_count": 1,
+          "sentinel_no_trade_pressure_fail_count": 0,
+          "mixed_policy_fail_count": 1,
+          "symbol_probation_fail_count": 0,
+          "side_balance_rejections": 0,
+          "side_balance_demotions": 0,
+          "blocked_symbols": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "model_no_trade": [],
+            "fill_quality": [],
+            "tail_utility": [
+              "GLD"
+            ],
+            "execution_policy": [
+              "GLD"
+            ],
+            "sentinel_no_trade_pressure": [],
+            "mixed_policy": [
+              "GLD"
+            ],
+            "symbol_probation": []
+          },
+          "best_rejected_candidates": {
+            "score_only": [],
+            "extrinsic_only": [],
+            "score_and_extrinsic": [],
+            "model_no_trade": [],
+            "fill_quality": [],
+            "tail_utility": [
+              {
+                "symbol": "GLD",
+                "contract_symbol": "GLD261002C00405000",
+                "option_type": "call",
+                "expiry": "2026-10-02",
+                "strike": 405.0,
+                "forge_score": 0.5165,
+                "effective_candidate_score": 0.4803,
+                "learned_rank_score": 0.5165,
+                "final_candidate_score": 0.5165,
+                "risk_adjusted_score": 0.4803,
+                "utility_after_friction_score": 0.2926,
+                "expected_edge_after_friction_pct": -0.6658,
+                "prob_big_win": 0.1328,
+                "prob_severe_loss": 0.6494,
+                "expected_tail_utility": -0.3111,
+                "tail_gate_passed": false,
+                "tail_gate_reasons": [
+                  "expected_utility",
+                  "big_win_probability"
+                ],
+                "friction_buffer_pct": 0.3547,
+                "prob_no_trade": 0.4835,
+                "scout_no_trade_prob": 0.2825,
+                "prob_fill_quality_ok": 0.6863,
+                "execution_policy_passed": false,
+                "execution_policy_reasons": [
+                  "after_friction_edge"
+                ],
+                "conservative_exit_bid": 3.05,
+                "round_trip_spread_drag_pct": 0.0758,
+                "reentry_blocked": false,
+                "prior_entry_ask": null,
+                "sentinel_confidence": 0.452,
+                "sentinel_no_trade_relevance": 0.6603,
+                "sentinel_no_trade_pressure": 0.2985,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 330.0,
+                "spread_pct": 0.0787,
+                "delta": 0.3158,
+                "iv_rank": 0.2237,
+                "council_risk_flags": [
+                  "execution:after_friction_edge",
+                  "execution_policy",
+                  "high_extrinsic",
+                  "market_shock:constructive_risk_on",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "execution_policy": [
+              {
+                "symbol": "GLD",
+                "contract_symbol": "GLD261002C00405000",
+                "option_type": "call",
+                "expiry": "2026-10-02",
+                "strike": 405.0,
+                "forge_score": 0.5165,
+                "effective_candidate_score": 0.4803,
+                "learned_rank_score": 0.5165,
+                "final_candidate_score": 0.5165,
+                "risk_adjusted_score": 0.4803,
+                "utility_after_friction_score": 0.2926,
+                "expected_edge_after_friction_pct": -0.6658,
+                "prob_big_win": 0.1328,
+                "prob_severe_loss": 0.6494,
+                "expected_tail_utility": -0.3111,
+                "tail_gate_passed": false,
+                "tail_gate_reasons": [
+                  "expected_utility",
+                  "big_win_probability"
+                ],
+                "friction_buffer_pct": 0.3547,
+                "prob_no_trade": 0.4835,
+                "scout_no_trade_prob": 0.2825,
+                "prob_fill_quality_ok": 0.6863,
+                "execution_policy_passed": false,
+                "execution_policy_reasons": [
+                  "after_friction_edge"
+                ],
+                "conservative_exit_bid": 3.05,
+                "round_trip_spread_drag_pct": 0.0758,
+                "reentry_blocked": false,
+                "prior_entry_ask": null,
+                "sentinel_confidence": 0.452,
+                "sentinel_no_trade_relevance": 0.6603,
+                "sentinel_no_trade_pressure": 0.2985,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 330.0,
+                "spread_pct": 0.0787,
+                "delta": 0.3158,
+                "iv_rank": 0.2237,
+                "council_risk_flags": [
+                  "execution:after_friction_edge",
+                  "execution_policy",
+                  "high_extrinsic",
+                  "market_shock:constructive_risk_on",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "sentinel_no_trade_pressure": [],
+            "mixed_policy": [
+              {
+                "symbol": "GLD",
+                "contract_symbol": "GLD261002C00405000",
+                "option_type": "call",
+                "expiry": "2026-10-02",
+                "strike": 405.0,
+                "forge_score": 0.5165,
+                "effective_candidate_score": 0.4803,
+                "learned_rank_score": 0.5165,
+                "final_candidate_score": 0.5165,
+                "risk_adjusted_score": 0.4803,
+                "utility_after_friction_score": 0.2926,
+                "expected_edge_after_friction_pct": -0.6658,
+                "prob_big_win": 0.1328,
+                "prob_severe_loss": 0.6494,
+                "expected_tail_utility": -0.3111,
+                "tail_gate_passed": false,
+                "tail_gate_reasons": [
+                  "expected_utility",
+                  "big_win_probability"
+                ],
+                "friction_buffer_pct": 0.3547,
+                "prob_no_trade": 0.4835,
+                "scout_no_trade_prob": 0.2825,
+                "prob_fill_quality_ok": 0.6863,
+                "execution_policy_passed": false,
+                "execution_policy_reasons": [
+                  "after_friction_edge"
+                ],
+                "conservative_exit_bid": 3.05,
+                "round_trip_spread_drag_pct": 0.0758,
+                "reentry_blocked": false,
+                "prior_entry_ask": null,
+                "sentinel_confidence": 0.452,
+                "sentinel_no_trade_relevance": 0.6603,
+                "sentinel_no_trade_pressure": 0.2985,
+                "extrinsic_ratio": 1.0,
+                "contract_cost": 330.0,
+                "spread_pct": 0.0787,
+                "delta": 0.3158,
+                "iv_rank": 0.2237,
+                "council_risk_flags": [
+                  "execution:after_friction_edge",
+                  "execution_policy",
+                  "high_extrinsic",
+                  "market_shock:constructive_risk_on",
+                  "sector_cluster"
+                ]
+              }
+            ],
+            "symbol_probation": []
           }
         },
         "live_side_mix": {
