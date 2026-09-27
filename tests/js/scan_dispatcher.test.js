@@ -10,10 +10,26 @@ import worker, {
 } from "../../workers/scan-dispatcher/src/index.js";
 
 test("recognizes Chicago scan slots across daylight saving time", () => {
-  assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T14:07:00Z")), true);
-  assert.equal(isChicagoScanSlot(Date.parse("2026-01-05T15:07:00Z")), true);
-  assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T15:07:00Z")), false);
-  assert.equal(isChicagoScanSlot(Date.parse("2026-08-02T14:07:00Z")), false);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T14:25:00Z")), true);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-01-05T15:25:00Z")), true);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T15:25:00Z")), false);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-08-02T14:25:00Z")), false);
+});
+
+test("scan and outcome capture slots never overlap", () => {
+  for (const timestamp of [
+    "2026-08-03T14:15:00Z",
+    "2026-08-03T14:25:00Z",
+    "2026-01-05T15:15:00Z",
+    "2026-01-05T15:25:00Z",
+  ]) {
+    const scheduledTime = Date.parse(timestamp);
+    assert.equal(
+      isChicagoScanSlot(scheduledTime) && isChicagoOutcomeCaptureSlot(scheduledTime),
+      false,
+      timestamp
+    );
+  }
 });
 
 test("recognizes hourly Chicago outcome capture slots across daylight saving time", () => {
@@ -32,7 +48,7 @@ test("recognizes hourly Chicago outcome capture slots across daylight saving tim
 test("does not dispatch for paired UTC hours outside a Chicago scan slot", async () => {
   let waited = false;
   await worker.scheduled(
-    { cron: "7 14,15 * * MON-FRI", scheduledTime: Date.parse("2026-08-03T15:07:00Z") },
+    { cron: "25 14,15 * * MON-FRI", scheduledTime: Date.parse("2026-08-03T15:25:00Z") },
     { GITHUB_DISPATCH_TOKEN: "secret" },
     { waitUntil: () => { waited = true; } }
   );
@@ -84,7 +100,7 @@ test("dispatches the configured outcome workflow", async () => {
   });
 });
 
-test("dispatches a scan at its seven-minute slot", async () => {
+test("dispatches a scan at its twenty-five-minute slot", async () => {
   const urls = [];
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async (url) => {
@@ -94,7 +110,7 @@ test("dispatches a scan at its seven-minute slot", async () => {
   try {
     let pending;
     await worker.scheduled(
-      { cron: "*", scheduledTime: Date.parse("2026-08-03T14:07:00Z") },
+      { cron: "*", scheduledTime: Date.parse("2026-08-03T14:25:00Z") },
       { GITHUB_DISPATCH_TOKEN: "secret" },
       { waitUntil: (promise) => { pending = promise; } }
     );

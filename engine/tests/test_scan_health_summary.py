@@ -15,6 +15,62 @@ def _write_json(path: Path, payload: object) -> Path:
     return path
 
 
+def _build_trajectory_report(
+    root: Path,
+    *,
+    now: datetime,
+    active: int,
+    written: int,
+    missing: int = 0,
+    stale: int = 0,
+) -> dict[str, object]:
+    snapshot = _write_json(root / "latest_run.json", {
+        "generated_at_utc": (now - timedelta(minutes=5)).isoformat(),
+        "summary": {"scout_signal_count": 1, "forge_candidate_count": 1},
+        "council": {"abstain": False, "summary": {"live_count": 1}},
+    })
+    prospective = _write_json(root / "prospective.json", {
+        "aggregate": {"runs": 1},
+        "outcome_summary": {
+            "picks": 1,
+            "with_any_mark": 1,
+            "missing_outcome_quotes": 0,
+            "capture_policy_v2_picks": 1,
+        },
+        "last_mark_summary": {
+            "trajectory_active_picks": active,
+            "trajectory_marks_written": written,
+            "trajectory_quotes_missing": missing,
+            "trajectory_quotes_stale": stale,
+            "capture_windows_stale_quote": stale,
+        },
+    })
+    moonshot = _write_json(root / "moonshot.json", {
+        "aggregate": {"runs": 0},
+        "outcome_summary": {},
+        "last_mark_summary": {},
+    })
+    audit = _write_json(root / "audit.json", {"status": "passed", "summary": {}})
+    archive = _write_json(root / "archive.json", {"summary": {"rows_archived": 1}})
+    recommendations = _write_json(root / "recommendations.json", [{}])
+    moonshots = _write_json(root / "moonshots.json", [])
+    combined = _write_json(root / "combined.json", [{}])
+    return build_scan_health_summary(
+        snapshot=snapshot,
+        prospective_ledger=prospective,
+        moonshot_ledger=moonshot,
+        research_audit=audit,
+        archive_manifest=archive,
+        recommendation_dataset=recommendations,
+        moonshot_dataset=moonshots,
+        combined_dataset=combined,
+        now_utc=now,
+        r2_status="success",
+        dashboard_push_status="success",
+        dashboard_deploy_status="success",
+    )
+
+
 class ScanHealthSummaryTests(unittest.TestCase):
     def test_ledger_health_exposes_trajectory_capture_coverage(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -38,6 +94,67 @@ class ScanHealthSummaryTests(unittest.TestCase):
         self.assertEqual(health["trajectory_picks_with_4_marks"], 2)
         self.assertEqual(health["trajectory_active_picks_last_run"], 3)
         self.assertEqual(health["trajectory_marks_written_last_run"], 3)
+
+    def test_ledger_health_exposes_current_stale_quote_contracts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            ledger = _write_json(Path(tmpdir) / "ledger.json", {
+                "last_capture_attempt_at_utc": "2026-09-25T20:12:59Z",
+                "last_mark_summary": {"capture_windows_stale_quote": 1},
+                "entries": [{
+                    "picks": [{
+                        "recommendation_id": "rec-1",
+                        "contract_symbol": "DIA260925P00513000",
+                        "lane": "shadow",
+                        "outcomes": {"capture_attempts": {
+                            "friday_close": {
+                                "status": "stale_quote_retryable",
+                                "attempted_at_utc": "2026-09-25T20:12:59+00:00",
+                                "target_at_utc": "2026-09-25T20:00:00Z",
+                                "broker_quote_age_seconds": 1573.567,
+                                "capture_delay_seconds": 779.0,
+                                "retryable_via_archive": True,
+                            },
+                            "end_of_day": {
+                                "status": "stale_quote_retryable",
+                                "attempted_at_utc": "2026-09-24T20:12:59Z",
+                                "broker_quote_age_seconds": 2000.0,
+                            },
+                        }},
+                    }],
+                }],
+            })
+            health = _ledger_health(ledger)
+
+        self.assertEqual(len(health["stale_quote_examples_last_run"]), 1)
+        example = health["stale_quote_examples_last_run"][0]
+        self.assertEqual(example["contract_symbol"], "DIA260925P00513000")
+        self.assertEqual(example["window"], "friday_close")
+        self.assertEqual(example["broker_quote_age_seconds"], 1573.567)
+
+    def test_high_coverage_incomplete_trajectory_is_degraded_not_failed(self) -> None:
+        now = datetime(2026, 9, 25, 20, 30, tzinfo=UTC)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = _build_trajectory_report(
+                Path(tmpdir), now=now, active=322, written=315, stale=7
+            )
+
+        checks = {check["name"]: check for check in report["checks"]}
+        self.assertEqual(report["status"], "degraded")
+        self.assertTrue(checks["trajectory_capture_health"]["passed"])
+        self.assertAlmostEqual(checks["trajectory_capture_health"]["capture_ratio"], 0.9783)
+        self.assertIn("trajectory_capture_degraded", {row["name"] for row in report["warnings"]})
+        self.assertIn("retryable_quote_evidence_incomplete", {row["name"] for row in report["warnings"]})
+
+    def test_trajectory_at_alert_threshold_still_fails(self) -> None:
+        now = datetime(2026, 9, 25, 20, 30, tzinfo=UTC)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = _build_trajectory_report(
+                Path(tmpdir), now=now, active=100, written=30, stale=70
+            )
+
+        checks = {check["name"]: check for check in report["checks"]}
+        self.assertEqual(report["status"], "failed")
+        self.assertFalse(checks["trajectory_capture_health"]["passed"])
 
     def test_build_scan_health_summary_passes_for_fresh_labeled_run(self) -> None:
         now = datetime(2026, 6, 23, 22, 0, tzinfo=UTC)

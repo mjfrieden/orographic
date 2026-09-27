@@ -60,12 +60,23 @@ class GdeltCompanyNewsTests(unittest.TestCase):
 
         self.assertEqual(written["cooldown_seconds"], 7200.0)
 
-    def test_scheduled_workflow_shares_cooldown_and_keeps_ir_collection(self) -> None:
+    def test_scheduled_workflow_isolates_feed_cooldowns_and_keeps_ir_collection(self) -> None:
         workflow = (Path(__file__).parents[2] / ".github/workflows/orographic_scan.yml").read_text(
             encoding="utf-8"
         )
 
-        self.assertEqual(workflow.count("--cooldown-state engine/data/event_observatory/gdelt_cooldown.json"), 2)
+        self.assertEqual(
+            workflow.count(
+                "--cooldown-state engine/data/event_observatory/gdelt_macro_cooldown.json"
+            ),
+            1,
+        )
+        self.assertEqual(
+            workflow.count(
+                "--cooldown-state engine/data/event_observatory/gdelt_company_news_cooldown.json"
+            ),
+            1,
+        )
         self.assertGreater(workflow.index("python scripts/fetch_company_ir_feeds.py"), workflow.index("python scripts/fetch_gdelt_company_news.py"))
         self.assertEqual(workflow.count("--max-retries 0"), 2)
 

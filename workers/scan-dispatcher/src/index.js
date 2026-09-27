@@ -23,7 +23,7 @@ export function isChicagoScanSlot(scheduledTime) {
   const { weekday, hour, minute } = chicagoTimeParts(scheduledTime);
   return (
     ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) &&
-    minute === "07" &&
+    minute === "25" &&
     CHICAGO_SCAN_HOURS.has(Number(hour))
   );
 }

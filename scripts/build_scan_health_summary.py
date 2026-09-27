@@ -75,6 +75,46 @@ def _float(value: object) -> float | None:
     return parsed if parsed == parsed else None
 
 
+def _current_stale_quote_examples(ledger: dict[str, Any], *, limit: int = 25) -> list[dict[str, Any]]:
+    last_attempt = _parse_dt(ledger.get("last_capture_attempt_at_utc"))
+    if last_attempt is None:
+        return []
+    examples: list[dict[str, Any]] = []
+    entries = ledger.get("entries") if isinstance(ledger.get("entries"), list) else []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        picks = entry.get("picks") if isinstance(entry.get("picks"), list) else []
+        for pick in picks:
+            if not isinstance(pick, dict):
+                continue
+            outcomes = pick.get("outcomes") if isinstance(pick.get("outcomes"), dict) else {}
+            attempts = (
+                outcomes.get("capture_attempts")
+                if isinstance(outcomes.get("capture_attempts"), dict)
+                else {}
+            )
+            for window, attempt in attempts.items():
+                if not isinstance(attempt, dict) or attempt.get("status") != "stale_quote_retryable":
+                    continue
+                if _parse_dt(attempt.get("attempted_at_utc")) != last_attempt:
+                    continue
+                examples.append({
+                    "recommendation_id": pick.get("recommendation_id"),
+                    "contract_symbol": pick.get("contract_symbol"),
+                    "lane": pick.get("lane"),
+                    "window": window,
+                    "attempted_at_utc": attempt.get("attempted_at_utc"),
+                    "target_at_utc": attempt.get("target_at_utc"),
+                    "broker_quote_age_seconds": _float(attempt.get("broker_quote_age_seconds")),
+                    "capture_delay_seconds": _float(attempt.get("capture_delay_seconds")),
+                    "retryable_via_archive": attempt.get("retryable_via_archive") is True,
+                })
+                if len(examples) >= limit:
+                    return examples
+    return examples
+
+
 def _ledger_health(path: Path) -> dict[str, Any]:
     ledger = _load_json(path)
     outcome = ledger.get("outcome_summary") if isinstance(ledger.get("outcome_summary"), dict) else {}
@@ -113,6 +153,7 @@ def _ledger_health(path: Path) -> dict[str, Any]:
         "trajectory_marks_written_last_run": _int(last_mark.get("trajectory_marks_written")),
         "trajectory_quotes_missing_last_run": _int(last_mark.get("trajectory_quotes_missing")),
         "trajectory_quotes_stale_last_run": _int(last_mark.get("trajectory_quotes_stale")),
+        "stale_quote_examples_last_run": _current_stale_quote_examples(ledger),
     }
 
 
@@ -136,6 +177,7 @@ def build_scan_health_summary(
     output: Path | None = None,
     max_run_age_minutes: int = 240,
     min_quote_coverage_pct: float = 0.95,
+    min_trajectory_capture_ratio: float = 0.30,
     min_recommendation_rows: int = 1,
     r2_status: str = "unknown",
     dashboard_push_status: str = "unknown",
@@ -232,6 +274,11 @@ def build_scan_health_summary(
     trajectory_written = prospective["trajectory_marks_written_last_run"] + moonshot["trajectory_marks_written_last_run"]
     trajectory_missing = prospective["trajectory_quotes_missing_last_run"] + moonshot["trajectory_quotes_missing_last_run"]
     trajectory_stale = prospective["trajectory_quotes_stale_last_run"] + moonshot["trajectory_quotes_stale_last_run"]
+    trajectory_capture_ratio = min(1.0, trajectory_written / trajectory_active) if trajectory_active else 1.0
+    min_trajectory_capture_ratio = min(max(float(min_trajectory_capture_ratio), 0.0), 1.0)
+    stale_quote_examples = (
+        prospective["stale_quote_examples_last_run"] + moonshot["stale_quote_examples_last_run"]
+    )[:25]
     _check(
         checks,
         "strict_capture_policy_active",
@@ -243,24 +290,27 @@ def build_scan_health_summary(
     _check(
         checks,
         "outcome_capture_timing_integrity",
-        newly_missed_windows == 0 and current_stale_quote_windows == 0,
+        newly_missed_windows == 0,
         newly_missed_windows=newly_missed_windows,
         retryable_quote_missing_windows=current_retryable_missing_windows,
         stale_quote_windows=current_stale_quote_windows,
         historical_missed_windows=missed_capture_windows,
         historical_retryable_quote_missing_windows=retryable_missing_windows,
         historical_stale_quote_windows=stale_quote_windows,
-        note="Historical capture debt remains visible but does not make a healthy current run fail.",
+        stale_quote_examples=stale_quote_examples,
+        note="Missed live windows fail health. Retryable missing or stale quotes remain visible as degraded evidence without weakening quote-freshness rules.",
     )
     _check(
         checks,
         "trajectory_capture_health",
-        trajectory_active == 0 or (trajectory_written > 0 and trajectory_missing == 0 and trajectory_stale == 0),
+        trajectory_active == 0 or trajectory_capture_ratio > min_trajectory_capture_ratio,
         active_picks=trajectory_active,
         marks_written=trajectory_written,
         missing_quotes=trajectory_missing,
         stale_quotes=trajectory_stale,
-        note="No active picks is valid; otherwise every scheduled run must add fresh trajectory evidence.",
+        capture_ratio=round(trajectory_capture_ratio, 4),
+        minimum_alert_ratio=min_trajectory_capture_ratio,
+        note="No active picks is valid; incomplete capture degrades health and fails only at or below the service threshold.",
     )
     _check(checks, "archive_manifest_exists", archive_manifest.exists(), path=str(archive_manifest))
     _check(
@@ -351,6 +401,35 @@ def build_scan_health_summary(
 
     failed = [check for check in checks if not check["passed"]]
     warnings: list[dict[str, Any]] = []
+    retryable_evidence_incomplete = (
+        current_retryable_missing_windows > 0 or current_stale_quote_windows > 0
+    )
+    if retryable_evidence_incomplete:
+        warnings.append({
+            "name": "retryable_quote_evidence_incomplete",
+            "missing_quote_windows": current_retryable_missing_windows,
+            "stale_quote_windows": current_stale_quote_windows,
+            "stale_quote_examples": stale_quote_examples,
+            "note": "Freshness enforcement rejected these labels; retry from live or archived evidence where available.",
+        })
+    trajectory_complete = (
+        trajectory_active == 0
+        or (
+            trajectory_written >= trajectory_active
+            and trajectory_missing == 0
+            and trajectory_stale == 0
+        )
+    )
+    if not trajectory_complete:
+        warnings.append({
+            "name": "trajectory_capture_degraded",
+            "active_picks": trajectory_active,
+            "marks_written": trajectory_written,
+            "missing_quotes": trajectory_missing,
+            "stale_quotes": trajectory_stale,
+            "capture_ratio": round(trajectory_capture_ratio, 4),
+            "minimum_alert_ratio": min_trajectory_capture_ratio,
+        })
     event_feed_status = str(audit_summary.get("event_feed_status") or "unknown").lower()
     if event_feed_status not in {"unknown", "healthy", "success", "passed"}:
         warnings.append({
@@ -373,7 +452,13 @@ def build_scan_health_summary(
         "artifact": "scan_health_summary",
         "schema_version": 1,
         "generated_at_utc": now.isoformat().replace("+00:00", "Z"),
-        "status": "passed" if not failed else "failed",
+        "status": (
+            "failed"
+            if failed
+            else "degraded"
+            if retryable_evidence_incomplete or not trajectory_complete
+            else "passed"
+        ),
         "snapshot": {
             "path": str(snapshot),
             "generated_at_utc": payload.get("generated_at_utc"),
@@ -404,6 +489,9 @@ def build_scan_health_summary(
             "trajectory_marks_written_last_run": trajectory_written,
             "trajectory_quotes_missing_last_run": trajectory_missing,
             "trajectory_quotes_stale_last_run": trajectory_stale,
+            "trajectory_capture_ratio_last_run": round(trajectory_capture_ratio, 4),
+            "trajectory_minimum_alert_ratio": min_trajectory_capture_ratio,
+            "stale_quote_examples_last_run": stale_quote_examples,
             "trajectory_scored_picks": prospective["trajectory_scored_picks"] + moonshot["trajectory_scored_picks"],
             "trajectory_marks": prospective["trajectory_marks"] + moonshot["trajectory_marks"],
             "trajectory_picks_with_4_marks": prospective["trajectory_picks_with_4_marks"] + moonshot["trajectory_picks_with_4_marks"],
@@ -467,6 +555,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--output", type=Path, default=Path("output/research_datasets/scan_health_summary.json"))
     parser.add_argument("--max-run-age-minutes", type=int, default=240)
     parser.add_argument("--min-quote-coverage-pct", type=float, default=0.95)
+    parser.add_argument("--min-trajectory-capture-ratio", type=float, default=0.30)
     parser.add_argument("--min-recommendation-rows", type=int, default=1)
     parser.add_argument("--r2-status", default="unknown")
     parser.add_argument("--dashboard-push-status", default="unknown")
@@ -492,6 +581,7 @@ def main() -> int:
         output=args.output,
         max_run_age_minutes=max(int(args.max_run_age_minutes), 1),
         min_quote_coverage_pct=max(min(float(args.min_quote_coverage_pct), 1.0), 0.0),
+        min_trajectory_capture_ratio=float(args.min_trajectory_capture_ratio),
         min_recommendation_rows=max(int(args.min_recommendation_rows), 0),
         r2_status=str(args.r2_status or "unknown"),
         dashboard_push_status=str(args.dashboard_push_status or "unknown"),

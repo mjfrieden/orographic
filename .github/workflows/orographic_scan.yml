@@ -135,7 +135,7 @@ jobs:
             --max-retries 0 \
             --resume \
             --continue-on-error \
-            --cooldown-state engine/data/event_observatory/gdelt_cooldown.json \
+            --cooldown-state engine/data/event_observatory/gdelt_macro_cooldown.json \
             --output engine/data/event_observatory/raw/gdelt_macro.csv \
             --observatory-output engine/data/event_observatory/event_observatory.parquet
           python scripts/fetch_gdelt_company_news.py \
@@ -150,7 +150,7 @@ jobs:
             --retry-base-seconds 10 \
             --resume \
             --continue-on-error \
-            --cooldown-state engine/data/event_observatory/gdelt_cooldown.json \
+            --cooldown-state engine/data/event_observatory/gdelt_company_news_cooldown.json \
             --output engine/data/event_observatory/raw/gdelt_company_news.csv \
             --health-output engine/data/event_observatory/gdelt_company_news_health.json \
             --review-queue engine/data/event_observatory/review/headline_review_queue.jsonl \
