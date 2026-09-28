@@ -1,24 +1,23 @@
 {
   "artifact": "research_readiness_health",
   "schema_version": 1,
-  "generated_at_utc": "2026-09-28T17:27:01.900772Z",
+  "generated_at_utc": "2026-09-28T20:26:59.754186Z",
   "status": "red",
   "research_claims_allowed": false,
   "promotion_allowed": false,
   "headline": "Research evidence is blocked; resolve red gates before performance or promotion claims.",
   "summary": {
     "green_gates": 1,
-    "amber_gates": 1,
-    "red_gates": 4,
+    "amber_gates": 0,
+    "red_gates": 5,
     "blocking_gates": [
+      "freshness",
       "label_cohort_completion",
       "event_feed_health",
       "artifact_integrity",
       "promotion_eligibility"
     ],
-    "warning_gates": [
-      "freshness"
-    ],
+    "warning_gates": [],
     "observed_mark_coverage_pct": 0.7022,
     "total_cohort_completion_pct": 0.5767,
     "executable_quote_coverage_pct": 1.0
@@ -26,15 +25,15 @@
   "gates": [
     {
       "code": "freshness",
-      "status": "amber",
-      "blocking": false,
+      "status": "red",
+      "blocking": true,
       "title": "Artifact freshness",
-      "summary": "One or more evidence ledgers are stale.",
+      "summary": "The current snapshot is stale or missing.",
       "metrics": {
-        "snapshot_age_minutes": 176.32,
+        "snapshot_age_minutes": 356.28,
         "snapshot_max_age_minutes": 240,
-        "prospective_ledger_age_minutes": 55996.02,
-        "moonshot_ledger_age_minutes": 55996.02,
+        "prospective_ledger_age_minutes": 56175.98,
+        "moonshot_ledger_age_minutes": 56175.98,
         "evidence_max_age_minutes": 1440,
         "stale_evidence_sources": [
           "prospective",
