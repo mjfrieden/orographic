@@ -6,9 +6,11 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import subprocess
 import sys
 import tempfile
+import time
 from typing import Any
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -55,21 +57,27 @@ def _iter_files(paths: list[Path]) -> list[tuple[Path, Path]]:
 
 
 def _put_object(bucket: str, object_key: str, file_path: Path) -> None:
-    subprocess.run(
-        [
-            "npx",
-            "wrangler",
-            "r2",
-            "object",
-            "put",
-            f"{bucket}/{object_key}",
-            "--remote",
-            "--file",
-            str(file_path),
-        ],
-        check=True,
-    )
-    print(f"Uploaded {file_path} -> r2://{bucket}/{object_key}")
+    command = [
+        "npx", "wrangler", "r2", "object", "put",
+        f"{bucket}/{object_key}", "--remote", "--file", str(file_path),
+    ]
+    for attempt in range(4):
+        result = subprocess.run(command, capture_output=True, text=True)
+        output = (result.stdout or "") + (result.stderr or "")
+        if result.returncode == 0:
+            print(f"Uploaded {file_path} -> r2://{bucket}/{object_key}")
+            return
+        # Retrying the same object is idempotent. Do not retry authorization,
+        # invalid input, or unknown failures, and preserve manifest-last ordering.
+        transient = re.search(r"\b(?:429|5\d\d)\b|timed? out|ECONNRESET|ETIMEDOUT|fetch failed", output, re.I)
+        if not transient or attempt == 3:
+            print(output, file=sys.stderr)
+            raise subprocess.CalledProcessError(
+                result.returncode, command, output=result.stdout, stderr=result.stderr,
+            )
+        delay = 2 ** (attempt + 1)
+        print(f"Transient R2 upload failure; retry {attempt + 1}/3 in {delay}s.")
+        time.sleep(delay)
 
 
 def _list_objects(

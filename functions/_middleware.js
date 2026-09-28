@@ -11,6 +11,12 @@ export async function onRequest(context) {
 
   const session = await readSession(request, context.env);
   if (!session) {
+    if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/data/")) {
+      return Response.json({ error: "Session expired. Please sign in again." }, {
+        status: 401,
+        headers: { "Cache-Control": "no-store" },
+      });
+    }
     return loginRedirect(request);
   }
 

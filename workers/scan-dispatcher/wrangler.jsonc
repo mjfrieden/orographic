@@ -16,12 +16,10 @@
   },
   "triggers": {
     "crons": [
-      // The broad UTC range covers both Chicago daylight and standard time.
-      // The handler dispatches hourly captures at 09:15-15:15 Chicago and
-      // full scans at 09:25, 12:25, and 15:25 Chicago. Keeping scans ten
-      // minutes after capture avoids queueing both workflows on the shared
-      // research-write concurrency group.
-      "15,25 13-22 * * MON-FRI"
+      // UTC range covers Chicago daylight and standard time. Capture every
+      // ten minutes from 08:30 through 15:30; scans remain at 09/12/15:25.
+      // Keep the shared writer lock to prevent lost operational ledger updates.
+      "0,10,20,25,30,40,50 13-22 * * MON-FRI"
     ]
   }
 }

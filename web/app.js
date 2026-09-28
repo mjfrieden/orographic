@@ -1,3 +1,5 @@
+import { readSessionJson } from "./session-response.js";
+
 /**
  * Orographic Arena — AI Options Trading Dashboard
  * No game loop. Direct AI recommendations → Tradier execution.
@@ -140,18 +142,11 @@ function evidenceStatusLabel(value) {
 
 async function loadJsonArtifact(source) {
   const response = await fetch(source, { cache: "no-store" });
-  if (!response.ok) throw new Error(`${source} returned ${response.status}`);
-  const contentType = response.headers.get("content-type") || "";
-  if (!contentType.includes("json")) {
-    throw new Error(`${source} returned ${contentType || "non-JSON content"}`);
-  }
-  return response.json();
+  return readSessionJson(response, source);
 }
 
 async function readBrokerJson(response, unavailableMessage = "Tradier is unavailable in this session.") {
-  const contentType = response.headers.get("content-type") || "";
-  if (!contentType.includes("json")) throw new Error(unavailableMessage);
-  return response.json();
+  return readSessionJson(response, unavailableMessage, globalThis.location, true);
 }
 
 let WORKBENCH_STATE = {
@@ -1557,16 +1552,13 @@ function renderBoardMeta() {
 
 async function loadSnapshot() {
   const r = await fetch(SNAPSHOT_SOURCE, { cache: "no-store" });
-  SNAPSHOT = await r.json();
+  SNAPSHOT = await readSessionJson(r, "Board snapshot");
   return SNAPSHOT;
 }
 
 async function loadProspectiveLedger() {
   const r = await fetch(PROSPECTIVE_LEDGER_SOURCE, { cache: "no-store" });
-  if (!r.ok) {
-    throw new Error(`Prospective ledger unavailable (${r.status})`);
-  }
-  PROSPECTIVE_LEDGER = await r.json();
+  PROSPECTIVE_LEDGER = await readSessionJson(r, "Prospective ledger");
   return PROSPECTIVE_LEDGER;
 }
 
