@@ -20,10 +20,10 @@
   },
   "research_evidence_source": "prospective_ledger",
   "research_lanes": {
-    "picks": 351,
+    "picks": 323,
     "lanes": {
       "council_holdout": {
-        "picks": 49,
+        "picks": 46,
         "mark_windows": {
           "friday_close": 41,
           "next_day_close": 3
@@ -34,7 +34,7 @@
         "equal_weight_sum": -14.0401,
         "by_option_type": {
           "call": {
-            "picks": 49,
+            "picks": 46,
             "mark_windows": {
               "friday_close": 41,
               "next_day_close": 3
@@ -47,7 +47,7 @@
         }
       },
       "paired_side_observation": {
-        "picks": 199,
+        "picks": 183,
         "mark_windows": {
           "friday_close": 169
         },
@@ -57,7 +57,7 @@
         "equal_weight_sum": -22.587,
         "by_option_type": {
           "call": {
-            "picks": 74,
+            "picks": 68,
             "mark_windows": {
               "friday_close": 62
             },
@@ -67,7 +67,7 @@
             "equal_weight_sum": -15.9826
           },
           "put": {
-            "picks": 125,
+            "picks": 115,
             "mark_windows": {
               "friday_close": 107
             },
@@ -79,7 +79,7 @@
         }
       },
       "friction_veto": {
-        "picks": 103,
+        "picks": 94,
         "mark_windows": {
           "friday_close": 84
         },
@@ -89,7 +89,7 @@
         "equal_weight_sum": -11.3602,
         "by_option_type": {
           "call": {
-            "picks": 102,
+            "picks": 93,
             "mark_windows": {
               "friday_close": 83
             },
@@ -149,7 +149,7 @@
     "experiment_id": "friction_veto_value_v1",
     "authority": "observation_only_never_used_for_routing",
     "interpretation": "negative_veto_returns_are_avoided_loss",
-    "picks": 103,
+    "picks": 94,
     "resolved": 84,
     "win_rate": 0.3571,
     "veto_mean_return": -0.1352,
@@ -164,7 +164,7 @@
     "authority": "observation_only_never_used_for_routing",
     "selection_rule": "split paired_side_observation marks by inferred OCC option_type",
     "paired_side_calls": {
-      "picks": 74,
+      "picks": 68,
       "mark_windows": {
         "friday_close": 62
       },
@@ -174,7 +174,7 @@
       "equal_weight_sum": -15.9826
     },
     "paired_side_puts": {
-      "picks": 125,
+      "picks": 115,
       "mark_windows": {
         "friday_close": 107
       },
@@ -206,7 +206,7 @@
     },
     "coverage": {
       "resolved_picks": 297,
-      "trajectory_marks_seen": 6807,
+      "trajectory_marks_seen": 6701,
       "target_hits": 116,
       "stop_hits": 88,
       "hold_fallbacks": 93
@@ -239,7 +239,7 @@
     },
     "coverage": {
       "resolved_picks": 297,
-      "trajectory_marks_seen": 6807,
+      "trajectory_marks_seen": 6701,
       "target_hits": 162,
       "stop_hits": 88,
       "hold_fallbacks": 47
@@ -389,7 +389,12 @@
   "platform": {
     "scan_health_status": "failed",
     "scan_health_failed_checks": [
-      "r2_archival_completed"
+      "archive_manifest_exists",
+      "archive_rows_captured",
+      "recommendation_dataset_rows",
+      "combined_dataset_consistency",
+      "canonical_evidence_bundle_valid",
+      "cirrus_materialization_valid"
     ],
     "rebuild_readiness": "hold_collecting_executable_evidence",
     "promotion_decision": "not_ready",
@@ -413,5 +418,5 @@
     "Keep research_side_split_v1 observation-only; a one-week put/call gap is not a Scout rewrite.",
     "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart."
   ],
-  "research_ledger_path": "output/canonical_evidence/prospective_pick_ledger.json"
+  "research_ledger_path": "output/restored_canonical_evidence/prospective_pick_ledger.json"
 }
