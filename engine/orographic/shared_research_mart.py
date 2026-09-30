@@ -12,6 +12,7 @@ from typing import Any, Iterable
 import uuid
 
 import pandas as pd
+import pyarrow.parquet as pq
 
 from .evidence_store import validate_canonical_bundle
 
@@ -243,8 +244,15 @@ def _nested(payload: dict[str, Any], *keys: str) -> Any:
 
 
 def _frame_records(frame: pd.DataFrame) -> Iterable[dict[str, Any]]:
-    for row in frame.to_dict(orient="records"):
-        yield {str(key): _clean(value) for key, value in row.items()}
+    columns = [str(column) for column in frame.columns]
+    for values in frame.itertuples(index=False, name=None):
+        yield {key: _clean(value) for key, value in zip(columns, values)}
+
+
+def _parquet_records(path: Path) -> Iterable[dict[str, Any]]:
+    if path.exists():
+        for batch in pq.ParquetFile(path).iter_batches(batch_size=16384):
+            yield from _frame_records(batch.to_pandas())
 
 
 def _run_key(system: str, cohort: str, source_run_id: Any) -> str:
@@ -660,8 +668,7 @@ def _orographic_rows(
         })
 
     quote_path = canonical_dir / "live_option_quotes.parquet"
-    quotes = pd.read_parquet(quote_path) if quote_path.exists() else pd.DataFrame()
-    for row in _frame_records(quotes):
+    for row in _parquet_records(quote_path):
         observed = _text(row.get("chain_snapshot_at_utc") or row.get("captured_at_utc"))
         contract = _text(row.get("contract_symbol"))
         source = _text(row.get("canonical_source_file") or row.get("source")) or "orographic_chain"
@@ -1125,8 +1132,9 @@ def build_shared_research_mart(
 
     frames: dict[str, pd.DataFrame] = {}
     for name, contract in TABLE_CONTRACTS.items():
-        rows = [row for source in source_rows for row in source[name]]
+        rows = [row for source in source_rows for row in source.pop(name)]
         frame = pd.DataFrame(rows, columns=contract.columns)
+        del rows
         if not frame.empty:
             frame = frame.sort_values(list(contract.primary_key), kind="mergesort").reset_index(drop=True)
         frames[name] = frame
