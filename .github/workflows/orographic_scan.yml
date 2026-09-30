@@ -452,6 +452,7 @@ jobs:
             --commit-message "scan health summary refresh (${GITHUB_REF_NAME})"
 
       - name: Upload live research data artifact
+        id: canonical-artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v6
         with:
@@ -492,3 +493,16 @@ jobs:
         run: |
           echo "Dashboard refresh completed, but R2 research archival failed." >&2
           exit 1
+
+      - name: Publish the verified Cirrus source pointer
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/publish_cirrus_source.py \
+            --canonical output/canonical_evidence \
+            --run-id "${{ github.run_id }}" \
+            --artifact-id "${{ steps.canonical-artifact.outputs.artifact-id }}" \
+            --digest "${{ steps.canonical-artifact.outputs.artifact-digest }}" \
+            --head-sha "${{ github.sha }}"
+
