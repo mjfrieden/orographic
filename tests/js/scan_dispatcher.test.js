@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFileSync } from "node:fs";
 
 import worker, {
   dispatchOutcomeCapture,
@@ -32,17 +33,24 @@ test("scan and outcome capture slots never overlap", () => {
   }
 });
 
-test("recognizes hourly Chicago outcome capture slots across daylight saving time", () => {
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:15:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T20:15:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T15:15:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-01-05T21:15:00Z")), true);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:05:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:10:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:18:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T14:25:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-03T21:15:00Z")), false);
-  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T14:15:00Z")), false);
+test("captures every ten minutes across Chicago market hours and DST", () => {
+  for (const [date, offset] of [["2026-08-03", 5], ["2026-01-05", 6]]) {
+    for (let minute = 0; minute < 24 * 60; minute++) {
+      const utc = Date.parse(`${date}T00:00:00Z`) + minute * 60000;
+      const localMinute = minute - offset * 60;
+      const expected = localMinute >= 510 && localMinute <= 930 && localMinute % 10 === 0;
+      assert.equal(isChicagoOutcomeCaptureSlot(utc), expected, new Date(utc).toISOString());
+    }
+  }
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-08-02T14:40:00Z")), false);
+});
+
+test("September 28 one-hour window has a scheduled capture before expiry", () => {
+  const due = Date.parse("2026-09-28T15:30:43Z");
+  const slots = Array.from({length: 15}, (_, i) => due + (i + 1) * 60000)
+    .filter(isChicagoOutcomeCaptureSlot);
+  assert.ok(slots.length > 0);
+  assert.ok(slots[0] - due < 15 * 60000);
 });
 
 test("does not dispatch for paired UTC hours outside a Chicago scan slot", async () => {
@@ -137,4 +145,21 @@ test("surfaces GitHub API failures", async () => {
     ),
     /GitHub workflow dispatch failed \(403\): forbidden/
   );
+});
+
+test("deployed cron includes every accepted capture and scan minute", () => {
+  const config = readFileSync(new URL("../../workers/scan-dispatcher/wrangler.jsonc", import.meta.url), "utf8");
+  assert.match(config, /"0,10,20,25,30,40,50 13-22 \* \* MON-FRI"/);
+  for (const date of ["2026-08-03", "2026-01-05"]) {
+    for (let minute = 0; minute < 1440; minute++) {
+      const time = Date.parse(`${date}T00:00:00Z`) + minute * 60000;
+      const capture = isChicagoOutcomeCaptureSlot(time);
+      const scan = isChicagoScanSlot(time);
+      assert.equal(capture && scan, false);
+      if (capture || scan) {
+        assert.ok([0, 10, 20, 25, 30, 40, 50].includes(minute % 60));
+        assert.ok(Math.floor(minute / 60) >= 13 && Math.floor(minute / 60) <= 22);
+      }
+    }
+  }
 });

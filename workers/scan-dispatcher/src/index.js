@@ -1,7 +1,7 @@
 const GITHUB_API_VERSION = "2022-11-28";
 const CHICAGO_TIME_ZONE = "America/Chicago";
 const CHICAGO_SCAN_HOURS = new Set([9, 12, 15]);
-const CHICAGO_OUTCOME_CAPTURE_HOURS = new Set([9, 10, 11, 12, 13, 14, 15]);
+
 
 function chicagoTimeParts(scheduledTime) {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -32,8 +32,9 @@ export function isChicagoOutcomeCaptureSlot(scheduledTime) {
   const { weekday, hour, minute } = chicagoTimeParts(scheduledTime);
   return (
     ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday) &&
-    minute === "15" &&
-    CHICAGO_OUTCOME_CAPTURE_HOURS.has(Number(hour))
+    Number(minute) % 10 === 0 &&
+    (Number(hour) > 8 || (Number(hour) === 8 && Number(minute) >= 30)) &&
+    (Number(hour) < 15 || (Number(hour) === 15 && Number(minute) <= 30))
   );
 }
 
