@@ -5,6 +5,8 @@ import { readFileSync } from "node:fs";
 import worker, {
   dispatchOutcomeCapture,
   dispatchScan,
+  dispatchCirrus,
+  isCirrusScanSlot,
   dispatchUrl,
   isChicagoOutcomeCaptureSlot,
   isChicagoScanSlot,
@@ -162,4 +164,16 @@ test("deployed cron includes every accepted capture and scan minute", () => {
       }
     }
   }
+});
+
+test("Cirrus dispatch runs only at noon Chicago across DST", async () => {
+  assert.equal(isCirrusScanSlot(Date.parse("2026-09-30T17:07:00Z")), true);
+  assert.equal(isCirrusScanSlot(Date.parse("2026-01-05T18:07:00Z")), true);
+  assert.equal(isCirrusScanSlot(Date.parse("2026-09-30T14:07:00Z")), false);
+  let request;
+  await dispatchCirrus({CIRRUS_DISPATCH_TOKEN:"test-token"}, async (url, options) => {
+    request={url,options}; return new Response(null,{status:204});
+  });
+  assert.match(request.url, /repos\/mjfrieden\/Cirrus\/actions\/workflows\/daily-cirrus.yml\/dispatches$/);
+  assert.equal(request.options.headers.Authorization,"Bearer test-token");
 });
