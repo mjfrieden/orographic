@@ -20,7 +20,7 @@ def test_failed_publish_preserves_previous_bundle_and_restore_uses_manifest(tmp_
     store = {}
     def put(bucket, key, path):
         store[key] = path.read_bytes()
-    def get(bucket, key, path):
+    def get(bucket, key, path, **kwargs):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(store[key])
     with patch('scripts.upload_research_artifacts_to_r2._put_object', side_effect=put):
