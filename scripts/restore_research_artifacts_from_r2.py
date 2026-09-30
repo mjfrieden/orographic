@@ -259,22 +259,6 @@ def restore_prefix(
     return len(keys)
 
 
-def restore_canonical(*, bucket: str, prefix: str, output_dir: Path) -> int:
-    """Snapshot the pointer once, then fetch only its immutable referenced objects."""
-    manifest_path = output_dir / 'evidence_manifest.json'
-    _get_object(bucket, prefix.rstrip('/') + '/evidence_manifest.json', manifest_path)
-    manifest = json.loads(manifest_path.read_text())
-    objects = manifest.get('object_prefix', prefix.rstrip('/'))
-    allowed = prefix.rstrip('/').rsplit('/', 1)[0] + '/versions/'
-    if objects != prefix.rstrip('/') and not objects.startswith(allowed):
-        raise ValueError('Unexpected canonical object prefix')
-    for record in manifest['files']:
-        relative = _safe_relative(prefix.rstrip('/') + '/' + record['path'], prefix.rstrip('/') + '/')
-        _get_object(bucket, objects + '/' + relative.as_posix(), output_dir / relative)
-    validate_canonical_bundle(output_dir)
-    return len(manifest['files']) + 1
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Restore Orographic canonical evidence, a Cirrus options_research_bundle, or legacy research snapshots from R2."
@@ -321,14 +305,15 @@ def main() -> int:
             "/moonshot_outcomes.parquet",
         )
 
-    if args.mode == 'canonical':
-        restored = restore_canonical(bucket=bucket, prefix=prefix, output_dir=output)
-    else:
-        restored = restore_prefix(
-            bucket=bucket, account_id=account_id, api_token=api_token,
-            prefix=prefix, output_dir=output, include_suffixes=suffixes,
-            max_objects=max(int(args.max_objects), 0),
-        )
+    restored = restore_prefix(
+        bucket=bucket,
+        account_id=account_id,
+        api_token=api_token,
+        prefix=prefix,
+        output_dir=output,
+        include_suffixes=suffixes,
+        max_objects=max(int(args.max_objects), 0),
+    )
     if restored == 0:
         message = f"No R2 objects found under {prefix}."
         if args.allow_missing:
