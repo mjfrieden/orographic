@@ -151,15 +151,18 @@ test("surfaces GitHub API failures", async () => {
 
 test("deployed cron includes every accepted capture and scan minute", () => {
   const config = readFileSync(new URL("../../workers/scan-dispatcher/wrangler.jsonc", import.meta.url), "utf8");
-  assert.match(config, /"0,10,20,25,30,40,50 13-22 \* \* MON-FRI"/);
+  const settings = JSON.parse(config.replace(/\/\/[^\n]*/g, ""));
+  assert.equal(settings.triggers.crons.length, 1);
+  const minutes = settings.triggers.crons[0].split(" ")[0].split(",").map(Number);
   for (const date of ["2026-08-03", "2026-01-05"]) {
     for (let minute = 0; minute < 1440; minute++) {
       const time = Date.parse(`${date}T00:00:00Z`) + minute * 60000;
       const capture = isChicagoOutcomeCaptureSlot(time);
       const scan = isChicagoScanSlot(time);
       assert.equal(capture && scan, false);
-      if (capture || scan) {
-        assert.ok([0, 10, 20, 25, 30, 40, 50].includes(minute % 60));
+      const cirrus = isCirrusScanSlot(time);
+      if (capture || scan || cirrus) {
+        assert.ok(minutes.includes(minute % 60));
         assert.ok(Math.floor(minute / 60) >= 13 && Math.floor(minute / 60) <= 22);
       }
     }
