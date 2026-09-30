@@ -42,6 +42,14 @@ jobs:
           printf '%s' "${GITHUB_DISPATCH_TOKEN}" | npx wrangler secret put GITHUB_DISPATCH_TOKEN \
             --config workers/scan-dispatcher/wrangler.jsonc
 
+      - name: Configure Cirrus dispatch secret
+        env:
+          CIRRUS_DISPATCH_TOKEN: ${{ secrets.CIRRUS_CRON_GITHUB_TOKEN }}
+        run: |
+          test -n "$CIRRUS_DISPATCH_TOKEN"
+          printf '%s' "$CIRRUS_DISPATCH_TOKEN" | npx wrangler secret put CIRRUS_DISPATCH_TOKEN \
+            --config workers/scan-dispatcher/wrangler.jsonc
+
       - name: Deploy Cloudflare cron dispatcher
         run: |
           npx wrangler deploy --config workers/scan-dispatcher/wrangler.jsonc

@@ -28,6 +28,17 @@ export function isChicagoScanSlot(scheduledTime) {
   );
 }
 
+export function isCirrusScanSlot(scheduledTime) {
+  const { weekday, hour, minute } = chicagoTimeParts(scheduledTime);
+  return ["Mon", "Tue", "Wed", "Thu", "Fri"].includes(weekday)
+    && hour === "12" && minute === "07";
+}
+
+export function dispatchCirrus(env, fetchImpl = fetch) {
+  return dispatchWorkflow({ ...env, GITHUB_REPO: "Cirrus",
+    GITHUB_DISPATCH_TOKEN: env.CIRRUS_DISPATCH_TOKEN }, "daily-cirrus.yml", fetchImpl);
+}
+
 export function isChicagoOutcomeCaptureSlot(scheduledTime) {
   const { weekday, hour, minute } = chicagoTimeParts(scheduledTime);
   return (
@@ -105,6 +116,11 @@ export default {
           });
         })
       );
+    }
+    if (isCirrusScanSlot(controller.scheduledTime)) {
+      tasks.push(dispatchCirrus(env).then((result) => {
+        console.log("Cirrus scan dispatched", { scheduledTime, ...result });
+      }));
     }
     if (isChicagoOutcomeCaptureSlot(controller.scheduledTime)) {
       tasks.push(
