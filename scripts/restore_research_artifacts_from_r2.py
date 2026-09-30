@@ -221,6 +221,22 @@ def restore_prefix(
         prefix=f"{normalized}/",
     )
     keys = sorted(str(row.get("key") or "") for row in rows if row.get("key"))
+    manifest_key = f"{normalized}/evidence_manifest.json"
+    if manifest_key in keys:
+        manifest_path = output_dir / "evidence_manifest.json"
+        _get_object(bucket, manifest_key, manifest_path)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        records = manifest.get("files")
+        if not isinstance(records, list) or not records:
+            raise ValueError("Canonical evidence manifest contains no files")
+        for record in records:
+            relative = _safe_relative(str(record["path"]), "")
+            key = str(record.get("object_key") or f"{normalized}/{relative.as_posix()}")
+            allowed = f"{normalized}-bundles/" if record.get("object_key") else f"{normalized}/"
+            _safe_relative(key, allowed)
+            _get_object(bucket, key, output_dir / relative)
+        validate_canonical_bundle(output_dir)
+        return len(records) + 1
     if include_suffixes:
         keys = [key for key in keys if key.endswith(include_suffixes)]
     if max_objects > 0:

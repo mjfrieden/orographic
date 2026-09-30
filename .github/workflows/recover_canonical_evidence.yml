@@ -1,0 +1,44 @@
+name: Recover canonical evidence
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: Scan run containing the complete research artifact to recover
+        required: true
+        type: string
+concurrency:
+  group: orographic-research-write-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+  actions: read
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+      OROGRAPHIC_RESEARCH_R2_BUCKET: ${{ secrets.OROGRAPHIC_RESEARCH_R2_BUCKET }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+      - run: pip install -r engine/requirements-mart.txt
+      - uses: actions/download-artifact@v6
+        with:
+          name: orographic-live-research-data
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+          path: output/recovery
+      - name: Verify Cloudflare authentication
+        run: npx wrangler whoami
+      - name: Validate and publish recovered canonical bundle
+        run: |
+          python scripts/upload_research_artifacts_to_r2.py --mode canonical output/recovery/output/canonical_evidence
+      - name: Verify restored bundle hashes from R2
+        run: |
+          python scripts/restore_research_artifacts_from_r2.py --mode canonical --output-dir output/recovery_verified

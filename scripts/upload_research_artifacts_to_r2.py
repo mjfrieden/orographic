@@ -194,15 +194,18 @@ def _upload_archive(
 
 
 def _upload_canonical(*, bucket: str, prefix: str, bundle: Path) -> None:
-    validate_canonical_bundle(bundle)
-    manifest_path = bundle / "evidence_manifest.json"
-    files = [path for path in sorted(bundle.rglob("*")) if path.is_file() and path != manifest_path]
-    for file_path in files:
-        relative = str(file_path.relative_to(bundle)).replace("\\", "/")
-        _put_object(bucket, f"{prefix}/{relative}", file_path)
-    # Publish the manifest last.  Readers use it as the commit point for the
-    # canonical materialization and validate every referenced hash after restore.
-    _put_object(bucket, f"{prefix}/evidence_manifest.json", manifest_path)
+    manifest = validate_canonical_bundle(bundle)
+    # Immutable destinations make publishing the current manifest the sole commit
+    # point. A failed upload cannot replace bytes referenced by the previous one.
+    generation = _sha256(bundle / "evidence_manifest.json")
+    for record in manifest["files"]:
+        relative = str(record["path"])
+        record["object_key"] = f"{prefix}-bundles/{generation}/{relative}"
+        _put_object(bucket, record["object_key"], bundle / relative)
+    with tempfile.TemporaryDirectory(prefix="orographic-publish-") as tmpdir:
+        published = Path(tmpdir) / "evidence_manifest.json"
+        published.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        _put_object(bucket, f"{prefix}/evidence_manifest.json", published)
 
 
 def _upload_cirrus(*, bucket: str, prefix: str, bundle: Path) -> None:
