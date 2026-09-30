@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import argparse
+from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path, PurePosixPath
-import subprocess
+import time
+import socket
 import sys
 from typing import Any
-from urllib.parse import urlencode
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode, quote
 from urllib.request import Request, urlopen
 
 if __package__ in {None, ""}:
@@ -144,22 +147,31 @@ def _safe_relative(key: str, prefix: str) -> Path:
     return Path(*relative.parts)
 
 
-def _get_object(bucket: str, key: str, destination: Path) -> None:
+def _get_object(bucket: str, key: str, destination: Path, *, account_id: str = "", api_token: str = "") -> None:
+    account_id = account_id or os.environ["CLOUDFLARE_ACCOUNT_ID"]
+    api_token = api_token or os.environ["CLOUDFLARE_API_TOKEN"]
     destination.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(
-        [
-            "npx",
-            "wrangler",
-            "r2",
-            "object",
-            "get",
-            f"{bucket}/{key}",
-            "--remote",
-            "--file",
-            str(destination),
-        ],
-        check=True,
-    )
+    partial = destination.with_name(destination.name + ".partial")
+    url = (f"https://api.cloudflare.com/client/v4/accounts/{quote(account_id, safe='')}/r2/"
+           f"buckets/{quote(bucket, safe='')}/objects/{quote(key, safe='/')}")
+    request = Request(url, headers={"Authorization": f"Bearer {api_token}"})
+    for attempt in range(3):
+        try:
+            print(f"Downloading {key}", flush=True)
+            with urlopen(request, timeout=60) as response, partial.open("wb") as handle:
+                started = time.monotonic()
+                while chunk := response.read(1024 * 1024):
+                    handle.write(chunk)
+                    if time.monotonic() - started > 300:
+                        raise TimeoutError("R2 download exceeded five minutes")
+            partial.replace(destination)
+            return
+        except (HTTPError, URLError, TimeoutError, socket.timeout, ConnectionError, IncompleteRead) as exc:
+            partial.unlink(missing_ok=True)
+            transient = not isinstance(exc, HTTPError) or exc.code == 429 or 500 <= exc.code < 600
+            if not transient or attempt == 2:
+                raise
+            time.sleep(2 ** (attempt + 1))
 
 
 def cirrus_bundle_prefixes(objects: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -224,7 +236,7 @@ def restore_prefix(
     manifest_key = f"{normalized}/evidence_manifest.json"
     if manifest_key in keys:
         manifest_path = output_dir / "evidence_manifest.json"
-        _get_object(bucket, manifest_key, manifest_path)
+        _get_object(bucket, manifest_key, manifest_path, account_id=account_id, api_token=api_token)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         records = manifest.get("files")
         if not isinstance(records, list) or not records:
@@ -234,7 +246,7 @@ def restore_prefix(
             key = str(record.get("object_key") or f"{normalized}/{relative.as_posix()}")
             allowed = f"{normalized}-bundles/" if record.get("object_key") else f"{normalized}/"
             _safe_relative(key, allowed)
-            _get_object(bucket, key, output_dir / relative)
+            _get_object(bucket, key, output_dir / relative, account_id=account_id, api_token=api_token)
         validate_canonical_bundle(output_dir)
         return len(records) + 1
     if include_suffixes:
@@ -243,7 +255,7 @@ def restore_prefix(
         keys = keys[-max_objects:]
     for key in keys:
         destination = output_dir / _safe_relative(key, f"{normalized}/")
-        _get_object(bucket, key, destination)
+        _get_object(bucket, key, destination, account_id=account_id, api_token=api_token)
     return len(keys)
 
 

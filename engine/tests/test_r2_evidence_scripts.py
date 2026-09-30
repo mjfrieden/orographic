@@ -155,7 +155,7 @@ class R2EvidenceScriptTests(unittest.TestCase):
                 ),
                 mock.patch(
                     "scripts.restore_research_artifacts_from_r2._get_object",
-                    side_effect=lambda bucket, key, destination: downloaded.append((key, destination)),
+                    side_effect=lambda bucket, key, destination, **kwargs: downloaded.append((key, destination)),
                 ),
             ):
                 count = restore_prefix(
