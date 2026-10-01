@@ -621,6 +621,12 @@ function renderPositionAdviceHtml(symbol) {
   `;
 }
 
+function withRecovery(problem, nextStep) {
+  const base = String(problem || "Request failed").replace(/\s+/g, " ").trim();
+  const ended = /[.!?]$/.test(base) ? base : `${base}.`;
+  return `${ended} ${nextStep}`;
+}
+
 function renderPositionsMeta() {
   const syncEl = document.getElementById("positions-sync-status");
   const refreshBtn = document.getElementById("positions-refresh-btn");
@@ -631,7 +637,7 @@ function renderPositionsMeta() {
       text = "Refreshing live Tradier account…";
       className += " is-loading";
     } else if (BROKER_STATE.lastError) {
-      text = `Refresh failed: ${BROKER_STATE.lastError}`;
+      text = withRecovery(BROKER_STATE.lastError, "Try Refresh Tradier.");
       className += " is-error";
     } else if (BROKER_STATE.lastLoadedAt) {
       text = `Synced ${formatTs(BROKER_STATE.lastLoadedAt)} · ${timeAgo(BROKER_STATE.lastLoadedAt)}`;
@@ -1516,7 +1522,7 @@ function renderBoardMeta() {
       text = "Refreshing latest AI board…";
       className += " is-loading";
     } else if (BOARD_STATE.lastError) {
-      text = `Board refresh failed: ${BOARD_STATE.lastError}`;
+      text = withRecovery(BOARD_STATE.lastError, "Try the signal refresh button.");
       className += " is-error";
     } else if (BOARD_STATE.snapshotGeneratedAt) {
       const snapshotAge = timeAgo(BOARD_STATE.snapshotGeneratedAt);

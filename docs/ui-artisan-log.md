@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 89 — 2026-10-01 — Error recovery on Signal & Book sync (NN/g H9)
+
+- Tradier and board refresh failures now state the problem in the user’s language and point at the adjacent refresh control. Error wells stay red (recognizable as errors) with Harbor type. `#positions-sync-status`, `#board-sync-status`, and the `sync-line positions-sync-status` class contract stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit payloads, auth, required DOM ids.
+
 ## Cycle 88 — 2026-09-12 — Master Harbor Reliquary mart seal
 
 - Shared Research Mart status is a Harbor gold seal (Marcellus 11px, stone fill, L-brackets) instead of a 9px stadium pill. Consumer-view hashes and ledger figures read as Cormorant/Cinzel parchment. `#admin-mart-status`, `#shared-mart-audit`, and mart fetch URLs stay.

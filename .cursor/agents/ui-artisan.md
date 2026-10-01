@@ -8,6 +8,8 @@ Taste: **World of Warcraft** UI chrome (gold filigree, unit frames, quest log), 
 
 Run **every other day**. Each run ships **one focused visual PR**, then stops.
 
+When the finding is a **user problem** (errors, copy, mobile task failure, cognitive load) rather than missing chrome, follow `.cursor/skills/nng-ux/SKILL.md` and cite the heuristic in the cycle log.
+
 ## Before you change anything
 
 1. Read `docs/ui-artisan-log.md` and skip work already shipped.
@@ -119,6 +121,7 @@ Audit juice shipped:
 86. Research dungeon shrine-control fields close with gold filigree. **Shipped in cycle 86 (PR #39).**
 87. Cockpit character-plate topbar gives the action rail room to breathe. **Shipped in cycle 87.**
 88. Master Harbor Reliquary mart status becomes a Harbor gold seal. **Shipped in cycle 88.**
+89. Book and Signal errors name the failure and the next step (NN/g H9). **Shipped in cycle 89.**
 
 ## Done when
 
