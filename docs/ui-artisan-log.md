@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 91 — 2026-10-02 — Harbor Gate sign-in recovery (NN/g H9)
+
+- Failed sign-in now names the problem and the next step: wrong username/password, or the sign-in service could not be reached. The alert sits between the password field and Sign in. Focus returns to the empty username or to the password. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit, cockpit, dungeon, required cockpit DOM ids.
+
 ## Cycle 90 — 2026-10-02 — Stale snapshot names the next scan (NN/g H1)
 
 - Signal sync no longer pairs a 17h-old snapshot with “checked 2m ago.” Past four hours the line says the snapshot is stale, that Refresh reloads this file, and when the next weekday 9:25 / 12:25 / 15:25 Chicago scan publishes. HOLD copy drops “Refresh after the next scan” for the same schedule. Amber well matches the H9 error well, gold not red. `#board-sync-status` and the `sync-line positions-sync-status` class contract stay.

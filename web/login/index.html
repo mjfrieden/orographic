@@ -14,7 +14,7 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/assets/orographic-apple-touch.png" />
     <link rel="stylesheet" href="/styles.css?v=20260904h" />
     <link rel="stylesheet" href="/harbor-scene.css?v=20260908d" />
-    <link rel="stylesheet" href="/login-gate.css?v=20260908d" />
+    <link rel="stylesheet" href="/login-gate.css?v=20261002b" />
   </head>
   <body class="portal-page login-page">
     <a class="skip-link" href="#login-form">Skip to credentials</a>
@@ -53,9 +53,9 @@
               required
             />
           </label>
+          <div id="error" class="error" role="alert" aria-live="assertive" hidden></div>
           <button type="submit" class="primary-action">Sign in</button>
         </form>
-        <div id="error" class="error" role="alert" aria-live="assertive" hidden></div>
         <p class="portal-footnote muted">Access is still role-gated. Username and password are unchanged.</p>
       </section>
     </main>
@@ -70,9 +70,38 @@
       function toastMessage(raw) {
         const text = String(raw || "").replace(/\s+/g, " ").trim();
         if (!text || text.startsWith("<") || /<html/i.test(text) || text.length > 180) {
-          return "Login failed";
+          return "";
         }
         return text;
+      }
+
+      function withRecovery(problem, nextStep) {
+        const base = String(problem || "Sign in failed").replace(/\s+/g, " ").trim();
+        const ended = /[.!?]$/.test(base) ? base : `${base}.`;
+        return `${ended} ${nextStep}`;
+      }
+
+      function humanLoginError(raw, unreachable) {
+        if (unreachable) {
+          return withRecovery(
+            "Could not reach the sign-in service",
+            "Check your connection and try Sign in again.",
+          );
+        }
+        const text = toastMessage(raw);
+        if (/invalid credential/i.test(text)) {
+          return withRecovery(
+            "Username or password is wrong",
+            "Check both fields and try Sign in again.",
+          );
+        }
+        if (!text) {
+          return withRecovery(
+            "Sign in failed",
+            "Check username and password and try Sign in again.",
+          );
+        }
+        return withRecovery(text, "Check username and password and try Sign in again.");
       }
 
       function clearGateSeal() {
@@ -81,12 +110,30 @@
         gate.classList.remove("gate-denied");
       }
 
-      function sealGate(message) {
+      function focusRecoveryField() {
+        const user = document.getElementById("username");
+        const pass = document.getElementById("password");
+        if (!String(user.value || "").trim()) {
+          user.focus();
+          return;
+        }
+        pass.focus();
+        pass.select();
+      }
+
+      function sealGate(message, unreachable) {
         errorNode.hidden = false;
-        errorNode.textContent = toastMessage(message);
+        errorNode.textContent = humanLoginError(message, unreachable);
         gate.classList.remove("gate-denied");
         void gate.offsetWidth;
         gate.classList.add("gate-denied");
+        errorNode.scrollIntoView({
+          block: "nearest",
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+            ? "auto"
+            : "smooth",
+        });
+        focusRecoveryField();
       }
 
       form.addEventListener("submit", async (event) => {
@@ -111,14 +158,19 @@
             ? await response.json()
             : { ok: false, error: await response.text() };
 
+          if (!contentType.includes("application/json")) {
+            sealGate("", true);
+            return;
+          }
+
           if (!response.ok || !data.ok) {
-            sealGate(data.error || "Login failed");
+            sealGate(data.error || "");
             return;
           }
 
           window.location.assign(data.redirectTo || "/");
         } catch (error) {
-          sealGate(error.message || "Login failed");
+          sealGate(error && error.message, true);
         } finally {
           submitButton.disabled = false;
           submitButton.textContent = "Sign in";
