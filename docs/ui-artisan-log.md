@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 92 — 2026-10-02 — HOLD and live pick hide came-close until asked (NN/g H8)
+
+- “Came close” starts closed. The summary still names how many options missed a live gate. HOLD shows the decision, funnel, and metrics without five near-miss rows; a live pick keeps Preview order next to quantity instead of below that list. Opening the disclosure still lists contract, block reason, score, and after-cost edge. `#signal` and Tradier preview hooks stay.
+
+Left alone: Scout/Forge/Council math, Tradier preview/submit payloads, auth, required DOM ids, login, dungeon.
+
 ## Cycle 91 — 2026-10-02 — Harbor Gate sign-in recovery (NN/g H9)
 
 - Failed sign-in now names the problem and the next step: wrong username/password, or the sign-in service could not be reached. The alert sits between the password field and Sign in. Focus returns to the empty username or to the password. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.
