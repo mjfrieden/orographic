@@ -122,6 +122,7 @@ Audit juice shipped:
 87. Cockpit character-plate topbar gives the action rail room to breathe. **Shipped in cycle 87.**
 88. Master Harbor Reliquary mart status becomes a Harbor gold seal. **Shipped in cycle 88.**
 89. Book and Signal errors name the failure and the next step (NN/g H9). **Shipped in cycle 89.**
+90. Stale Signal snapshot names the next Chicago scan (NN/g H1). **Shipped in cycle 90.**
 
 ## Done when
 
