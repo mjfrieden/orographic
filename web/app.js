@@ -65,6 +65,51 @@ function timeAgo(date) {
   return `${days}d ago`;
 }
 
+const CHICAGO_TZ = "America/Chicago";
+const CHICAGO_SCAN_MINUTES = [9 * 60 + 25, 12 * 60 + 25, 15 * 60 + 25];
+const CHICAGO_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+
+function chicagoClockParts(date) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CHICAGO_TZ,
+    weekday: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(date);
+  return Object.fromEntries(
+    parts
+      .filter(({ type }) => type !== "literal")
+      .map(({ type, value }) => [type, value]),
+  );
+}
+
+function formatChicagoScanClock(totalMinutes) {
+  const hour24 = Math.floor(totalMinutes / 60);
+  const minute = String(totalMinutes % 60).padStart(2, "0");
+  const hour12 = hour24 % 12 || 12;
+  const suffix = hour24 >= 12 ? "PM" : "AM";
+  return `${hour12}:${minute} ${suffix}`;
+}
+
+function nextScanHint(now = new Date()) {
+  const { weekday, hour, minute } = chicagoClockParts(now);
+  const minutesNow = Number(hour) * 60 + Number(minute);
+  const weekdayIndex = CHICAGO_WEEKDAYS.indexOf(weekday);
+  if (weekdayIndex !== -1) {
+    for (const slot of CHICAGO_SCAN_MINUTES) {
+      if (slot > minutesNow) {
+        return `${formatChicagoScanClock(slot)} Chicago`;
+      }
+    }
+  }
+  const nextWeekday =
+    weekdayIndex === -1
+      ? "Mon"
+      : CHICAGO_WEEKDAYS[(weekdayIndex + 1) % CHICAGO_WEEKDAYS.length];
+  return `${nextWeekday} ${formatChicagoScanClock(CHICAGO_SCAN_MINUTES[0])} Chicago`;
+}
+
 function toneClass(value) {
   return String(value).toLowerCase() === "call" ? "is-call" : "is-put";
 }
@@ -1198,7 +1243,7 @@ function renderCockpitSignal(payload) {
         <div class="card-body">
           <span class="signal-state is-hold">Hold</span>
           <p class="signal-lead">No option cleared every live cost and risk gate.</p>
-          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>This is an active hold. Refresh after the next scan.</p></div>
+          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>This is an active hold. New decisions publish on weekdays at 9:25 AM, 12:25 PM, and 3:25 PM Chicago.</p></div>
           ${noTradeFunnelHtml(payload)}
           ${cameCloseHtml(payload)}
           <div class="signal-metrics">
@@ -1526,14 +1571,19 @@ function renderBoardMeta() {
       className += " is-error";
     } else if (BOARD_STATE.snapshotGeneratedAt) {
       const snapshotAge = timeAgo(BOARD_STATE.snapshotGeneratedAt);
-      const fetchedNote = BOARD_STATE.fetchedAt
-        ? ` · checked ${timeAgo(BOARD_STATE.fetchedAt)}`
-        : "";
-      text = `Snapshot ${formatTs(BOARD_STATE.snapshotGeneratedAt)} · ${snapshotAge}${fetchedNote}`;
       const isStale =
         Date.now() - new Date(BOARD_STATE.snapshotGeneratedAt) >
         4 * 60 * 60 * 1000;
-      className += isStale ? " is-warning" : " is-live";
+      if (isStale) {
+        text = `Stale snapshot ${formatTs(BOARD_STATE.snapshotGeneratedAt)} · ${snapshotAge}. Refresh reloads this file. Next scan ${nextScanHint()}.`;
+        className += " is-warning";
+      } else {
+        const fetchedNote = BOARD_STATE.fetchedAt
+          ? ` · checked ${timeAgo(BOARD_STATE.fetchedAt)}`
+          : "";
+        text = `Snapshot ${formatTs(BOARD_STATE.snapshotGeneratedAt)} · ${snapshotAge}${fetchedNote}`;
+        className += " is-live";
+      }
     } else if (BOARD_STATE.fetchedAt) {
       text = `Board checked ${formatTs(BOARD_STATE.fetchedAt)} · ${timeAgo(BOARD_STATE.fetchedAt)}`;
       className += " is-live";

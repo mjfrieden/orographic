@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 90 — 2026-10-02 — Stale snapshot names the next scan (NN/g H1)
+
+- Signal sync no longer pairs a 17h-old snapshot with “checked 2m ago.” Past four hours the line says the snapshot is stale, that Refresh reloads this file, and when the next weekday 9:25 / 12:25 / 15:25 Chicago scan publishes. HOLD copy drops “Refresh after the next scan” for the same schedule. Amber well matches the H9 error well, gold not red. `#board-sync-status` and the `sync-line positions-sync-status` class contract stay.
+
+Left alone: Scout/Forge/Council, Tradier preview/submit payloads, auth, required DOM ids, login, dungeon.
+
 ## Cycle 89 — 2026-10-01 — Error recovery on Signal & Book sync (NN/g H9)
 
 - Tradier and board refresh failures now state the problem in the user’s language and point at the adjacent refresh control. Error wells stay red (recognizable as errors) with Harbor type. `#positions-sync-status`, `#board-sync-status`, and the `sync-line positions-sync-status` class contract stay.
