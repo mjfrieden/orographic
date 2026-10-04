@@ -75,8 +75,14 @@ function updateCommand() {
 
 async function copyCommand() {
   const command = byId("run-command").textContent;
-  await navigator.clipboard.writeText(command);
-  byId("run-status").textContent = "Command copied. Run it from the Orographic repository root.";
+  try {
+    await navigator.clipboard.writeText(command);
+    byId("run-status").textContent = "Command copied. Run it from the Orographic repository root.";
+    return true;
+  } catch {
+    byId("run-status").textContent = "Could not copy automatically. Select the engine command above and copy it.";
+    return false;
+  }
 }
 
 function manifest() {
@@ -233,7 +239,13 @@ async function loadSharedMartEvidence() {
 
 function bindEvents() {
   byId("run-form").addEventListener("input", updateCommand);
-  byId("run-form").addEventListener("submit", async (event) => { event.preventDefault(); try { await copyCommand(); byId("run-status").textContent = "Run prepared and copied. Execute it locally, then run scripts/sync_dashboard_artifacts.py to publish the result."; } catch { byId("run-status").textContent = "Run prepared. Copy the command above and execute it from the repository root."; } });
+  byId("run-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const copied = await copyCommand();
+    byId("run-status").textContent = copied
+      ? "Run prepared and copied. Execute it locally, then run scripts/sync_dashboard_artifacts.py to publish the result."
+      : "Run prepared. Select the engine command above, copy it, and execute it from the repository root.";
+  });
   byId("copy-command").addEventListener("click", copyCommand);
   byId("export-manifest").addEventListener("click", downloadManifest);
   document.querySelectorAll("[data-source]").forEach((button) => button.addEventListener("click", () => { activeSource = button.dataset.source; document.querySelectorAll("[data-source]").forEach((item) => item.classList.toggle("is-active", item === button)); renderArtifact(); }));
@@ -244,8 +256,26 @@ function bindEvents() {
 
 async function main() {
   updateCommand(); bindEvents();
-  try { await loadArtifacts(); } catch (error) { byId("artifact-meta").textContent = error.message; byId("quality-banner").classList.add("is-warning"); byId("quality-banner").querySelector("strong").textContent = "No validated artifact loaded"; }
-  try { await loadSharedMartEvidence(); } catch (error) { byId("mart-research-status").textContent = "Unavailable"; byId("mart-research-next").textContent = error.message; }
+  try {
+    await loadArtifacts();
+  } catch {
+    const banner = byId("quality-banner");
+    byId("artifact-meta").textContent = "Validation artifacts are not available. Prepare a local run, then publish with scripts/sync_dashboard_artifacts.py.";
+    banner.classList.add("is-warning");
+    const icon = banner.querySelector(".sigil");
+    if (icon) {
+      icon.classList.remove("sigil-check");
+      icon.classList.add("sigil-warning");
+    }
+    banner.querySelector("strong").textContent = "No validated artifact loaded";
+    banner.querySelector("p").textContent = "Refresh this page after the next published run, or use Prepare local run.";
+  }
+  try {
+    await loadSharedMartEvidence();
+  } catch {
+    byId("mart-research-status").textContent = "Unavailable";
+    byId("mart-research-next").textContent = "Shared-mart evidence is unavailable. Refresh this page after the next research sync.";
+  }
 }
 
 if (typeof document !== "undefined") main();

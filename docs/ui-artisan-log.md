@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 93 — 2026-10-04 — Dungeon artifact and copy recovery (NN/g H9)
+
+- Missing validation artifacts no longer leave the integrity banner stuck on “Validating quote lineage.” The banner names the miss and points at Prepare local run / publish. Copy and Prepare local run say whether the clipboard worked, or to select the engine command by hand. `#copy-command`, `#run-command`, `#prepare-run`, variant/trade innerHTML, and 820px dungeon nav stay.
+
+Left alone: Scout/Forge/Council, Tradier, auth, cockpit (PR #60 still open), login, required cockpit DOM ids.
+
 ## Cycle 92 — 2026-10-02 — HOLD and live pick hide came-close until asked (NN/g H8)
 
 - “Came close” starts closed. The summary still names how many options missed a live gate. HOLD shows the decision, funnel, and metrics without five near-miss rows; a live pick keeps Preview order next to quantity instead of below that list. Opening the disclosure still lists contract, block reason, score, and after-cost edge. `#signal` and Tradier preview hooks stay.
