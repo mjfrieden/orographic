@@ -1185,9 +1185,10 @@ function cameCloseReasons(candidate, bucket) {
 function cameCloseHtml(payload, liveContract = "") {
   const rows = flattenCameClose(payload, liveContract ? new Set([liveContract]) : new Set());
   if (!rows.length) return "";
+  const countLabel = `${rows.length} option${rows.length === 1 ? "" : "s"} missed a live gate`;
   return `
-    <details class="came-close" open>
-      <summary><span>Came close</span><strong>Best options that missed a live gate</strong></summary>
+    <details class="came-close">
+      <summary><span>Came close</span><strong>${escapeHtml(countLabel)}</strong></summary>
       <ol class="came-close-list">
         ${rows.map(({ candidate, bucket }) => {
           const side = String(candidate.option_type || "option").toUpperCase();
