@@ -124,6 +124,7 @@ Audit juice shipped:
 89. Book and Signal errors name the failure and the next step (NN/g H9). **Shipped in cycle 89.**
 90. Stale Signal snapshot names the next Chicago scan (NN/g H1). **Shipped in cycle 90.**
 91. Harbor Gate sign-in errors name the failure and the next step (NN/g H9). **Shipped in cycle 91.**
+93. Research dungeon artifact and copy failures name the next step (NN/g H9). **Shipped in cycle 93.**
 
 ## Done when
 

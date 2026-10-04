@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 93 — 2026-10-04 — Dungeon artifact and copy recovery (NN/g H9)
+
+- Missing validation artifacts no longer leave the integrity banner stuck on “Validating quote lineage.” The banner names the miss and points at Prepare local run / publish. Copy and Prepare local run say whether the clipboard worked, or to select the engine command by hand. `#copy-command`, `#run-command`, `#prepare-run`, variant/trade innerHTML, and 820px dungeon nav stay.
+
+Left alone: Scout/Forge/Council, Tradier, auth, cockpit (PR #60 still open), login, required cockpit DOM ids.
+
 ## Cycle 91 — 2026-10-02 — Harbor Gate sign-in recovery (NN/g H9)
 
 - Failed sign-in now names the problem and the next step: wrong username/password, or the sign-in service could not be reached. The alert sits between the password field and Sign in. Focus returns to the empty username or to the password. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.
