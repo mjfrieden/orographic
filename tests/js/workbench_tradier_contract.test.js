@@ -180,3 +180,21 @@ test("Research drawer exposes the single production model without experiment lan
   assert.ok(!html.includes("governance-mart-status"), "live cockpit must not expose mart tooling");
   assert.ok(!source.includes("SHARED_MART_SHADOW_SOURCE"), "live cockpit must not fetch mart diagnostics");
 });
+
+test("Sealed writ order failures name the problem and the next step", async () => {
+  const html = await readFile(indexPath, "utf8");
+  const source = await readFile(appPath, "utf8");
+  const modalChunk = html.slice(html.indexOf('id="preview-modal"'));
+  const messageAt = modalChunk.indexOf('id="modal-message"');
+  const footerAt = modalChunk.indexOf('class="modal-footer"');
+  assert.ok(messageAt > 0 && footerAt > 0 && messageAt < footerAt, "ticket error must sit above Execute / Cancel");
+  assert.match(source, /function humanBrokerTicketError/);
+  assert.ok(
+    source.includes('No order was sent. Close this ticket and try Preview order again.'),
+    "preview failure must name the next step",
+  );
+  assert.ok(
+    source.includes("The order was not sent. Try Execute again, or Cancel."),
+    "execute failure must name the next step",
+  );
+});

@@ -126,6 +126,7 @@ Audit juice shipped:
 91. Harbor Gate sign-in errors name the failure and the next step (NN/g H9). **Shipped in cycle 91.**
 92. Came-close near-misses stay behind a count disclosure on Signal (NN/g H8). **Shipped in cycle 92.**
 93. Research dungeon artifact and copy failures name the next step (NN/g H9). **Shipped in cycle 93.**
+94. Sealed-writ preview and execute failures name the next step (NN/g H9). **Shipped in cycle 94.**
 
 ## Done when
 

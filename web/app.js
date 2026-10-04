@@ -672,6 +672,38 @@ function withRecovery(problem, nextStep) {
   return `${ended} ${nextStep}`;
 }
 
+function humanBrokerTicketError(raw, nextStep) {
+  const text = String(raw?.message || raw || "").replace(/\s+/g, " ").trim();
+  if (/session expired/i.test(text)) {
+    return withRecovery("Session expired", "Sign in again, then retry this order ticket.");
+  }
+  if (
+    /unavailable in this session|unexpected response|Failed to fetch|NetworkError|Load failed|Unexpected token/i.test(
+      text,
+    )
+  ) {
+    return withRecovery(
+      "Tradier could not preview or accept this order from this session",
+      nextStep,
+    );
+  }
+  if (!text || text.startsWith("<") || /<html/i.test(text) || text.length > 180) {
+    return withRecovery("The broker request failed", nextStep);
+  }
+  return withRecovery(text, nextStep);
+}
+
+function showTicketError(raw, nextStep) {
+  const copy = humanBrokerTicketError(raw, nextStep);
+  const msg = document.getElementById("modal-message");
+  if (msg) {
+    msg.textContent = copy;
+    msg.classList.add("is-error");
+    msg.style.color = "";
+  }
+  return copy;
+}
+
 function renderPositionsMeta() {
   const syncEl = document.getElementById("positions-sync-status");
   const refreshBtn = document.getElementById("positions-refresh-btn");
@@ -3209,7 +3241,11 @@ function openModal(title, bodyHtml, executeEnabled, orderData, options = {}) {
     execBtn.textContent = options.executeLabel || "Execute Trade";
   }
   const msg = document.getElementById("modal-message");
-  if (msg) msg.textContent = "";
+  if (msg) {
+    msg.textContent = "";
+    msg.classList.remove("is-error");
+    msg.style.color = "";
+  }
   PENDING_ORDER = orderData
     ? {
         ...orderData,
@@ -3249,7 +3285,10 @@ function bindModal() {
       const msg = document.getElementById("modal-message");
       btn.disabled = true;
       btn.textContent = "Submitting…";
-      if (msg) msg.textContent = "";
+      if (msg) {
+        msg.textContent = "";
+        msg.classList.remove("is-error");
+      }
 
       try {
         const r = await fetch("/api/tradier/orders", {
@@ -3267,14 +3306,18 @@ function bindModal() {
             confirm_live: PENDING_ORDER.isLiveOrder ? true : undefined,
           }),
         });
-        const data = await r.json();
+        const data = await readBrokerJson(
+          r,
+          "Tradier order submission is unavailable in this session.",
+        );
         if (!r.ok || !data.ok)
           throw new Error(data.error || `Order failed (${r.status})`);
 
         const order = data.order || {};
         if (msg) {
           msg.textContent = "";
-          msg.style.color = "var(--teal)";
+          msg.classList.remove("is-error");
+          msg.style.color = "";
         }
         openModal(
           "Order Submitted",
@@ -3292,11 +3335,10 @@ function bindModal() {
         // Refresh account after a brief delay
         setTimeout(loadAccount, 1800);
       } catch (err) {
-        const msg = document.getElementById("modal-message");
-        if (msg) {
-          msg.textContent = String(err.message || err);
-          msg.style.color = "var(--crimson)";
-        }
+        showTicketError(
+          err,
+          "The order was not sent. Try Execute again, or Cancel.",
+        );
         btn.disabled = false;
         btn.textContent = PENDING_ORDER?.isLiveOrder
           ? "Transmit Live Order"
@@ -3406,13 +3448,18 @@ async function handlePreview(
       isLiveOrder: submission.mode === "live",
     });
   } catch (err) {
+    const copy = humanBrokerTicketError(
+      err,
+      "No order was sent. Close this ticket and try Preview order again.",
+    );
     openModal(
       "Preview Failed",
-      `<p class="writ-error">${escapeHtml(err.message || err)}</p>`,
+      `<p class="writ-error">${escapeHtml(copy)}</p>`,
       false,
       null,
       { executeLabel: "Execute Trade" },
     );
+    document.getElementById("modal-cancel-btn")?.focus();
   }
 }
 
@@ -3526,13 +3573,18 @@ async function handleClosePosition(contractSymbol, qty) {
       isLiveOrder: submission.mode === "live",
     });
   } catch (err) {
+    const copy = humanBrokerTicketError(
+      err,
+      "The close was not sent. Close this ticket and try Close position again from the book.",
+    );
     openModal(
       "Preview Failed",
-      `<p class="writ-error">${escapeHtml(err.message || err)}</p>`,
+      `<p class="writ-error">${escapeHtml(copy)}</p>`,
       false,
       null,
       { executeLabel: "Close Position" },
     );
+    document.getElementById("modal-cancel-btn")?.focus();
   }
 }
 
