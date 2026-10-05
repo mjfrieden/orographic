@@ -1,18 +1,18 @@
 {
   "artifact": "orographic_weekly_alpha_review",
   "schema_version": 4,
-  "generated_at_utc": "2026-10-02T20:29:40+00:00",
-  "week_start_utc": "2026-09-25T20:29:40+00:00",
-  "week_end_utc": "2026-10-02T20:29:40+00:00",
+  "generated_at_utc": "2026-10-05T14:29:28+00:00",
+  "week_start_utc": "2026-09-28T14:29:28+00:00",
+  "week_end_utc": "2026-10-05T14:29:28+00:00",
   "objective": "after_cost_alpha_versus_cirrus_and_internal_challengers",
   "production": {
     "lane": "production_v2_council_live_board",
     "model_stack": "production_v2",
-    "regime": "neutral",
+    "regime": "risk_on",
     "current_pick": null,
     "week": {
-      "scans": 10,
-      "abstain_scans": 6,
+      "scans": 11,
+      "abstain_scans": 7,
       "live_emissions": [
         {
           "run_generated_at_utc": "2026-09-30T16:25:04+00:00",
@@ -100,10 +100,10 @@
   },
   "research_evidence_source": "prospective_ledger",
   "research_lanes": {
-    "picks": 272,
+    "picks": 296,
     "lanes": {
       "council_holdout": {
-        "picks": 15,
+        "picks": 18,
         "mark_windows": {
           "friday_close": 12
         },
@@ -113,7 +113,7 @@
         "equal_weight_sum": -3.0033,
         "by_option_type": {
           "call": {
-            "picks": 15,
+            "picks": 18,
             "mark_windows": {
               "friday_close": 12
             },
@@ -125,7 +125,7 @@
         }
       },
       "paired_side_observation": {
-        "picks": 158,
+        "picks": 170,
         "mark_windows": {
           "friday_close": 145
         },
@@ -135,7 +135,7 @@
         "equal_weight_sum": -24.5561,
         "by_option_type": {
           "call": {
-            "picks": 64,
+            "picks": 67,
             "mark_windows": {
               "friday_close": 59
             },
@@ -145,7 +145,7 @@
             "equal_weight_sum": -3.8666
           },
           "put": {
-            "picks": 94,
+            "picks": 103,
             "mark_windows": {
               "friday_close": 86
             },
@@ -157,7 +157,7 @@
         }
       },
       "friction_veto": {
-        "picks": 95,
+        "picks": 104,
         "mark_windows": {
           "friday_close": 87
         },
@@ -167,7 +167,7 @@
         "equal_weight_sum": -8.4477,
         "by_option_type": {
           "call": {
-            "picks": 95,
+            "picks": 104,
             "mark_windows": {
               "friday_close": 87
             },
@@ -364,7 +364,7 @@
     "experiment_id": "friction_veto_value_v1",
     "authority": "observation_only_never_used_for_routing",
     "interpretation": "negative_veto_returns_are_avoided_loss",
-    "picks": 95,
+    "picks": 104,
     "resolved": 87,
     "win_rate": 0.4138,
     "veto_mean_return": -0.0971,
@@ -379,7 +379,7 @@
     "authority": "observation_only_never_used_for_routing",
     "selection_rule": "split paired_side_observation marks by inferred OCC option_type",
     "paired_side_calls": {
-      "picks": 64,
+      "picks": 67,
       "mark_windows": {
         "friday_close": 59
       },
@@ -389,7 +389,7 @@
       "equal_weight_sum": -3.8666
     },
     "paired_side_puts": {
-      "picks": 94,
+      "picks": 103,
       "mark_windows": {
         "friday_close": 86
       },
@@ -409,7 +409,7 @@
   "exit_overlay": {
     "artifact": "trajectory_exit_overlay_v1",
     "schema_version": 1,
-    "generated_at_utc": "2026-10-02T20:29:40+00:00",
+    "generated_at_utc": "2026-10-05T14:29:28+00:00",
     "authority": "observation_only_never_used_for_routing",
     "production_effect": "none",
     "replaces": "path_hazard_challenger",
@@ -421,7 +421,7 @@
     },
     "coverage": {
       "resolved_picks": 248,
-      "trajectory_marks_seen": 17724,
+      "trajectory_marks_seen": 18060,
       "target_hits": 114,
       "stop_hits": 69,
       "hold_fallbacks": 65
@@ -442,7 +442,7 @@
   "early_harvest_overlay": {
     "artifact": "early_harvest_overlay_v1",
     "schema_version": 1,
-    "generated_at_utc": "2026-10-02T20:29:40+00:00",
+    "generated_at_utc": "2026-10-05T14:29:28+00:00",
     "authority": "observation_only_never_used_for_routing",
     "production_effect": "none",
     "replaces": "trajectory_exit_overlay_v1",
@@ -454,7 +454,7 @@
     },
     "coverage": {
       "resolved_picks": 248,
-      "trajectory_marks_seen": 17724,
+      "trajectory_marks_seen": 18060,
       "target_hits": 156,
       "stop_hits": 53,
       "hold_fallbacks": 39
@@ -602,10 +602,8 @@
     "alpha_verdict": "insufficient_paired_evidence"
   },
   "platform": {
-    "scan_health_status": "failed",
-    "scan_health_failed_checks": [
-      "outcome_capture_timing_integrity"
-    ],
+    "scan_health_status": "passed",
+    "scan_health_failed_checks": [],
     "rebuild_readiness": "hold_collecting_executable_evidence",
     "promotion_decision": "not_ready",
     "feature_snapshot_schema": "orographic_pick_features_v1",
@@ -628,5 +626,5 @@
     "Keep research_side_split_v1 observation-only; a one-week put/call gap is not a Scout rewrite.",
     "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart."
   ],
-  "research_ledger_path": "output/restored_canonical_evidence/prospective_pick_ledger.json"
+  "research_ledger_path": "output/canonical_evidence/prospective_pick_ledger.json"
 }
