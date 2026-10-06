@@ -198,3 +198,20 @@ test("Sealed writ order failures name the problem and the next step", async () =
     "execute failure must name the next step",
   );
 });
+
+test("Book empty copy does not claim a clear roster when Tradier failed", async () => {
+  const source = await readFile(appPath, "utf8");
+  assert.match(source, /function bookRosterFailed/);
+  assert.ok(
+    source.includes("No open positions. The book is clear."),
+    "successful empty book must still say the roster is clear",
+  );
+  assert.ok(
+    source.includes("Positions could not be loaded. Try Refresh Tradier."),
+    "failed Tradier load must not claim the book is clear",
+  );
+  assert.ok(
+    source.includes("Orders could not be loaded. Try Refresh Tradier."),
+    "failed Tradier load must not claim there are no orders",
+  );
+});

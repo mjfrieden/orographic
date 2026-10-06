@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 95 — 2026-10-06 — Book unknown vs empty (NN/g H1)
+
+- When Tradier account refresh fails, the party roster, quest log, and ledgers no longer say the book is clear. They say positions or orders could not be loaded and to try Refresh Tradier. Tab counts show — instead of 0. A true empty book after a successful sync still says the book is clear. `#positions-sync-status`, `#book-positions-count`, `#book-orders-count`, and the `sync-line positions-sync-status` class contract stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required DOM ids, login, dungeon.
+
 ## Cycle 94 — 2026-10-04 — Sealed writ order-ticket recovery (NN/g H9)
 
 - Preview, close, and execute failures no longer dump raw fetch/HTML parse text into the sealed writ. The ticket names that Tradier could not preview or accept the order from this session, that nothing was sent, and to Cancel or retry. `#modal-message` sits above Execute / Cancel. `#preview-modal` ids and Tradier preview/submit payloads stay.
