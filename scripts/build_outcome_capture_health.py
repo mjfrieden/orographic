@@ -138,12 +138,18 @@ def build_outcome_capture_health(
     # A single illiquid contract can legitimately retain an old broker quote
     # while the rest of the capture lane remains healthy. Keep that condition
     # visible as degraded health, but page only when trajectory coverage is at
-    # or below the service threshold. All other failed checks remain actionable.
+    # or below the service threshold. Scheduler delay includes time waiting
+    # for the shared scan/capture writer lock. Keep it visible as degraded
+    # health; missed windows and capture failures independently remain paging
+    # conditions, so a successful queued capture does not emit a run failure.
     alert_checks = [
         row
         for row in failed
-        if row["name"] != "trajectory_capture_health"
-        or trajectory_capture_ratio <= min_trajectory_capture_ratio
+        if row["name"] != "scheduler_delivery_fresh"
+        and (
+            row["name"] != "trajectory_capture_health"
+            or trajectory_capture_ratio <= min_trajectory_capture_ratio
+        )
     ]
     generated = now.isoformat().replace("+00:00", "Z")
     return {
