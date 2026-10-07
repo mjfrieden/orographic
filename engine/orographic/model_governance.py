@@ -107,7 +107,15 @@ def _weekly_alpha_block(
         headline = "Weekly Cirrus comparison has not been published yet."
         title = "Awaiting comparison"
     if live_label is not None and live_resolved:
-        headline = f"Live week {live_label} on {live_resolved} resolved pick. " + headline
+        pick_word = "pick" if live_resolved == 1 else "picks"
+        headline = f"Live week {live_label} on {live_resolved} resolved {pick_word}. " + headline
+    overlay_live = _dict(_dict(weekly.get("exit_overlay")).get("live")).get("mean_return_lift")
+    try:
+        overlay_live_num = float(overlay_live) if overlay_live is not None else None
+    except (TypeError, ValueError):
+        overlay_live_num = None
+    if overlay_live_num is not None and overlay_live_num < 0 and live_resolved:
+        headline = headline + " Hard +25% harvest trailed hold on this week's live tape."
     return {
         "status": status,
         "title": title,

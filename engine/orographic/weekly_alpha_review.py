@@ -11,8 +11,10 @@ from engine.orographic.shared_research_mart import OROGRAPHIC_FEATURE_SCHEMA_VER
 from engine.orographic.trajectory_exit_overlay import (
     ARTIFACT as TRAJECTORY_EXIT_OVERLAY,
     EARLY_HARVEST_ARTIFACT,
+    WINNER_RUN_ARTIFACT,
     evaluate_early_harvest_overlay,
     evaluate_trajectory_exit_overlay,
+    evaluate_winner_run_overlay,
 )
 
 
@@ -546,13 +548,65 @@ def _join_live_marks(
 
 
 def _primary_challenger(*candidates: dict[str, Any]) -> dict[str, Any]:
+    """Feature the most promising open experiment, not the largest absolute miss.
+
+    Absolute lift was selecting the worst-performing put observation as
+    `challenger_to_open` because |-62.6%| beat a small positive stop-only lift.
+    """
     scored = [row for row in candidates if int(row.get("paired_scans") or 0) > 0]
     if not scored:
         return candidates[0] if candidates else {}
     return max(
         scored,
-        key=lambda row: (abs(float(row.get("mean_return_lift") or 0.0)), int(row.get("paired_scans") or 0)),
+        key=lambda row: (
+            float(row.get("mean_return_lift") or 0.0),
+            int(row.get("paired_scans") or 0),
+        ),
     )
+
+
+def _winner_run_challenger(overlay: dict[str, Any], harvest: dict[str, Any]) -> dict[str, Any]:
+    """Score the stop-only overlay as an entry-challenger-shaped watch.
+
+    Use live-lane lift only. Research-lane harvest lift is not production P&L.
+    """
+    live = _as_dict(overlay.get("live"))
+    harvest_live = _as_dict(harvest.get("live"))
+    lift = _number(live.get("mean_return_lift"))
+    harvest_lift = _number(harvest_live.get("mean_return_lift"))
+    scans = int(live.get("resolved_picks") or 0)
+    beats_harvest = (
+        lift is not None
+        and harvest_lift is not None
+        and lift > harvest_lift
+    )
+    if scans == 0:
+        reason = (
+            "No resolved live picks to score a stop-only overlay this week. "
+            "Keep collecting trajectory troughs; it cannot route exits."
+        )
+    elif beats_harvest:
+        reason = (
+            f"Stop-only -50% / let-winners-run beat +25% harvest on {scans} live picks "
+            f"(live lift versus hold {lift}, harvest live lift {harvest_lift}). "
+            "Observation-only; Friday-close labels and 30 live dates are still required."
+        )
+    else:
+        reason = (
+            f"Stop-only overlay live lift versus hold is {lift} on {scans} picks. "
+            "Keep observation-only; it cannot route exits."
+        )
+    return {
+        "experiment_id": WINNER_RUN_ARTIFACT,
+        "authority": "observation_only_never_used_for_routing",
+        "selection_rule": "stop at -50% bid; never harvest; hold winners to Friday",
+        "paired_scans": scans,
+        "mean_return_lift": lift,
+        "harvest_live_mean_return_lift": harvest_lift,
+        "beats_plus25_harvest_on_live": beats_harvest,
+        "promotion_ready": False,
+        "reason": reason,
+    }
 
 
 def _lane_decisions(
@@ -564,6 +618,7 @@ def _lane_decisions(
     side_split: dict[str, Any],
     overlay: dict[str, Any],
     early_harvest: dict[str, Any],
+    winner_run: dict[str, Any],
     payoff: dict[str, Any],
     path_hazard: dict[str, Any],
     mart_shadow: dict[str, Any],
@@ -584,6 +639,11 @@ def _lane_decisions(
         "keep_observation_only" if int(challenger.get("paired_scans") or 0) > 0 else "open_observation_only"
     )
     overlay_lift = overlay.get("overall", {}).get("mean_return_lift") if isinstance(overlay.get("overall"), dict) else None
+    overlay_live_lift = (
+        overlay.get("live", {}).get("mean_return_lift")
+        if isinstance(overlay.get("live"), dict)
+        else None
+    )
     overlay_hits = int(_as_dict(overlay.get("coverage")).get("target_hits") or 0) + int(
         _as_dict(overlay.get("coverage")).get("stop_hits") or 0
     )
@@ -592,17 +652,32 @@ def _lane_decisions(
         if isinstance(early_harvest.get("overall"), dict)
         else None
     )
-    early_beats_hold = early_lift is not None and early_lift > 0
-    early_beats_overlay = (
-        early_lift is not None
-        and overlay_lift is not None
-        and early_lift > overlay_lift
+    winner_lift = (
+        winner_run.get("overall", {}).get("mean_return_lift")
+        if isinstance(winner_run.get("overall"), dict)
+        else None
     )
-    if overlay_hits == 0:
+    winner_live_lift = (
+        winner_run.get("live", {}).get("mean_return_lift")
+        if isinstance(winner_run.get("live"), dict)
+        else None
+    )
+    live_harvest_hurt = overlay_live_lift is not None and overlay_live_lift < 0
+    winner_beats_harvest = (
+        winner_live_lift is not None
+        and overlay_live_lift is not None
+        and winner_live_lift > overlay_live_lift
+    )
+    if overlay_hits == 0 or live_harvest_hurt:
         overlay_action = "replace"
-        overlay_replacement = EARLY_HARVEST_ARTIFACT
+        overlay_replacement = WINNER_RUN_ARTIFACT
         overlay_note = (
-            f"Zero target/stop fills this week; {EARLY_HARVEST_ARTIFACT} is the active exit experiment."
+            f"Live +25% harvest trailed hold-to-Friday (live lift {overlay_live_lift}). "
+            f"{WINNER_RUN_ARTIFACT} is the replacement exit experiment."
+            if live_harvest_hurt
+            else (
+                f"Zero target/stop fills this week; {WINNER_RUN_ARTIFACT} is the active exit experiment."
+            )
         )
     elif overlay_lift is not None and overlay_lift <= 0:
         overlay_action = "hold_do_not_promote"
@@ -612,17 +687,32 @@ def _lane_decisions(
         overlay_action = "hold_do_not_promote"
         overlay_replacement = None
         overlay_note = "No production exit change."
-    if early_beats_hold and (overlay_hits == 0 or early_beats_overlay):
-        early_action = "keep_observation_only"
-        early_note = (
-            "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
-            f"Mean lift versus hold {early_lift}. Observation-only; it cannot route exits."
+    # Early harvest is the prior replacement experiment. It trails the +25 overlay
+    # on research names and cuts live winners even harder. Trade it out.
+    early_action = "hold_do_not_promote"
+    early_note = (
+        "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
+        f"Mean lift versus hold {early_lift}. Trails hold, the +25 overlay, and/or "
+        f"{WINNER_RUN_ARTIFACT} on live tape; do not change live exits."
+    )
+    if winner_beats_harvest:
+        winner_action = "keep_observation_only"
+        winner_note = (
+            "Stop-only -50% / let-winners-run versus hold-to-Friday. "
+            f"Live lift versus hold {winner_live_lift} beat +25% harvest live lift "
+            f"{overlay_live_lift}. Observation-only; it cannot route exits."
+        )
+    elif winner_lift is not None and winner_lift > 0:
+        winner_action = "keep_observation_only"
+        winner_note = (
+            "Stop-only -50% / let-winners-run versus hold-to-Friday. "
+            f"Mean lift versus hold {winner_lift}. Observation-only; it cannot route exits."
         )
     else:
-        early_action = "hold_do_not_promote"
-        early_note = (
-            "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
-            f"Mean lift versus hold {early_lift}. Trails hold and/or the +25 overlay; do not change live exits."
+        winner_action = "open_observation_only"
+        winner_note = (
+            "Stop-only -50% / let-winners-run versus hold-to-Friday. "
+            f"Mean lift versus hold {winner_lift}. Open as the replacement for harvest overlays."
         )
     return [
         {
@@ -685,6 +775,15 @@ def _lane_decisions(
             "reason": early_note,
             "mean_return_lift": early_lift,
             "resolved_picks": _as_dict(early_harvest.get("coverage")).get("resolved_picks"),
+        },
+        {
+            "lane": WINNER_RUN_ARTIFACT,
+            "action": winner_action,
+            "authority": "observation_only",
+            "reason": winner_note,
+            "mean_return_lift": winner_live_lift if winner_live_lift is not None else winner_lift,
+            "resolved_picks": _as_dict(winner_run.get("coverage")).get("resolved_picks"),
+            "live_resolved_picks": _as_dict(winner_run.get("live")).get("resolved_picks"),
         },
         {
             "lane": "side_aware_scout_shadow_ledger",
@@ -846,6 +945,13 @@ def build_weekly_alpha_review(
         end=end,
         as_of_utc=as_of_utc,
     )
+    winner_run = evaluate_winner_run_overlay(
+        {"entries": research_entries},
+        start=start,
+        end=end,
+        as_of_utc=as_of_utc,
+    )
+    winner_challenger = _winner_run_challenger(winner_run, overlay)
     live_marks = _join_live_marks(board["live_emissions"], research_entries)
     live_lane = _as_dict(lanes["lanes"].get("live"))
     cirrus = _cirrus_comparison(mart_shadow, mart_sync, as_of_utc)
@@ -857,6 +963,7 @@ def build_weekly_alpha_review(
         side_split=side_split,
         overlay=overlay,
         early_harvest=early_harvest,
+        winner_run=winner_run,
         payoff=payoff_challenger,
         path_hazard=path_hazard,
         mart_shadow=mart_shadow,
@@ -875,7 +982,7 @@ def build_weekly_alpha_review(
     }
     return {
         "artifact": "orographic_weekly_alpha_review",
-        "schema_version": 4,
+        "schema_version": 5,
         "generated_at_utc": as_of_utc.astimezone(UTC).replace(microsecond=0).isoformat(),
         "week_start_utc": start.replace(microsecond=0).isoformat(),
         "week_end_utc": end.replace(microsecond=0).isoformat(),
@@ -898,13 +1005,17 @@ def build_weekly_alpha_review(
         },
         "research_evidence_source": evidence_source,
         "research_lanes": lanes,
-        "challenger_to_open": _primary_challenger(opposite, tight_spread, holdout),
+        "challenger_to_open": _primary_challenger(
+            winner_challenger, opposite, tight_spread, holdout
+        ),
         "tight_spread_challenger": tight_spread,
         "paired_opposite_challenger": opposite,
         "friction_veto_value": friction,
         "research_side_split": side_split,
         "exit_overlay": overlay,
         "early_harvest_overlay": early_harvest,
+        "winner_run_overlay": winner_run,
+        "winner_run_challenger": winner_challenger,
         "lane_decisions": decisions,
         "cirrus": cirrus,
         "platform": {
@@ -927,7 +1038,8 @@ def build_weekly_alpha_review(
             "Publish Cirrus with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir> so scans restore r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current.",
             f"Keep {FRICTION_VETO_VALUE} as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
             f"Collect {PAIRED_OPPOSITE_CHALLENGER} and {TIGHT_SPREAD_CHALLENGER} as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
-            f"Score {EARLY_HARVEST_ARTIFACT} (+10/-40) alongside {TRAJECTORY_EXIT_OVERLAY}; do not change live exits.",
+            f"Replace {EARLY_HARVEST_ARTIFACT} with {WINNER_RUN_ARTIFACT} (stop -50%, never harvest) when live +25% harvest trails hold.",
+            f"Score {WINNER_RUN_ARTIFACT} alongside {TRAJECTORY_EXIT_OVERLAY}; do not change live exits.",
             f"Keep {RESEARCH_SIDE_SPLIT} observation-only; a one-week put/call gap is not a Scout rewrite.",
             "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart.",
         ],

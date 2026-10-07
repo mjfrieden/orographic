@@ -80,6 +80,26 @@ class ModelGovernanceTests(unittest.TestCase):
         self.assertIn("18 training rows", weekly["headline"])
         self.assertIn("Live week -40.85%", weekly["headline"])
 
+    def test_weekly_alpha_names_live_harvest_that_trailed_hold(self) -> None:
+        report = build_model_governance_summary(
+            scan_health={"checks": [{"name": "trajectory_capture_health", "passed": True}]},
+            weekly_review={
+                "alpha_verdict": "insufficient_paired_evidence",
+                "production": {"week_live_marks": {"resolved": 4, "mean_return": 0.1732}},
+                "exit_overlay": {"live": {"mean_return_lift": -0.1989, "resolved_picks": 4}},
+                "cirrus": {
+                    "alpha_verdict": "insufficient_paired_evidence",
+                    "mart_sync_status": "ready_two_source",
+                    "paired_executable_outcomes": 7,
+                    "direct_return_comparable_pairs": 0,
+                },
+            },
+            mart_sync={"status": "ready_two_source", "cirrus_pin": "local"},
+        )
+        weekly = report["weekly_alpha"]
+        self.assertIn("Live week 17.32%", weekly["headline"])
+        self.assertIn("Hard +25% harvest trailed hold on this week's live tape.", weekly["headline"])
+
     def test_missing_weekly_review_is_awaiting_comparison(self) -> None:
         report = build_model_governance_summary(scan_health={})
         self.assertEqual(report["weekly_alpha"]["title"], "Awaiting comparison")

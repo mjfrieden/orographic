@@ -1,0 +1,33 @@
+{
+  "artifact": "winner_run_overlay_v1",
+  "schema_version": 1,
+  "generated_at_utc": "2026-10-06T20:29:16+00:00",
+  "authority": "observation_only_never_used_for_routing",
+  "production_effect": "none",
+  "replaces": "early_harvest_overlay_v1",
+  "policy": {
+    "target_return": null,
+    "stop_return": -0.5,
+    "fill_rule": "recorded bid at or beyond the stop; profit targets are never taken",
+    "fallback": "hold winners to the latest resolved fixed-exit window, preferring Friday close"
+  },
+  "coverage": {
+    "resolved_picks": 348,
+    "trajectory_marks_seen": 22553,
+    "target_hits": 0,
+    "stop_hits": 91,
+    "hold_fallbacks": 257
+  },
+  "overall": {
+    "mean_overlay_return": -0.0697,
+    "mean_hold_return": -0.074,
+    "mean_return_lift": 0.0043,
+    "positive_lift_rate": 0.1695
+  },
+  "live": {
+    "resolved_picks": 4,
+    "mean_return_lift": 0.0209
+  },
+  "promotion_ready": false,
+  "reason": "Stop-only overlay has coverage and a non-negative live lift versus hold-to-Friday. Still observation-only; it cannot route exits."
+}
