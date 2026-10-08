@@ -291,6 +291,7 @@ def _outcome_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
         "capture_windows_quote_missing": 0,
         "capture_windows_stale_quote": 0,
         "capture_windows_missed": 0,
+        "capture_windows_off_session": 0,
         "legacy_capture_policy_picks": 0,
         "capture_policy_v2_picks": 0,
         "trajectory_scored_picks": 0,
@@ -347,6 +348,8 @@ def _outcome_summary(entries: list[dict[str, Any]]) -> dict[str, Any]:
                     summary["capture_windows_quote_missing"] += 1
                 elif status_value == "stale_quote_retryable":
                     summary["capture_windows_stale_quote"] += 1
+                elif status_value == "unavailable_market_closed":
+                    summary["capture_windows_off_session"] = summary.get("capture_windows_off_session", 0) + 1
                 elif status_value == "missed_live_window":
                     summary["capture_windows_missed"] += 1
             if marked and not quote_verification.get("outcome_quotes_captured"):
@@ -367,6 +370,11 @@ def _capture_window_state(now: datetime, target: datetime, window_name: str) -> 
     limit_seconds = float(CAPTURE_DELAY_LIMITS_SECONDS[window_name])
     if delay_seconds < 0:
         return "not_due", delay_seconds, limit_seconds
+    local_target = target.astimezone(MARKET_TZ)
+    if local_target.weekday() >= 5 or not (
+        MARKET_OPEN_BUFFER <= local_target.time() <= MARK_CLOSE_BUFFER
+    ):
+        return "unavailable_market_closed", delay_seconds, limit_seconds
     if delay_seconds <= limit_seconds:
         return "capture_allowed", delay_seconds, limit_seconds
     return "missed_live_window", delay_seconds, limit_seconds
@@ -467,6 +475,7 @@ def mark_prospective_ledger(
         "capture_windows_stale_quote": 0,
         "capture_windows_missed": 0,
         "capture_windows_newly_missed": 0,
+        "capture_windows_off_session": 0,
         "legacy_capture_policy_picks_skipped": 0,
         "trajectory_marks_written": 0,
         "trajectory_quotes_missing": 0,
@@ -594,6 +603,22 @@ def mark_prospective_ledger(
                         capture_attempts[window_name] = reconciled_attempt
                         changed = True
                     stats["capture_windows_valid"] += 1
+                    continue
+                if state == "unavailable_market_closed":
+                    # A wall-clock one-hour target after close cannot produce
+                    # an executable market quote. Preserve the target and do
+                    # not substitute tomorrow's quote or fabricate a label.
+                    prior_attempt = capture_attempts.get(window_name)
+                    if not isinstance(prior_attempt, dict) or prior_attempt.get("status") != state:
+                        capture_attempts[window_name] = _capture_attempt_payload(
+                            status=state,
+                            target=target,
+                            attempted_at=captured_at,
+                            delay_seconds=delay_seconds,
+                            limit_seconds=limit_seconds,
+                        )
+                        changed = True
+                    stats["capture_windows_off_session"] += 1
                     continue
                 if state == "missed_live_window":
                     prior_attempt = capture_attempts.get(window_name)
