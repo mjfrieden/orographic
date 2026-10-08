@@ -79,6 +79,7 @@ def build_outcome_capture_health(
             "quotes_stale": _int(last.get("trajectory_quotes_stale")),
             "fixed_windows_valid": _int(last.get("capture_windows_valid")),
             "fixed_windows_newly_missed": _int(last.get("capture_windows_newly_missed")),
+            "fixed_windows_off_session": _int(last.get("capture_windows_off_session")),
             "trajectory_scored_picks": _int(outcome.get("trajectory_scored_picks")),
             "trajectory_marks": _int(outcome.get("trajectory_marks")),
         })
@@ -176,6 +177,7 @@ def build_outcome_capture_health(
             "trajectory_capture_ratio_last_run": round(trajectory_capture_ratio, 4),
             "trajectory_minimum_alert_ratio": min_trajectory_capture_ratio,
             "fixed_capture_windows_missed_last_run": missed,
+            "fixed_capture_windows_off_session": sum(row["fixed_windows_off_session"] for row in ledgers),
             "trajectory_scored_picks": trajectory_contracts,
             "trajectory_marks": trajectory_marks,
         },
