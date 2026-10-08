@@ -459,6 +459,7 @@ Tradier integration expects these additional Pages secrets or local `.dev.vars` 
 - `TRADIER_ACCESS_TOKEN`: your Tradier API token
 - `TRADIER_ACCOUNT_ID`: the brokerage account id
 - `TRADIER_SANDBOX_MODE`: `true` for paper trading, `false` for production base URLs
+- `TRADIER_BASE_URL` (or `OROGRAPHIC_TRADIER_BASE_URL`): if set, must be exactly `https://sandbox.tradier.com/v1` for sandbox mode or `https://api.tradier.com/v1` for live mode (a trailing slash is accepted). Conflicting mode settings or any other endpoint block broker requests. `OROGRAPHIC_TRADIER_MODE` / `TRADIER_TRADING_MODE` accept `sandbox`, `live`, or `disabled`.
 - `TRADIER_LIVE_TRADING_ENABLED`: `true` only when you explicitly want production order submission enabled
 - `TRADIER_MAX_CONTRACTS`: hard cap for this arena's order quantity control, default `3`
 - `OROGRAPHIC_MAX_ENTRY_COST_BASIS_USD`: server-enforced buy-to-open cost-basis ceiling, default `$600`; applied to preview and submission after the live quote is loaded
@@ -528,6 +529,16 @@ The Tradier workflow in this repo currently supports:
 6. Admin-only limit-order placement for both entries and manual exits
 7. Optional private per-run position history capture during Python scan runs
 8. Buy-to-open placement gated by admin access and fresh snapshot timing, and restricted to `council.live_board`
+
+Order previews and submissions require a matching contract quote with finite, positive, non-crossed bid/ask prices for entry. Closing a position requires a positive bid and can proceed when the ask is unavailable; malformed or crossed quotes still block it. Missing or invalid quotes block the request; snapshot prices and penny defaults cannot substitute for broker quotes. The preview's server envelope supplies the displayed quantity and limit. Placement preserves that reviewed limit and duration even if the quote has moved, and applies the risk ceiling to the submitted limit.
+
+Once a broker POST returns an order ID, a failed status lookup retains that ID in the response and order ledger. Rejected confirmations also retain their recorded order. A browser or broker status failure leaves the ticket non-retryable: check the order in Tradier before creating another ticket. This is a single-ticket safeguard, not cross-tab idempotency.
+
+Run the mocked JavaScript regressions without broker credentials or API calls:
+
+```bash
+npm run test:js
+```
 
 ## Hosted Position History
 
