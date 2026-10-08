@@ -95,7 +95,7 @@ def test_future_same_class_returns_do_not_change_earlier_oof_picks(tmp_path, fas
 def test_fold_utilities_use_only_purged_training_outcomes(fast_model):
     frame = pd.DataFrame(rows())
     feature_dates, labels_available = trainer._validate_frame(frame, "development", forward=False)
-    returns = frame["hold_period_return_after_friction_pct"].to_numpy()
+    returns = frame["hold_period_return_after_friction_pct"].to_numpy(copy=True)
     # A large payoff's exit is early, but its label is not available until later.
     returns[3] = 3.0
     labels_available[3] = date(2026, 1, 12)
