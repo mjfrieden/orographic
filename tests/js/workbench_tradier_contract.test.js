@@ -194,7 +194,8 @@ test("Sealed writ order failures name the problem and the next step", async () =
     "preview failure must name the next step",
   );
   assert.ok(
-    source.includes("The order was not sent. Try Execute again, or Cancel."),
-    "execute failure must name the next step",
+    source.includes("Check Orders in Tradier before placing another order. Do not resubmit this ticket."),
+    "an uncertain submission must require broker reconciliation instead of inviting a retry",
   );
+  assert.ok(!source.includes("The order was not sent. Try Execute again, or Cancel."));
 });

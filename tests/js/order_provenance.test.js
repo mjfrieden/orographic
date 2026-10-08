@@ -197,7 +197,7 @@ function withMockTradier(run) {
         },
       });
     }
-    return originalFetch(input, init);
+    throw new Error(`Unexpected mocked request: ${init.method || "GET"} ${url}`);
   };
   return Promise.resolve()
     .then(run)
@@ -377,7 +377,7 @@ test("submission enforces the server-side entry cost-basis ceiling", async () =>
     const rows = await listOrderProvenance({ POSITIONS_DB: context.db });
 
     assert.equal(response.status, 409);
-    assert.equal(payload.risk_budget.estimated_cost_basis_usd, 123);
+    assert.equal(payload.risk_budget.estimated_cost_basis_usd, 120);
     assert.equal(rows[0].event_type, "blocked_risk_budget");
   });
 });

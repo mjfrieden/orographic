@@ -3280,7 +3280,9 @@ function bindModal() {
   document
     .getElementById("modal-execute-btn")
     ?.addEventListener("click", async () => {
-      if (!PENDING_ORDER) return;
+      if (!PENDING_ORDER?.executeEnabled) return;
+      const pendingOrder = PENDING_ORDER;
+      pendingOrder.executeEnabled = false;
       const btn = document.getElementById("modal-execute-btn");
       const msg = document.getElementById("modal-message");
       btn.disabled = true;
@@ -3295,15 +3297,15 @@ function bindModal() {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
-            option_symbol: PENDING_ORDER.option_symbol,
-            symbol: PENDING_ORDER.symbol,
-            side: PENDING_ORDER.side,
-            quantity: PENDING_ORDER.quantity,
-            type: PENDING_ORDER.type,
-            duration: PENDING_ORDER.duration,
-            price: PENDING_ORDER.price,
+            option_symbol: pendingOrder.option_symbol,
+            symbol: pendingOrder.symbol,
+            side: pendingOrder.side,
+            quantity: pendingOrder.quantity,
+            type: pendingOrder.type,
+            duration: pendingOrder.duration,
+            price: pendingOrder.price,
             preview: false,
-            confirm_live: PENDING_ORDER.isLiveOrder ? true : undefined,
+            confirm_live: pendingOrder.isLiveOrder ? true : undefined,
           }),
         });
         const data = await readBrokerJson(
@@ -3313,38 +3315,39 @@ function bindModal() {
         if (!r.ok || !data.ok)
           throw new Error(data.error || `Order failed (${r.status})`);
 
-        const order = data.order || {};
+        // A sent ticket is single-use, including when its outcome is unknown.
+        setTimeout(loadAccount, 1800);
+        if (PENDING_ORDER !== pendingOrder) return;
+        const order = data.confirmation || data.order || {};
         if (msg) {
           msg.textContent = "";
           msg.classList.remove("is-error");
           msg.style.color = "";
         }
         openModal(
-          "Order Submitted",
+          data.outcome === "rejected" ? "Order Rejected" : data.outcome === "unknown" ? "Order Status Unknown" : "Order Submitted",
           `<div class="summary-box">
-          ${summaryItemHtml("Status", order.status || "submitted")}
-          ${summaryItemHtml("Order ID", order.id || "--")}
-          ${summaryItemHtml("Contract", data.envelope?.option_symbol || PENDING_ORDER.option_symbol)}
-          ${summaryItemHtml("Qty", order.quantity || PENDING_ORDER.quantity)}
-          ${summaryItemHtml("Price", money(order.price || PENDING_ORDER.price))}
-        </div>`,
+          ${summaryItemHtml("Status", data.confirmation_status === "unavailable" ? "Awaiting broker status" : order.status || "submitted")}
+          ${summaryItemHtml("Order ID", order.id || data.order?.id || "--")}
+          ${summaryItemHtml("Contract", data.envelope?.option_symbol || pendingOrder.option_symbol)}
+          ${summaryItemHtml("Qty", data.envelope?.quantity || pendingOrder.quantity)}
+          ${summaryItemHtml("Limit Price", money(data.envelope?.price || pendingOrder.price))}
+        </div>
+        ${data.warning ? `<p class="writ-warning">${escapeHtml(data.warning)}</p>` : ""}`,
           false,
           null,
           { executeLabel: "Execute Trade" },
         );
-        // Refresh account after a brief delay
-        setTimeout(loadAccount, 1800);
       } catch (err) {
-        showTicketError(
-          err,
-          "The order was not sent. Try Execute again, or Cancel.",
-        );
-        btn.disabled = false;
-        btn.textContent = PENDING_ORDER?.isLiveOrder
-          ? "Transmit Live Order"
-          : PENDING_ORDER?.side === "sell_to_close"
-            ? "Close Position"
-            : "Execute Trade";
+        if (PENDING_ORDER !== pendingOrder) return;
+        // A lost response cannot prove that the broker did not accept the POST.
+        // Never invite a duplicate submission, even for a browser/network error.
+        if (msg) {
+          msg.textContent = "Order status could not be confirmed. Check Orders in Tradier before placing another order. Do not resubmit this ticket.";
+          msg.classList.add("is-error");
+          msg.style.color = "";
+        }
+        btn.textContent = "Check Broker Status";
         syncModalExecuteState();
       }
     });
@@ -3395,11 +3398,13 @@ async function handlePreview(
       throw new Error(data.error || `Preview failed (${r.status})`);
 
     const order = data.order || {};
+    const envelope = data.envelope;
+    if (!envelope) throw new Error("The reviewed order details are unavailable.");
     const elig = data.eligibility || {};
     const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
     const canExec = Boolean(isAdmin && submission.allowed);
-    const estCost = estimateTradeValue(order, qty, price);
+    const estCost = estimateTradeValue(order, envelope.quantity, envelope.price);
     const hasCommission =
       order.commission !== null &&
       order.commission !== undefined &&
@@ -3420,8 +3425,8 @@ async function handlePreview(
         ${summaryItemHtml("Contract", data.envelope?.option_symbol || contractSymbol)}
         ${summaryItemHtml("Side", "Buy to Open · Limit")}
         ${summaryItemHtml("Vol Scaling", weight.toFixed(2) + "x")}
-        ${summaryItemHtml("Quantity", order.quantity || qty)}
-        ${summaryItemHtml("Limit Price", money(order.price || price))}
+        ${summaryItemHtml("Quantity", envelope.quantity)}
+        ${summaryItemHtml("Limit Price", money(envelope.price))}
         ${summaryItemHtml("Est. Cost", estCost !== null ? money(estCost) : "—")}
         ${summaryItemHtml("Commission", commissionText)}
         ${summaryItemHtml("Mode", BROKER_STATE.mode?.toUpperCase() || "--")}
@@ -3433,13 +3438,7 @@ async function handlePreview(
 
     // Store the pending order so Execute can fire it
     const pendingOrder = {
-      option_symbol: contractSymbol,
-      symbol: underlyingSymbol,
-      side: "buy_to_open",
-      quantity: qty,
-      type: "limit",
-      duration: "day",
-      price: order.price || price,
+      ...envelope,
     };
 
     openModal("Order Preview", bodyHtml, canExec, pendingOrder, {
@@ -3523,11 +3522,13 @@ async function handleClosePosition(contractSymbol, qty) {
       throw new Error(data.error || `Preview failed (${r.status})`);
 
     const order = data.order || {};
+    const envelope = data.envelope;
+    if (!envelope) throw new Error("The reviewed order details are unavailable.");
     const elig = data.eligibility || {};
     const submission = data.submission || {};
     const isAdmin = SESSION?.session?.role === "admin";
     const canExec = Boolean(isAdmin && submission.allowed);
-    const estProceeds = estimateTradeValue(order, qty, price);
+    const estProceeds = estimateTradeValue(order, envelope.quantity, envelope.price);
     const hasCommission =
       order.commission !== null &&
       order.commission !== undefined &&
@@ -3547,8 +3548,8 @@ async function handleClosePosition(contractSymbol, qty) {
       <div class="summary-box">
         ${summaryItemHtml("Contract", data.envelope?.option_symbol || contractSymbol)}
         ${summaryItemHtml("Side", "Sell to Close · Limit")}
-        ${summaryItemHtml("Quantity", order.quantity || qty)}
-        ${summaryItemHtml("Limit Price", money(order.price || price))}
+        ${summaryItemHtml("Quantity", envelope.quantity)}
+        ${summaryItemHtml("Limit Price", money(envelope.price))}
         ${summaryItemHtml("Est. Proceeds", estProceeds !== null ? money(Math.abs(estProceeds)) : "—")}
         ${summaryItemHtml("Commission", commissionText)}
         ${summaryItemHtml("Mode", BROKER_STATE.mode?.toUpperCase() || "--")}
@@ -3558,13 +3559,7 @@ async function handleClosePosition(contractSymbol, qty) {
     `;
 
     const pendingOrder = {
-      option_symbol: contractSymbol,
-      symbol: underlyingSymbol,
-      side: "sell_to_close",
-      quantity: Number(qty) || 1,
-      type: "limit",
-      duration: "day",
-      price: order.price || price,
+      ...envelope,
     };
 
     openModal("Close Position Preview", bodyHtml, canExec, pendingOrder, {
