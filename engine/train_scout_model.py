@@ -313,6 +313,198 @@ def _apply_calibrator(raw_probs: np.ndarray, calibrator: object | None, method: 
     return raw_probs
 
 
+def _primary_model() -> Any:
+    """One fixed estimator specification for inner, outer, and final refits."""
+    return lgb.LGBMClassifier(
+        n_estimators=500,
+        learning_rate=0.04,
+        max_depth=5,
+        num_leaves=31,
+        subsample=0.8,
+        colsample_bytree=0.8,
+        min_child_samples=20,
+        class_weight="balanced",
+        random_state=42,
+        verbose=-1,
+    )
+
+
+def _fit_primary_estimator(
+    X: np.ndarray,
+    y: np.ndarray,
+    regimes: np.ndarray,
+    *,
+    balance_weights: bool,
+) -> tuple[Any, RobustScaler]:
+    # Both weight normalizations depend only on this particular training fold.
+    weights = _balanced_sample_weights(y, regimes) if balance_weights else np.ones(len(y))
+    scaler = RobustScaler()
+    model = _primary_model()
+    model.fit(scaler.fit_transform(X), y, sample_weight=weights)
+    return model, scaler
+
+
+def _primary_date_splits(
+    dates: np.ndarray,
+    label_dates: np.ndarray,
+    *,
+    n_splits: int,
+    embargo_days: int,
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """Strict outcome availability plus a calendar-day gap, at both CV levels."""
+    if isinstance(embargo_days, bool) or not isinstance(embargo_days, (int, np.integer)) or embargo_days < 0:
+        raise ValueError("embargo_days must be a nonnegative integer")
+    features = pd.to_datetime(pd.Series(dates), errors="coerce", utc=True).dt.normalize()
+    labels = pd.to_datetime(pd.Series(label_dates), errors="coerce", utc=True).dt.normalize()
+    if len(features) != len(labels) or features.isna().any() or labels.isna().any():
+        raise ValueError("feature and label-availability dates must be valid and have equal length")
+    if (labels < features).any():
+        raise ValueError("label availability must not precede the feature date")
+    result = []
+    for train_idx, val_idx in purged_date_splits(features, labels, n_splits=n_splits):
+        start = features.iloc[val_idx].min()
+        # Guard the shared splitter's contract before applying the extra gap.
+        if (features.iloc[train_idx] >= start).any() or (labels.iloc[train_idx] >= start).any():
+            raise ValueError("split crosses the chronological label-availability boundary")
+        train_idx = train_idx[(labels.iloc[train_idx] < start - pd.Timedelta(days=embargo_days)).to_numpy()]
+        if len(train_idx):
+            result.append((train_idx, val_idx))
+    return result
+
+
+def _primary_cv_predictions(
+    X: np.ndarray,
+    y: np.ndarray,
+    dates: np.ndarray,
+    label_dates: np.ndarray,
+    regimes: np.ndarray,
+    *,
+    calibration_method: str,
+    balance_weights: bool = False,
+    n_splits: int = 5,
+    embargo_days: int = 1,
+) -> dict[str, Any]:
+    """Freeze each model, calibrator, and threshold before outer scoring.
+
+    Calibration and threshold selection use purged inner OOF predictions from
+    the outer training subset only. Their inner-fit scores are not evaluation
+    evidence. Outer validation labels are never consulted to select a fold,
+    weight, estimator, calibrator, threshold, or prediction.
+    """
+    if calibration_method not in {"isotonic", "platt", "none"}:
+        raise ValueError(f"Unsupported calibration method: {calibration_method}")
+    X, y, regimes = np.asarray(X), np.asarray(y), np.asarray(regimes)
+    dates, label_dates = np.asarray(dates), np.asarray(label_dates)
+    if X.ndim != 2 or any(len(values) != len(X) for values in (y, regimes, dates, label_dates)):
+        raise ValueError("primary CV arrays must have matching row counts")
+    if not np.isfinite(X).all() or not np.isin(y, [0, 1]).all():
+        raise ValueError("primary CV requires finite features and binary labels")
+    splits = _primary_date_splits(dates, label_dates, n_splits=n_splits, embargo_days=embargo_days)
+    raw = np.full(len(y), np.nan)
+    calibrated = np.full(len(y), np.nan)
+    thresholds = np.full(len(y), np.nan)
+    folds: list[dict[str, Any]] = []
+    for fold, (train_idx, val_idx) in enumerate(splits, start=1):
+        report: dict[str, Any] = {
+            "fold": fold,
+            "train_rows": int(len(train_idx)),
+            "validation_rows": int(len(val_idx)),
+            "validation_start": str(pd.Timestamp(min(dates[val_idx])).date()),
+            "training_label_end": str(pd.Timestamp(max(label_dates[train_idx])).date()),
+            "embargo_days": int(embargo_days),
+        }
+        folds.append(report)
+        if len(np.unique(y[train_idx])) < 2:
+            report.update(skipped=True, reason="single_class_outer_training")
+            continue
+        inner_raw = np.full(len(train_idx), np.nan)
+        inner_reports = []
+        inner_splits = _primary_date_splits(
+            dates[train_idx], label_dates[train_idx], n_splits=n_splits, embargo_days=embargo_days,
+        )
+        for inner_train, inner_val in inner_splits:
+            fit_idx, predict_idx = train_idx[inner_train], train_idx[inner_val]
+            inner_report = {
+                "train_rows": int(len(fit_idx)),
+                "validation_rows": int(len(predict_idx)),
+                "validation_start": str(pd.Timestamp(min(dates[predict_idx])).date()),
+                "training_label_end": str(pd.Timestamp(max(label_dates[fit_idx])).date()),
+            }
+            inner_reports.append(inner_report)
+            if len(np.unique(y[fit_idx])) < 2:
+                inner_report.update(skipped=True, reason="single_class_inner_training")
+                continue
+            model, scaler = _fit_primary_estimator(X[fit_idx], y[fit_idx], regimes[fit_idx], balance_weights=balance_weights)
+            inner_raw[inner_val] = _binary_positive_probability(model, scaler.transform(X[predict_idx]))
+        report["inner_folds"] = inner_reports
+        usable_inner = np.isfinite(inner_raw)
+        report["calibration_fit_rows"] = int(usable_inner.sum())
+        # Fit raw outer predictions even when inner evidence is insufficient;
+        # they can still supply production calibration-fit data, never scores
+        # for a calibrated policy that could not be frozen at this cutoff.
+        model, scaler = _fit_primary_estimator(X[train_idx], y[train_idx], regimes[train_idx], balance_weights=balance_weights)
+        raw[val_idx] = _binary_positive_probability(model, scaler.transform(X[val_idx]))
+        if len(np.unique(y[train_idx][usable_inner])) < 2:
+            report.update(skipped=True, reason="insufficient_inner_calibration_classes")
+            continue
+        inner_y = y[train_idx][usable_inner]
+        calibrator = _fit_calibrator(inner_raw[usable_inner], inner_y, calibration_method)
+        threshold = _optimal_decision_threshold(
+            _apply_calibrator(inner_raw[usable_inner], calibrator, calibration_method), inner_y,
+        )
+        calibrated[val_idx] = _apply_calibrator(raw[val_idx], calibrator, calibration_method)
+        thresholds[val_idx] = threshold
+        report["decision_threshold"] = threshold
+    return {"raw_probs": raw, "calibrated_probs": calibrated, "decision_thresholds": thresholds, "folds": folds}
+
+
+def _primary_calibration_report(
+    evaluation: dict[str, Any],
+    y: np.ndarray,
+    realized_outcomes: np.ndarray,
+    *,
+    calibration_method: str,
+    outcome_label: str,
+) -> tuple[object | None, float, dict[str, Any]]:
+    """Separate outer-OOS evidence from the final production calibration fit."""
+    raw, calibrated = evaluation["raw_probs"], evaluation["calibrated_probs"]
+    valid_fit, valid_oos = np.isfinite(raw), np.isfinite(calibrated)
+    if len(np.unique(y[valid_fit])) < 2:
+        raise ValueError("no usable two-class purged OOF data for production calibration")
+    calibrator = _fit_calibrator(raw[valid_fit], y[valid_fit], calibration_method)
+    fit_probs = _apply_calibrator(raw[valid_fit], calibrator, calibration_method)
+    threshold = _optimal_decision_threshold(fit_probs, y[valid_fit])
+    report = {
+        "method": calibration_method,
+        "evaluation_scope": "outer_oos_nested_purged_walk_forward",
+        "evaluation_status": "available" if valid_oos.any() else "insufficient_inner_evidence",
+        "threshold_policy": "outer_training_only_inner_oof_per_fold",
+        # Compatibility field: this is the production threshold, not a
+        # threshold applied to the outer-OOS report or segment diagnostics.
+        "decision_threshold": threshold,
+        "decision_threshold_scope": "production_fit_only",
+        "oof_rows": int(valid_oos.sum()),
+        "raw_brier": round(float(brier_score_loss(y[valid_oos], raw[valid_oos])), 4) if valid_oos.any() else None,
+        "calibrated_brier": round(float(brier_score_loss(y[valid_oos], calibrated[valid_oos])), 4) if valid_oos.any() else None,
+        "raw_log_loss": round(_safe_binary_log_loss(y[valid_oos], raw[valid_oos]), 4) if valid_oos.any() else None,
+        "calibrated_log_loss": round(_safe_binary_log_loss(y[valid_oos], calibrated[valid_oos]), 4) if valid_oos.any() else None,
+        "balanced_accuracy": round(float(balanced_accuracy_score(
+            y[valid_oos], calibrated[valid_oos] >= evaluation["decision_thresholds"][valid_oos],
+        )), 4) if valid_oos.any() and len(np.unique(y[valid_oos])) > 1 else None,
+        "probability_buckets": _probability_buckets(
+            calibrated[valid_oos], y[valid_oos], realized_outcomes[valid_oos], outcome_label=outcome_label,
+        ),
+        "production_fit_diagnostics": {
+            "evaluation_scope": "calibrator_and_threshold_fit_sample_not_oos",
+            "fit_rows": int(valid_fit.sum()),
+            "decision_threshold": threshold,
+            "calibrated_brier": round(float(brier_score_loss(y[valid_fit], fit_probs)), 4),
+            "calibrated_log_loss": round(_safe_binary_log_loss(y[valid_fit], fit_probs), 4),
+        },
+    }
+    return calibrator, threshold, report
+
+
 def _probability_buckets(
     probs: np.ndarray,
     y: np.ndarray,
@@ -381,7 +573,7 @@ def _segment_report(
     *,
     outcome_label: str = "realized_target_value",
     class_names: dict[int, str] | None = None,
-    decision_threshold: float = 0.5,
+    decision_threshold: float | np.ndarray = 0.5,
 ) -> dict[str, Any]:
     class_names = class_names or {0: "put", 1: "call"}
     actual_side = np.array([class_names.get(int(label), str(label)) for label in y], dtype=object)
@@ -610,6 +802,26 @@ def _safe_float(value: object, default: float = 0.0) -> float:
         return default
 
 
+def _option_label_available_date(trade: dict[str, Any], exit_date: date) -> date:
+    """Use the latest known availability, conservatively at UTC date grain."""
+    available = exit_date
+    for field in ("executable_label_available_at_utc", "label_available_at_utc", "exit_quote_observed_at_utc"):
+        value = trade.get(field)
+        if value is None:
+            continue
+        try:
+            timestamp = pd.Timestamp(value)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"{field} must be a timezone-aware timestamp") from exc
+        if pd.isna(timestamp) or timestamp.tzinfo is None:
+            raise ValueError(f"{field} must be a timezone-aware timestamp")
+        available_date = timestamp.tz_convert("UTC").date()
+        if available_date < exit_date:
+            raise ValueError(f"{field} cannot precede exit_date")
+        available = max(available, available_date)
+    return available
+
+
 def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = None) -> tuple[pd.DataFrame, dict[str, Any]]:
     """
     Build symbol/date side labels from strict-real option outcomes.
@@ -622,6 +834,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
     """
     rows: list[dict[str, Any]] = []
     skipped_after_cutoff = 0
+    skipped_invalid_dates = 0
     for path in input_paths:
         payload = json.loads(path.read_text(encoding="utf-8"))
         artifact = str(payload.get("artifact") or "").strip()
@@ -631,10 +844,14 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
         for trade in trade_rows:
             try:
                 entry_date = date.fromisoformat(str(trade["entry_date"]))
-                exit_date = date.fromisoformat(str(trade.get("exit_date") or trade["entry_date"]))
+                exit_date = date.fromisoformat(str(trade["exit_date"]))
             except (KeyError, TypeError, ValueError):
+                skipped_invalid_dates += 1
                 continue
-            if cutoff is not None and (entry_date > cutoff or exit_date > cutoff):
+            if exit_date < entry_date:
+                raise ValueError("option label exit_date must not precede entry_date")
+            available_date = _option_label_available_date(trade, exit_date)
+            if cutoff is not None and (entry_date > cutoff or available_date > cutoff):
                 skipped_after_cutoff += 1
                 continue
             side = str(trade.get("option_type", "")).lower()
@@ -644,7 +861,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
                 {
                     "symbol": str(trade.get("symbol", "")).upper(),
                     "date": pd.Timestamp(entry_date),
-                    "label_date": pd.Timestamp(exit_date),
+                    "label_date": pd.Timestamp(available_date),
                     "option_type": side,
                     "pnl_pct": _safe_float(trade.get("pnl_pct")),
                     "pnl": _safe_float(trade.get("pnl")),
@@ -661,6 +878,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
             "trade_rows": 0,
             "labeled_symbol_dates": 0,
             "skipped_after_cutoff": skipped_after_cutoff,
+            "skipped_invalid_dates": skipped_invalid_dates,
         }
 
     trades = pd.DataFrame(rows)
@@ -714,6 +932,7 @@ def _load_option_outcome_labels(input_paths: list[Path], cutoff: date | None = N
         "trade_rows": int(len(trades)),
         "labeled_symbol_dates": int(len(labeled)),
         "skipped_after_cutoff": int(skipped_after_cutoff),
+        "skipped_invalid_dates": int(skipped_invalid_dates),
         "explicit_paired_contract_rows": int(
             (trades["paired_observation_id"].str.len() > 0).sum()
         ),
@@ -1027,6 +1246,7 @@ def train(
     primary_target: str = PRIMARY_TARGET_UNDERLYING,
     event_features_path: Path | None = None,
     write_active_artifacts: bool = True,
+    embargo_days: int = 1,
 ) -> None:
     MODEL_DIR.mkdir(parents=True, exist_ok=True)
     
@@ -1168,11 +1388,6 @@ def train(
         else {0: "bearish", 1: "bullish"}
     )
     primary_health = _class_balance_report(y, primary_regime_labels, class_names=primary_class_names)
-    primary_sample_weights = (
-        _balanced_sample_weights(y, primary_regime_labels)
-        if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
-        else np.ones(len(y), dtype=float)
-    )
     primary_source_metadata["balance_report"] = primary_health
 
     log.info(
@@ -1195,130 +1410,46 @@ def train(
         primary_training_frame["primary_label_date"],
         errors="coerce",
     ).to_numpy()
-    primary_splits = list(
-        purged_date_splits(
-            primary_feature_dates,
-            primary_label_dates,
-            n_splits=split_count,
-        )
+    evaluation = _primary_cv_predictions(
+        X, y, primary_feature_dates, primary_label_dates, primary_regime_labels,
+        calibration_method=calibration_method,
+        balance_weights=primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION,
+        n_splits=split_count,
+        embargo_days=embargo_days,
     )
+    fold_reports = evaluation["folds"]
+    oof_calibrated = evaluation["calibrated_probs"]
+    valid_oof = np.isfinite(oof_calibrated)
     auc_scores: list[float] = []
     ic_scores: list[float] = []
-
-    oof_raw_probs = np.full(len(X), np.nan, dtype=float)
-    fold_reports: list[dict[str, Any]] = []
-
-    log.info("Running %d-fold purged walk-forward cross-validation …", len(primary_splits))
-    for fold, (train_idx, val_idx) in enumerate(primary_splits):
-        X_tr, X_val = X[train_idx], X[val_idx]
-        y_tr, y_val = y[train_idx], y[val_idx]
-        weight_tr = primary_sample_weights[train_idx]
-        if len(np.unique(y_tr)) < 2 or len(np.unique(y_val)) < 2:
-            fold_reports.append(
-                {
-                    "fold": fold + 1,
-                    "train_rows": int(len(train_idx)),
-                    "validation_rows": int(len(val_idx)),
-                    "skipped": True,
-                    "reason": "single_class_train_or_validation",
-                }
-            )
-            log.warning(
-                "  Fold %d skipped due to single-class train/validation window (train classes=%s, validation classes=%s)",
-                fold + 1,
-                sorted(np.unique(y_tr).tolist()),
-                sorted(np.unique(y_val).tolist()),
-            )
+    # Labels enter only after every outer bundle and prediction is frozen.
+    splits = _primary_date_splits(
+        primary_feature_dates, primary_label_dates,
+        n_splits=split_count, embargo_days=embargo_days,
+    )
+    for report, (_, val_idx) in zip(fold_reports, splits):
+        if report.get("skipped"):
             continue
-
-        scaler = RobustScaler()
-        X_tr_s  = scaler.fit_transform(X_tr)
-        X_val_s = scaler.transform(X_val)
-
-        model = lgb.LGBMClassifier(
-            n_estimators=400,
-            learning_rate=0.05,
-            max_depth=5,
-            num_leaves=31,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            min_child_samples=20,
-            class_weight="balanced",
-            random_state=42,
-            verbose=-1,
+        probs, labels = oof_calibrated[val_idx], y[val_idx]
+        auc = float(roc_auc_score(labels, probs)) if len(np.unique(labels)) > 1 else None
+        outcomes = realized_target_values[val_idx]
+        ic = float(np.corrcoef(probs, outcomes)[0, 1]) if len(probs) > 1 and np.std(probs) > 0 and np.std(outcomes) > 0 else None
+        if auc is not None:
+            auc_scores.append(auc)
+        if ic is not None and np.isfinite(ic):
+            ic_scores.append(ic)
+        report.update(
+            auc=round(auc, 4) if auc is not None else None,
+            ic=round(ic, 4) if ic is not None and np.isfinite(ic) else None,
+            brier=round(float(brier_score_loss(labels, probs)), 4),
+            log_loss=round(_safe_binary_log_loss(labels, probs), 4),
         )
-        model.fit(X_tr_s, y_tr, sample_weight=weight_tr)
-        probs = model.predict_proba(X_val_s)[:, 1]
-        oof_raw_probs[val_idx] = probs
-        auc = float(roc_auc_score(y_val, probs))
-        # IC = Pearson correlation between predicted proba and realized fwd return
-        target_values = realized_target_values[val_idx]
-        if len(probs) > 1:
-            ic = float(np.corrcoef(probs, target_values)[0, 1])
-            if not np.isfinite(ic):
-                ic = 0.0
-        else:
-            ic = 0.0
-
-        auc_scores.append(auc)
-        ic_scores.append(ic)
-        fold_brier = brier_score_loss(y_val, probs)
-        fold_log_loss = _safe_binary_log_loss(y_val, probs)
-        fold_reports.append(
-            {
-                "fold": fold + 1,
-                "train_rows": int(len(train_idx)),
-                "validation_rows": int(len(val_idx)),
-                "auc": round(float(auc), 4),
-                "ic": round(float(ic), 4),
-                "brier": round(float(fold_brier), 4),
-                "log_loss": round(float(fold_log_loss), 4),
-                "validation_start": str(pd.Timestamp(primary_feature_dates[val_idx].min()).date()),
-                "training_label_end": str(pd.Timestamp(primary_label_dates[train_idx].max()).date()),
-            }
-        )
-        log.info(
-            "  Fold %d — AUC: %.4f  IC: %.4f  Brier: %.4f",
-            fold + 1,
-            auc,
-            ic,
-            fold_brier,
-        )
-
     mean_auc = float(np.mean(auc_scores)) if auc_scores else float("nan")
     mean_ic = float(np.mean(ic_scores)) if ic_scores else float("nan")
-    log.info("Mean AUC: %.4f  |  Mean IC: %.4f", mean_auc, mean_ic)
-
-    valid_oof = np.isfinite(oof_raw_probs)
-    oof_y = y[valid_oof]
-    has_oof_class_balance = valid_oof.any() and len(np.unique(oof_y)) >= 2
-    calibrator = _fit_calibrator(oof_raw_probs[valid_oof], oof_y, calibration_method) if has_oof_class_balance else None
-    oof_calibrated = np.full(len(X), np.nan, dtype=float)
-    oof_calibrated[valid_oof] = _apply_calibrator(
-            oof_raw_probs[valid_oof],
-            calibrator,
-            calibration_method,
-        )
-    decision_threshold = _optimal_decision_threshold(oof_calibrated[valid_oof], oof_y)
-    raw_brier = round(float(brier_score_loss(oof_y, oof_raw_probs[valid_oof])), 4) if valid_oof.any() else None
-    calibrated_brier = round(float(brier_score_loss(oof_y, oof_calibrated[valid_oof])), 4) if valid_oof.any() else None
-    raw_log = round(_safe_binary_log_loss(oof_y, oof_raw_probs[valid_oof]), 4) if valid_oof.any() else None
-    calibrated_log = round(_safe_binary_log_loss(oof_y, oof_calibrated[valid_oof]), 4) if valid_oof.any() else None
-    calibration_metrics = {
-        "method": calibration_method,
-        "decision_threshold": decision_threshold,
-        "oof_rows": int(valid_oof.sum()),
-        "raw_brier": raw_brier,
-        "calibrated_brier": calibrated_brier,
-        "raw_log_loss": raw_log,
-        "calibrated_log_loss": calibrated_log,
-        "probability_buckets": _probability_buckets(
-            oof_calibrated[valid_oof],
-            oof_y,
-            realized_target_values[valid_oof],
-            outcome_label=primary_outcome_label,
-        ),
-    }
+    calibrator, decision_threshold, calibration_metrics = _primary_calibration_report(
+        evaluation, y, realized_target_values,
+        calibration_method=calibration_method, outcome_label=primary_outcome_label,
+    )
     observability = {
         "coverage": _coverage_report(primary_training_frame),
         "segments": _segment_report(
@@ -1328,7 +1459,7 @@ def train(
             primary_training_frame.iloc[np.where(valid_oof)[0]],
             outcome_label=primary_outcome_label,
             class_names=primary_class_names,
-            decision_threshold=decision_threshold,
+            decision_threshold=evaluation["decision_thresholds"][valid_oof],
         ),
         "feature_drift_baseline": _drift_baseline(primary_training_frame, available),
         "primary_target": {
@@ -1351,22 +1482,11 @@ def train(
 
     # ── Final model: train on all data ──
     log.info("Training final model on full dataset …")
-    final_scaler = RobustScaler()
-    X_final = final_scaler.fit_transform(X)
-
-    final_model = lgb.LGBMClassifier(
-        n_estimators=500,
-        learning_rate=0.04,
-        max_depth=5,
-        num_leaves=31,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        min_child_samples=20,
-        class_weight="balanced",
-        random_state=42,
-        verbose=-1,
+    final_model, final_scaler = _fit_primary_estimator(
+        X, y, primary_regime_labels,
+        balance_weights=primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION,
     )
-    final_model.fit(X_final, y, sample_weight=primary_sample_weights)
+    X_final = final_scaler.transform(X)
 
     side_threshold = 0.01
     side_target = "underlying_forward_return"
@@ -1589,7 +1709,7 @@ def train(
     model_card = {
         "artifact": "scout_model",
         "version": 3,
-        "model_card_schema_version": 2,
+        "model_card_schema_version": 3,
         "trained_at": date.today().isoformat(),
         "training_cutoff": cutoff.isoformat(),
         "years_requested": years,
@@ -1639,7 +1759,10 @@ def train(
             for feature, importance in importances
         ],
         "cross_validation": {
-            "split_policy": "date_grouped_purged_by_outcome_date",
+            "split_policy": "nested_date_grouped_purged_by_label_availability",
+            "embargo_calendar_days": embargo_days,
+            "evaluation_scope": "primary_binary_target_only_outer_oos",
+            "target_scope": "conditional_on_requested_target_and_eligible_labeled_rows",
             "folds": fold_reports,
             "mean_auc": round(mean_auc, 4) if np.isfinite(mean_auc) else None,
             "mean_ic": round(mean_ic, 4) if np.isfinite(mean_ic) else None,
@@ -1660,6 +1783,9 @@ def train(
                 if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION
                 else "Directional Scout target is underlying stock return, not option payoff."
             ),
+            "Primary calibration metrics use outer validation rows; production-fit diagnostics reuse calibration labels and are not OOS evidence.",
+            "Evaluation is conditional on the chosen target and eligible labeled rows; it does not evaluate target fallback, no-trade selection, or the end-to-end trading strategy.",
+            "Side and hierarchical reports retain their separate legacy evaluation policies; primary nested calibration does not validate them.",
             "Payoff-aware contract ranking is handled by the second-stage payoff model when available.",
         ],
     }
@@ -1676,14 +1802,15 @@ def train(
     print(f"  Total samples:    {len(X)}")
     print(f"  Features:         {len(available)}")
     print(f"  Primary target:   {primary_target_effective}")
-    print(f"  Mean AUC (CV):    {np.mean(auc_scores):.4f}")
-    print(f"  Mean IC  (CV):    {np.mean(ic_scores):.4f}")
+    print(f"  Mean AUC (outer): {mean_auc:.4f}")
+    print(f"  Mean IC  (outer): {mean_ic:.4f}")
     print(f"  Calibration:      {calibration_method}")
-    print(f"  OOF Brier:        {calibration_metrics['calibrated_brier']:.4f}")
+    print(f"  Outer-OOS Brier:  {calibration_metrics['calibrated_brier']}")
     print(f"  Side model BAcc:  {side_training_metrics['training_balanced_accuracy']:.4f}")
     print()
     target_names = ["put_edge", positive_class_name] if primary_target_effective == PRIMARY_TARGET_OPTION_DIRECTION else ["bearish", "bullish"]
-    print(classification_report(y, preds, target_names=target_names))
+    print("  Training-fit classification diagnostic (not OOS):")
+    print(classification_report(y, preds, labels=[0, 1], target_names=target_names))
     print(f"\n  Feature importances (top 10):")
     for feat, imp in importances[:10]:
         print(f"    {feat:<25s}  {imp:>6.0f}")
@@ -1729,7 +1856,13 @@ def main() -> None:
         action="store_true",
         help="Train only the observation-only hierarchical challenger; preserve all active Scout artifacts and cards.",
     )
+    parser.add_argument(
+        "--embargo-days", type=int, default=1,
+        help="Extra calendar days between available training labels and validation (default: 1).",
+    )
     args = parser.parse_args()
+    if args.embargo_days < 0:
+        parser.error("--embargo-days must be nonnegative")
 
     cutoff_dt = date.fromisoformat(args.cutoff) if args.cutoff else date.today()
     option_inputs = args.option_outcome_input or _default_option_outcome_inputs()
@@ -1752,6 +1885,7 @@ def main() -> None:
         primary_target=primary_target,
         event_features_path=args.event_features_path,
         write_active_artifacts=not args.hierarchical_only,
+        embargo_days=args.embargo_days,
     )
 
 
