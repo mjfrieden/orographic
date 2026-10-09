@@ -1,3 +1,4 @@
+import { validateClosePosition, isPositiveContractQuantity } from "../../_lib/close_position.js";
 import {
   buildOrderProvenanceEvent,
   safeRecordOrderProvenance,
@@ -173,6 +174,10 @@ export async function onRequestPost(context) {
     return jsonResponse({ ok: false, error: "Only day and gtc durations are supported." }, 400);
   }
 
+  if (side === "sell_to_close" && !isPositiveContractQuantity(body?.quantity)) {
+    return jsonResponse({ ok: false, error: "Closing quantity must be a positive whole number of contracts." }, 400);
+  }
+
   const config = getTradierSettings(context.env);
   if (!config.configured) {
     return jsonResponse(
@@ -252,6 +257,16 @@ export async function onRequestPost(context) {
       httpStatus: 409, error: message,
     });
     return jsonResponse({ ok: false, error: message, eligibility, submission, provenance }, 409);
+  }
+
+  async function blockInvalidClose(envelope) {
+    if (side !== "sell_to_close") return null;
+    try {
+      await validateClosePosition(context.env, envelope.option_symbol, quantity);
+      return null;
+    } catch (error) {
+      return jsonResponse({ ok: false, outcome: "not_sent", error: String(error.message || error) }, 409);
+    }
   }
 
   // ----- PREVIEW path (any authenticated user) -----
@@ -338,6 +353,9 @@ export async function onRequestPost(context) {
         riskBudget.status,
       );
     }
+
+    const closeBlock = await blockInvalidClose(envelope);
+    if (closeBlock) return closeBlock;
 
     const brokerRequestedAtUtc = new Date().toISOString();
     try {
@@ -556,6 +574,9 @@ export async function onRequestPost(context) {
       riskBudget.status,
     );
   }
+
+  const closeBlock = await blockInvalidClose(envelope);
+  if (closeBlock) return closeBlock;
 
   const brokerRequestedAtUtc = new Date().toISOString();
   try {

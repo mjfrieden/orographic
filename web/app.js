@@ -883,7 +883,7 @@ function renderPositions() {
       const closeBtnClass = `mini-action close-position-btn${
         POSITION_ADVICE.get(sym)?.action === "sell" ? " is-advised-sell" : ""
       }`;
-      const actionCell = isOpt
+      const actionCell = isOpt && isPositiveCloseQuantity(pos.quantity)
         ? `<button class="${closeBtnClass}" type="button" data-contract="${sym}" data-qty="${pos.quantity}">${POSITION_ADVICE.get(sym)?.action === "sell" ? "Close Suggested" : "Close"}</button>`
         : ``;
       return `<tr class="position-row ${cv === null ? "is-mark-pending" : "is-marked"}">
@@ -3746,7 +3746,16 @@ async function handleDirectExecute(
   }
 }
 
+function isPositiveCloseQuantity(value) {
+  if (typeof value !== "number" && (typeof value !== "string" || !/^\d+$/.test(value.trim()))) return false;
+  return Number.isSafeInteger(Number(value)) && Number(value) > 0;
+}
+
 async function handleClosePosition(contractSymbol, qty) {
+  if (!isPositiveCloseQuantity(qty)) {
+    openModal("Close Unavailable", "<p class=\"writ-error\">Only a positive whole number of long option contracts can be sold to close.</p>", false, null);
+    return;
+  }
   const match = contractSymbol.match(/^[A-Z]+/);
   const underlyingSymbol = match ? match[0] : contractSymbol;
 
@@ -3768,7 +3777,7 @@ async function handleClosePosition(contractSymbol, qty) {
         option_symbol: contractSymbol,
         symbol: underlyingSymbol,
         side: "sell_to_close",
-        quantity: Number(qty) || 1,
+        quantity: Number(qty),
         type: "limit",
         duration: "day",
         price,

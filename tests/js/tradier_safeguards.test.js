@@ -58,7 +58,7 @@ async function context(requestBody = body, overrides = {}, withCandidate = true)
   };
 }
 
-function mockBroker(t, { currentQuote = quote, quoteFailure = false, detail = "filled", post = { id: "ORDER-1", status: "submitted", result: true } } = {}) {
+function mockBroker(t, { positions = { positions: { position: { symbol: contract, quantity: 3 } } }, positionsFailure = null, currentQuote = quote, quoteFailure = false, detail = "filled", post = { id: "ORDER-1", status: "submitted", result: true } } = {}) {
   const calls = [];
   t.mock.method(globalThis, "fetch", async (url, init = {}) => {
     calls.push({ url: String(url), ...init });
@@ -66,6 +66,12 @@ function mockBroker(t, { currentQuote = quote, quoteFailure = false, detail = "f
     if (String(url).includes("/markets/quotes")) {
       if (quoteFailure) throw new Error("mock quote unavailable");
       return json({ quotes: { quote: currentQuote } });
+    }
+    if (String(url).endsWith("/positions")) {
+      if (positionsFailure === "network") throw new Error("mock holdings unavailable");
+      if (positionsFailure === "http") return json({ error: "mock failure" }, 503);
+      if (positionsFailure === "json") return new Response("not json", { status: 200 });
+      return json(positions);
     }
     if (init.method === "POST") return json({ order: post });
     if (String(url).endsWith("/orders/ORDER-1")) {
@@ -252,4 +258,86 @@ test("envelope rejects a fabricated supplied configuration or invalid quote pric
   await assert.rejects(tradierRequest({ ...getTradierSettings(env), baseUrl: "https://api.tradier.com/v1" }, "/markets/quotes"));
   assert.throws(() => buildOrderEnvelope(candidate, 1, getTradierSettings(env), { ...quote, ask: NaN }));
   assert.equal(calls.length, 0);
+});
+
+for (const preview of [true, false]) {
+  test(`closing ${preview ? 'preview' : 'submission'} rejects invalid requested quantities before broker reads`, async t => {
+    const calls = mockBroker(t);
+    for (const quantity of [-1, 0, 1.5, '1.5', '1x', '0x2', '0b10', '2e1', '1.0000000000000001', '', ' ', null, true, [], {}, 'Infinity', Number.MAX_SAFE_INTEGER + 1, undefined]) {
+      const response = await onRequestPost(await context({ ...body, side: 'sell_to_close', preview, quantity }, {}, false));
+      assert.equal(response.status, 400, String(quantity));
+    }
+    assert.equal(calls.length, 0);
+  });
+  for (const [name, positions] of [
+    ['empty', {positions: 'null'}], ['malformed', {}], ['wrong contract', {positions: {position: {symbol: 'DIS261218C00100000', quantity: 9}}}],
+    ...[-1, 0, 0.5, null, true, 'garbage', '0x2', '0b10', '2e1', '1.0000000000000001'].map(quantity => [`invalid held ${quantity}`, {positions:{position:{symbol:contract,quantity}}}]),
+    ['insufficient', {positions:{position:{symbol:contract,quantity:1}}}],
+    ['ambiguous', {positions:{position:[{symbol:contract,quantity:3},{symbol:contract,quantity:3}]}}],
+  ]) {
+    test(`closing ${preview ? 'preview' : 'submission'} rejects ${name} holdings without POST`, async t => {
+      const calls = mockBroker(t, {positions});
+      const response = await onRequestPost(await context({...body, side:'sell_to_close', preview, quantity:2}, {}, false));
+      assert.equal(response.status,409);
+      assert.equal((await response.json()).outcome,'not_sent');
+      assert.equal(calls.filter(c=>c.method==='POST').length,0);
+    });
+  }
+  for (const positionsFailure of ['network','http','json']) {
+    test(`closing ${preview ? 'preview' : 'submission'} fails closed on holdings ${positionsFailure}`, async t => {
+      const calls = mockBroker(t,{positionsFailure});
+      const response = await onRequestPost(await context({...body, side:'sell_to_close', preview}, {}, false));
+      assert.equal(response.status,409);
+      assert.equal(calls.filter(c=>c.method==='POST').length,0);
+      assert.equal(calls.filter(c=>c.url.endsWith('/positions')).length,1);
+    });
+  }
+  test(`closing ${preview ? 'preview' : 'submission'} accepts sufficient exact long holding and preserves cap and limit`, async t => {
+    const calls = mockBroker(t,{positions:{positions:{position:[{symbol:contract,quantity:'9'}]}}});
+    const response = await onRequestPost(await context({...body, side:'sell_to_close', preview, quantity:9, duration:'gtc'}, {}, false));
+    const data = await response.json();
+    assert.equal(data.ok,true);
+    assert.equal(data.envelope.quantity,3); // Existing sandbox contract cap.
+    assert.equal(data.envelope.price,preview ? '1.11':'1.20');
+    assert.equal(data.envelope.duration,'gtc');
+    const postIndex=calls.findIndex(c=>c.method==='POST');
+    assert.match(calls[postIndex-1].url,/\/positions$/);
+    assert.equal(calls.filter(c=>c.method==='POST').length,1);
+  });
+}
+
+test('closing submission rereads holdings after preview rather than trusting old holdings', async t => {
+  const positions={positions:{position:{symbol:contract,quantity:2}}};
+  const calls=mockBroker(t,{positions});
+  assert.equal((await onRequestPost(await context({...body,side:'sell_to_close',preview:true}, {}, false))).status,200);
+  positions.positions.position.quantity=0;
+  assert.equal((await onRequestPost(await context({...body,side:'sell_to_close',preview:false}, {}, false))).status,409);
+  assert.equal(calls.filter(c=>c.url.endsWith('/positions')).length,2);
+  assert.equal(calls.filter(c=>c.method==='POST').length,1);
+});
+
+test('buy_to_close remains unsupported without any broker request',async t=>{
+  const calls=mockBroker(t);
+  assert.equal((await onRequestPost(await context({...body,side:'buy_to_close'}))).status,400);
+  assert.equal(calls.length,0);
+});
+
+test('partial long close preserves accepted ID after failed confirmation and never retries POST', async t=>{
+  const calls=mockBroker(t,{detail:'network'});
+  const response=await onRequestPost(await context({...body,side:'sell_to_close',quantity:2}, {}, false));
+  const data=await response.json();
+  assert.equal(data.ok,true);
+  assert.equal(data.envelope.quantity,2);
+  assert.equal(data.order.id,'ORDER-1');
+  assert.equal(data.outcome,'accepted');
+  assert.equal(data.confirmation_status,'unavailable');
+  assert.equal(calls.filter(c=>c.method==='POST').length,1);
+});
+
+test('unknown closing POST retains uncertainty without retry',async t=>{
+  const calls=mockBroker(t,{post:{result:true}});
+  const data=await (await onRequestPost(await context({...body,side:'sell_to_close'}, {}, false))).json();
+  assert.equal(data.outcome,'unknown');
+  assert.match(data.warning,/do not resubmit/i);
+  assert.equal(calls.filter(c=>c.method==='POST').length,1);
 });
