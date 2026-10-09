@@ -2,6 +2,15 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 95 — 2026-10-09 — Daily decision visibility and recent recommendations (NN/g H1/H9)
+
+- Candidate patch: the primary signal card now distinguishes loading, failed, unavailable, current hold, stale/unknown freshness, and ready-to-preview states. The broker's existing freshness configuration informs display warnings; preview and confirmation remain authoritative.
+- The same daily view exposes an initially collapsed recent-production-recommendation disclosure. Date/symbol/status filters and quote-proxy details use only already-loaded production rows. Counts explicitly describe the bounded export, not the full ledger, fills, or account performance.
+- Existing brand/layout and protected DOM contracts remain. Phone controls have at least 44px targets, narrow layouts stack, and keyboard candidate navigation stays within candidate controls. Dynamic order controls bind once.
+- Local JavaScript checks: 175 passed. Browser verification of the authenticated desktop/phone view is still pending; see `docs/daily-view-qa-2026-10-09.md`. This entry does not claim the patch is deployed.
+
+Left alone: Scout/Forge/Council, sizing, backend eligibility, Tradier payloads and confirmations, auth, model governance, workflows, paid services, login, and Backtest Lab.
+
 ## Cycle 94 — 2026-10-04 — Sealed writ order-ticket recovery (NN/g H9)
 
 - Preview, close, and execute failures no longer dump raw fetch/HTML parse text into the sealed writ. The ticket names that Tradier could not preview or accept the order from this session, that nothing was sent, and to Cancel or retry. `#modal-message` sits above Execute / Cancel. `#preview-modal` ids and Tradier preview/submit payloads stay.

@@ -3878,3 +3878,108 @@ body.cockpit-page {
     width: 100%;
   }
 }
+
+/* Daily decision state and read-only recommendation disclosure. */
+.signal-unavailable {
+  padding: 24px;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 12px;
+  background: rgba(8, 16, 28, 0.55);
+}
+.cockpit-signal[data-state="stale"] .signal-lead,
+.cockpit-signal[data-state="error"] .signal-lead,
+.cockpit-signal[data-state="empty"] .signal-lead {
+  padding: 12px;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 8px;
+  color: #f2d796;
+  background: rgba(58, 40, 12, 0.55);
+}
+.cockpit-signal[data-state="error"] .signal-lead { color: #ffc9c6; }
+.signal-unavailable p,
+.recommendation-history p,
+.recommendation-detail h3 { overflow-wrap: anywhere; }
+.recommendation-history {
+  margin-top: 20px;
+  border: 1px solid var(--cockpit-border);
+  border-radius: 12px;
+  background: rgba(8, 16, 28, 0.88);
+  color: var(--cockpit-text);
+}
+.recommendation-history > summary {
+  min-height: 48px;
+  padding: 14px 20px;
+  cursor: pointer;
+  color: var(--cockpit-gold);
+  font-family: var(--font-ui, "Marcellus SC", Georgia, serif);
+}
+.recommendation-history > summary small { margin-left: 12px; color: var(--cockpit-muted); }
+.recommendation-history-body { padding: 0 20px 20px; }
+.recommendation-history p { line-height: 1.5; }
+.recommendation-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 12px;
+  align-items: end;
+  margin-top: 16px;
+}
+.recommendation-filters label { display: grid; gap: 6px; font-size: 1rem; }
+.recommendation-filters select,
+.recommendation-history button {
+  min-height: 44px;
+  min-width: 44px;
+  font-size: 1rem;
+}
+.recommendation-filters select {
+  width: 100%;
+  padding: 8px;
+  color: var(--cockpit-text);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 8px;
+  background: #0b1526;
+}
+.recommendation-history-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
+.recommendation-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.recommendation-choice {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  text-align: left;
+  color: var(--cockpit-text);
+  background: rgba(232, 197, 109, 0.04);
+  border: 1px solid var(--cockpit-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.recommendation-choice > span:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; }
+.recommendation-choice small { color: var(--cockpit-muted); }
+.recommendation-contract { overflow-wrap: anywhere; font-size: 0.9rem; }
+.recommendation-choice.is-active { border-color: var(--cockpit-gold); background: rgba(232, 197, 109, 0.12); }
+.recommendation-choice:hover { border-color: var(--cockpit-gold); }
+.recommendation-detail { min-width: 0; padding: 16px; border: 1px solid var(--cockpit-border); border-radius: 8px; }
+.recommendation-detail h3 { margin: 0; font-size: 1.1rem; }
+.recommendation-detail h4 { margin-bottom: 8px; }
+.recommendation-facts,
+.recommendation-marks { margin: 12px 0; }
+.recommendation-facts > div,
+.recommendation-marks > div { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 12px; padding: 8px 0; border-bottom: 1px solid var(--cockpit-border); }
+.recommendation-detail dd { margin: 0; overflow-wrap: anywhere; }
+.recommendation-detail dd small { display: block; color: var(--cockpit-muted); }
+.recommendation-caveat { font-size: 1rem; color: var(--cockpit-muted); }
+#recommendation-more { margin-top: 12px; }
+#recommendation-more[hidden] { display: none; }
+#board-refresh-btn,
+.signal-pagination button,
+.signal-choice,
+.quantity-stepper button,
+.quantity-stepper input,
+.signal-evidence-details > summary { min-width: 44px; min-height: 44px; }
+.signal-pagination[hidden] { display: none; }
+@media (max-width: 720px) {
+  .recommendation-history-grid,
+  .recommendation-filters { grid-template-columns: 1fr; }
+  .recommendation-history > summary small { display: block; margin: 6px 0 0; }
+  .recommendation-history-body { padding: 0 14px 14px; }
+  .recommendation-detail { padding: 12px; }
+}
