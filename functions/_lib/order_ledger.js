@@ -269,6 +269,9 @@ export function buildOrderProvenanceEvent({
     quote: quote || null,
     order: order || result?.order || null,
     confirmation: result?.confirmation || null,
+    submission_outcome: result?.outcome || null,
+    confirmation_status: result?.confirmationStatus || null,
+    warning: result?.warning || null,
     execution: buildExecutionTelemetry({
       envelope,
       quote,

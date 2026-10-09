@@ -34,6 +34,7 @@ from .schemas import ContractCandidate, CouncilResult, MarketRegime
 log = logging.getLogger(__name__)
 
 ABSTAIN_REASON_LABELS = {
+    "live_board_available": "Live board available after applying the live-board filters.",
     "no_forge_candidates": "No Forge candidates reached Council.",
     "below_live_score": "All candidates fell below the live-score gate.",
     "extrinsic_limit": "All candidates failed the extrinsic ceiling.",
@@ -707,9 +708,6 @@ def select_board(
     if live_board:
         side_counts = Counter(c.option_type for c in live_board)
         if max(side_counts.values()) / len(live_board) > max_same_side_share:
-            notes.append(
-                "Side-balance guard demoted an over-concentrated position to shadow."
-            )
             # Drop the excess until balanced
             calls = [c for c in live_board if c.option_type == "call"]
             puts  = [c for c in live_board if c.option_type == "put"]
@@ -719,6 +717,10 @@ def select_board(
                 else:
                     shadow_fallback.insert(0, puts.pop())
                 side_balance_demotions += 1
+            if side_balance_demotions > 0:
+                notes.append(
+                    "Side-balance guard demoted an over-concentrated position to shadow."
+                )
             live_board = calls + puts
 
     turnover_diag = {

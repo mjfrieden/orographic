@@ -394,36 +394,36 @@ export function getTradierSettings(env) {
     env.TRADIER_ACCOUNT_ID || env.OROGRAPHIC_TRADIER_ACCOUNT_ID || "",
   ).trim();
   const requestedBaseUrl = trimTrailingSlash(
-    env.TRADIER_BASE_URL || env.OROGRAPHIC_TRADIER_BASE_URL,
+    String(env.TRADIER_BASE_URL || env.OROGRAPHIC_TRADIER_BASE_URL || "").trim(),
   );
   const requestedMode = String(
     env.OROGRAPHIC_TRADIER_MODE || env.TRADIER_TRADING_MODE || "",
   )
     .trim()
     .toLowerCase();
-  const sandboxMode =
-    requestedMode === "sandbox" ||
-    boolFromEnv(env.TRADIER_SANDBOX_MODE) ||
-    requestedBaseUrl.includes("sandbox.tradier.com");
-  const mode =
-    requestedMode === "live"
-      ? "live"
-      : sandboxMode
-        ? "sandbox"
-        : accessToken && accountId
-          ? "live"
-          : "disabled";
+  const sandboxRequested = boolFromEnv(env.TRADIER_SANDBOX_MODE);
+  const baseMode = requestedBaseUrl === DEFAULT_SANDBOX_BASE_URL ? "sandbox" : "live";
+  const mode = requestedMode ||
+    (sandboxRequested || baseMode === "sandbox" ? "sandbox" : accessToken && accountId ? "live" : "disabled");
+  const sandboxMode = mode === "sandbox";
+  const baseUrl = requestedBaseUrl || (sandboxMode ? DEFAULT_SANDBOX_BASE_URL : DEFAULT_LIVE_BASE_URL);
+  const configurationError =
+    !["live", "sandbox", "disabled"].includes(mode)
+      ? "Invalid Tradier trading mode. Use live, sandbox, or disabled."
+      : sandboxRequested && mode === "live"
+        ? "Tradier mode conflicts with TRADIER_SANDBOX_MODE. Broker requests are blocked."
+        : validateTradierEndpoint({ mode, baseUrl });
+  const configured = Boolean(accessToken && accountId && mode !== "disabled" && !configurationError);
   return {
-    configured: Boolean(accessToken && accountId && mode !== "disabled"),
+    configured,
+    configurationError,
     accessToken,
     accountId,
     accountIdMasked: maskedAccountId(accountId),
-    baseUrl:
-      requestedBaseUrl ||
-      (sandboxMode ? DEFAULT_SANDBOX_BASE_URL : DEFAULT_LIVE_BASE_URL),
+    baseUrl,
     sandboxMode,
     mode,
-    enabled: Boolean(accessToken && accountId && mode !== "disabled"),
+    enabled: configured,
     liveTradingEnabled: boolFromEnv(
       env.TRADIER_LIVE_TRADING_ENABLED ||
         env.OROGRAPHIC_TRADIER_ENABLE_LIVE_ORDERS,
@@ -454,9 +454,21 @@ export function getTradierSettings(env) {
   };
 }
 
+function validateTradierEndpoint({ mode, baseUrl }) {
+  const expected = mode === "sandbox" ? DEFAULT_SANDBOX_BASE_URL : DEFAULT_LIVE_BASE_URL;
+  if (![DEFAULT_LIVE_BASE_URL, DEFAULT_SANDBOX_BASE_URL].includes(baseUrl)) {
+    return "Tradier base URL must be an official HTTPS /v1 endpoint. Broker requests are blocked.";
+  }
+  if (mode !== "disabled" && baseUrl !== expected) {
+    return "Tradier trading mode and base URL do not match. Broker requests are blocked.";
+  }
+  return null;
+}
+
 export function publicTradierConfig(settings) {
   return {
     configured: settings.configured,
+    configurationError: settings.configurationError || null,
     environment: settings.sandboxMode ? "sandbox" : "live",
     mode: settings.mode,
     liveTradingEnabled: settings.liveTradingEnabled,
@@ -486,9 +498,10 @@ export async function tradierRequest(
           form: maybeOptions.form,
         }
       : pathOrOptions;
-  if (!settings.configured) {
+  const configurationError = settings.configurationError || validateTradierEndpoint(settings);
+  if (!settings.configured || configurationError || !["live", "sandbox"].includes(settings.mode)) {
     throw new Error(
-      "Tradier is not configured. Set TRADIER_ACCESS_TOKEN and TRADIER_ACCOUNT_ID first.",
+      configurationError || "Tradier is not configured. Set TRADIER_ACCESS_TOKEN and TRADIER_ACCOUNT_ID first.",
     );
   }
 
@@ -516,6 +529,9 @@ export async function tradierRequest(
   const requestInit = {
     method: request.method || "GET",
     headers,
+    // Use manual mode for compatibility with the deployed edge runtime.
+    // Never follow a broker redirect or forward credentials to its destination.
+    redirect: "manual",
   };
 
   if (request.form) {
@@ -531,6 +547,9 @@ export async function tradierRequest(
   }
 
   const response = await fetch(url.toString(), requestInit);
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error("Tradier returned an unexpected redirect. Broker requests are blocked.");
+  }
   const text = await response.text();
 
   let data = null;
@@ -681,7 +700,7 @@ export async function previewOrPlaceOrder(env, payload, { preview }) {
   }
 
   const order = normalizeOrderPayload(response.data);
-  if (order.result === false) {
+  if (order.result === false && (preview || !order.id)) {
     throw new Error(
       orderFailureMessage(
         order,
@@ -691,28 +710,55 @@ export async function previewOrPlaceOrder(env, payload, { preview }) {
   }
 
   if (!preview && order.id) {
-    const detailResponse = await tradierRequest(env, {
-      path: `/accounts/${settings.accountId}/orders/${order.id}`,
-    });
-    if (!detailResponse.ok) {
-      throw new Error(
-        tradierErrorMessage(detailResponse.data, detailResponse.status),
-      );
+    // The POST created an order. A failed status read must never erase its ID
+    // or turn this into a retryable submission failure.
+    if (isRejectedOrder(order) || order.result === false) {
+      return {
+        order,
+        confirmation: order,
+        outcome: "rejected",
+        confirmationStatus: "confirmed",
+        warning: "Tradier recorded and rejected this order. Review it in the broker before placing another order.",
+        rateLimits: response.rateLimits,
+      };
     }
-    const confirmation = normalizeOrderPayload(detailResponse.data);
-    if (isRejectedOrder(confirmation)) {
-      throw new Error(orderFailureMessage(confirmation));
+    try {
+      const detailResponse = await tradierRequest(env, {
+        path: `/accounts/${settings.accountId}/orders/${encodeURIComponent(order.id)}`,
+      });
+      const confirmation = normalizeOrderPayload(detailResponse.data);
+      if (!detailResponse.ok || String(confirmation.id) !== String(order.id) || !confirmation.status) {
+        throw new Error("Order status could not be verified.");
+      }
+      const rejected = isRejectedOrder(confirmation) || confirmation.result === false;
+      return {
+        order,
+        confirmation,
+        outcome: rejected ? "rejected" : "accepted",
+        confirmationStatus: "confirmed",
+        warning: rejected
+          ? "Tradier recorded and rejected this order. Review it in the broker before placing another order."
+          : null,
+        rateLimits: detailResponse.rateLimits,
+      };
+    } catch {
+      return {
+        order,
+        confirmation: null,
+        outcome: "accepted",
+        confirmationStatus: "unavailable",
+        warning: "Tradier accepted this order, but its latest status is unavailable. Check this order ID in the broker; do not resubmit it.",
+        rateLimits: response.rateLimits,
+      };
     }
-    return {
-      order,
-      confirmation,
-      rateLimits: detailResponse.rateLimits,
-    };
   }
 
   return {
     order,
     confirmation: null,
+    outcome: preview ? "preview" : "unknown",
+    confirmationStatus: preview ? "not_requested" : "unavailable",
+    warning: preview ? null : "Tradier returned no order ID. The submission outcome is unknown. Check the broker before placing another order; do not resubmit this ticket.",
     rateLimits: response.rateLimits,
   };
 }
@@ -871,6 +917,7 @@ export function buildOrderEnvelope(
   config,
   quote,
   side = "buy_to_open",
+  { reviewedPrice, duration = "day" } = {},
 ) {
   const mode = String(config?.mode || "disabled").toLowerCase();
   const maxContracts = parsePositiveInt(
@@ -879,20 +926,23 @@ export function buildOrderEnvelope(
     1,
     10,
   );
-  const liveAsk = asNumber(quote?.ask, null);
-  const liveBid = asNumber(quote?.bid, null);
-  const fallbackAsk = asNumber(candidate?.ask, null);
-  const fallbackBid = asNumber(candidate?.bid, null);
-
-  const referencePrice =
-    side === "sell_to_close"
-      ? liveBid || fallbackBid || asNumber(candidate?.premium, 0.01) || 0.01
-      : liveAsk ||
-        fallbackAsk ||
-        liveBid ||
-        fallbackBid ||
-        asNumber(candidate?.premium, 0.01) ||
-        0.01;
+  const liveAsk = positivePrice(quote?.ask);
+  const liveBid = positivePrice(quote?.bid);
+  const contract = String(candidate?.contract_symbol || "").trim().toUpperCase();
+  const quotedContract = String(quote?.symbol || "").trim().toUpperCase();
+  const askUnavailable = quote?.ask == null ||
+    (typeof quote.ask === "string" && !quote.ask.trim()) ||
+    quote.ask === 0 || quote.ask === "0";
+  const validAsk = liveAsk !== null || (side === "sell_to_close" && askUnavailable);
+  if (!contract || quotedContract !== contract || !validAsk || liveBid === null || (liveAsk !== null && liveBid > liveAsk)) {
+    throw new Error("A valid current quote for this contract is required (positive bid/ask for entry, positive bid for closing). No order was sent. Refresh the quote and preview again.");
+  }
+  const referencePrice = reviewedPrice === undefined
+    ? side === "sell_to_close" ? liveBid : liveAsk
+    : positivePrice(reviewedPrice);
+  if (referencePrice === null || Number(referencePrice.toFixed(2)) <= 0) {
+    throw new Error("A positive limit price is required. No order was sent.");
+  }
 
   return {
     class: "option",
@@ -905,10 +955,16 @@ export function buildOrderEnvelope(
     side,
     quantity: parsePositiveInt(quantity, 1, 1, maxContracts),
     type: "limit",
-    duration: "day",
+    duration,
     price: Number(referencePrice).toFixed(2),
     tag: `orographic-${mode}-${String(candidate.symbol || "").toLowerCase()}`,
   };
+}
+
+function positivePrice(value) {
+  if (typeof value !== "number" && (typeof value !== "string" || !value.trim())) return null;
+  const price = Number(value);
+  return Number.isFinite(price) && price > 0 ? price : null;
 }
 
 export function buildSubmissionPreview({
