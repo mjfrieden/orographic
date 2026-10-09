@@ -13,6 +13,7 @@ const MODEL_GOVERNANCE_SOURCE = "/data/diagnostics/model_governance_summary_late
 const BASE_BUDGET_USD = 300.0;
 const HARD_COST_CEILING_USD = 600.0;
 const PROSPECTIVE_RECENT_ROW_LIMIT = 24;
+const DEFAULT_SIGNAL_AGE_MINUTES = 240;
 
 // ── Formatting helpers ──────────────────────────────────────────────────────
 
@@ -535,6 +536,7 @@ let BROKER_STATE = {
   lastLoadedAt: null,
   lastError: null,
   maxEntryCostBasisUsd: HARD_COST_CEILING_USD,
+  maxSignalAgeMinutes: DEFAULT_SIGNAL_AGE_MINUTES,
 };
 
 let POSITION_ADVICE = new Map();
@@ -759,6 +761,7 @@ async function loadAccount() {
         positions: data.positions || data.broker.positions || [],
         orders: data.orders || data.broker.orders || [],
         maxContracts: data.broker.maxContracts || 3,
+        maxSignalAgeMinutes: Number(data.broker.maxSignalAgeMinutes) || DEFAULT_SIGNAL_AGE_MINUTES,
         maxEntryCostBasisUsd:
           Number(data.broker.maxEntryCostBasisUsd) || HARD_COST_CEILING_USD,
         loading: false,
@@ -780,6 +783,8 @@ async function loadAccount() {
     };
   }
   renderRibbon();
+  renderBoardMeta();
+  updateCockpitSignalState(SNAPSHOT);
   renderPositionsMeta();
   renderPositions();
   renderOrders();
@@ -1110,6 +1115,7 @@ function renderCockpitSignalSelector() {
     button.addEventListener("click", () => {
       COCKPIT_SIGNAL_INDEX = Number(button.dataset.signalIndex) || 0;
       renderCockpitSignal(SNAPSHOT);
+      document.querySelector(`[data-signal-index="${COCKPIT_SIGNAL_INDEX}"]`)?.focus();
     });
   });
 }
@@ -1254,15 +1260,65 @@ function legendaryCardChrome({ ticker, gem, rarity, hold }) {
     </div>`;
 }
 
+function hasValidCouncilBoard(payload) {
+  return Array.isArray(payload?.council?.live_board) && payload.council.live_board.every((candidate) =>
+    candidate && typeof candidate === "object" && !Array.isArray(candidate),
+  );
+}
+
+// Presentation only: the broker still rechecks freshness, quotes and permissions.
+function cockpitSignalState(payload, now = Date.now()) {
+  if (BOARD_STATE.loading) return { key: "loading", label: payload ? "Refreshing signal" : "Loading signal", note: payload ? "Checking the latest saved snapshot. The previous candidate is shown below." : "Loading the latest saved decision. No decision is available yet." };
+  if (BOARD_STATE.lastError) return { key: "error", label: "Signal unavailable", note: payload ? "Refresh failed. The last loaded snapshot is shown below and may be out of date. Try Refresh signal." : "The board could not be loaded. Try Refresh signal." };
+  if (!hasValidCouncilBoard(payload)) return { key: "empty", label: "No decision available", note: "No valid Council board is available. Try Refresh signal; this is not a hold decision." };
+  const stamp = Date.parse(payload.generated_at_utc || "");
+  if (!Number.isFinite(stamp)) return { key: "stale", label: "Freshness unknown", note: "The snapshot has no valid generation timestamp. Order eligibility must be checked by the broker preview." };
+  const maxMinutes = Number(BROKER_STATE.maxSignalAgeMinutes) || DEFAULT_SIGNAL_AGE_MINUTES;
+  if (now - stamp > maxMinutes * 60000) return { key: "stale", label: "Stale snapshot", note: `This saved decision is older than the ${maxMinutes}-minute freshness window. Refresh reloads the saved file; next scheduled scan ${nextScanHint()}.` };
+  if (!payload.council.live_board.length) return { key: "hold", label: "Hold", note: "No option cleared every live cost and risk gate in this snapshot." };
+  return { key: "ready", label: "Ready to preview", note: "Council selected this candidate. Preview checks the current quote, freshness and account permissions before any order can be confirmed." };
+}
+
+function updateCockpitSignalState(payload) {
+  const state = cockpitSignalState(payload);
+  const root = document.getElementById("cockpit-signal");
+  if (root) {
+    root.dataset.state = state.key;
+    root.setAttribute("aria-busy", String(BOARD_STATE.loading));
+  }
+  const label = document.getElementById("cockpit-signal-state");
+  if (label) {
+    label.textContent = state.label;
+    label.className = `signal-state ${state.key === "ready" ? "is-ready" : "is-hold"}`;
+  }
+  setText("cockpit-signal-note", state.note);
+  const generatedAt = payload?.generated_at_utc;
+  setText("cockpit-signal-age", generatedAt && Number.isFinite(Date.parse(generatedAt)) ? timeAgo(generatedAt) : "Unknown");
+}
+
 function renderCockpitSignal(payload) {
   const root = document.getElementById("cockpit-signal");
   if (!root) return;
-  const live = payload?.council?.live_board || [];
+  const state = cockpitSignalState(payload);
+  const live = hasValidCouncilBoard(payload) ? payload.council.live_board : [];
   COCKPIT_SIGNALS = live.map((candidate) => ({ candidate, lane: "live" }));
   COCKPIT_SIGNAL_INDEX = Math.min(
     Math.max(COCKPIT_SIGNAL_INDEX, 0),
     Math.max(COCKPIT_SIGNALS.length - 1, 0),
   );
+
+  if (!hasValidCouncilBoard(payload)) {
+    root.innerHTML = `<div class="signal-unavailable">
+      <span id="cockpit-signal-state" class="signal-state is-hold">${escapeHtml(state.label)}</span>
+      <p id="cockpit-signal-note" class="signal-lead">${escapeHtml(state.note)}</p>
+      ${BOARD_STATE.lastError ? `<details class="signal-evidence-details"><summary>Error details</summary><p>${escapeHtml(BOARD_STATE.lastError)}</p></details>` : ""}
+    </div>`;
+    setText("signal-index", "—");
+    renderCockpitSignalSelector();
+    syncCockpitSignalControls();
+    updateCockpitSignalState(payload);
+    return;
+  }
 
   if (!COCKPIT_SIGNALS.length) {
     root.innerHTML = `
@@ -1274,9 +1330,9 @@ function renderCockpitSignal(payload) {
           hold: true,
         })}
         <div class="card-body">
-          <span class="signal-state is-hold">Hold</span>
-          <p class="signal-lead">No option cleared every live cost and risk gate.</p>
-          <div class="signal-contract"><span>Decision</span><h3>No trade today</h3><p>This is an active hold. New decisions publish on weekdays at 9:25 AM, 12:25 PM, and 3:25 PM Chicago.</p></div>
+          <span id="cockpit-signal-state" class="signal-state is-hold">${escapeHtml(state.label)}</span>
+          <p id="cockpit-signal-note" class="signal-lead">${escapeHtml(state.note)}</p>
+          <div class="signal-contract"><span>Decision</span><h3>No trade in this snapshot</h3><p>Council recorded a hold. New decisions publish on weekdays at 9:25 AM, 12:25 PM, and 3:25 PM Chicago.</p></div>
           ${noTradeFunnelHtml(payload)}
           ${cameCloseHtml(payload)}
           <div class="signal-metrics">
@@ -1289,6 +1345,7 @@ function renderCockpitSignal(payload) {
     setText("signal-index", "0 of 0");
     renderCockpitSignalSelector();
     syncCockpitSignalControls();
+    updateCockpitSignalState(payload);
     return;
   }
 
@@ -1298,9 +1355,9 @@ function renderCockpitSignal(payload) {
   const confidence = Number(candidate.prob_positive_option_pnl);
   const afterCostEdge = Number(candidate.expected_edge_after_friction_pct);
   const maxLoss = Number(candidate.contract_cost || ask * 100);
-  const generatedAt = payload.generated_at_utc || payload.timestamp;
-  const stateLabel = "Trade ready";
-  const stateClass = "is-ready";
+  const generatedAt = Number.isFinite(Date.parse(payload.generated_at_utc)) ? payload.generated_at_utc : null;
+  const stateLabel = state.label;
+  const stateClass = state.key === "ready" ? "is-ready" : "is-hold";
   const previewLabel = "Preview order";
   const suggestedQty = suggestedEntryQuantity(
     ask,
@@ -1322,8 +1379,8 @@ function renderCockpitSignal(payload) {
         hold: false,
       })}
       <div class="card-body">
-      <span class="signal-state ${stateClass}">${stateLabel}</span>
-      <p class="signal-lead">Model edge is positive after costs and the contract cleared Council risk controls.</p>
+      <span id="cockpit-signal-state" class="signal-state ${stateClass}">${stateLabel}</span>
+      <p id="cockpit-signal-note" class="signal-lead">${escapeHtml(state.note)}</p>
       <div class="signal-contract">
         <span>Contract thesis</span>
         <h3>${escapeHtml(candidate.contract_symbol || `${candidate.symbol} option`)}</h3>
@@ -1332,8 +1389,8 @@ function renderCockpitSignal(payload) {
       <div class="signal-metrics">
         <div class="signal-metric"><span>Entry limit</span><strong>${money(ask)}</strong><small>Maximum one-contract premium ${money(maxLoss)}</small></div>
         <div class="signal-metric"><span>After-cost edge</span><strong>${pct(afterCostEdge)}</strong><small>Model estimate after friction</small></div>
-        <div class="signal-metric"><span>Confidence</span><strong>${pct(confidence, 0)}</strong><small>Positive executable P&amp;L probability</small></div>
-        <div class="signal-metric"><span>Freshness</span><strong>${generatedAt ? timeAgo(generatedAt) : "—"}</strong><small>${generatedAt ? formatTs(generatedAt) : "No timestamp"}</small></div>
+        <div class="signal-metric"><span>Confidence</span><strong>${pct(confidence, 0)}</strong><small>Model-estimated positive P&amp;L probability</small></div>
+        <div class="signal-metric"><span>Freshness</span><strong id="cockpit-signal-age">${generatedAt ? timeAgo(generatedAt) : "—"}</strong><small>${generatedAt ? formatTs(generatedAt) : "No timestamp"}</small></div>
       </div>
       <details class="signal-evidence-details">
         <summary>Why this signal?</summary>
@@ -1379,6 +1436,7 @@ function renderCockpitSignal(payload) {
   bindCardButtons();
   renderCockpitSignalSelector();
   syncCockpitSignalControls();
+  updateCockpitSignalState(payload);
 }
 
 function renderMoonshotSidePick(payload) {
@@ -1417,6 +1475,8 @@ function renderMoonshotSidePick(payload) {
 function syncCockpitSignalControls() {
   const previous = document.getElementById("signal-prev");
   const next = document.getElementById("signal-next");
+  const pagination = document.getElementById("signal-pagination");
+  if (pagination) pagination.hidden = COCKPIT_SIGNALS.length <= 1;
   if (previous) previous.disabled = COCKPIT_SIGNAL_INDEX <= 0;
   if (next) next.disabled = COCKPIT_SIGNAL_INDEX >= COCKPIT_SIGNALS.length - 1;
 }
@@ -1443,15 +1503,14 @@ function bindCockpitControls() {
   if (signalRegion && signalRegion.dataset.keyboardBound !== "true") {
     signalRegion.dataset.keyboardBound = "true";
     signalRegion.addEventListener("keydown", (event) => {
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
-      if (event.key === "ArrowLeft" && COCKPIT_SIGNAL_INDEX > 0) {
-        COCKPIT_SIGNAL_INDEX -= 1;
-        renderCockpitSignal(SNAPSHOT);
-      }
-      if (event.key === "ArrowRight" && COCKPIT_SIGNAL_INDEX < COCKPIT_SIGNALS.length - 1) {
-        COCKPIT_SIGNAL_INDEX += 1;
-        renderCockpitSignal(SNAPSHOT);
-      }
+      if (!event.target.closest(".signal-pagination, .signal-selector")) return;
+      const delta = event.key === "ArrowLeft" ? -1 : event.key === "ArrowRight" ? 1 : 0;
+      if (!delta || COCKPIT_SIGNAL_INDEX + delta < 0 || COCKPIT_SIGNAL_INDEX + delta >= COCKPIT_SIGNALS.length) return;
+      event.preventDefault();
+      const selectorFocused = Boolean(event.target.closest(".signal-selector"));
+      COCKPIT_SIGNAL_INDEX += delta;
+      renderCockpitSignal(SNAPSHOT);
+      if (selectorFocused) document.querySelector(`[data-signal-index="${COCKPIT_SIGNAL_INDEX}"]`)?.focus();
     });
   }
 
@@ -1604,10 +1663,13 @@ function renderBoardMeta() {
       className += " is-error";
     } else if (BOARD_STATE.snapshotGeneratedAt) {
       const snapshotAge = timeAgo(BOARD_STATE.snapshotGeneratedAt);
-      const isStale =
-        Date.now() - new Date(BOARD_STATE.snapshotGeneratedAt) >
-        4 * 60 * 60 * 1000;
-      if (isStale) {
+      const stamp = Date.parse(BOARD_STATE.snapshotGeneratedAt);
+      const isStale = Number.isFinite(stamp) && Date.now() - stamp >
+        (Number(BROKER_STATE.maxSignalAgeMinutes) || DEFAULT_SIGNAL_AGE_MINUTES) * 60000;
+      if (!Number.isFinite(stamp)) {
+        text = "Snapshot timestamp is invalid. Freshness is unknown; try Refresh signal.";
+        className += " is-warning";
+      } else if (isStale) {
         text = `Stale snapshot ${formatTs(BOARD_STATE.snapshotGeneratedAt)} · ${snapshotAge}. Refresh reloads this file. Next scan ${nextScanHint()}.`;
         className += " is-warning";
       } else {
@@ -1618,8 +1680,8 @@ function renderBoardMeta() {
         className += " is-live";
       }
     } else if (BOARD_STATE.fetchedAt) {
-      text = `Board checked ${formatTs(BOARD_STATE.fetchedAt)} · ${timeAgo(BOARD_STATE.fetchedAt)}`;
-      className += " is-live";
+      text = "Snapshot timestamp is unavailable. Freshness is unknown; try Refresh signal.";
+      className += " is-warning";
     }
     syncEl.textContent = text;
     syncEl.className = className;
@@ -1641,71 +1703,87 @@ function renderBoardMeta() {
 
 async function loadSnapshot() {
   const r = await fetch(SNAPSHOT_SOURCE, { cache: "no-store" });
-  SNAPSHOT = await readSessionJson(r, "Board snapshot");
+  const payload = await readSessionJson(r, "Board snapshot");
+  if (!hasValidCouncilBoard(payload)) {
+    throw new Error("The saved snapshot has no valid Council board.");
+  }
+  SNAPSHOT = payload;
   return SNAPSHOT;
 }
 
 async function loadProspectiveLedger() {
   const r = await fetch(PROSPECTIVE_LEDGER_SOURCE, { cache: "no-store" });
-  PROSPECTIVE_LEDGER = await readSessionJson(r, "Prospective ledger");
+  const ledger = await readSessionJson(r, "Prospective ledger");
+  const validRows = Array.isArray(ledger?.entries) && ledger.entries.every((entry) =>
+    entry && typeof entry === "object" && !Array.isArray(entry) &&
+    Array.isArray(entry.picks) && entry.picks.every((pick) =>
+      pick && typeof pick === "object" && !Array.isArray(pick),
+    ),
+  );
+  const requiredWindows = ledger?.outcome_policy?.required_fixed_exits;
+  const validWindows = requiredWindows === undefined || (Array.isArray(requiredWindows) &&
+    requiredWindows.every((window) => typeof window === "string" && window.trim() !== ""));
+  if (!validRows || !validWindows) throw new Error("Recommendation history is unavailable in this export.");
+  PROSPECTIVE_LEDGER = ledger;
   return PROSPECTIVE_LEDGER;
 }
 
-async function refreshBoard() {
-  BOARD_STATE = {
-    ...BOARD_STATE,
-    loading: true,
-  };
-  PROSPECTIVE_STATE = {
-    ...PROSPECTIVE_STATE,
-    loading: true,
-  };
-  renderBoardMeta();
-  renderProspectiveMeta();
+function renderOptionalHistory(ledger = null, includeScoreboard = false) {
   try {
-    const [payload, ledgerResult] = await Promise.all([
-      loadSnapshot(),
-      loadProspectiveLedger()
-        .then((ledger) => ({ ok: true, ledger }))
-        .catch((error) => ({ ok: false, error })),
-    ]);
-    await renderBoard(payload);
-    if (ledgerResult.ok) {
-      PROSPECTIVE_STATE = {
-        loading: false,
-        updatedAt: ledgerResult.ledger?.updated_at_utc || null,
-        lastError: null,
-      };
-      renderProspectiveScoreboard(ledgerResult.ledger);
-    } else {
-      PROSPECTIVE_STATE = {
-        loading: false,
-        updatedAt: null,
-        lastError: String(ledgerResult.error?.message || ledgerResult.error),
-      };
-      renderProspectiveScoreboard(null);
-    }
-    BOARD_STATE = {
+    if (includeScoreboard) renderProspectiveScoreboard(ledger);
+    renderProspectiveMeta();
+    renderRecommendationHistory();
+  } catch (error) {
+    // Optional history must never leave the primary board or refresh control stuck.
+    PROSPECTIVE_STATE = { ...PROSPECTIVE_STATE, loading: false, lastError: String(error?.message || error) };
+    setText("recommendation-sync", "History could not be displayed. Use Refresh signal to try again.");
+    setText("recommendation-count", "Unavailable");
+    document.getElementById("recommendation-list")?.setAttribute("aria-busy", "false");
+  }
+}
+
+async function refreshBoard() {
+  if (BOARD_STATE.loading) return;
+  BOARD_STATE = { ...BOARD_STATE, loading: true, lastError: null };
+  PROSPECTIVE_STATE = { ...PROSPECTIVE_STATE, loading: true, lastError: null };
+  renderBoardMeta();
+  renderCockpitSignal(SNAPSHOT);
+  renderOptionalHistory();
+  const [snapshotResult, ledgerResult] = await Promise.allSettled([
+    loadSnapshot(), loadProspectiveLedger(),
+  ]);
+  if (ledgerResult.status === "fulfilled") {
+    PROSPECTIVE_STATE = {
       loading: false,
-      fetchedAt: new Date().toISOString(),
-      snapshotGeneratedAt: payload?.generated_at_utc || payload?.timestamp || null,
+      updatedAt: ledgerResult.value?.updated_at_utc || null,
       lastError: null,
     };
-    renderBoardMeta();
-    renderProspectiveMeta();
-    return payload;
-  } catch (error) {
-    BOARD_STATE = {
-      ...BOARD_STATE,
-      loading: false,
-      lastError: String(error.message || error),
-    };
-    renderBoardMeta();
+  } else {
     PROSPECTIVE_STATE = {
       ...PROSPECTIVE_STATE,
       loading: false,
+      lastError: String(ledgerResult.reason?.message || ledgerResult.reason),
     };
-    renderProspectiveMeta();
+  }
+  renderOptionalHistory(ledgerResult.status === "fulfilled" ? ledgerResult.value : null, true);
+  try {
+    if (snapshotResult.status === "rejected") throw snapshotResult.reason;
+    const payload = snapshotResult.value;
+    BOARD_STATE = {
+      loading: true,
+      fetchedAt: new Date().toISOString(),
+      snapshotGeneratedAt: payload?.generated_at_utc || null,
+      lastError: null,
+    };
+    await renderBoard(payload);
+    BOARD_STATE.loading = false;
+    renderBoardMeta();
+    updateCockpitSignalState(payload);
+    return payload;
+  } catch (error) {
+    BOARD_STATE = { ...BOARD_STATE, loading: false, lastError: String(error?.message || error) };
+    renderBoardMeta();
+    renderCockpitSignal(SNAPSHOT);
     throw error;
   }
 }
@@ -1741,6 +1819,188 @@ function renderProspectiveMeta() {
   }
   el.textContent = text;
   el.className = className;
+}
+
+// Recent production recommendations, not broker fills or account performance.
+// Filters only use rows already present in the bounded dashboard export.
+let RECOMMENDATION_HISTORY = { date: "all", symbol: "all", status: "all", selected: null, limit: 24 };
+
+function formatRecommendationTs(value) {
+  if (!value || !Number.isFinite(Date.parse(value))) return "Date unavailable";
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: CHICAGO_TZ, year: "numeric", month: "short", day: "numeric",
+    hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  }).format(new Date(value));
+}
+
+function recommendationDate(value) {
+  if (!value || !Number.isFinite(Date.parse(value))) return "unknown";
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: CHICAGO_TZ, year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(new Date(value));
+  const date = Object.fromEntries(parts.map(({ type, value: part }) => [type, part]));
+  return `${date.year}-${date.month}-${date.day}`;
+}
+
+function recommendationMarkValue(mark) {
+  const value = mark?.pnl_pct_from_emission;
+  const numeric = typeof value === "number" || (typeof value === "string" && value.trim() !== "");
+  return numeric && Number.isFinite(Number(value)) ? Number(value) : null;
+}
+
+function recommendationStatus(pick, requiredWindows = []) {
+  const status = String(pick?.outcomes?.status || "").toLowerCase();
+  const marks = Object.values(pick?.outcomes?.fixed_exit_marks || {});
+  const valid = marks.filter((mark) => recommendationMarkValue(mark) !== null).length;
+  if (["missing", "missing_quote", "unavailable", "error"].includes(status)) return "missing";
+  const requiredPresent = requiredWindows.every((window) =>
+    recommendationMarkValue(pick?.outcomes?.fixed_exit_marks?.[window]) !== null,
+  );
+  if (status === "complete" && valid === marks.length && valid > 0 && requiredPresent) return "complete";
+  if (valid > 0) return "partial";
+  if (status === "pending") return "pending";
+  return "missing";
+}
+
+const RECOMMENDATION_STATUS_LABELS = {
+  pending: "Pending marks", partial: "Partial marks", complete: "Marked", missing: "Marks unavailable",
+};
+
+function liveRecommendationRows(ledger) {
+  const required = ledger?.outcome_policy?.required_fixed_exits;
+  return allProspectivePicks(ledger)
+    .filter((pick) => pick.lane === "live")
+    .map((pick, index) => ({
+      pick,
+      key: JSON.stringify([pick.run_generated_at_utc || "", pick.contract_symbol || "", index]),
+      date: recommendationDate(pick.run_generated_at_utc),
+      symbol: String(pick.symbol || optionContractMeta(pick.contract_symbol).root || "Unknown"),
+      status: recommendationStatus(pick, Array.isArray(required) ? required : []),
+    }))
+    .sort((a, b) => (Date.parse(b.pick.run_generated_at_utc) || 0) - (Date.parse(a.pick.run_generated_at_utc) || 0));
+}
+
+function filteredRecommendationRows(rows, filters = RECOMMENDATION_HISTORY) {
+  return rows.filter((row) =>
+    (filters.date === "all" || row.date === filters.date) &&
+    (filters.symbol === "all" || row.symbol === filters.symbol) &&
+    (filters.status === "all" || row.status === filters.status),
+  );
+}
+
+function syncRecommendationFilter(id, values, selected, label) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.innerHTML = `<option value="all">${label}</option>` + values.map(([value, text]) =>
+    `<option value="${escapeHtml(value)}">${escapeHtml(text)}</option>`,
+  ).join("");
+  element.value = selected;
+}
+
+function recommendationDetailHtml(row) {
+  if (!row) return "<p>Select a recommendation to inspect its quote-based marks.</p>";
+  const { pick, status } = row;
+  const quote = pick.emission_quote || {};
+  const marks = pick?.outcomes?.fixed_exit_marks || {};
+  const required = PROSPECTIVE_LEDGER?.outcome_policy?.required_fixed_exits;
+  const windows = [...new Set([
+    ...(Array.isArray(required) ? required.filter((window) => typeof window === "string" && window.trim()) : []),
+    ...Object.keys(marks),
+  ])];
+  const published = Number.isFinite(Date.parse(pick.run_generated_at_utc))
+    ? formatRecommendationTs(pick.run_generated_at_utc) : "Date unavailable";
+  return `<h3>${escapeHtml(pick.contract_symbol || row.symbol)}</h3>
+    <p>${escapeHtml(published)} · ${escapeHtml(RECOMMENDATION_STATUS_LABELS[status])}</p>
+    <dl class="recommendation-facts">
+      <div><dt>Published lane</dt><dd>Production recommendation</dd></div>
+      <div><dt>Entry quote source</dt><dd>${escapeHtml(quote.entry_data_source || "Unavailable")}</dd></div>
+      <div><dt>Published bid / ask</dt><dd>${money(quote.bid)} / ${money(quote.ask)}</dd></div>
+      <div><dt>Quote captured</dt><dd>${escapeHtml(quote.captured_at_utc && Number.isFinite(Date.parse(quote.captured_at_utc)) ? formatRecommendationTs(quote.captured_at_utc) : "Unavailable")}</dd></div>
+    </dl>
+    <h4>Quote-based outcome marks</h4>
+    <p class="recommendation-caveat">These are quote proxies from the published ledger, not filled orders or account returns. Execution, slippage and fees are not verified by this view. Missing marks are never counted as zero.</p>
+    ${windows.length ? `<dl class="recommendation-marks">${windows.map((window) => {
+      const mark = marks[window];
+      const value = recommendationMarkValue(mark);
+      const label = value !== null ? pct(value) : status === "pending" && !mark ? "Pending" : "Unavailable";
+      return `<div><dt>${escapeHtml(window.replaceAll("_", " "))}</dt><dd>${escapeHtml(label)}${value !== null ? "<small>Quote proxy</small>" : ""}</dd></div>`;
+    }).join("")}</dl>` : `<p>${status === "pending" ? "Outcome marks are pending." : "No usable outcome marks are available in this export."}</p>`}`;
+}
+
+function renderRecommendationHistory() {
+  const list = document.getElementById("recommendation-list");
+  if (!list) return;
+  const detail = document.getElementById("recommendation-detail");
+  const rows = liveRecommendationRows(PROSPECTIVE_LEDGER);
+  const dates = [...new Set(rows.map((row) => row.date))].sort().reverse();
+  const symbols = [...new Set(rows.map((row) => row.symbol))].sort();
+  if (RECOMMENDATION_HISTORY.date !== "all" && !dates.includes(RECOMMENDATION_HISTORY.date)) RECOMMENDATION_HISTORY.date = "all";
+  if (RECOMMENDATION_HISTORY.symbol !== "all" && !symbols.includes(RECOMMENDATION_HISTORY.symbol)) RECOMMENDATION_HISTORY.symbol = "all";
+  syncRecommendationFilter("recommendation-date", dates.map((date) => [date, date === "unknown" ? "Date unavailable" : date]), RECOMMENDATION_HISTORY.date, "All dates");
+  syncRecommendationFilter("recommendation-symbol", symbols.map((symbol) => [symbol, symbol]), RECOMMENDATION_HISTORY.symbol, "All symbols");
+  const filtered = filteredRecommendationRows(rows);
+  const shown = filtered.slice(0, RECOMMENDATION_HISTORY.limit);
+  if (!shown.some((row) => row.key === RECOMMENDATION_HISTORY.selected)) RECOMMENDATION_HISTORY.selected = null;
+  const loaded = Array.isArray(PROSPECTIVE_LEDGER?.entries);
+  let meta = !loaded ? "No recommendation history loaded." : `Recent export: ${rows.length} production recommendation${rows.length === 1 ? "" : "s"} across ${PROSPECTIVE_LEDGER.entries.length} loaded scans. This is not the full ledger.`;
+  if (PROSPECTIVE_STATE.loading) meta = loaded ? `Refreshing history. ${meta}` : "Loading recent recommendations…";
+  else if (PROSPECTIVE_STATE.lastError) meta = loaded ? `History refresh failed. Showing the last loaded export. ${meta}` : "History could not be loaded. Use Refresh signal to try again.";
+  if (loaded && PROSPECTIVE_STATE.updatedAt) meta += ` Updated ${formatRecommendationTs(PROSPECTIVE_STATE.updatedAt)}.`;
+  setText("recommendation-sync", meta);
+  setText("recommendation-count", loaded ? `${rows.length} in recent export` : PROSPECTIVE_STATE.loading ? "Loading…" : "Unavailable");
+  setText("recommendation-results", loaded ? `${shown.length} of ${filtered.length} matching recommendation${filtered.length === 1 ? "" : "s"}. Dates use Chicago time.` : "");
+  list.setAttribute("aria-busy", String(PROSPECTIVE_STATE.loading));
+  list.innerHTML = shown.length ? shown.map((row) => {
+    const published = row.date === "unknown" ? "Date unavailable" : formatRecommendationTs(row.pick.run_generated_at_utc);
+    const active = row.key === RECOMMENDATION_HISTORY.selected;
+    return `<li><button type="button" class="recommendation-choice${active ? " is-active" : ""}" data-recommendation-key="${escapeHtml(row.key)}" aria-pressed="${active}" aria-controls="recommendation-detail">
+      <span><strong>${escapeHtml(row.symbol)}</strong><small>${escapeHtml(published)}</small></span>
+      <span class="recommendation-contract">${escapeHtml(row.pick.contract_symbol || "Contract unavailable")}</span>
+      <span>${escapeHtml(RECOMMENDATION_STATUS_LABELS[row.status])}</span>
+    </button></li>`;
+  }).join("") : `<li class="recommendation-empty">${!loaded ? (PROSPECTIVE_STATE.loading ? "Waiting for the recent export." : "Recommendation history is unavailable.") : !rows.length ? "No production recommendations in this recent export. This does not mean no recommendations were ever published." : "No recommendations match these filters. Clear filters to see the recent export."}</li>`;
+  if (detail) detail.innerHTML = recommendationDetailHtml(shown.find((row) => row.key === RECOMMENDATION_HISTORY.selected));
+  const more = document.getElementById("recommendation-more");
+  if (more) more.hidden = shown.length >= filtered.length;
+}
+
+function bindRecommendationHistory() {
+  const root = document.getElementById("recommendation-history");
+  if (!root || root.dataset.bound === "true") return;
+  root.dataset.bound = "true";
+  for (const key of ["date", "symbol", "status"]) {
+    document.getElementById(`recommendation-${key}`)?.addEventListener("change", (event) => {
+      RECOMMENDATION_HISTORY[key] = event.target.value;
+      RECOMMENDATION_HISTORY.selected = null;
+      RECOMMENDATION_HISTORY.limit = 24;
+      renderRecommendationHistory();
+    });
+  }
+  document.getElementById("recommendation-clear")?.addEventListener("click", () => {
+    RECOMMENDATION_HISTORY = { date: "all", symbol: "all", status: "all", selected: null, limit: 24 };
+    const status = document.getElementById("recommendation-status");
+    if (status) status.value = "all";
+    renderRecommendationHistory();
+  });
+  document.getElementById("recommendation-more")?.addEventListener("click", () => {
+    RECOMMENDATION_HISTORY.limit += 24;
+    renderRecommendationHistory();
+  });
+  document.getElementById("recommendation-list")?.addEventListener("click", (event) => {
+    const button = event.target.closest("[data-recommendation-key]");
+    if (!button) return;
+    RECOMMENDATION_HISTORY.selected = button.dataset.recommendationKey;
+    // Keep the clicked button in place so keyboard focus is not discarded.
+    document.querySelectorAll("[data-recommendation-key]").forEach((choice) => {
+      const selected = choice.dataset.recommendationKey === RECOMMENDATION_HISTORY.selected;
+      choice.setAttribute("aria-pressed", String(selected));
+      choice.classList.toggle("is-active", selected);
+    });
+    const row = filteredRecommendationRows(liveRecommendationRows(PROSPECTIVE_LEDGER))
+      .find((item) => item.key === RECOMMENDATION_HISTORY.selected);
+    const detail = document.getElementById("recommendation-detail");
+    if (detail) detail.innerHTML = recommendationDetailHtml(row);
+  });
 }
 
 function entryMid(pick) {
@@ -3594,6 +3854,8 @@ function bindPositionsTable() {
 
 function bindCardButtons() {
   document.querySelectorAll(".card-qty-step").forEach((btn) => {
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       const card = btn.closest(".trade-card");
@@ -3607,6 +3869,8 @@ function bindCardButtons() {
   });
 
   document.querySelectorAll(".card-qty-input").forEach((input) => {
+    if (input.dataset.bound === "true") return;
+    input.dataset.bound = "true";
     input.addEventListener("click", (e) => e.stopPropagation());
     input.addEventListener("change", () => {
       input.value = String(clampQuantity(input.value, input.value || 1));
@@ -3615,6 +3879,8 @@ function bindCardButtons() {
   });
 
   document.querySelectorAll(".card-preview-btn").forEach((btn) => {
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       handlePreview(
@@ -3629,6 +3895,8 @@ function bindCardButtons() {
   });
 
   document.querySelectorAll(".card-execute-btn").forEach((btn) => {
+    if (btn.dataset.bound === "true") return;
+    btn.dataset.bound = "true";
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
       handleDirectExecute(
@@ -4138,6 +4406,13 @@ async function main() {
   bindPositionsControls();
   bindBoardControls();
   bindCockpitControls();
+  bindRecommendationHistory();
+  // Keep age labels honest while the tab stays open, without additional requests.
+  setInterval(() => {
+    if (!SNAPSHOT || BOARD_STATE.loading) return;
+    renderBoardMeta();
+    updateCockpitSignalState(SNAPSHOT);
+  }, 60000);
 
   // Load scientific evidence independently from Tradier and the live board.
   // Missing evidence fails closed in the workbench without blocking broker access.

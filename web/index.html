@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="/styles.css?v=20260904h" />
     <link rel="stylesheet" href="/harbor-scene.css?v=20260904c" />
     <link rel="stylesheet" href="/sigils.css?v=20260904a" />
-    <link rel="stylesheet" href="/cockpit.css?v=20261004b" />
+    <link rel="stylesheet" href="/cockpit.css?v=20261009a" />
   </head>
   <body class="cockpit-page">
     <a class="skip-link" href="#signal">Skip to Signal &amp; Book</a>
@@ -73,12 +73,12 @@
             <p id="board-sync-status" class="sync-line" aria-live="polite">Loading latest decision…</p>
           </div>
 
-          <div id="cockpit-signal" class="cockpit-signal" aria-live="polite">
-            <div class="signal-loading">Evaluating the current board…</div>
+          <div id="cockpit-signal" class="cockpit-signal" aria-live="polite" aria-busy="true">
+            <div class="signal-loading">Loading the latest saved decision…</div>
           </div>
 
           <div id="signal-selector" class="signal-selector" aria-label="Available signal candidates"></div>
-          <div class="signal-pagination" aria-label="Signal position">
+          <div id="signal-pagination" class="signal-pagination" aria-label="Signal position" hidden>
             <button id="signal-prev" class="quiet-button" type="button" disabled>
               <span class="sigil sigil-back" aria-hidden="true"></span>Previous
             </button>
@@ -142,6 +142,36 @@
           </section>
         </article>
       </section>
+
+      <details id="recommendation-history" class="recommendation-history">
+        <summary><span>Recent recommendations</span><small id="recommendation-count">Loading…</small></summary>
+        <div class="recommendation-history-body">
+          <p>Production recommendations only. These records do not confirm a broker order or fill.</p>
+          <p id="recommendation-sync" class="sync-line" role="status">Loading recent recommendations…</p>
+          <div class="recommendation-filters" aria-label="Filter recent recommendations">
+            <label>Date (Chicago)<select id="recommendation-date"><option value="all">All dates</option></select></label>
+            <label>Symbol<select id="recommendation-symbol"><option value="all">All symbols</option></select></label>
+            <label>Outcome status<select id="recommendation-status">
+              <option value="all">All statuses</option>
+              <option value="pending">Pending marks</option>
+              <option value="partial">Partial marks</option>
+              <option value="complete">Marked</option>
+              <option value="missing">Marks unavailable</option>
+            </select></label>
+            <button id="recommendation-clear" class="quiet-button" type="button">Clear filters</button>
+          </div>
+          <p id="recommendation-results" role="status"></p>
+          <div class="recommendation-history-grid">
+            <div>
+              <ol id="recommendation-list" class="recommendation-list" aria-label="Recent production recommendations"></ol>
+              <button id="recommendation-more" class="quiet-button" type="button" hidden>Show more</button>
+            </div>
+            <section id="recommendation-detail" class="recommendation-detail" aria-label="Selected recommendation details" aria-live="polite">
+              <p>Select a recommendation to inspect its quote-based marks.</p>
+            </section>
+          </div>
+        </div>
+      </details>
 
       <section class="evidence-ribbon talent-tree" id="research" aria-labelledby="evidence-title">
         <span class="plate-filigree" aria-hidden="true"></span>
@@ -268,6 +298,6 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=20261004b"></script>
+    <script type="module" src="/app.js?v=20261009a"></script>
   </body>
 </html>
