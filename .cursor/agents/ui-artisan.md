@@ -127,6 +127,8 @@ Audit juice shipped:
 92. Came-close near-misses stay behind a count disclosure on Signal (NN/g H8). **Shipped in cycle 92.**
 93. Research dungeon artifact and copy failures name the next step (NN/g H9). **Shipped in cycle 93.**
 94. Sealed-writ preview and execute failures name the next step (NN/g H9). **Shipped in cycle 94.**
+95. Daily decision visibility and recent recommendations (NN/g H1/H9). **Logged in cycle 95.**
+96. Master Harbor history and mart failures name the next step (NN/g H9). **Shipped in cycle 96.**
 
 ## Done when
 

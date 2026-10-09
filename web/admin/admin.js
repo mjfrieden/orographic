@@ -106,23 +106,45 @@ function buildTrendPoints(items) {
     .join(" ");
 }
 
-function friendlyLoadError(error) {
-  const text = String(error?.message || error || "Unknown error");
+function withRecovery(problem, nextStep) {
+  const base = String(problem || "Request failed").replace(/\s+/g, " ").trim();
+  const ended = /[.!?]$/.test(base) ? base : `${base}.`;
+  return `${ended} ${nextStep}`;
+}
+
+function friendlyLoadError(error, kind = "history") {
+  const text = String(error?.message || error || "").replace(/\s+/g, " ").trim();
+  const nextStep =
+    kind === "mart"
+      ? "Refresh this page after the next research sync."
+      : "Refresh this page, or open the hosted admin after you sign in.";
   if (
-    text.includes("Unexpected token") ||
-    text.includes("<!DOCTYPE") ||
-    text.includes("is not valid JSON") ||
-    text.includes("Failed to fetch")
+    /Unexpected token|<!DOCTYPE|is not valid JSON|Failed to fetch|Load failed|NetworkError|unavailable/i.test(
+      text,
+    )
   ) {
-    return "History store is unreachable in this preview.";
+    return withRecovery(
+      kind === "mart"
+        ? "Shared-mart audit could not be loaded"
+        : "Position history is unavailable in this session",
+      nextStep,
+    );
   }
-  return text;
+  if (!text || text.startsWith("<") || /<html/i.test(text) || text.length > 180) {
+    return withRecovery(
+      kind === "mart"
+        ? "Shared-mart audit could not be loaded"
+        : "Position history could not be loaded",
+      nextStep,
+    );
+  }
+  return withRecovery(text, nextStep);
 }
 
 function renderBlankMap(container, message) {
   if (!container) return;
   container.innerHTML = `
-    <div class="admin-trend-chart map-parchment map-empty">
+    <div class="admin-trend-chart map-parchment map-empty is-error">
       <span class="map-compass" aria-hidden="true"></span>
       <p class="map-cartouche">Marked value</p>
       <p class="map-empty-copy">${escapeHtml(message)}</p>
@@ -397,11 +419,11 @@ function renderMartAudit(payload, sync, weekly) {
 }
 
 function renderMartAuditError(error) {
-  const message = escapeHtml(String(error?.message || error || "Unable to load mart audit."));
+  const message = escapeHtml(friendlyLoadError(error, "mart"));
   const status = document.getElementById("admin-mart-status");
   const tbody = document.getElementById("admin-mart-views-tbody");
   if (status) status.textContent = "Unavailable";
-  if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="admin-history-loading">${message}</td></tr>`;
+  if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="admin-history-loading is-error">${message}</td></tr>`;
 }
 
 function renderOrderLedger(events) {
@@ -478,7 +500,7 @@ async function initAdminHistory() {
       if (tbody) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="8" class="admin-history-loading">${escapeHtml(friendlyLoadError(orderEvents.error))}</td>
+            <td colspan="8" class="admin-history-loading is-error">${escapeHtml(friendlyLoadError(orderEvents.error))}</td>
           </tr>
         `;
       }
@@ -491,8 +513,8 @@ async function initAdminHistory() {
     const orderTbody = document.getElementById("admin-order-ledger-tbody");
     if (overview) {
       overview.innerHTML = `
-        <article class="summary-item admin-card inventory-slot">
-          <span class="summary-label">Load Failed</span>
+        <article class="summary-item admin-card inventory-slot is-error">
+          <span class="summary-label">Load failed</span>
           <span class="summary-value">${escapeHtml(message)}</span>
         </article>
       `;
@@ -503,14 +525,14 @@ async function initAdminHistory() {
     if (tbody) {
       tbody.innerHTML = `
         <tr>
-          <td colspan="7" class="admin-history-loading">${escapeHtml(message)}</td>
+          <td colspan="7" class="admin-history-loading is-error">${escapeHtml(message)}</td>
         </tr>
       `;
     }
     if (orderTbody) {
       orderTbody.innerHTML = `
         <tr>
-          <td colspan="8" class="admin-history-loading">${escapeHtml(message)}</td>
+          <td colspan="8" class="admin-history-loading is-error">${escapeHtml(message)}</td>
         </tr>
       `;
     }
