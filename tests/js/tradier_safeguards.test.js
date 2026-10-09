@@ -136,7 +136,7 @@ for (const failure of ["network", "http", "malformed", "wrong_id"]) {
     assert.equal(ctx.events[0].submission_outcome, "accepted");
     assert.equal(ctx.events[0].confirmation_status, "unavailable");
     assert.equal(calls.filter(c => c.method === "POST").length, 1);
-    assert.ok(calls.every(c => c.redirect === "error"));
+    assert.ok(calls.every(c => c.redirect === "manual"));
   });
 }
 

@@ -529,7 +529,9 @@ export async function tradierRequest(
   const requestInit = {
     method: request.method || "GET",
     headers,
-    redirect: "error",
+    // Use manual mode for compatibility with the deployed edge runtime.
+    // Never follow a broker redirect or forward credentials to its destination.
+    redirect: "manual",
   };
 
   if (request.form) {
@@ -545,6 +547,9 @@ export async function tradierRequest(
   }
 
   const response = await fetch(url.toString(), requestInit);
+  if (response.status >= 300 && response.status < 400) {
+    throw new Error("Tradier returned an unexpected redirect. Broker requests are blocked.");
+  }
   const text = await response.text();
 
   let data = null;
