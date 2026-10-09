@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { catalogRows, filterRows, metricValue, TOPICS } from '../../web/atmosphere/data.js';
+test('catalog hard cap and malformed entries', () => { const rows = Object.fromEntries(Array.from({ length: 100 }, (_, i) => [`table_${i}`, i])); const result = catalogRows({ rows }, 'tables'); assert.equal(result.rows.length, 32); assert.equal(result.truncated, true); assert.deepEqual(catalogRows({ rows: [] }, 'tables').rows, []); });
+test('view projection allows only bounded names, keys and valid hashes', () => { const result = catalogRows({ consumer_bundle: { views: { example: { rows: 4, primary_key: ['date', 'symbol'], sha256: 'a'.repeat(64), secret: 'not projected' } } } }, 'views'); assert.deepEqual(result.rows[0], { name: 'example', rows: 4, primaryKey: 'date, symbol', hash: 'a'.repeat(64) }); });
+test('catalog search and row sort do not infer filters', () => { const rows = [{ name: 'quotes', rows: 8 }, { name: 'QUOTED', rows: 10 }, { name: 'trades', rows: 99 }]; assert.deepEqual(filterRows(rows, 'quote', 'rows').map(r => r.rows), [10, 8]); });
+test('quality fractions format as percentages, null stays absent', () => { assert.equal(metricValue('worst_integrity_anomaly_rate', 0.0004679457182966776), '0.0468%'); assert.equal(metricValue('min_feature_coverage_rate', 1), '100%'); assert.equal(metricValue('min_feature_coverage_rate', null), 'Not reported'); });
+test('topics expose only coverage and quality, not performance claims', () => { assert.equal(Object.keys(TOPICS).length, 10); for (const [, , keys] of Object.values(TOPICS)) assert.ok(keys.every(key => !key.includes('return_difference') && !key.includes('win_rate'))); });
+
+test('spread ratios may exceed 100 percent while coverage rates cannot', () => { assert.equal(metricValue('avg_entry_spread_pct', 1.2), '120%'); assert.equal(metricValue('avg_entry_spread_pct', 1.5), '150%'); assert.equal(metricValue('avg_entry_spread_pct', Number.MAX_VALUE), 'Not reported'); assert.equal(metricValue('min_feature_coverage_rate', 1.2), 'Not reported'); });

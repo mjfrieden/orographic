@@ -270,16 +270,46 @@ function normalizeProfile(payload, accountId) {
   };
 }
 
-function normalizeBalances(payload) {
+function balanceNumber(value) {
+  if (typeof value !== "number" && typeof value !== "string") return null;
+  if (typeof value === "string" && !value.trim()) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function normalizeBalances(payload) {
   const balances = payload?.balances || {};
+  const accountType = String(balances.account_type || "").trim().toLowerCase();
+  // Tradier's balance guide nests type-specific amounts under balances.
+  // Its API reference also illustrates sibling objects; accept either shape.
+  const typed = balances[accountType] ?? payload?.[accountType];
+  const cashAvailable = accountType === "cash"
+    ? balanceNumber(typed?.cash_available)
+    : null;
+  const hasTypedOptions = Object.prototype.hasOwnProperty.call(typed || {}, "option_buying_power");
+  const hasTypedStocks = Object.prototype.hasOwnProperty.call(typed || {}, "stock_buying_power");
+  const options = accountType === "cash" ? null : balanceNumber(
+    hasTypedOptions ? typed.option_buying_power : balances.option_buying_power,
+  );
+  const stocks = accountType === "cash" ? null : balanceNumber(
+    hasTypedStocks ? typed.stock_buying_power : balances.stock_buying_power,
+  );
+  const buyingPower = accountType === "cash" ? cashAvailable : options;
   return {
-    account_type: String(balances.account_type || ""),
-    total_equity: asNumber(balances.total_equity, null),
-    total_cash: asNumber(balances.total_cash, null),
-    option_buying_power: asNumber(balances.option_buying_power, null),
-    stock_buying_power: asNumber(balances.stock_buying_power, null),
-    open_pl: asNumber(balances.open_pl, null),
-    close_pl: asNumber(balances.close_pl, null),
+    account_type: accountType,
+    total_equity: balanceNumber(balances.total_equity),
+    total_cash: balanceNumber(balances.total_cash),
+    option_buying_power: options,
+    stock_buying_power: stocks,
+    cash_available: cashAvailable,
+    buying_power: buyingPower,
+    buying_power_label: accountType === "cash" ? "Cash Available" : "Options Buying Power",
+    buying_power_source: buyingPower === null ? null : accountType === "cash"
+      ? "cash.cash_available"
+      : hasTypedOptions
+        ? `${accountType}.option_buying_power` : "option_buying_power",
+    open_pl: balanceNumber(balances.open_pl),
+    close_pl: balanceNumber(balances.close_pl),
   };
 }
 

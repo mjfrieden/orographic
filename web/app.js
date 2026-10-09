@@ -213,34 +213,26 @@ function governanceMetricValue(metric) {
   return String(value);
 }
 
+function syncEvidenceWorkbench(extra = {}) {
+  // Optional, read-only presentation must never interfere with the trading UI.
+  try {
+    globalThis.OrographicEvidence?.update({
+      snapshot: SNAPSHOT,
+      governance: WORKBENCH_STATE.governance,
+      ledger: PROSPECTIVE_LEDGER,
+      broker: BROKER_STATE,
+      session: SESSION,
+      boardState: BOARD_STATE,
+      prospectiveState: PROSPECTIVE_STATE,
+      ...extra,
+    });
+  } catch (error) {
+    console.warn("Evidence presentation unavailable", error);
+  }
+}
+
 function renderModelGovernance() {
-  const governance = WORKBENCH_STATE.governance || {};
-  const capture = governance.data_capture || {};
-  const authority = governance.live_authority || {};
-
-  const captureTone = evidenceStatus(capture.status || "hold");
-  const captureCard = document.getElementById("governance-capture-card");
-  if (captureCard) captureCard.className = `governance-overview-card is-${captureTone}`;
-  setText("governance-capture-status", captureTone === "pass" ? "Healthy" : captureTone === "fail" ? "Action needed" : "Awaiting capture");
-  setText("governance-capture-note", capture.headline || "Trajectory health has not been published yet.");
-
-  const modelCard = document.getElementById("governance-model-card");
-  if (modelCard) modelCard.className = "governance-overview-card is-pass";
-  setText("governance-model-status", "Production v2");
-  setText("governance-model-note", "One volatility/contract rank with binding execution and after-cost controls.");
-
-  const authorityCard = document.getElementById("governance-authority-card");
-  if (authorityCard) authorityCard.className = "governance-overview-card is-pass";
-  setText("governance-authority-status", "Protected");
-  setText("governance-authority-note", "Only Council's production board can influence Tradier execution.");
-
-  const weekly = governance.weekly_alpha || {};
-  const weeklyTone = evidenceStatus(weekly.status || "hold");
-  const weeklyCard = document.getElementById("governance-weekly-card");
-  if (weeklyCard) weeklyCard.className = `governance-overview-card is-${weeklyTone}`;
-  setText("governance-weekly-status", weekly.title || "Awaiting comparison");
-  setText("governance-weekly-note", weekly.headline || "Weekly alpha versus Cirrus has not been published yet.");
-  setText("governance-generated", governance.generated_at_utc ? `Updated ${formatTs(governance.generated_at_utc)}` : "Governance artifact unavailable");
+  syncEvidenceWorkbench();
 }
 
 function workbenchMetricRow(label, active, shadow, difference, check) {
@@ -510,6 +502,7 @@ function bindLogout() {
   btn.addEventListener("click", async () => {
     btn.disabled = true;
     btn.textContent = "Signing out…";
+    globalThis.OrographicEvidence?.clearSensitiveData();
     try {
       await fetch("/api/logout", {
         method: "POST",
@@ -740,6 +733,7 @@ async function loadAccount() {
     ...BROKER_STATE,
     loading: true,
   };
+  renderRibbon();
   renderPositionsMeta();
   try {
     const r = await fetch("/api/tradier/account", { cache: "no-store" });
@@ -755,6 +749,7 @@ async function loadAccount() {
       BROKER_STATE = {
         ...BROKER_STATE,
         configured: data.broker.configured,
+        accountId: data.account?.id || data.broker.profile?.account?.account_number || null,
         mode: data.broker.mode || data.broker.environment || "offline",
         liveTradingEnabled: data.broker.liveTradingEnabled,
         balances: data.balances || data.broker.balances || null,
@@ -795,11 +790,28 @@ async function loadAccount() {
 }
 
 function renderRibbon() {
-  const bal = BROKER_STATE.balances || {};
+  if (typeof syncEvidenceWorkbench === "function") syncEvidenceWorkbench();
+  const bal = BROKER_STATE.lastError ? {} : BROKER_STATE.balances || {};
   setText("ribbon-equity", money(bal.total_equity));
-  setText("ribbon-obp", money(bal.option_buying_power));
+  setText("ribbon-obp-label", bal.buying_power_label || "Options Buying Power");
+  const buyingPower = bal.buying_power ?? bal.option_buying_power;
+  const buyingPowerEl = document.getElementById("ribbon-obp");
+  if (buyingPowerEl) {
+    const formatted = money(buyingPower);
+    buyingPowerEl.textContent = formatted === "--"
+      ? BROKER_STATE.loading ? "Loading…" : "Unavailable"
+      : formatted;
+    buyingPowerEl.title = BROKER_STATE.lastError
+      ? "Account refresh failed. Refresh Tradier to see current balances."
+      : BROKER_STATE.loading
+        ? "Refreshing Tradier. Any displayed amount is from the previous account sync."
+        : formatted === "--"
+          ? "Tradier did not provide this balance. No amount has been estimated."
+          : `Tradier · ${bal.buying_power_source || "option_buying_power"}`;
+  }
   setText("ribbon-cash", money(bal.total_cash));
-  const pl = bal.close_pl ?? bal.open_pl ?? null;
+  // Closed positions in the current broker session, never open-position P&L.
+  const pl = BROKER_STATE.loading ? null : bal.close_pl ?? null;
   const plEl = document.getElementById("ribbon-pl");
   if (plEl) {
     plEl.textContent = pl !== null ? signed(pl) : "--";
@@ -1297,6 +1309,7 @@ function updateCockpitSignalState(payload) {
 }
 
 function renderCockpitSignal(payload) {
+  syncEvidenceWorkbench();
   const root = document.getElementById("cockpit-signal");
   if (!root) return;
   const state = cockpitSignalState(payload);
@@ -1729,6 +1742,7 @@ async function loadProspectiveLedger() {
 }
 
 function renderOptionalHistory(ledger = null, includeScoreboard = false) {
+  syncEvidenceWorkbench();
   try {
     if (includeScoreboard) renderProspectiveScoreboard(ledger);
     renderProspectiveMeta();
@@ -4119,6 +4133,7 @@ function renderPerformanceExplanation(bt) {
 }
 
 function renderBacktest(bt) {
+  syncEvidenceWorkbench({ backtest: bt });
   if (!bt) {
     renderPerformanceExplanation(null);
     renderRecentForwardPerformance(PROSPECTIVE_LEDGER);
@@ -4423,9 +4438,7 @@ async function main() {
     updateCockpitSignalState(SNAPSHOT);
   }, 60000);
 
-  // Load scientific evidence independently from Tradier and the live board.
-  // Missing evidence fails closed in the workbench without blocking broker access.
-  loadResearchWorkbench().catch(() => {});
+  // Optional model/research artifacts load on demand from Atmosphere.
 
   // Load account (non-blocking so board renders even if Tradier is offline)
   loadAccount().catch(() => {});
@@ -4440,10 +4453,6 @@ async function main() {
     }
   }
 
-  // Load backtest results (non-blocking — shows placeholder if not yet generated)
-  loadBacktest()
-    .then((bt) => renderBacktest(bt))
-    .catch(() => {});
 }
 
 main();
