@@ -142,3 +142,19 @@ test("a late response cannot overwrite a newer order ticket", async () => {
   assert.equal(ui.pending().price, "2.00");
   assert.equal(ui.element("modal-execute-btn").disabled, false);
 });
+
+
+test('invalid close quantities never open an executable ticket or fetch a preview', async () => {
+  let calls=0;
+  const ui=harness(async()=>{calls++; throw new Error('Unexpected fetch');});
+  for(const quantity of [-1,0,1.5,'1x','0x2','0b10','2e1','1.0000000000000001','',null,true,[],undefined]) {
+    await ui.handleClosePosition(envelope.option_symbol,quantity);
+    assert.equal(ui.element('modal-title').textContent,'Close Unavailable');
+    assert.equal(ui.element('modal-execute-btn').disabled,true);
+  }
+  assert.equal(calls,0);
+});
+
+test('book close button is restricted to positive whole long option positions',()=>{
+  assert.match(source,/const actionCell = isOpt && isPositiveCloseQuantity\(pos.quantity\)/);
+});
