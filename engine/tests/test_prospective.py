@@ -9,6 +9,7 @@ from unittest import mock
 
 from engine.orographic.prospective import (
     _mark_payload,
+    _capture_window_state,
     _outcome_summary,
     backfill_executable_labels_from_fixed_marks,
     due_fixed_exit_windows,
@@ -548,3 +549,30 @@ class ProspectiveLedgerTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OffSessionCaptureTests(unittest.TestCase):
+    def test_after_close_target_is_unavailable_without_fabricated_label(self):
+        ledger = {"entries": [{"run_generated_at_utc": "2026-10-07T20:30:44+00:00",
+            "picks": [{"contract_symbol": "AAA261009C00100000", "outcomes": {
+                "quote_verification": {"capture_policy_version": 2},
+                "fixed_exit_marks": {},
+            }}]}]}
+        updated, stats = mark_prospective_ledger(
+            ledger, {}, now_utc=datetime(2026, 10, 8, 13, 32, tzinfo=timezone.utc))
+        outcomes = updated["entries"][0]["picks"][0]["outcomes"]
+        self.assertEqual(outcomes["capture_attempts"]["one_hour"]["status"], "unavailable_market_closed")
+        self.assertEqual(stats["capture_windows_off_session"], 1)
+        self.assertEqual(stats["capture_windows_newly_missed"], 0)
+        self.assertFalse(outcomes["fixed_exit_marks"].get("one_hour"))
+        self.assertFalse(outcomes["executable_labels"].get("one_hour"))
+
+    def test_in_session_miss_still_counts(self):
+        target = datetime(2026, 10, 7, 18, 30, tzinfo=timezone.utc)
+        now = datetime(2026, 10, 7, 19, 0, tzinfo=timezone.utc)
+        self.assertEqual(_capture_window_state(now, target, "one_hour")[0], "missed_live_window")
+
+    def test_close_target_remains_capturable(self):
+        target = datetime(2026, 10, 7, 20, 0, tzinfo=timezone.utc)
+        now = datetime(2026, 10, 7, 20, 10, tzinfo=timezone.utc)
+        self.assertEqual(_capture_window_state(now, target, "end_of_day")[0], "capture_allowed")

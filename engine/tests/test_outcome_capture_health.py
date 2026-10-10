@@ -10,7 +10,7 @@ from scripts.build_outcome_capture_health import build_outcome_capture_health
 
 
 class OutcomeCaptureHealthTests(unittest.TestCase):
-    def test_flags_late_scheduler_delivery(self) -> None:
+    def test_late_scheduler_delivery_warns_without_paging(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
             prospective = self._ledger(root, "prospective.json", {})
@@ -31,6 +31,32 @@ class OutcomeCaptureHealthTests(unittest.TestCase):
         failed = {row["name"] for row in report["failed_checks"]}
         self.assertIn("scheduler_delivery_fresh", failed)
         self.assertEqual(report["scheduler"]["delivery_delay_seconds"], 660.0)
+        self.assertEqual(report["status"], "degraded")
+        self.assertFalse(report["alert_required"])
+        self.assertEqual(report["alert_checks"], [])
+
+    def test_late_delivery_with_capture_failure_still_pages(self) -> None:
+        for stats, step_status, expected in (
+            ({"capture_windows_newly_missed": 1}, "success", "fixed_window_capture_health"),
+            ({"trajectory_active_picks": 10, "trajectory_marks_written": 0,
+              "trajectory_quotes_missing": 10}, "success", "trajectory_capture_health"),
+            ({}, "failure", "capture_steps_completed"),
+        ):
+            with self.subTest(expected=expected), tempfile.TemporaryDirectory() as tmpdir:
+                prospective = self._ledger(Path(tmpdir), "prospective.json", stats)
+                report = build_outcome_capture_health(
+                    prospective_ledger=prospective,
+                    token_configured=True,
+                    prospective_step_status=step_status,
+                    evidence_step_status="success",
+                    scheduled_at_utc="2026-10-05T20:30:50Z",
+                    workflow_started_at_utc="2026-10-05T20:43:43Z",
+                    scheduler="cloudflare_cron",
+                )
+            self.assertEqual(report["status"], "failed")
+            self.assertTrue(report["alert_required"])
+            self.assertIn("scheduler_delivery_fresh", {c["name"] for c in report["failed_checks"]})
+            self.assertEqual({c["name"] for c in report["alert_checks"]}, {expected})
 
     def test_scheduler_delivery_uses_workflow_start_not_health_build_time(self) -> None:
         with tempfile.TemporaryDirectory() as tmpdir:

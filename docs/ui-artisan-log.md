@@ -2,11 +2,26 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
-## Cycle 95 — 2026-10-06 — Book unknown vs empty (NN/g H1)
+## Cycle 97 — 2026-10-10 — Book unknown vs empty (NN/g H1)
 
 - When Tradier account refresh fails, the party roster, quest log, and ledgers no longer say the book is clear. They say positions or orders could not be loaded and to try Refresh Tradier. Tab counts show — instead of 0. A true empty book after a successful sync still says the book is clear. `#positions-sync-status`, `#book-positions-count`, `#book-orders-count`, and the `sync-line positions-sync-status` class contract stay.
 
 Left alone: Scout/Forge/Council, Tradier payloads, auth, required DOM ids, login, dungeon.
+
+## Cycle 96 — 2026-10-08 — Master Harbor history recovery (NN/g H9)
+
+- Position history, order ledger, and shared-mart audit failures no longer stop at “History store is unreachable in this preview.” They name that the store could not be loaded in this session and to refresh or open the hosted admin after sign-in. Mart misses point at the next research sync. `#admin-overview-grid`, `#admin-history-tbody`, `#admin-order-ledger-tbody`, `#admin-mart-status`, and `/api/admin/` paths stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, dungeon, cockpit (PR #63 still open).
+
+## Cycle 95 — 2026-10-09 — Daily decision visibility and recent recommendations (NN/g H1/H9)
+
+- Candidate patch: the primary signal card now distinguishes loading, failed, unavailable, current hold, stale/unknown freshness, and ready-to-preview states. The broker's existing freshness configuration informs display warnings; preview and confirmation remain authoritative.
+- The same daily view exposes an initially collapsed recent-production-recommendation disclosure. Date/symbol/status filters and quote-proxy details use only already-loaded production rows. Counts explicitly describe the bounded export, not the full ledger, fills, or account performance.
+- Existing brand/layout and protected DOM contracts remain. Phone controls have at least 44px targets, narrow layouts stack, and keyboard candidate navigation stays within candidate controls. Dynamic order controls bind once.
+- Local JavaScript checks: 175 passed. Browser verification of the authenticated desktop/phone view is still pending; see `docs/daily-view-qa-2026-10-09.md`. This entry does not claim the patch is deployed.
+
+Left alone: Scout/Forge/Council, sizing, backend eligibility, Tradier payloads and confirmations, auth, model governance, workflows, paid services, login, and Backtest Lab.
 
 ## Cycle 94 — 2026-10-04 — Sealed writ order-ticket recovery (NN/g H9)
 

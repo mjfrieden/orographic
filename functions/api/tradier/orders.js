@@ -1,3 +1,4 @@
+import { validateClosePosition, isPositiveContractQuantity } from "../../_lib/close_position.js";
 import {
   buildOrderProvenanceEvent,
   safeRecordOrderProvenance,
@@ -152,11 +153,16 @@ export async function onRequestPost(context) {
     body?.exit_policy_action || "",
   ).trim();
 
+  if (typeof isPreview !== "boolean") {
+    return jsonResponse({ ok: false, error: "preview must be true or false." }, 400);
+  }
   if (!optionSymbol) {
     return jsonResponse({ ok: false, error: "option_symbol is required." }, 400);
   }
-  if (!price || Number(price) <= 0) {
-    return jsonResponse({ ok: false, error: "A positive limit price is required." }, 400);
+  const numericPrice = Number(price);
+  if (!["number", "string"].includes(typeof price) || !Number.isFinite(numericPrice) || numericPrice <= 0 ||
+      Math.abs(numericPrice * 100 - Math.round(numericPrice * 100)) > 1e-8) {
+    return jsonResponse({ ok: false, error: "A positive limit price in whole cents is required." }, 400);
   }
   if (side !== "buy_to_open" && side !== "sell_to_close") {
     return jsonResponse({ ok: false, error: "Only buy_to_open and sell_to_close are supported." }, 400);
@@ -164,13 +170,20 @@ export async function onRequestPost(context) {
   if (orderType !== "limit") {
     return jsonResponse({ ok: false, error: "Only limit orders are supported." }, 400);
   }
+  if (duration !== "day" && duration !== "gtc") {
+    return jsonResponse({ ok: false, error: "Only day and gtc durations are supported." }, 400);
+  }
+
+  if (side === "sell_to_close" && !isPositiveContractQuantity(body?.quantity)) {
+    return jsonResponse({ ok: false, error: "Closing quantity must be a positive whole number of contracts." }, 400);
+  }
 
   const config = getTradierSettings(context.env);
   if (!config.configured) {
     return jsonResponse(
       {
         ok: false,
-        error: "Tradier is not configured. Set TRADIER_ACCESS_TOKEN and TRADIER_ACCOUNT_ID.",
+        error: config.configurationError || "Tradier is not configured. Set TRADIER_ACCESS_TOKEN and TRADIER_ACCOUNT_ID.",
         broker: { configured: false },
       },
       503,
@@ -235,6 +248,27 @@ export async function onRequestPost(context) {
     );
   }
 
+  async function blockInvalidQuote(error) {
+    const message = String(error.message || error);
+    const provenance = await recordBlockedAttempt({
+      context, eventType: "blocked_quote", config, session, snapshot, snapshotInfo,
+      lane, candidate, optionSymbol, underlyingSymbol, side, quantity, orderType,
+      duration, price, requestedExitPolicyAction, blockReason: "invalid_current_quote",
+      httpStatus: 409, error: message,
+    });
+    return jsonResponse({ ok: false, error: message, eligibility, submission, provenance }, 409);
+  }
+
+  async function blockInvalidClose(envelope) {
+    if (side !== "sell_to_close") return null;
+    try {
+      await validateClosePosition(context.env, envelope.option_symbol, quantity);
+      return null;
+    } catch (error) {
+      return jsonResponse({ ok: false, outcome: "not_sent", error: String(error.message || error) }, 409);
+    }
+  }
+
   // ----- PREVIEW path (any authenticated user) -----
   if (isPreview) {
     const previewValidation = validateSubmission({
@@ -282,13 +316,15 @@ export async function onRequestPost(context) {
     }
     const quoteCapturedAtUtc = liveQuote ? new Date().toISOString() : null;
 
-    const envelope = buildOrderEnvelope(
-      candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
-      quantity,
-      config,
-      liveQuote,
-      side
-    );
+    let envelope;
+    try {
+      envelope = buildOrderEnvelope(
+        candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
+        quantity, config, liveQuote, side, { duration },
+      );
+    } catch (error) {
+      return blockInvalidQuote(error);
+    }
     const riskBudget = validateEntryRiskBudget({ config, envelope, side });
     if (!riskBudget.ok) {
       const provenance = await recordBlockedAttempt({
@@ -317,6 +353,9 @@ export async function onRequestPost(context) {
         riskBudget.status,
       );
     }
+
+    const closeBlock = await blockInvalidClose(envelope);
+    if (closeBlock) return closeBlock;
 
     const brokerRequestedAtUtc = new Date().toISOString();
     try {
@@ -488,7 +527,7 @@ export async function onRequestPost(context) {
     );
   }
 
-  // Fetch live quote for order pricing
+  // Revalidate the quote, but never replace the limit the user reviewed.
   let liveQuote = null;
   try {
     const quoteResult = await fetchOptionQuote(config, optionSymbol);
@@ -498,13 +537,15 @@ export async function onRequestPost(context) {
   }
   const quoteCapturedAtUtc = liveQuote ? new Date().toISOString() : null;
 
-  const envelope = buildOrderEnvelope(
-    candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
-    quantity,
-    config,
-    liveQuote,
-    side
-  );
+  let envelope;
+  try {
+    envelope = buildOrderEnvelope(
+      candidate || { symbol: underlyingSymbol, contract_symbol: optionSymbol },
+      quantity, config, liveQuote, side, { reviewedPrice: price, duration },
+    );
+  } catch (error) {
+    return blockInvalidQuote(error);
+  }
   const riskBudget = validateEntryRiskBudget({ config, envelope, side });
   if (!riskBudget.ok) {
     const provenance = await recordBlockedAttempt({
@@ -533,6 +574,9 @@ export async function onRequestPost(context) {
       riskBudget.status,
     );
   }
+
+  const closeBlock = await blockInvalidClose(envelope);
+  if (closeBlock) return closeBlock;
 
   const brokerRequestedAtUtc = new Date().toISOString();
   try {
@@ -564,6 +608,9 @@ export async function onRequestPost(context) {
       preview: false,
       order: result.order,
       confirmation: result.confirmation,
+      outcome: result.outcome,
+      confirmation_status: result.confirmationStatus,
+      warning: result.warning,
       envelope,
       eligibility,
       submission,
@@ -594,7 +641,7 @@ export async function onRequestPost(context) {
       }),
     );
     return jsonResponse(
-      { ok: false, error: String(error.message || error), eligibility, provenance },
+      { ok: false, outcome: "unknown", error: String(error.message || error), eligibility, provenance },
       502,
     );
   }

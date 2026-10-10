@@ -157,21 +157,20 @@ test("Signal & Book preserves readable synchronization spacing", async () => {
   assert.match(styles, /@media \(max-width:\s*720px\)[\s\S]*\.positions-toolbar\s*\{[^}]*flex-direction:\s*column;/s);
 });
 
-test("Research drawer exposes the single production model without experiment lanes", async () => {
+test("Evidence workbench exposes a read-only model without experiment lanes", async () => {
   const html = await readFile(indexPath, "utf8");
   const source = await readFile(appPath, "utf8");
 
   for (const contract of [
-    "governance-capture-status",
-    "governance-model-status",
-    "governance-authority-status",
+    "evidence-workbench",
+    "ew-panel-performance",
   ]) {
     assert.ok(html.includes(contract), `missing model-governance UI contract: ${contract}`);
   }
   for (const behavior of [
     "MODEL_GOVERNANCE_SOURCE",
     "renderModelGovernance",
-    "Production v2",
+    "syncEvidenceWorkbench",
     "Production Board",
   ]) {
     assert.ok(source.includes(behavior), `missing model-governance behavior: ${behavior}`);
@@ -194,9 +193,10 @@ test("Sealed writ order failures name the problem and the next step", async () =
     "preview failure must name the next step",
   );
   assert.ok(
-    source.includes("The order was not sent. Try Execute again, or Cancel."),
-    "execute failure must name the next step",
+    source.includes("Check Orders in Tradier before placing another order. Do not resubmit this ticket."),
+    "an uncertain submission must require broker reconciliation instead of inviting a retry",
   );
+  assert.ok(!source.includes("The order was not sent. Try Execute again, or Cancel."));
 });
 
 test("Book empty copy does not claim a clear roster when Tradier failed", async () => {

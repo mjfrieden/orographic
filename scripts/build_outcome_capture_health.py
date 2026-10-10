@@ -79,6 +79,7 @@ def build_outcome_capture_health(
             "quotes_stale": _int(last.get("trajectory_quotes_stale")),
             "fixed_windows_valid": _int(last.get("capture_windows_valid")),
             "fixed_windows_newly_missed": _int(last.get("capture_windows_newly_missed")),
+            "fixed_windows_off_session": _int(last.get("capture_windows_off_session")),
             "trajectory_scored_picks": _int(outcome.get("trajectory_scored_picks")),
             "trajectory_marks": _int(outcome.get("trajectory_marks")),
         })
@@ -138,12 +139,18 @@ def build_outcome_capture_health(
     # A single illiquid contract can legitimately retain an old broker quote
     # while the rest of the capture lane remains healthy. Keep that condition
     # visible as degraded health, but page only when trajectory coverage is at
-    # or below the service threshold. All other failed checks remain actionable.
+    # or below the service threshold. Scheduler delay includes time waiting
+    # for the shared scan/capture writer lock. Keep it visible as degraded
+    # health; missed windows and capture failures independently remain paging
+    # conditions, so a successful queued capture does not emit a run failure.
     alert_checks = [
         row
         for row in failed
-        if row["name"] != "trajectory_capture_health"
-        or trajectory_capture_ratio <= min_trajectory_capture_ratio
+        if row["name"] != "scheduler_delivery_fresh"
+        and (
+            row["name"] != "trajectory_capture_health"
+            or trajectory_capture_ratio <= min_trajectory_capture_ratio
+        )
     ]
     generated = now.isoformat().replace("+00:00", "Z")
     return {
@@ -170,6 +177,7 @@ def build_outcome_capture_health(
             "trajectory_capture_ratio_last_run": round(trajectory_capture_ratio, 4),
             "trajectory_minimum_alert_ratio": min_trajectory_capture_ratio,
             "fixed_capture_windows_missed_last_run": missed,
+            "fixed_capture_windows_off_session": sum(row["fixed_windows_off_session"] for row in ledgers),
             "trajectory_scored_picks": trajectory_contracts,
             "trajectory_marks": trajectory_marks,
         },

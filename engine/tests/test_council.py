@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import numpy as np
 import unittest
 from unittest import mock
 
@@ -49,6 +50,60 @@ def _candidate(symbol: str, option_type: str, score: float, **overrides: float |
 
 
 class CouncilTests(unittest.TestCase):
+    def test_live_board_label_and_singleton_note_are_truthful(self) -> None:
+        for side in ("call", "put"):
+            with self.subTest(side=side):
+                result = select_board(
+                    [_candidate("AAPL", side, 0.9)],
+                    MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                    fetch_live_corr=False,
+                )
+                audit = result.summary["abstain_audit"]
+                self.assertFalse(result.abstain)
+                self.assertEqual(audit["primary_reason"], "live_board_available")
+                self.assertEqual(audit["primary_reason_label"], "Live board available after applying the live-board filters.")
+                self.assertEqual(audit["side_balance_demotions"], 0)
+                self.assertFalse(any("Side-balance guard demoted" in note for note in result.summary["notes"]))
+                self.assertEqual([row.symbol for row in result.live_board], ["AAPL"])
+                self.assertEqual(result.shadow_board, [])
+
+    def test_side_balance_note_requires_actual_demotion(self) -> None:
+        for sides, expected_demotions in (
+            (["call", "call"], 0),
+            (["call", "put"], 0),
+            (["call", "call", "call", "put"], 1),
+        ):
+            with self.subTest(sides=sides):
+                candidates = [
+                    _candidate(symbol, side, 0.95 - index * 0.01)
+                    for index, (symbol, side) in enumerate(zip(["AAPL", "MSFT", "XOM", "NVDA"], sides))
+                ]
+                count = len(candidates)
+                with mock.patch("engine.orographic.council._markowitz_weights", return_value=(np.arange(count), np.ones(count) / count)), mock.patch("engine.orographic.market_data.fetch_risk_free_rate", return_value=0.04):
+                    result = select_board(
+                        candidates,
+                        MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"),
+                        live_size=count,
+                        corr_matrix=np.eye(count),
+                        fetch_live_corr=False,
+                    )
+                self.assertEqual(result.summary["abstain_audit"]["side_balance_demotions"], expected_demotions)
+                demotion_notes = [note for note in result.summary["notes"] if "Side-balance guard demoted" in note]
+                self.assertEqual(len(demotion_notes), int(expected_demotions > 0))
+                self.assertEqual(len(result.live_board), count - expected_demotions)
+                self.assertEqual(len(result.shadow_board), expected_demotions)
+
+    def test_abstention_labels_remain_specific(self) -> None:
+        for candidates, reason, label in (
+            ([], "no_forge_candidates", "No Forge candidates reached Council."),
+            ([_candidate("AAPL", "call", 0.4)], "below_live_score", "All candidates fell below the live-score gate."),
+        ):
+            with self.subTest(reason=reason):
+                result = select_board(candidates, MarketRegime(mode="neutral", bias=0.0, source_symbol="SPY"), fetch_live_corr=False)
+                self.assertTrue(result.abstain)
+                self.assertEqual(result.summary["abstain_audit"]["primary_reason"], reason)
+                self.assertEqual(result.summary["abstain_audit"]["primary_reason_label"], label)
+
     def test_council_can_abstain(self) -> None:
         result = select_board(
             [_candidate("AAPL", "call", 0.4)],

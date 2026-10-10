@@ -13,7 +13,8 @@
     <link rel="stylesheet" href="/styles.css?v=20260904h" />
     <link rel="stylesheet" href="/harbor-scene.css?v=20260904c" />
     <link rel="stylesheet" href="/sigils.css?v=20260904a" />
-    <link rel="stylesheet" href="/cockpit.css?v=20261006a" />
+    <link rel="stylesheet" href="/cockpit.css?v=20261010a" />
+    <link rel="stylesheet" href="/evidence-workbench.css?v=20261009b" />
   </head>
   <body class="cockpit-page">
     <a class="skip-link" href="#signal">Skip to Signal &amp; Book</a>
@@ -34,7 +35,7 @@
         </div>
         <div class="top-stat">
           <span class="plate-filigree" aria-hidden="true"></span>
-          <span>Buying Power</span>
+          <span id="ribbon-obp-label">Options Buying Power</span>
           <strong id="ribbon-obp">--</strong>
         </div>
         <div class="top-stat">
@@ -50,8 +51,8 @@
       </div>
 
       <div class="top-actions">
-        <a class="quiet-button lab-link" href="/backtest/" aria-label="Backtest Lab">
-          <span class="sigil sigil-flask" aria-hidden="true"></span><span class="action-copy">Backtest Lab</span>
+        <a class="quiet-button lab-link" href="/atmosphere/" aria-label="Atmosphere shared-data explorer">
+          <span class="sigil sigil-flask" aria-hidden="true"></span><span class="action-copy">Atmosphere</span>
         </a>
         <span class="guarded-live" title="Preview first. Orders are not sent until you confirm." aria-label="Live trading is preview then confirm"><span class="sigil sigil-shield" aria-hidden="true"></span><span class="action-copy">Live · guarded</span></span>
         <button id="logout-btn" class="quiet-button" type="button">Log out</button>
@@ -73,12 +74,12 @@
             <p id="board-sync-status" class="sync-line" aria-live="polite">Loading latest decision…</p>
           </div>
 
-          <div id="cockpit-signal" class="cockpit-signal" aria-live="polite">
-            <div class="signal-loading">Evaluating the current board…</div>
+          <div id="cockpit-signal" class="cockpit-signal" aria-live="polite" aria-busy="true">
+            <div class="signal-loading">Loading the latest saved decision…</div>
           </div>
 
           <div id="signal-selector" class="signal-selector" aria-label="Available signal candidates"></div>
-          <div class="signal-pagination" aria-label="Signal position">
+          <div id="signal-pagination" class="signal-pagination" aria-label="Signal position" hidden>
             <button id="signal-prev" class="quiet-button" type="button" disabled>
               <span class="sigil sigil-back" aria-hidden="true"></span>Previous
             </button>
@@ -99,7 +100,7 @@
             </div>
             <div class="book-pnl">
               <span class="plate-filigree" aria-hidden="true"></span>
-              <span>Day P&amp;L</span>
+              <span>Closed P&amp;L · session</span>
               <strong id="ribbon-pl">--</strong>
             </div>
           </div>
@@ -143,91 +144,42 @@
         </article>
       </section>
 
-      <section class="evidence-ribbon talent-tree" id="research" aria-labelledby="evidence-title">
-        <span class="plate-filigree" aria-hidden="true"></span>
-        <div class="evidence-intro">
-          <p class="section-label">Model mix</p>
-          <h2 id="evidence-title">Production v2 is the only live model path</h2>
-          <span>Scout finds direction → Forge ranks contracts → Council approves or holds</span>
-        </div>
-        <div class="evidence-metric talent-node is-learned">
-          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:70%"></span></span>
-          <span>Learned rank</span><strong>70%</strong><small>Volatility + contract features</small>
-        </div>
-        <div class="evidence-metric talent-node is-learned">
-          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:20%"></span></span>
-          <span>Execution quality</span><strong>20%</strong><small>Liquidity, fill, spread</small>
-        </div>
-        <div class="evidence-metric talent-node is-learned">
-          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:10%"></span></span>
-          <span>After-cost utility</span><strong>10%</strong><small>Friction-adjusted</small>
-        </div>
-        <div class="evidence-metric talent-node is-empty">
-          <span class="talent-socket" aria-hidden="true"><span class="talent-fill" style="--rank:0%"></span></span>
-          <span>Experiment lanes</span><strong>0</strong><small>Single production board</small>
-        </div>
-        <button id="research-drawer-toggle" class="text-button" type="button" aria-expanded="false" aria-controls="research-drawer">
-          Open research details<span class="sigil sigil-book" aria-hidden="true"></span>
-        </button>
-      </section>
-
-      <section id="research-drawer" class="research-drawer spellbook" hidden aria-labelledby="research-drawer-title">
-        <header class="drawer-header">
-          <div>
-            <p class="section-label">Research</p>
-            <h2 id="research-drawer-title">Production model and execution evidence</h2>
+      <details id="recommendation-history" class="recommendation-history">
+        <summary><span>Recent recommendations</span><small id="recommendation-count">Loading…</small></summary>
+        <div class="recommendation-history-body">
+          <p>Production recommendations only. These records do not confirm a broker order or fill.</p>
+          <p id="recommendation-sync" class="sync-line" role="status">Loading recent recommendations…</p>
+          <div class="recommendation-filters" aria-label="Filter recent recommendations">
+            <label>Date (Chicago)<select id="recommendation-date"><option value="all">All dates</option></select></label>
+            <label>Symbol<select id="recommendation-symbol"><option value="all">All symbols</option></select></label>
+            <label>Outcome status<select id="recommendation-status">
+              <option value="all">All statuses</option>
+              <option value="pending">Pending marks</option>
+              <option value="partial">Partial marks</option>
+              <option value="complete">Marked</option>
+              <option value="missing">Marks unavailable</option>
+            </select></label>
+            <button id="recommendation-clear" class="quiet-button" type="button">Clear filters</button>
           </div>
-          <button id="research-drawer-close" class="icon-button" type="button" aria-label="Close research details">
-            <span class="sigil sigil-close" aria-hidden="true"></span>
-          </button>
-        </header>
-
-        <div id="research-claims-banner" class="research-claims-banner is-pass">
-          <span class="sigil sigil-check" aria-hidden="true"></span>
-          <div><strong>Single production authority</strong><span id="research-claims-message">Offline evaluation informs replacement releases; it does not create runtime lanes.</span></div>
+          <p id="recommendation-results" role="status"></p>
+          <div class="recommendation-history-grid">
+            <div>
+              <ol id="recommendation-list" class="recommendation-list" aria-label="Recent production recommendations"></ol>
+              <button id="recommendation-more" class="quiet-button" type="button" hidden>Show more</button>
+            </div>
+            <section id="recommendation-detail" class="recommendation-detail" aria-label="Selected recommendation details" aria-live="polite">
+              <p>Select a recommendation to inspect its quote-based marks.</p>
+            </section>
+          </div>
         </div>
+      </details>
 
-        <p class="section-label shrine-seals-kicker">Status</p>
-        <section class="governance-overview" aria-label="Research governance overview">
-          <article id="governance-capture-card" class="governance-overview-card is-hold">
-            <span class="plate-filigree" aria-hidden="true"></span>
-            <span class="sigil sigil-sensors" aria-hidden="true"></span>
-            <div>
-              <small>Path data</small>
-              <strong id="governance-capture-status">Checking</strong>
-              <p id="governance-capture-note">Loading scheduled Tradier trajectory health…</p>
-            </div>
-          </article>
-          <article id="governance-model-card" class="governance-overview-card is-pass">
-            <span class="plate-filigree" aria-hidden="true"></span>
-            <span class="sigil sigil-tree" aria-hidden="true"></span>
-            <div>
-              <small>Production ranker</small>
-              <strong id="governance-model-status">Production v2</strong>
-              <p id="governance-model-note">One volatility/contract rank with binding execution and after-cost controls.</p>
-            </div>
-          </article>
-          <article id="governance-authority-card" class="governance-overview-card is-pass">
-            <span class="plate-filigree" aria-hidden="true"></span>
-            <span class="sigil sigil-lock" aria-hidden="true"></span>
-            <div>
-              <small>Live authority</small>
-              <strong id="governance-authority-status">Protected</strong>
-              <p id="governance-authority-note">Only Council's production board can route Tradier orders.</p>
-            </div>
-          </article>
-          <article id="governance-weekly-card" class="governance-overview-card is-hold">
-            <span class="plate-filigree" aria-hidden="true"></span>
-            <span class="sigil sigil-flask" aria-hidden="true"></span>
-            <div>
-              <small>Week vs Cirrus</small>
-              <strong id="governance-weekly-status">Checking</strong>
-              <p id="governance-weekly-note">Loading weekly alpha versus Cirrus…</p>
-            </div>
-          </article>
-        </section>
-
-        <p id="governance-generated" class="drawer-note">Loading production model status…</p>
+      <section class="evidence-workbench" id="evidence-workbench" data-ew-mode="trading" aria-labelledby="evidence-title">
+        <header class="ew-header">
+          <div><p class="ew-kicker">Account results</p><h2 id="evidence-title">Financial Performance</h2></div>
+          <p>Broker account results first. Quoted recommendation outcomes remain a separate, secondary view.</p>
+        </header>
+        <section id="ew-panel-performance" class="ew-panel" aria-labelledby="evidence-title" tabindex="0"><p>Loading account snapshot…</p></section>
       </section>
 
       <footer class="cockpit-footer" aria-label="Broker realm status">
@@ -268,6 +220,7 @@
       </div>
     </div>
 
-    <script type="module" src="/app.js?v=20261006a"></script>
+    <script type="module" src="/evidence-workbench.js?v=20261009b"></script>
+    <script type="module" src="/app.js?v=20261010a"></script>
   </body>
 </html>

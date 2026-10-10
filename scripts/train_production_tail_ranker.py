@@ -1,4 +1,4 @@
-"""Train the single active Orographic tail-utility production ranker.
+"""Research training for the Orographic tail-utility production ranker.
 
 The model treats option outcomes asymmetrically:
 
@@ -10,6 +10,7 @@ The model treats option outcomes asymmetrically:
 It ranks expected after-friction bucket utility and exposes an explicit
 abstention gate for big-win probability, severe-loss probability, and
 expected utility.  It does not create a shadow or independent runtime lane.
+Outputs default to the research directory; promotion is a separate decision.
 """
 from __future__ import annotations
 
@@ -71,9 +72,9 @@ TAIL_GATE = {
     "maximum_severe_loss_probability": 0.65,
 }
 DEFAULT_DEVELOPMENT = Path("output/option_outcomes_live_recommendations.json")
-DEFAULT_MODEL = Path("engine/orographic/models/production_payoff_ranker.pkl")
-DEFAULT_CARD = Path("engine/orographic/models/production_payoff_ranker_card.json")
-FORWARD_SOURCE_ID = "orographic-live-research-data/output/research_datasets/strict_option_outcomes.json"
+DEFAULT_MODEL = Path("output/research/production_tail_ranker/production_payoff_ranker.pkl")
+DEFAULT_CARD = Path("output/research/production_tail_ranker/production_payoff_ranker_card.json")
+IDENTITY_COLS = ["symbol", "option_type", "strike", "expiry", "entry_date"]
 
 
 def _sha256(path: Path) -> str:
@@ -89,13 +90,139 @@ def _load_rows(path: Path, *, scored_only: bool, deduplicate: bool) -> pd.DataFr
     if payload.get("artifact") != "option_outcome_dataset":
         raise ValueError(f"{path} is not an option_outcome_dataset")
     frame = pd.DataFrame(payload.get("rows") or [])
+    if frame.empty:
+        raise ValueError(f"{path} has no outcome rows")
     if scored_only:
+        if "final_candidate_score" not in frame:
+            raise ValueError(f"{path} is missing final_candidate_score")
         frame = frame[frame["final_candidate_score"].notna()].copy()
+    if frame.empty:
+        raise ValueError(f"{path} has no eligible outcome rows")
     if deduplicate:
+        missing = set(IDENTITY_COLS + ["exit_date"]) - set(frame.columns)
+        if missing:
+            raise ValueError(f"{path} is missing columns: {sorted(missing)}")
         frame = frame.drop_duplicates(
             ["symbol", "option_type", "strike", "expiry", "entry_date", "exit_date"]
         )
     return frame.reset_index(drop=True)
+
+
+def _finite(values: np.ndarray, name: str) -> np.ndarray:
+    values = np.asarray(values, dtype=float)
+    if not np.isfinite(values).all():
+        raise ValueError(f"{name} must contain only finite values")
+    return values
+
+
+def _utc_timestamp(value: Any, name: str) -> pd.Timestamp:
+    try:
+        timestamp = pd.Timestamp(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} must be a timezone-aware timestamp") from exc
+    if pd.isna(timestamp) or timestamp.tzinfo is None:
+        raise ValueError(f"{name} must be a timezone-aware timestamp")
+    return timestamp.tz_convert("UTC")
+
+
+def _validate_frame(frame: pd.DataFrame, name: str, *, forward: bool) -> tuple[np.ndarray, np.ndarray]:
+    """Validate source data before feature fallbacks can hide corrupt values.
+
+    Date-only exits are conservative availability boundaries. When capture or
+    label-availability timestamps exist, use the latest date, never an earlier
+    outcome date, to purge training labels.
+    """
+    required_numeric = [
+        "strike", "entry_spot", "entry_price", "entry_spread_pct",
+        "entry_open_interest", "entry_volume", "hold_period_return_after_friction_pct",
+    ]
+    required = IDENTITY_COLS + ["exit_date", "contract_symbol"] + required_numeric
+    if forward:
+        required += ["run_generated_at_utc", "final_candidate_score", "entry_bid", "entry_ask"]
+        required_numeric += ["final_candidate_score", "entry_bid", "entry_ask"]
+    missing = set(required) - set(frame.columns)
+    if frame.empty or missing:
+        raise ValueError(f"{name} must have outcome rows and required columns; missing {sorted(missing)}")
+    for column in required_numeric:
+        values = pd.to_numeric(frame[column], errors="coerce").to_numpy(dtype=float)
+        _finite(values, f"{name}.{column}")
+    for column in ("symbol", "contract_symbol", "option_type"):
+        if frame[column].isna().any() or frame[column].astype(str).str.strip().eq("").any():
+            raise ValueError(f"{name}.{column} must not be empty")
+    if not frame["option_type"].isin(["call", "put"]).all():
+        raise ValueError(f"{name}.option_type must be call or put")
+    for column in ("strike", "entry_spot", "entry_price"):
+        if (pd.to_numeric(frame[column]) <= 0).any():
+            raise ValueError(f"{name}.{column} must be positive")
+    for column in ("entry_spread_pct", "entry_open_interest", "entry_volume"):
+        if (pd.to_numeric(frame[column]) < 0).any():
+            raise ValueError(f"{name}.{column} must be nonnegative")
+    optional_numeric = [
+        "last_trade_age_seconds", "delta", "implied_volatility", "moneyness", "iv_rank",
+        "realized_vol_20d", "atr_pct_14d", "vrp_gap", "projected_move_pct",
+        "breakeven_move_pct", "extrinsic_ratio", "premium_pct_of_spot",
+        "expected_return_pct", "expected_edge_after_friction_pct", "regime_bias",
+    ]
+    for column in optional_numeric:
+        if column in frame:
+            present = frame[column].dropna()
+            _finite(pd.to_numeric(present, errors="coerce").to_numpy(dtype=float), f"{name}.{column}")
+    try:
+        features = np.array([date.fromisoformat(str(value)) for value in frame["entry_date"]], dtype=object)
+        exits = np.array([date.fromisoformat(str(value)) for value in frame["exit_date"]], dtype=object)
+        expiries = np.array([date.fromisoformat(str(value)) for value in frame["expiry"]], dtype=object)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{name} requires valid ISO entry, exit, and expiry dates") from exc
+    if np.any(exits < features) or np.any(expiries < features):
+        raise ValueError(f"{name} exit and expiry dates must not precede entry dates")
+    availability = exits.copy()
+    for column in ("executable_label_available_at_utc", "label_available_at_utc", "exit_quote_observed_at_utc"):
+        if column not in frame:
+            continue
+        for index, value in enumerate(frame[column]):
+            if pd.isna(value):
+                continue
+            timestamp = _utc_timestamp(value, f"{name}.{column}")
+            if timestamp.date() < exits[index]:
+                raise ValueError(f"{name}.{column} cannot precede the exit date")
+            availability[index] = max(availability[index], timestamp.date())
+    for column in ("run_generated_at_utc", "decision_at_utc"):
+        if column not in frame:
+            continue
+        for index, value in enumerate(frame[column]):
+            if pd.isna(value) and not (forward and column == "run_generated_at_utc"):
+                continue
+            timestamp = _utc_timestamp(value, f"{name}.{column}")
+            if timestamp.date() != features[index]:
+                raise ValueError(f"{name}.{column} must match its entry date")
+    return features, availability
+
+
+def _validate_sources(development: pd.DataFrame, forward: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, dict[str, Any]]:
+    feature_dates, label_dates = _validate_frame(development, "development", forward=False)
+    forward_dates, _ = _validate_frame(forward, "forward", forward=True)
+    identities = []
+    for frame in (development, forward):
+        identity = frame[IDENTITY_COLS].copy()
+        identity["symbol"] = identity["symbol"].astype(str).str.strip().str.upper()
+        identity["strike"] = pd.to_numeric(identity["strike"])
+        identities.append(set(identity.itertuples(index=False, name=None)))
+    if identities[0] & identities[1]:
+        raise ValueError("development and forward outcome identities overlap")
+    # Recommendation IDs add a second check against reused source observations
+    # even when a corrupted copy changes contract/date fields.
+    if "recommendation_id" in development and "recommendation_id" in forward:
+        ids = [set(frame["recommendation_id"].dropna().astype(str).str.strip()) - {""} for frame in (development, forward)]
+        if ids[0] & ids[1]:
+            raise ValueError("development and forward recommendation identities overlap")
+    if max(label_dates) >= min(forward_dates):
+        raise ValueError("all development labels must be available before the forward window")
+    return feature_dates, label_dates, {
+        "outcome_identity_overlap": 0,
+        "development_label_available_end": str(max(label_dates)),
+        "forward_start": str(min(forward_dates)),
+        "label_availability_policy": "latest_exit_or_recorded_availability_date_strictly_before_evaluation_date",
+    }
 
 
 def _feature_matrix(frame: pd.DataFrame) -> np.ndarray:
@@ -114,15 +241,30 @@ def _feature_matrix(frame: pd.DataFrame) -> np.ndarray:
                 as_of=date.fromisoformat(str(trade["entry_date"])),
             )
         )
-    return pd.DataFrame(rows)[FEATURE_COLS].fillna(0.0).to_numpy(dtype=float)
+    return _finite(pd.DataFrame(rows)[FEATURE_COLS].to_numpy(dtype=float), "feature matrix")
 
 
 def _outcome_classes(returns: np.ndarray) -> np.ndarray:
+    returns = _finite(returns, "outcome returns")
     return np.select(
         [returns >= 0.50, returns >= 0.0, returns > -0.50],
         [3, 2, 1],
         default=0,
     ).astype(int)
+
+
+def _bucket_values(returns: np.ndarray) -> np.ndarray:
+    """Estimate clipped payoffs using only the rows supplied for training.
+
+    An absent class receives zero utility and, via probability alignment, zero
+    probability. No missing-class estimate may borrow from validation outcomes.
+    """
+    labels = _outcome_classes(returns)
+    return np.array([
+        float(np.clip(returns[labels == outcome], -1.0, 3.0).mean())
+        if np.any(labels == outcome) else 0.0
+        for outcome in range(4)
+    ], dtype=float)
 
 
 def _model() -> HistGradientBoostingClassifier:
@@ -141,11 +283,48 @@ def _fit(X: np.ndarray, y: np.ndarray) -> HistGradientBoostingClassifier:
 
 
 def _aligned_probabilities(model: HistGradientBoostingClassifier, X: np.ndarray) -> np.ndarray:
-    raw = np.asarray(model.predict_proba(X), dtype=float)
+    raw = _finite(model.predict_proba(X), "model probabilities")
     aligned = np.zeros((len(X), 4), dtype=float)
     for column, outcome_class in enumerate(model.classes_):
         aligned[:, int(outcome_class)] = raw[:, column]
+    if np.any(aligned < 0.0) or np.any(aligned > 1.0) or not np.allclose(aligned.sum(axis=1), 1.0):
+        raise ValueError("model probabilities must be normalized")
     return aligned
+
+
+def _development_predictions(
+    X: np.ndarray, returns: np.ndarray, feature_dates: np.ndarray, label_dates: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, list[dict[str, Any]]]:
+    labels = _outcome_classes(returns)
+    oof = np.full((len(X), 4), np.nan, dtype=float)
+    utilities = np.full(len(X), np.nan, dtype=float)
+    folds: list[dict[str, Any]] = []
+    for fold, (train_index, validation_index) in enumerate(
+        purged_date_splits(feature_dates, label_dates, n_splits=5), start=1,
+    ):
+        validation_start = min(feature_dates[validation_index])
+        if (np.intersect1d(train_index, validation_index).size
+                or max(feature_dates[train_index]) >= validation_start
+                or max(label_dates[train_index]) >= validation_start
+                or np.isfinite(utilities[validation_index]).any()):
+            raise ValueError("invalid chronological or label-availability boundary in development fold")
+        fold_model = _fit(X[train_index], labels[train_index])
+        fold_values = _bucket_values(returns[train_index])
+        oof[validation_index] = _aligned_probabilities(fold_model, X[validation_index])
+        utilities[validation_index] = _finite(oof[validation_index] @ fold_values, "fold utilities")
+        folds.append({
+            "fold": fold,
+            "training_rows": int(len(train_index)),
+            "validation_rows": int(len(validation_index)),
+            "training_label_end": str(max(label_dates[train_index])),
+            "validation_start": str(validation_start),
+            "bucket_values": fold_values.tolist(),
+            "bucket_counts": np.bincount(labels[train_index], minlength=4).tolist(),
+            "tail_gate": dict(TAIL_GATE),
+        })
+    if not folds:
+        raise ValueError("development data has no usable purged chronological folds")
+    return oof, utilities, folds
 
 
 def _liquidity_mask(frame: pd.DataFrame) -> np.ndarray:
@@ -308,49 +487,29 @@ def train(
     card_path: Path,
 ) -> dict[str, Any]:
     development = _load_rows(development_path, scored_only=False, deduplicate=True)
+    forward = _load_rows(forward_path, scored_only=True, deduplicate=False)
+    feature_dates, label_dates, source_checks = _validate_sources(development, forward)
     X = _feature_matrix(development)
+    forward_X = _feature_matrix(forward)
     returns = development["hold_period_return_after_friction_pct"].to_numpy(dtype=float)
     labels = _outcome_classes(returns)
-    bucket_values = np.array(
-        [float(np.mean(np.clip(returns[labels == outcome], -1.0, 3.0))) for outcome in range(4)],
-        dtype=float,
-    )
-
-    feature_dates = np.array([date.fromisoformat(value) for value in development["entry_date"]], dtype=object)
-    label_dates = np.array([date.fromisoformat(value) for value in development["exit_date"]], dtype=object)
-    oof = np.full((len(development), 4), np.nan, dtype=float)
-    folds: list[dict[str, Any]] = []
-    for fold, (train_index, validation_index) in enumerate(
-        purged_date_splits(feature_dates, label_dates, n_splits=5),
-        start=1,
-    ):
-        fold_model = _fit(X[train_index], labels[train_index])
-        oof[validation_index] = _aligned_probabilities(fold_model, X[validation_index])
-        folds.append(
-            {
-                "fold": fold,
-                "training_rows": int(len(train_index)),
-                "validation_rows": int(len(validation_index)),
-                "training_label_end": str(max(label_dates[train_index])),
-                "validation_start": str(min(feature_dates[validation_index])),
-            }
-        )
+    oof, oof_utilities, folds = _development_predictions(X, returns, feature_dates, label_dates)
     valid = np.isfinite(oof).all(axis=1)
-    oof_utilities = oof[valid] @ bucket_values
     _, development_policy = _select_one_per_group(
         development.iloc[np.where(valid)[0]].reset_index(drop=True),
         returns[valid],
         oof[valid],
-        oof_utilities,
+        oof_utilities[valid],
         development["entry_date"].to_numpy(dtype=object)[valid],
     )
 
+    # Full-development payoffs are valid only for the final model and the
+    # disjoint later forward window. They must never rescore earlier OOF rows.
+    bucket_values = _bucket_values(returns)
     model = _fit(X, labels)
-    forward = _load_rows(forward_path, scored_only=True, deduplicate=False)
-    forward_X = _feature_matrix(forward)
     forward_returns = forward["hold_period_return_after_friction_pct"].to_numpy(dtype=float)
     forward_probabilities = _aligned_probabilities(model, forward_X)
-    forward_utilities = forward_probabilities @ bucket_values
+    forward_utilities = _finite(forward_probabilities @ bucket_values, "forward utilities")
     selected_indices, forward_policy = _select_one_per_group(
         forward,
         forward_returns,
@@ -409,7 +568,7 @@ def train(
         "profile_id": PROFILE_ID,
         "trained_at_utc": datetime.now(timezone.utc).isoformat(),
         "objective": artifact["objective"],
-        "status": "active_research",
+        "status": "research_candidate",
         "authority": artifact["authority"],
         "model_sha256": model_hash,
         "feature_policy": {
@@ -424,6 +583,9 @@ def train(
             "selection": "one highest-utility eligible contract per scan",
         },
         "source_validation": {
+            "source_checks": source_checks,
+            "oof_utility_policy": "training_fold_only_clipped_bucket_means",
+            "tail_gate_policy": "fixed_predeclared_thresholds_no_fold_or_forward_tuning",
             "development_policy": development_policy,
             "forward_policy": forward_policy,
             "integrated_forward_policy": integrated_forward_policy,
@@ -447,7 +609,9 @@ def train(
         },
         "sources": {
             "development": str(development_path),
-            "forward": FORWARD_SOURCE_ID,
+            "development_sha256": _sha256(development_path),
+            "forward": str(forward_path),
+            "forward_sha256": _sha256(forward_path),
         },
     }
     card_path.parent.mkdir(parents=True, exist_ok=True)
