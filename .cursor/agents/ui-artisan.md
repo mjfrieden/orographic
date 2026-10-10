@@ -129,6 +129,7 @@ Audit juice shipped:
 94. Sealed-writ preview and execute failures name the next step (NN/g H9). **Shipped in cycle 94.**
 95. Daily decision visibility and recent recommendations (NN/g H1/H9). **Logged in cycle 95.**
 96. Master Harbor history and mart failures name the next step (NN/g H9). **Shipped in cycle 96.**
+97. Book empty state does not claim a clear roster when Tradier failed (NN/g H1). **Shipped in cycle 97.**
 
 ## Done when
 

@@ -699,6 +699,14 @@ function showTicketError(raw, nextStep) {
   return copy;
 }
 
+function bookRosterFailed() {
+  return Boolean(BROKER_STATE.lastError) && !(BROKER_STATE.positions || []).length;
+}
+
+function bookOrdersFailed() {
+  return Boolean(BROKER_STATE.lastError) && !(BROKER_STATE.orders || []).length;
+}
+
 function renderPositionsMeta() {
   const syncEl = document.getElementById("positions-sync-status");
   const refreshBtn = document.getElementById("positions-refresh-btn");
@@ -864,7 +872,9 @@ function renderPositions() {
   if (!tbody) return;
   const rows = BROKER_STATE.positions || [];
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="8" class="ledger-empty">No open positions found.</td></tr>`;
+    tbody.innerHTML = bookRosterFailed()
+      ? `<tr><td colspan="8" class="ledger-empty">Positions could not be loaded. Try Refresh Tradier.</td></tr>`
+      : `<tr><td colspan="8" class="ledger-empty">No open positions found.</td></tr>`;
     renderCockpitPositions();
     return;
   }
@@ -1012,9 +1022,13 @@ function renderOrders() {
   const log = document.getElementById("orders-quest-log");
   const rows = (BROKER_STATE.orders || []).slice(0, 10);
   if (!rows.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="ledger-empty">No recent orders found.</td></tr>`;
+    tbody.innerHTML = bookOrdersFailed()
+      ? `<tr><td colspan="7" class="ledger-empty">Orders could not be loaded. Try Refresh Tradier.</td></tr>`
+      : `<tr><td colspan="7" class="ledger-empty">No recent orders found.</td></tr>`;
     if (log) {
-      log.innerHTML = `<li class="quest-empty">No recent orders.</li>`;
+      log.innerHTML = bookOrdersFailed()
+        ? `<li class="quest-empty is-error">Orders could not be loaded. Try Refresh Tradier.</li>`
+        : `<li class="quest-empty">No recent orders.</li>`;
     }
     return;
   }
@@ -1604,16 +1618,20 @@ function renderCockpitPositions() {
   const root = document.getElementById("cockpit-positions-list");
   if (!root) return;
   const positions = BROKER_STATE.positions || [];
-  setText("book-positions-count", String(positions.length));
-  setText("book-orders-count", String((BROKER_STATE.orders || []).length));
+  const rosterFailed = bookRosterFailed();
+  setText("book-positions-count", rosterFailed ? "—" : String(positions.length));
+  setText("book-orders-count", bookOrdersFailed() ? "—" : String((BROKER_STATE.orders || []).length));
   if (!positions.length) {
+    const socketLabel = rosterFailed ? "Unavailable" : "No position";
     root.innerHTML = `
-      <div class="party-empty" role="status">
-        <div class="position-loading">No open positions. The book is clear.</div>
+      <div class="party-empty${rosterFailed ? " is-error" : ""}" role="status">
+        <div class="position-loading">${rosterFailed
+          ? "Positions could not be loaded. Try Refresh Tradier."
+          : "No open positions. The book is clear."}</div>
         <div class="party-slots" aria-hidden="true">
-          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">No position</div></div>
-          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">No position</div></div>
-          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">No position</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">${socketLabel}</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">${socketLabel}</div></div>
+          <div class="unit-frame is-empty"><div class="unit-portrait"></div><div class="unit-empty-copy">${socketLabel}</div></div>
         </div>
       </div>`;
     return;
