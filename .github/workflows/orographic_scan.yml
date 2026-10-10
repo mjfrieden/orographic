@@ -291,6 +291,14 @@ jobs:
           python scripts/sync_operational_ledgers_r2.py push \
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
 
+      - name: Build current model cards from existing artifacts
+        continue-on-error: true
+        run: |
+          # Optional display evidence must never block the trading snapshot.
+          # Remove old values first so unexpected failure cannot republish them.
+          rm -f web/data/diagnostics/current_model_cards_latest.json
+          python scripts/build_current_model_cards.py
+
       - name: Commit refreshed snapshot
         id: snapshot
         run: |

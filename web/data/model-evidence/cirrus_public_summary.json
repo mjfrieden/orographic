@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "verified_at_utc": "2026-10-10T15:30:00Z",
+  "source_revision": "92870db4ff114a5b694d2f2d68d5bb9c06d81eb9",
+  "source_description": "Curated review of Cirrus model-tournament policy v3, experiment registry, model definitions, and the frozen protocols/results for hybrid-calibration-001 and noon-three-session-tail-001. Original private source files are not included.",
+  "refresh_policy": "Manually reviewed publication snapshot. Existing Orographic scans copy this approved summary; they do not fetch Cirrus private sources, reverify roles, or refresh these evaluations.",
+  "cards": [
+    {
+      "id": "cirrus-hybrid",
+      "title": "Hybrid",
+      "evidence_kind": "registry_role",
+      "role": "Registry-designated production email model; experimental status must be checked in its served release",
+      "how_it_works": "Blends the tail-ensemble percentile rank (75%) with an expert-feature percentile rank (25%) to rank next-session option candidates.",
+      "evaluation_window": "Current model-specific evaluation window unavailable in the reviewed publication source.",
+      "population": "Next-session option-candidate rankings; current served evaluation population unverified.",
+      "evaluation_completed_at": null,
+      "evaluation_summary": [
+        "Current live performance: unavailable. AUC: not reported. F1: not reported."
+      ],
+      "limitations": [
+        "No verified served-model artifact, training timestamp, or current live AUC/F1 is supplied by this curated snapshot.",
+        "Quoted-price research is not broker fills, account P&L, or evidence of future profitability.",
+        "Registry designation does not verify the currently served model or a validated champion. Discovery and qualification evidence must remain separate."
+      ]
+    },
+    {
+      "id": "cirrus-boosting",
+      "title": "Boosting",
+      "evidence_kind": "registry_role",
+      "role": "Predeclared next-session tournament challenger",
+      "how_it_works": "Histogram gradient-boosted classifier estimates tail-event probability from option features; it is also one member of the tail ensemble.",
+      "evaluation_window": "Current model-specific evaluation window unavailable in the reviewed publication source.",
+      "population": "Next-session option-candidate rankings; current served evaluation population unverified.",
+      "evaluation_completed_at": null,
+      "evaluation_summary": [
+        "Current live performance: unavailable. AUC: not reported. F1: not reported."
+      ],
+      "limitations": [
+        "No verified served-model artifact, training timestamp, or current live AUC/F1 is supplied by this curated snapshot.",
+        "Quoted-price research is not broker fills, account P&L, or evidence of future profitability.",
+        "Registry designation does not verify the currently served model or a validated champion. Discovery and qualification evidence must remain separate."
+      ]
+    },
+    {
+      "id": "cirrus-tail-ensemble",
+      "title": "Tail ensemble",
+      "evidence_kind": "registry_role",
+      "role": "Predeclared next-session tournament challenger",
+      "how_it_works": "Averages logistic-regression, random-forest and gradient-boosting tail probabilities. This next-session challenger is distinct from the rejected three-session research variant.",
+      "evaluation_window": "Current model-specific evaluation window unavailable in the reviewed publication source.",
+      "population": "Next-session option-candidate rankings; current served evaluation population unverified.",
+      "evaluation_completed_at": null,
+      "evaluation_summary": [
+        "Current live performance: unavailable. AUC: not reported. F1: not reported."
+      ],
+      "limitations": [
+        "No verified served-model artifact, training timestamp, or current live AUC/F1 is supplied by this curated snapshot.",
+        "Quoted-price research is not broker fills, account P&L, or evidence of future profitability.",
+        "Registry designation does not verify the currently served model or a validated champion. Discovery and qualification evidence must remain separate."
+      ]
+    },
+    {
+      "id": "cirrus-calibration-study",
+      "title": "Calibrated conservative Hybrid",
+      "evidence_kind": "discovery_study",
+      "role": "Research only · advanced as an inactive candidate",
+      "how_it_works": "Training-only chronological probability calibration and conservative payoff ranking were compared with unchanged Hybrid and a tight-spread baseline at a one-session horizon.",
+      "evaluation_window": "Frozen discovery replay dates: 2026-08-18 to 2026-10-02; no confirmation dates. These are dataset bounds, not a claim that all dates produced selections.",
+      "population": "Historical option quote selections, one-session exit; separate from the actual emailed cohort.",
+      "evaluation_completed_at": "2026-10-03T07:43:31.931132+00:00",
+      "evaluation_summary": [
+        "11 selected: 10 mature, 9 resolved, 1 mature missing exit and 1 pending. Resolved coverage: 90% of mature selections.",
+        "Candidate stressed mean on 9 resolved selections: +43.94%; mature missing-exit-as-full-loss stressed mean: +29.54%. Unchanged Hybrid: +41.21% and +27.09%, respectively.",
+        "Primary paired stressed improvement versus unchanged Hybrid: +2.45 percentage points over 10 identical mature dates, counting missing exits as full losses. Candidate net mean excluding its best resolved trade: +37.42%.",
+        "Decision: retain inactive for a separate prospective admission proposal; no production promotion. AUC and F1 were not reported."
+      ],
+      "limitations": [
+        "Only three weeks; week-block uncertainty interval unavailable. Largest ticker share: 55.56% of resolved observations, above the production concentration limit.",
+        "Entry at archived ask plus $0.65; next-session exit at archived bid less $0.65. Stress raises ask 5% and lowers exit bid 5%. Captured prices lack provider side timestamps/depth and are proxies, not fills.",
+        "All frozen dates are discovery, including October dates. Small, reused samples and incomplete historical coverage cannot establish current live performance.",
+        "A prospective eligibility date does not mean an inactive candidate collected observations."
+      ]
+    },
+    {
+      "id": "cirrus-three-session-study",
+      "title": "Noon three-session tail ensemble",
+      "evidence_kind": "discovery_study",
+      "role": "Research only · rejected and inactive",
+      "how_it_works": "The tail ensemble was refitted to three-session labels and compared at the noon entry clock against Hybrid and a tight-spread baseline using the same horizon.",
+      "evaluation_window": "Frozen discovery replay dates: 2026-08-18 to 2026-10-07; no confirmation dates. These are dataset bounds, not a claim that all dates produced selections.",
+      "population": "Historical three-session option quote selections; not the actual one-session emailed cohort.",
+      "evaluation_completed_at": "2026-10-07T22:10:35.636552+00:00",
+      "evaluation_summary": [
+        "14 selected: 11 mature, 8 resolved, 3 mature missing exits and 3 pending. Resolved coverage: 72.73% of mature selections, below the study’s 80% threshold.",
+        "Resolved net mean: +34.00%; resolved median: −58.22%; win rate: 25%. Removing the best resolved trade leaves a −59.88% net mean.",
+        "Resolved stressed mean: +21.24%; mature missing-exit-as-full-loss stressed mean: −11.83%. Positive paired improvement versus same-horizon Hybrid did not overcome the failed gates.",
+        "Decision: reject under frozen criteria; no retuning or admission. AUC and F1 were not reported."
+      ],
+      "limitations": [
+        "Only three weeks; week-block uncertainty interval unavailable. One large winner materially changes the mean.",
+        "Entry at archived ask plus $0.65; third-session exit at archived bid less $0.65. Stress raises ask 5% and lowers exit bid 5%; missing mature exits count as full losses and pending selections are excluded.",
+        "Captured quotes lack provider side timestamps/depth and are proxies, not fills. Archive gaps limit coverage.",
+        "The same-horizon Hybrid comparator was refitted for this study. These results must not be attributed to the current one-session Hybrid or tail-ensemble models."
+      ]
+    }
+  ]
+}
