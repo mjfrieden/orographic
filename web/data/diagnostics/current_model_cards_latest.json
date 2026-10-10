@@ -1,0 +1,287 @@
+{
+  "schema_version": 1,
+  "generated_at_utc": "2026-10-10T15:32:19.242013+00:00",
+  "runtime_at_utc": "2026-10-09T20:29:04+00:00",
+  "runtime_source_sha256": "a55eef9c8c2ba31ab835aa8a9beef1c1213b1dac0d801b32e83efbbfe17aa31d",
+  "runtime_source_path": "web/data/latest_run.json",
+  "freshness_policy_hours": 96,
+  "cards": [
+    {
+      "id": "scout-direction",
+      "system": "Orographic",
+      "title": "Directional Scout",
+      "version": 3,
+      "trained_at": "2026-06-28",
+      "runtime_mode": "artifact",
+      "model_sha256": "d38cc7c392fca619a19c38d57c040bfa4ea6e972cb714e0d4d6ee8bd055483ca",
+      "identity_status": "matched_metadata",
+      "source_path": "engine/orographic/models/scout_model_card.json",
+      "source_sha256": "5518f5898c364959749a3a96168efe397443f4dc44c219bea3d403c738fd3829",
+      "metrics": [
+        {
+          "label": "Mean binary directional validation AUC",
+          "value": 0.5206,
+          "context": "Mean across historical validation folds. 0.5 is no ranking discrimination; AUC is not accuracy."
+        },
+        {
+          "label": "F1",
+          "value": null,
+          "context": "Not reported; no threshold-based F-score inferred."
+        }
+      ],
+      "limitations": [
+        "Historical validation is not current live performance. F1 is not reported in this model card.",
+        "Identity matches published runtime metadata and exact card bytes; the model binary was not independently rehashed here."
+      ],
+      "how_it_works": "LightGBM uses stock and market features to estimate a positive five-day underlying return. This directional artifact is distinct from the active call/put/no-trade policy.",
+      "evaluation_window": "Training coverage: 2024-07-03 to 2026-06-26. Validation fold date endpoints are not reported.",
+      "population": "Underlying-stock symbol-date observations; not option trades.",
+      "sample_size": 40980,
+      "scaler_sha256": "f867df30e5cadf84b8fd844a53abff4255b82b54ddd6d7e68e9e529e667afaba"
+    },
+    {
+      "id": "scout-side",
+      "system": "Orographic",
+      "title": "Scout side and abstention",
+      "version": 3,
+      "trained_at": "2026-06-28",
+      "runtime_mode": "active",
+      "model_sha256": "bb097b2db11d5de3b124a98cc9dbb8537910cb9a2589f9d8ef815f6802ed53f8",
+      "identity_status": "matched_metadata",
+      "source_path": "engine/orographic/models/scout_model_card.json",
+      "source_sha256": "5518f5898c364959749a3a96168efe397443f4dc44c219bea3d403c738fd3829",
+      "metrics": [
+        {
+          "label": "Mean validation balanced accuracy",
+          "value": 0.3633,
+          "context": "Three classes; equal-chance reference is about 0.3333. Distinct from binary directional AUC."
+        },
+        {
+          "label": "F1",
+          "value": null,
+          "context": "Not reported; no macro/micro/weighted F1 inferred."
+        }
+      ],
+      "limitations": [
+        "Historical validation is not current live performance. F1 is not reported in this model card.",
+        "Identity matches published runtime metadata and exact card bytes; the model binary was not independently rehashed here.",
+        "Imbalanced training classes limit conclusions, especially the put class. Training accuracy is not out-of-sample skill."
+      ],
+      "how_it_works": "Three-class Scout estimates call-edge, put-edge and no-trade probabilities before Forge selects option contracts.",
+      "evaluation_window": "Historical cross-validation; fold date endpoints are not reported.",
+      "population": "Strict-real option-payoff labels grouped by symbol/date.",
+      "sample_size": 180,
+      "training_class_counts": {
+        "call_edge": 107,
+        "put_edge": 6,
+        "no_trade": 158
+      }
+    },
+    {
+      "id": "tail-ranker",
+      "system": "Orographic",
+      "title": "Forge tail-utility ranker",
+      "version": 2,
+      "trained_at": "2026-08-30T19:22:53.794682+00:00",
+      "runtime_mode": "active",
+      "model_sha256": "fe95801fd2aebed04f20d25d15ee1e49a6f216aaa578739573c3d72defaf8410",
+      "identity_status": "matched_metadata",
+      "source_path": "engine/orographic/models/production_payoff_ranker_card.json",
+      "source_sha256": "e7491c828521cd7bceb37965e8c2b13fb08f8d2ea3b55d839ce8080386c8934c",
+      "metrics": [
+        {
+          "label": "Forward big-win AUC",
+          "value": 0.6602,
+          "context": "Binary target: after-friction return at least +50%. Ranking discrimination, not accuracy."
+        },
+        {
+          "label": "Forward big-win Brier score",
+          "value": 0.1481,
+          "context": "Probability error; lower is better. No matched constant-probability baseline supplied."
+        },
+        {
+          "label": "Forward severe-loss AUC",
+          "value": 0.5575,
+          "context": "Binary target: after-friction return at most \u221250%."
+        },
+        {
+          "label": "F1",
+          "value": null,
+          "context": "Not reported; no threshold-based F-score inferred."
+        }
+      ],
+      "limitations": [
+        "Historical validation is not current live performance. F1 is not reported in this model card.",
+        "Identity matches published runtime metadata and exact card bytes; the model binary was not independently rehashed here.",
+        "Selected-policy results are historical quote replays, not broker fills or account P&L. Small samples cannot establish profitability."
+      ],
+      "how_it_works": "Forge filters contracts, then the tail-utility ranker estimates large-win and severe-loss risks and ranks after-friction utility. Council applies the final selection and abstention policy.",
+      "evaluation_window": "Later frozen forward validation window; complete start/end dates are not reported by the model card.",
+      "population": "Option candidate rows in forward evaluation. Selected-policy replay is a separate population.",
+      "sample_size": 146,
+      "replay": {
+        "sample_size": 9,
+        "mean_return": 0.0222,
+        "median_return": -0.4432
+      }
+    },
+    {
+      "id": "cirrus-hybrid",
+      "evidence_kind": "registry_role",
+      "evaluation_completed_at": null,
+      "limitations": [
+        "No verified served-model artifact, training timestamp, or current live AUC/F1 is supplied by this curated snapshot.",
+        "Quoted-price research is not broker fills, account P&L, or evidence of future profitability.",
+        "Registry designation does not verify the currently served model or a validated champion. Discovery and qualification evidence must remain separate."
+      ],
+      "evaluation_summary": [
+        "Current live performance: unavailable. AUC: not reported. F1: not reported."
+      ],
+      "title": "Hybrid",
+      "role": "Registry-designated production email model; experimental status must be checked in its served release",
+      "how_it_works": "Blends the tail-ensemble percentile rank (75%) with an expert-feature percentile rank (25%) to rank next-session option candidates.",
+      "evaluation_window": "Current model-specific evaluation window unavailable in the reviewed publication source.",
+      "population": "Next-session option-candidate rankings; current served evaluation population unverified.",
+      "system": "Cirrus",
+      "version": null,
+      "trained_at": null,
+      "runtime_mode": "not verified",
+      "identity_status": "curated_snapshot",
+      "metrics": [],
+      "source_path": "web/data/model-evidence/cirrus_public_summary.json",
+      "source_sha256": "5f33f22c612bf7c971632f03b705203c90beee7654202ec8bf2af6eb92a9e7a8",
+      "verified_at_utc": "2026-10-10T15:30:00Z",
+      "source_revision": "92870db4ff114a5b694d2f2d68d5bb9c06d81eb9",
+      "source_description": "Curated review of Cirrus model-tournament policy v3, experiment registry, model definitions, and the frozen protocols/results for hybrid-calibration-001 and noon-three-session-tail-001. Original private source files are not included.",
+      "refresh_policy": "Manually reviewed publication snapshot. Existing Orographic scans copy this approved summary; they do not fetch Cirrus private sources, reverify roles, or refresh these evaluations."
+    },
+    {
+      "id": "cirrus-boosting",
+      "evidence_kind": "registry_role",
+      "evaluation_completed_at": null,
+      "limitations": [
+        "No verified served-model artifact, training timestamp, or current live AUC/F1 is supplied by this curated snapshot.",
+        "Quoted-price research is not broker fills, account P&L, or evidence of future profitability.",
+        "Registry designation does not verify the currently served model or a validated champion. Discovery and qualification evidence must remain separate."
+      ],
+      "evaluation_summary": [
+        "Current live performance: unavailable. AUC: not reported. F1: not reported."
+      ],
+      "title": "Boosting",
+      "role": "Predeclared next-session tournament challenger",
+      "how_it_works": "Histogram gradient-boosted classifier estimates tail-event probability from option features; it is also one member of the tail ensemble.",
+      "evaluation_window": "Current model-specific evaluation window unavailable in the reviewed publication source.",
+      "population": "Next-session option-candidate rankings; current served evaluation population unverified.",
+      "system": "Cirrus",
+      "version": null,
+      "trained_at": null,
+      "runtime_mode": "not verified",
+      "identity_status": "curated_snapshot",
+      "metrics": [],
+      "source_path": "web/data/model-evidence/cirrus_public_summary.json",
+      "source_sha256": "5f33f22c612bf7c971632f03b705203c90beee7654202ec8bf2af6eb92a9e7a8",
+      "verified_at_utc": "2026-10-10T15:30:00Z",
+      "source_revision": "92870db4ff114a5b694d2f2d68d5bb9c06d81eb9",
+      "source_description": "Curated review of Cirrus model-tournament policy v3, experiment registry, model definitions, and the frozen protocols/results for hybrid-calibration-001 and noon-three-session-tail-001. Original private source files are not included.",
+      "refresh_policy": "Manually reviewed publication snapshot. Existing Orographic scans copy this approved summary; they do not fetch Cirrus private sources, reverify roles, or refresh these evaluations."
+    },
+    {
+      "id": "cirrus-tail-ensemble",
+      "evidence_kind": "registry_role",
+      "evaluation_completed_at": null,
+      "limitations": [
+        "No verified served-model artifact, training timestamp, or current live AUC/F1 is supplied by this curated snapshot.",
+        "Quoted-price research is not broker fills, account P&L, or evidence of future profitability.",
+        "Registry designation does not verify the currently served model or a validated champion. Discovery and qualification evidence must remain separate."
+      ],
+      "evaluation_summary": [
+        "Current live performance: unavailable. AUC: not reported. F1: not reported."
+      ],
+      "title": "Tail ensemble",
+      "role": "Predeclared next-session tournament challenger",
+      "how_it_works": "Averages logistic-regression, random-forest and gradient-boosting tail probabilities. This next-session challenger is distinct from the rejected three-session research variant.",
+      "evaluation_window": "Current model-specific evaluation window unavailable in the reviewed publication source.",
+      "population": "Next-session option-candidate rankings; current served evaluation population unverified.",
+      "system": "Cirrus",
+      "version": null,
+      "trained_at": null,
+      "runtime_mode": "not verified",
+      "identity_status": "curated_snapshot",
+      "metrics": [],
+      "source_path": "web/data/model-evidence/cirrus_public_summary.json",
+      "source_sha256": "5f33f22c612bf7c971632f03b705203c90beee7654202ec8bf2af6eb92a9e7a8",
+      "verified_at_utc": "2026-10-10T15:30:00Z",
+      "source_revision": "92870db4ff114a5b694d2f2d68d5bb9c06d81eb9",
+      "source_description": "Curated review of Cirrus model-tournament policy v3, experiment registry, model definitions, and the frozen protocols/results for hybrid-calibration-001 and noon-three-session-tail-001. Original private source files are not included.",
+      "refresh_policy": "Manually reviewed publication snapshot. Existing Orographic scans copy this approved summary; they do not fetch Cirrus private sources, reverify roles, or refresh these evaluations."
+    },
+    {
+      "id": "cirrus-calibration-study",
+      "evidence_kind": "discovery_study",
+      "evaluation_completed_at": "2026-10-03T07:43:31.931132+00:00",
+      "limitations": [
+        "Only three weeks; week-block uncertainty interval unavailable. Largest ticker share: 55.56% of resolved observations, above the production concentration limit.",
+        "Entry at archived ask plus $0.65; next-session exit at archived bid less $0.65. Stress raises ask 5% and lowers exit bid 5%. Captured prices lack provider side timestamps/depth and are proxies, not fills.",
+        "All frozen dates are discovery, including October dates. Small, reused samples and incomplete historical coverage cannot establish current live performance.",
+        "A prospective eligibility date does not mean an inactive candidate collected observations."
+      ],
+      "evaluation_summary": [
+        "11 selected: 10 mature, 9 resolved, 1 mature missing exit and 1 pending. Resolved coverage: 90% of mature selections.",
+        "Candidate stressed mean on 9 resolved selections: +43.94%; mature missing-exit-as-full-loss stressed mean: +29.54%. Unchanged Hybrid: +41.21% and +27.09%, respectively.",
+        "Primary paired stressed improvement versus unchanged Hybrid: +2.45 percentage points over 10 identical mature dates, counting missing exits as full losses. Candidate net mean excluding its best resolved trade: +37.42%.",
+        "Decision: retain inactive for a separate prospective admission proposal; no production promotion. AUC and F1 were not reported."
+      ],
+      "title": "Calibrated conservative Hybrid",
+      "role": "Research only \u00b7 advanced as an inactive candidate",
+      "how_it_works": "Training-only chronological probability calibration and conservative payoff ranking were compared with unchanged Hybrid and a tight-spread baseline at a one-session horizon.",
+      "evaluation_window": "Frozen discovery replay dates: 2026-08-18 to 2026-10-02; no confirmation dates. These are dataset bounds, not a claim that all dates produced selections.",
+      "population": "Historical option quote selections, one-session exit; separate from the actual emailed cohort.",
+      "system": "Cirrus",
+      "version": null,
+      "trained_at": null,
+      "runtime_mode": "not verified",
+      "identity_status": "curated_snapshot",
+      "metrics": [],
+      "source_path": "web/data/model-evidence/cirrus_public_summary.json",
+      "source_sha256": "5f33f22c612bf7c971632f03b705203c90beee7654202ec8bf2af6eb92a9e7a8",
+      "verified_at_utc": "2026-10-10T15:30:00Z",
+      "source_revision": "92870db4ff114a5b694d2f2d68d5bb9c06d81eb9",
+      "source_description": "Curated review of Cirrus model-tournament policy v3, experiment registry, model definitions, and the frozen protocols/results for hybrid-calibration-001 and noon-three-session-tail-001. Original private source files are not included.",
+      "refresh_policy": "Manually reviewed publication snapshot. Existing Orographic scans copy this approved summary; they do not fetch Cirrus private sources, reverify roles, or refresh these evaluations."
+    },
+    {
+      "id": "cirrus-three-session-study",
+      "evidence_kind": "discovery_study",
+      "evaluation_completed_at": "2026-10-07T22:10:35.636552+00:00",
+      "limitations": [
+        "Only three weeks; week-block uncertainty interval unavailable. One large winner materially changes the mean.",
+        "Entry at archived ask plus $0.65; third-session exit at archived bid less $0.65. Stress raises ask 5% and lowers exit bid 5%; missing mature exits count as full losses and pending selections are excluded.",
+        "Captured quotes lack provider side timestamps/depth and are proxies, not fills. Archive gaps limit coverage.",
+        "The same-horizon Hybrid comparator was refitted for this study. These results must not be attributed to the current one-session Hybrid or tail-ensemble models."
+      ],
+      "evaluation_summary": [
+        "14 selected: 11 mature, 8 resolved, 3 mature missing exits and 3 pending. Resolved coverage: 72.73% of mature selections, below the study\u2019s 80% threshold.",
+        "Resolved net mean: +34.00%; resolved median: \u221258.22%; win rate: 25%. Removing the best resolved trade leaves a \u221259.88% net mean.",
+        "Resolved stressed mean: +21.24%; mature missing-exit-as-full-loss stressed mean: \u221211.83%. Positive paired improvement versus same-horizon Hybrid did not overcome the failed gates.",
+        "Decision: reject under frozen criteria; no retuning or admission. AUC and F1 were not reported."
+      ],
+      "title": "Noon three-session tail ensemble",
+      "role": "Research only \u00b7 rejected and inactive",
+      "how_it_works": "The tail ensemble was refitted to three-session labels and compared at the noon entry clock against Hybrid and a tight-spread baseline using the same horizon.",
+      "evaluation_window": "Frozen discovery replay dates: 2026-08-18 to 2026-10-07; no confirmation dates. These are dataset bounds, not a claim that all dates produced selections.",
+      "population": "Historical three-session option quote selections; not the actual one-session emailed cohort.",
+      "system": "Cirrus",
+      "version": null,
+      "trained_at": null,
+      "runtime_mode": "not verified",
+      "identity_status": "curated_snapshot",
+      "metrics": [],
+      "source_path": "web/data/model-evidence/cirrus_public_summary.json",
+      "source_sha256": "5f33f22c612bf7c971632f03b705203c90beee7654202ec8bf2af6eb92a9e7a8",
+      "verified_at_utc": "2026-10-10T15:30:00Z",
+      "source_revision": "92870db4ff114a5b694d2f2d68d5bb9c06d81eb9",
+      "source_description": "Curated review of Cirrus model-tournament policy v3, experiment registry, model definitions, and the frozen protocols/results for hybrid-calibration-001 and noon-three-session-tail-001. Original private source files are not included.",
+      "refresh_policy": "Manually reviewed publication snapshot. Existing Orographic scans copy this approved summary; they do not fetch Cirrus private sources, reverify roles, or refresh these evaluations."
+    }
+  ]
+}
