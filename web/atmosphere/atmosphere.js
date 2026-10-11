@@ -1,7 +1,9 @@
+import { mountReadiness } from './readiness.js';
 import { fetchSnapshot, compatible, count, timestamp, safeText, TOPICS, catalogRows, filterRows, metricValue, LIMITS } from './data.js';
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; };
 const label = key => key.replaceAll('_', ' ').replace(/\b(orographic|cirrus)\b/g, word => word[0].toUpperCase() + word.slice(1));
+const renderReadiness = mountReadiness($('evidence-readiness'));
 let state = { sync: null, shadow: null }; let active; let generation = 0;
 function notice(text) { $('notices').append(el('p', text, 'notice')); }
 function contextLine(name, data, path) {
@@ -12,6 +14,7 @@ function contextLine(name, data, path) {
 function render() {
   $('overview').replaceChildren(); $('context').replaceChildren();
   const { sync, shadow } = state;
+  renderReadiness(state);
   const stats = [['Quote observations', sync?.rows?.option_quotes, 'Sync snapshot · stored rows'], ['Recommendations', sync?.rows?.recommendations, 'Sync snapshot · stored rows'], ['Consumer views', shadow?.consumer_bundle?.views && typeof shadow.consumer_bundle.views === 'object' && !Array.isArray(shadow.consumer_bundle.views) ? Object.keys(shadow.consumer_bundle.views).length : undefined, 'Evidence snapshot · catalog'], ['Comparable return pairs', shadow?.cross_system_comparison?.direct_return_comparable_pairs, 'Evidence snapshot · direct comparison']];
   for (const [name, value, context] of stats) { const card = el('article', undefined, 'stat'); card.append(el('p', name), el('strong', count(value)), el('small', context)); $('overview').append(card); }
   $('context').append(contextLine('Sync', sync, '/data/diagnostics/shared_mart_sync_latest.json'), contextLine('Evidence', shadow, '/data/diagnostics/shared_mart_shadow_evidence_latest.json'));
@@ -57,3 +60,4 @@ $('refresh').addEventListener('click', refresh); for (const id of ['catalog', 's
 window.addEventListener('pagehide', () => { generation++; active?.abort(); });
 window.addEventListener('pageshow', event => { if (event.persisted) refresh(); });
 refresh();
+
