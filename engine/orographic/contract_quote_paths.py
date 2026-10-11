@@ -185,12 +185,14 @@ class _ArtifactVerifier:
     All caches are scoped to this join call and bounded by ReplayLimits. Source
     references are never used as paths or URLs. Source bytes remain caller-owned.
     """
-    def __init__(self, artifacts, limits, metrics):
+    def __init__(self, artifacts, limits, metrics, reject_output_aliases=None):
         self.artifacts, self.limits, self.metrics = artifacts, limits, metrics
         if len(artifacts) > limits.max_artifacts:
             raise ReplayLimitError('artifact count limit exceeded')
         total = 0
         for raw in artifacts.values():
+            if reject_output_aliases is not None and not isinstance(raw, bytes):
+                reject_output_aliases(raw)
             if isinstance(raw, bytes):
                 if len(raw) > limits.max_artifact_bytes:
                     raise ReplayLimitError('artifact byte limit exceeded')
@@ -393,8 +395,88 @@ def _witness(row):
             'identity_evidence': row['identity_evidence']}
 
 
+
+COVERAGE_VERSION = 'atmosphere-quote-replay-coverage-v1'
+# Guidance names the next evidence to review, never a promise of eligibility.
+_EVIDENCE_REASONS = {
+    'restore_retained_bytes_and_lineage': (
+        'missing_source_lineage', 'source_row_hash_mismatch',
+        'source_namespace_mismatch', 'source_artifact_hash_mismatch',
+        'source_pointer_or_mapping_mismatch', 'source_lineage_mismatch'),
+    'review_exact_identity_and_deliverable': (
+        'missing_exact_contract_identity', 'unverified_multiplier_or_deliverable',
+        'invalid_contract_expiration', 'unsupported_position_kind',
+        'missing_recommendation_id', 'duplicate_recommendation_id',
+        'missing_source_record_id', 'conflicting_observation_normalization',
+        'conflicting_source_record_id'),
+    'review_recorded_clocks_and_availability': (
+        'missing_or_invalid_decision_clocks', 'recommendation_not_available_at_asof',
+        'recommendation_not_available_at_decision', 'missing_or_invalid_quote_clocks',
+        'invalid_quote_clock_order', 'capture_availability_delay_exceeded',
+        'quote_not_available_at_asof'),
+    'retain_valid_entry_quotes': ('missing_valid_entry_quote', 'conflicting_entry_time_quotes'),
+    'retain_valid_exit_quotes': ('missing_valid_exit_quote', 'conflicting_exit_time_quotes'),
+    'review_window_maturity_and_expiration': (
+        'immature_exit_window', 'window_after_contract_expiration', 'quote_after_contract_expiration'),
+    'retain_fresh_uncrossed_two_sided_quotes': ('stale_quote', 'nonpositive_or_crossed_market'),
+}
+_REASON_EVIDENCE = {reason: evidence for evidence, reasons in _EVIDENCE_REASONS.items()
+                    for reason in reasons}
+
+
+class _CoverageDiagnostics:
+    """At most one cohort per bounded recommendation; no source or quote rescans."""
+    def __init__(self):
+        self.cohorts = defaultdict(Counter)
+
+    def add(self, row, lineage_reason, decision, path):
+        # An unverified claim cannot attribute a row to a namespace or date.
+        namespace = row['source_namespace'] if lineage_reason is None else None
+        date = decision.date().isoformat() if lineage_reason is None and decision else None
+        self.cohorts[(namespace, date)][path['reason']] += 1
+
+    def finish(self, report):
+        cohorts = []
+        for (namespace, date), counts in sorted(self.cohorts.items(), key=lambda item: canonical(item[0])):
+            eligible = counts.get(None, 0)
+            reasons = {reason: count for reason, count in sorted(
+                ((reason, count) for reason, count in counts.items() if reason is not None))}
+            cohorts.append({
+                'source_status': 'verified_lineage' if namespace is not None else 'unverified_source',
+                'source_namespace': namespace,
+                'decision_date_status': ('verified_lineage_utc_date' if date is not None else
+                                         'unverified_source' if namespace is None else 'missing_or_invalid_date'),
+                'decision_date_utc': date,
+                'recommendation_rows': sum(counts.values()),
+                'eligible_quote_replays': eligible,
+                'excluded_recommendation_rows': sum(reasons.values()),
+                'first_exclusions_by_reason': reasons,
+            })
+        coverage = report['coverage']
+        reasons = set(coverage['excluded_by_reason']) | set(coverage['invalid_quotes_by_reason'])
+        result = {
+            'schema_version': COVERAGE_VERSION,
+            'replay_report_sha256': report['report_sha256'],
+            'policy_sha256': report['policy_sha256'], 'as_of_utc': report['as_of_utc'],
+            'evidence_class': 'quote_replay_only', 'exclusion_semantics': 'first_blocker_only',
+            'cohort_basis': 'verified_recommendation_lineage_and_utc_decision_date',
+            'cohorts': cohorts,
+            'totals': {'recommendation_rows': coverage['recommendations'],
+                       'eligible_quote_replays': coverage['eligible_quote_replays'],
+                       'excluded_recommendation_rows': sum(coverage['excluded_by_reason'].values()),
+                       'first_exclusions_by_reason': dict(coverage['excluded_by_reason'])},
+            'global_quotes': {'attribution': 'global_only_no_recommendation_cohort_assignment',
+                              'input_quote_rows': coverage['input_quote_rows'],
+                              'first_exclusions_by_reason': dict(coverage['invalid_quotes_by_reason'])},
+            'next_evidence_by_reason': {reason: _REASON_EVIDENCE.get(reason, 'unknown_reason_review_required')
+                                        for reason in sorted(reasons)},
+        }
+        result['diagnostics_sha256'] = digest(result)
+        return result
+
+
 def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc: str, artifacts,
-                     limits=ReplayLimits(), operation_counts=None):
+                     limits=ReplayLimits(), operation_counts=None, coverage_diagnostics=None):
     """Return separate auditable paths and exclusions, never mutate source tables.
 
     Windows use quote availability, inclusive at both boundaries; exit target is
@@ -411,7 +493,41 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
     metrics = Counter()
     if operation_counts is not None and not isinstance(operation_counts, dict):
         raise ValueError('operation_counts must be a dict or None')
-    verifier = _ArtifactVerifier(artifacts, limits, metrics)
+    if coverage_diagnostics is not None and type(coverage_diagnostics) is not dict:
+        raise ValueError('coverage_diagnostics must be a plain dict or None')
+    if coverage_diagnostics is not None and any(coverage_diagnostics is value for value in
+                                                (operation_counts, artifacts, recommendations, quotes)):
+        raise ValueError('coverage_diagnostics must be a separate output dict')
+    if coverage_diagnostics is not None and operation_counts is not None and any(
+            operation_counts is value for value in (artifacts, recommendations, quotes)):
+        raise ValueError('operation_counts must not alias inputs')
+    if coverage_diagnostics is not None and operation_counts is not None and type(operation_counts) is not dict:
+        raise ValueError('operation_counts must be a plain dict when coverage_diagnostics is used')
+    diagnostics = _CoverageDiagnostics() if coverage_diagnostics is not None else None
+    def reject_output_aliases(value):
+        # Inspect containers during the existing bounded input pass, not a later
+        # source/quote rescan. Bytes are never decoded here. JSON serialization
+        # has already rejected cycles and bounded row bytes. Unused malformed
+        # artifact values may also contain containers, so cap this walk itself.
+        stack = [iter((value,))]
+        nodes = 0
+        while stack:
+            try:
+                item = next(stack[-1])
+            except StopIteration:
+                stack.pop()
+                continue
+            nodes += 1
+            if nodes > limits.max_json_nodes or len(stack) - 1 > limits.max_json_depth:
+                raise ReplayLimitError('diagnostic alias-check structure limit exceeded')
+            if item is coverage_diagnostics or (operation_counts is not None and item is operation_counts):
+                raise ValueError('diagnostic outputs must not alias input containers')
+            if isinstance(item, dict):
+                stack.append(iter(item.values()))
+            elif isinstance(item, (list, tuple)):
+                stack.append(iter(item))
+    verifier = _ArtifactVerifier(artifacts, limits, metrics,
+                                 reject_output_aliases if diagnostics is not None else None)
     def bounded_rows(source):
         rows = []
         for row in source:
@@ -420,6 +536,9 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
                 raise ReplayLimitError('input row count limit exceeded')
             if not isinstance(row, dict):
                 raise ValueError('input row must be an object')
+            if coverage_diagnostics is not None and (coverage_diagnostics is row or
+                                                     coverage_diagnostics is row.get('_lineage')):
+                raise ValueError('coverage_diagnostics must not alias input rows or lineage')
             try:
                 size = len(canonical(row).encode())
             except RecursionError as exc:
@@ -427,6 +546,8 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
             metrics['input_row_bytes'] += size
             if size > limits.max_row_bytes or metrics['input_row_bytes'] > limits.max_total_row_bytes:
                 raise ReplayLimitError('input row byte limit exceeded')
+            if diagnostics is not None:
+                reject_output_aliases(row)
             rows.append(row)
         return rows
     recommendations, quotes = bounded_rows(recommendations), bounded_rows(quotes)
@@ -476,11 +597,13 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
                 'evidence_class': 'quote_replay_not_broker_fill',
                 'entry': None, 'exit': None, 'label_available_at_utc': None,
                 'status': 'excluded', 'reason': None}
-        reason = verifier.reason(r) or _identity_reason(r)
+        lineage_reason = verifier.reason(r)
+        reason = lineage_reason or _identity_reason(r)
         if not text(r.get('recommendation_id')):
             reason = reason or 'missing_recommendation_id'
         if rec_ids[canonical([r.get('source_namespace'), r.get('recommendation_id')])] > 1:
             reason = reason or 'duplicate_recommendation_id'
+        decision = None
         try:
             decision = timestamp(r.get('decision_at_utc'))
             known = timestamp(r.get('available_at_utc'))
@@ -498,7 +621,11 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
         except (ValueError, TypeError, OverflowError):
             reason = reason or 'missing_or_invalid_decision_clocks'
         if reason:
-            base['reason'] = reason; paths.append(base); continue
+            base['reason'] = reason
+            paths.append(base)
+            if diagnostics is not None:
+                diagnostics.add(r, lineage_reason, decision, base)
+            continue
         base['identity'] = dict(zip(IDENTITY, _identity(r)))
         base['windows'] = {'entry_start': decision.isoformat(), 'entry_end': entry_end.isoformat(),
                            'exit_start': exit_start.isoformat(), 'exit_end': exit_end.isoformat()}
@@ -521,6 +648,8 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
                         exit={**_witness(exit_quote), 'replay_price': exit_quote['bid']},
                         label_available_at_utc=exit_end.isoformat())
         paths.append(base)
+        if diagnostics is not None:
+            diagnostics.add(r, lineage_reason, decision, base)
     report = {'schema_version': VERSION, 'policy': asdict(policy),
               'policy_sha256': digest(asdict(policy)), 'as_of_utc': as_of.isoformat(),
               'runtime_active': False, 'broker_fills': False, 'paths': paths,
@@ -531,6 +660,10 @@ def join_quote_paths(recommendations, quotes, *, policy: ReplayPolicy, as_of_utc
                   'excluded_by_reason': dict(sorted(Counter(p['reason'] for p in paths if p['reason']).items())),
                   'input_quote_rows': len(quotes), 'invalid_quotes_by_reason': dict(sorted(invalid.items()))}}
     report['report_sha256'] = digest(report)
+    sidecar = diagnostics.finish(report) if diagnostics is not None else None
+    if coverage_diagnostics is not None:
+        coverage_diagnostics.clear()
+        coverage_diagnostics.update(sidecar)
     if operation_counts is not None:
         operation_counts.clear()
         operation_counts.update(dict(sorted(metrics.items())))
