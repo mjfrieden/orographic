@@ -17,6 +17,7 @@ REGISTRY = {
     'cirrus_retained_earnings': ('review_required', 'Existing provider-derived earnings evidence; historical and redistribution rights unverified.'),
     'cirrus_tier1_calendar': ('review_required', 'Existing curated calendar; URL attribution is not vintage or licensing proof.'),
     'bls_public_archive': ('public_domain_reviewed', 'BLS-authored public-domain archive only; no API ingestion; publication time must be evidenced.'),
+    'fed_public_statement': ('review_required', 'Board-authored FOMC statement facts only; document-specific rights and publication evidence require review; excludes regional banks and third-party material.'),
     'sec_public_filing': ('review_required', 'Public accessibility and no API key do not prove all reuse rights or event timing.'),
     'fred_alfred': ('blocked_permission_required', 'Do not ingest FRED or ALFRED without a separately authorized permission review.'),
     'synthetic_fixture': ('fixture_only', 'Synthetic unit-test evidence only; never production/backtest readiness.'),
@@ -131,7 +132,7 @@ def normalize(record, *, source_id, artifact_sha256, pointer, provenance=None):
         raise ValueError('field_evidence must be an object')
     row = {key: _text(record.get(key), key) for key in ('event_id', 'issuer_id', 'ticker', 'revision_id')}
     row['kind'] = record.get('kind')
-    if row['kind'] not in {'earnings_schedule', 'macro_schedule', 'macro_release', 'earnings_release'}:
+    if row['kind'] not in {'earnings_schedule', 'macro_schedule', 'macro_release', 'earnings_release', 'sec_filing_release'}:
         raise ValueError('unsupported event kind')
     reasons = []
     if record.get('status') not in (None, 'scheduled', 'released', 'confirmed') or record.get('error'):
@@ -157,7 +158,7 @@ def normalize(record, *, source_id, artifact_sha256, pointer, provenance=None):
         reasons.append('precise_schedule_unavailable')
     if row['event_id'] is None:
         reasons.append('stable_event_id_unavailable')
-    if row['kind'].startswith('earnings') and row['issuer_id'] is None:
+    if (row['kind'].startswith('earnings') or row['kind'] == 'sec_filing_release') and row['issuer_id'] is None:
         reasons.append('stable_issuer_id_unavailable')
     if row['available_at'] is not None:
         for field in ('first_public_at', 'first_seen_at'):

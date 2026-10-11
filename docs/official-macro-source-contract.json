@@ -1,0 +1,46 @@
+{
+  "schema_version": "official-macro-reviewed-extraction-v1",
+  "status": "local_offline_review_candidate",
+  "activation": false,
+  "network_requests": 0,
+  "source_families": [
+    "BLS archived CPI",
+    "BLS archived Employment Situation",
+    "Board FOMC statement metadata"
+  ],
+  "input_format": "local reviewed JSON extraction sidecar plus retained UTF-8 source bytes; not official JSON",
+  "bounds": {
+    "source_bytes": 1048576,
+    "sidecar_bytes": 16384,
+    "observations_per_import": 1
+  },
+  "history_class": "reconstructed",
+  "as_of_clocks": "always null; no supplied reviewer or receipt claim grants eligibility",
+  "metric_scope": {
+    "cpi_all_items_sa_mom": "pct_mom; seasonally adjusted CPI-U all-items",
+    "nonfarm_payroll_sa_change": "persons_change; seasonally adjusted nonfarm payroll change"
+  },
+  "expected": null,
+  "prior": null,
+  "fomc_values": null,
+  "registry_change": "fed_public_statement review_required only",
+  "calendar_parser": "reuse existing inactive v2.1 preparation; not copied or activated",
+  "evidence_authentication": "not provided; reviewed byte spans establish integrity only",
+  "immutable_versions": "source SHA256 plus canonical event envelope and exact sidecar; scoped SQL guards",
+  "forbidden_sources": [
+    "FRED",
+    "ALFRED",
+    "Cboe",
+    "BEA key-based API"
+  ],
+  "next_gates": [
+    "independent exact-patch review",
+    "separately authorized genuine bounded capture",
+    "validate genuine source format",
+    "document-specific rights and attribution/retrieval-date review",
+    "separately trusted source-publication and system-availability proof contract",
+    "coverage and freshness policy"
+  ],
+  "execution_ready": false,
+  "backtest_ready": false
+}
