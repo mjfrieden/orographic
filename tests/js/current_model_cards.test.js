@@ -93,3 +93,94 @@ test('cards show research separately and architecture after all cards', () => {
     assert.ok(root.textContent.indexOf('Noon three-session tail ensemble') < root.textContent.indexOf('How the systems fit together'));
   } finally { globalThis.document = previous; }
 });
+
+test('empty snapshot gives an explicit empty state without unsupported architecture claims', () => {
+  const previous = globalThis.document; globalThis.document = { createElement: () => new Node() };
+  try {
+    const root = new Node(); renderCards(root, validateCards({ schema_version: 1, cards: [] }));
+    assert.match(root.textContent, /No model cards are present/);
+    assert.match(root.textContent, /No model identity or performance can be assessed/);
+    assert.match(root.textContent, /Refresh snapshots/);
+    assert.doesNotMatch(root.textContent, /How the systems fit together|studies above|Validation sample/);
+    assert.equal(root.children.at(-1).href, MODEL_SOURCE);
+  } finally { globalThis.document = previous; }
+});
+test('replay returns reject malformed and overflowing values but retain losses and missing evidence', () => {
+  const fixture = JSON.parse(readFileSync(new URL('../../web/data/diagnostics/current_model_cards_latest.json', import.meta.url)));
+  for (const key of ['mean_return', 'median_return']) {
+    for (const value of [true, false, '0.5', {}, [], undefined, NaN, Infinity, -Infinity, 1e308]) {
+      const data = structuredClone(fixture); data.cards[2].replay[key] = value;
+      assert.throws(() => validateCards(data), /Invalid replay evidence/);
+    }
+    for (const value of [null, 0, -.4432, 1.5]) {
+      const data = structuredClone(fixture); data.cards[2].replay[key] = value; assert.equal(validateCards(data), data);
+    }
+  }
+});
+test('missing replay percentages never acquire a percent sign', async () => {
+  const { formatReturn } = await import('../../web/atmosphere/model-cards.js');
+  for (const value of [null, undefined, '', '0.5', false, NaN, Infinity, 1e308]) assert.equal(formatReturn(value), 'Not reported');
+  assert.equal(formatReturn(0), '0%'); assert.equal(formatReturn(-.4432), '-44.32%'); assert.equal(formatReturn(1.5), '150%');
+  const previous = globalThis.document; globalThis.document = { createElement: () => new Node() };
+  try {
+    const data = JSON.parse(readFileSync(new URL('../../web/data/diagnostics/current_model_cards_latest.json', import.meta.url)));
+    data.cards[2].replay.mean_return = null; data.cards[2].replay.median_return = null;
+    const root = new Node(); renderCards(root, validateCards(data));
+    assert.match(root.textContent, /mean return Not reported; median Not reported\. Not broker P&L/);
+    assert.doesNotMatch(root.textContent, /Not reported%/);
+  } finally { globalThis.document = previous; }
+});
+test('provenance disclosures have distinct accessible names for each card', () => {
+  const previous = globalThis.document; globalThis.document = { createElement: () => new Node() };
+  try {
+    const data = JSON.parse(readFileSync(new URL('../../web/data/diagnostics/current_model_cards_latest.json', import.meta.url)));
+    const root = new Node(); renderCards(root, validateCards(data));
+    const walk = node => [node, ...node.children.flatMap(walk)];
+    const names = walk(root).map(n => n.attributes['aria-label']).filter(n => n && /provenance for|identity for/.test(n));
+    assert.equal(names.length, 8); assert.equal(new Set(names).size, 8);
+    for (const card of data.cards) assert.ok(names.some(name => name.endsWith(card.title)));
+  } finally { globalThis.document = previous; }
+});
+test('disclosures have source-defined keyboard focus and minimum touch target styles', () => {
+  const css = readFileSync(new URL('../../web/atmosphere/model-cards.css', import.meta.url), 'utf8');
+  assert.match(css, /\.current-model-card summary\{[^}]*min-height:44px/);
+  assert.match(css, /\.current-model-card summary:focus-visible\{[^}]*outline:3px/);
+  assert.match(css, /@media\(max-width:760px\)\{\.model-card-grid\{grid-template-columns:1fr\}/);
+});
+test('loading, empty, stale and malformed responses clear busy state and recover on refresh', async () => {
+  const old = { document: globalThis.document, window: globalThis.window };
+  globalThis.document = { createElement: () => new Node() }; globalThis.window = { addEventListener() {} };
+  const requests = [], root = new Node(); const tick = () => new Promise(resolve => setImmediate(resolve));
+  const response = value => new Response(JSON.stringify(value), { headers: { 'content-type': 'application/json' } });
+  try {
+    const { mountModelCards } = await import('../../web/atmosphere/model-cards.js');
+    const refresh = mountModelCards(root, new Node(), { fetcher: () => new Promise(resolve => requests.push(resolve)) });
+    assert.equal(root.attributes['aria-busy'], 'true'); assert.match(root.textContent, /Loading model identity/);
+    requests[0](response({ schema_version: 1, cards: [] })); await tick(); await tick();
+    assert.equal(root.attributes['aria-busy'], 'false'); assert.match(root.textContent, /No model cards are present/);
+    const stale = JSON.parse(readFileSync(new URL('../../web/data/diagnostics/current_model_cards_latest.json', import.meta.url)));
+    stale.runtime_at_utc = '2000-01-01T00:00:00Z'; stale.cards[3].verified_at_utc = '2000-01-01T00:00:00Z';
+    const updating = refresh(); requests[1](response(stale)); await updating;
+    assert.match(root.textContent, /Stale runtime snapshot/); assert.match(root.textContent, /Stale curated source review/);
+    const malformed = refresh(); requests[2](response({schema_version:2,cards:[]})); await malformed;
+    assert.match(root.textContent, /Model cards unavailable/); assert.doesNotMatch(root.textContent, /Directional Scout/); assert.equal(root.attributes['aria-busy'], 'false');
+    const recovered = refresh(); requests[3](response(stale)); await recovered;
+    assert.match(root.textContent, /Directional Scout/); assert.equal(root.attributes['aria-busy'], 'false');
+  } finally { Object.assign(globalThis, old); }
+});
+test('request timeout clears loading and permits a later refresh', async t => {
+  const old = { document: globalThis.document, window: globalThis.window };
+  globalThis.document = { createElement: () => new Node() }; globalThis.window = { addEventListener() {} };
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const root = new Node(); let timeoutSignal;
+  try {
+    const { mountModelCards } = await import('../../web/atmosphere/model-cards.js');
+    const refresh = mountModelCards(root, new Node(), { fetcher: (url, { signal }) => new Promise((resolve, reject) => {
+      timeoutSignal = signal; signal.addEventListener('abort', () => reject(new Error('aborted')));
+    }) });
+    t.mock.timers.tick(15000); await Promise.resolve(); await Promise.resolve();
+    assert.equal(timeoutSignal.aborted, true); assert.match(root.textContent, /Model cards unavailable/); assert.equal(root.attributes['aria-busy'], 'false');
+    const again = refresh(); assert.equal(timeoutSignal.aborted, false); assert.equal(root.attributes['aria-busy'], 'true');
+    t.mock.timers.tick(15000); await again; assert.equal(root.attributes['aria-busy'], 'false');
+  } finally { t.mock.timers.reset(); Object.assign(globalThis, old); }
+});
