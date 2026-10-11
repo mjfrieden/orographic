@@ -147,3 +147,54 @@ a standard-looking option symbol nor contract_size=100 alone verifies corporate
 action/adjusted deliverable status. The strict v1 guard is not relaxed by this
 assessment. Availability semantics, identity review and complete retained paths
 still need evidence before any recommendation outcomes can qualify.
+
+
+## Optional coverage diagnostics sidecar
+
+`coverage_diagnostics={}` is a separate optional output dictionary following
+`operation_counts`. It is replaced only after a successful join. Its independent
+`atmosphere-quote-replay-coverage-v1` schema/hash links the unchanged frozen-v1
+replay report hash, policy hash and normalized UTC audit cutoff. It does not add
+fields to or change the returned replay report, quote selection or exclusions.
+
+Cohorts count recommendation input rows (including duplicates), eligible quote
+replays, excluded rows and first blockers by verified retained source namespace
+and UTC decision date. Source verification means exact retained-byte lineage
+restoration, not independent endorsement of provider facts. Date grouping uses
+only an explicit, timezone-aware decision timestamp from a lineage-verified row.
+Malformed/missing dates use a null date with `missing_or_invalid_date`; unverified
+lineage uses null source and date with `unverified_source`. These typed buckets
+cannot collide with a real namespace of the same name. A valid decision date can
+still group a row whose availability clock or another guard excludes replay.
+Cohorts are sorted by canonical JSON of the `(namespace, date)` pair. Counts sum
+to the global recommendation totals; excluded counts report only the first
+failed guard, not a complete missing-evidence inventory. Recommendation duplicates
+are not deduplicated or presented as independent observations.
+
+Quote exclusions remain global: a rejected quote is not attributed to a
+recommendation cohort merely because a ticker, claimed namespace or date matches.
+Reason-to-next-evidence guidance names retained bytes/lineage, independently
+reviewed identity/deliverables, recorded clocks, entry/exit quote evidence or
+window maturity to review. Unknown future reasons explicitly require review.
+Guidance cannot establish recoverability, waive a guard or promise eligibility.
+This is quote-replay-only coverage, not returns, fills or backtest readiness.
+
+The sidecar consumes the existing recommendation pass and cached lineage verdict;
+it adds no artifact decoding, normalization, quote scanning or window queries.
+At most one cohort is created per bounded input recommendation. Existing row,
+byte and reconstruction bounds apply before outputs are published, and neither
+output dictionary is modified on a limit failure. Supply a separate plain dict
+that does not alias the inputs or the operation-count output. With coverage enabled,
+operation_counts must also be a plain dict. Nested output aliases are rejected
+during existing input/artifact passes; these container checks use the JSON node
+and depth limits, including malformed unused artifact values. Inputs and retained
+source bytes remain unchanged. No CLI, runtime consumer, storage or network
+integration is activated by requesting diagnostics.
+
+Run all adapter checks using the focused unittest command above. The additional
+coverage tests compare all 20 frozen-v1 scenario hashes, reconcile totals, exercise
+malformed and offset dates, unverified lineage, namespace separation, duplicates,
+input permutations, complete reason guidance, unchanged operation counts at
+64/256/1,024 recommendations and bounded failures. These are synthetic mechanical
+checks, not newly recovered real-world outcomes. The full repository suite is
+not implied by these focused results.
