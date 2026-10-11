@@ -314,10 +314,22 @@ export function createWorkbench(root, options = {}) {
     },
   };
 }
+/** BFCache restores a stopped, privacy-cleared instance, not a fresh script boot. */
+export function bindWorkbenchLifecycle(workbench, host = globalThis) {
+  let restoring = false;
+  host.addEventListener?.("pagehide", () => workbench.clearSensitiveData());
+  host.addEventListener?.("pageshow", (event) => {
+    if (!event.persisted || restoring) return;
+    restoring = true;
+    // Keep imported/account data cleared; normal boot revalidates session and account.
+    workbench.clearSensitiveData();
+    host.location.reload();
+  });
+}
 if (typeof document !== "undefined") {
   const root = document.getElementById("evidence-workbench");
   if (root) {
     globalThis.OrographicEvidence = createWorkbench(root);
-    globalThis.addEventListener?.("pagehide", () => globalThis.OrographicEvidence.clearSensitiveData());
+    bindWorkbenchLifecycle(globalThis.OrographicEvidence);
   }
 }
