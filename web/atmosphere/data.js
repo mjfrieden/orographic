@@ -26,6 +26,10 @@ export async function fetchSnapshot(kind, { signal, fetcher = fetch } = {}) {
   return data;
 }
 export function count(value) { return Number.isSafeInteger(value) && value >= 0 ? value.toLocaleString('en-US', { maximumFractionDigits: 0 }) : 'Not reported'; }
+// A displayed result must agree with the snapshot's valid count threshold.
+export function validGate(gate) {
+  return Number.isSafeInteger(gate?.actual) && gate.actual >= 0 && Number.isSafeInteger(gate?.required) && gate.required > 0 && typeof gate.passed === 'boolean' && gate.passed === (gate.actual >= gate.required);
+}
 export function finite(value) { return typeof value === 'number' && Number.isFinite(value); }
 export function compatible(sync, shadow) { return Boolean(typeof sync?.mart_id === 'string' && sync.mart_id.trim() && typeof shadow?.mart_id === 'string' && shadow.mart_id.trim() && sync.mart_id === shadow.mart_id); }
 export function safeText(value) { return typeof value === 'string' ? value.slice(0, 240) : ''; }

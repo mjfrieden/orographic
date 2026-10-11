@@ -1,6 +1,5 @@
-import { compatible, count, timestamp, SOURCES } from './data.js';
+import { compatible, count, timestamp, SOURCES, validGate } from './data.js';
 
-const validCount = value => Number.isSafeInteger(value) && value >= 0;
 const pick = (object, path) => path.split('.').reduce((value, key) => value?.[key], object);
 const sourceNames = { all: 'Shared evidence', orographic: 'Orographic', cirrus: 'Cirrus' };
 export function snapshotAge(value, now = Date.now()) {
@@ -39,7 +38,7 @@ export function readinessModel(sync, shadow, source = 'all', now = Date.now()) {
   }
   const gates = ['paired_executable_outcomes', 'paired_market_dates', 'direct_return_comparable_pairs', 'direct_return_comparable_market_dates', 'live_direct_return_comparable_pairs', 'live_direct_return_comparable_market_dates'].map(key => {
     const gate = shadow?.shadow_entry_gates?.[key];
-    const available = validCount(gate?.actual) && validCount(gate?.required) && gate.required > 0 && typeof gate.passed === 'boolean' && gate.passed === (gate.actual >= gate.required);
+    const available = validGate(gate);
     return { key, actual: gate?.actual, required: gate?.required, status: available ? (gate.passed ? 'Met' : 'Not met') : 'Not reported' };
   });
   return { source, sync, shadow, matched, metrics, gates, age: snapshotAge(shadow?.generated_at_utc ?? sync?.generated_at_utc, now) };
