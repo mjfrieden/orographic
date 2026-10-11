@@ -27,7 +27,7 @@ export function validateCards(data) {
       if (card.sample_size !== null && (!Number.isSafeInteger(card.sample_size) || card.sample_size < 0)) throw new Error('Invalid sample size.');
       const quantity = value => value === null || (Number.isSafeInteger(value) && value >= 0);
       if (card.training_class_counts && !['call_edge', 'put_edge', 'no_trade'].every(key => quantity(card.training_class_counts[key]))) throw new Error('Invalid training class counts.');
-      if (card.replay && !quantity(card.replay.sample_size)) throw new Error('Invalid replay sample size.');
+      if (card.replay && (!quantity(card.replay.sample_size) || !['mean_return', 'median_return'].every(key => card.replay[key] === null || (typeof card.replay[key] === 'number' && Number.isFinite(card.replay[key] * 100))))) throw new Error('Invalid replay evidence.');
       for (const metric of card.metrics) {
         if (!metric || !text(metric.label) || !text(metric.context) || (metric.value !== null && (typeof metric.value !== 'number' || !Number.isFinite(metric.value) || metric.value < 0 || metric.value > 1))) throw new Error('Invalid model metric.');
       }
@@ -35,11 +35,17 @@ export function validateCards(data) {
   }
   return data;
 }
+export function formatReturn(value) { return typeof value === 'number' && Number.isFinite(value * 100) ? `${formatMetric(value * 100)}%` : 'Not reported'; }
 export function formatMetric(value) { return typeof value === 'number' && Number.isFinite(value) ? value.toLocaleString('en-US', { maximumFractionDigits: 4 }) : 'Not reported'; }
 const el = (tag, text, cls) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (cls) node.className = cls; return node; };
 export function renderCards(root, data) {
   root.replaceChildren(el('p', 'Model identity & evaluation', 'eyebrow'), el('h2', 'Current model cards'));
   root.append(el('p', `${freshness(data)} · Last observed Orographic runtime: ${timestamp(data.runtime_at_utc)}`), el('p', 'Orographic cards follow the existing scan publication. Cirrus uses a separately dated, manually reviewed summary. A new scan does not mean a new model, source review, or evaluation. Each task has its own labels and population.', 'muted'));
+  if (!data.cards.length) {
+    root.append(el('p', 'No model cards are present in this snapshot. No model identity or performance can be assessed. Refresh snapshots to check again.', 'notice'));
+    const source = el('a', 'View generated model-card snapshot'); source.href = MODEL_SOURCE; root.append(source);
+    return;
+  }
   const grid = el('div', undefined, 'model-card-grid');
   for (const card of data.cards) {
     const box = el('article', undefined, 'current-model-card');
@@ -50,7 +56,7 @@ export function renderCards(root, data) {
       box.append(el('p', safeText(card.role)), el('p', `${curatedFreshness(card)} · Verified as of: ${timestamp(card.verified_at_utc)}`), el('p', safeText(card.refresh_policy), 'muted'), el('p', `Evidence window: ${safeText(card.evaluation_window)}`), el('p', `Population: ${safeText(card.population)}`));
       if (card.evidence_kind === 'discovery_study') box.append(el('p', `Research completed: ${timestamp(card.evaluation_completed_at)} · Historical discovery only`, 'notice'));
       const results = el('ul'); for (const item of card.evaluation_summary) results.append(el('li', safeText(item))); box.append(results);
-      const provenance = el('details'); provenance.append(el('summary', 'Curated source provenance'), el('p', safeText(card.source_description)), el('p', `Reviewed source revision: ${card.source_revision}`), el('p', `Public summary SHA-256: ${card.source_sha256}`)); box.append(provenance);
+      const provenance = el('details'); const summary = el('summary', 'Curated source provenance'); summary.setAttribute('aria-label', `Curated source provenance for ${safeText(card.title)}`); provenance.append(summary, el('p', safeText(card.source_description)), el('p', `Reviewed source revision: ${card.source_revision}`), el('p', `Public summary SHA-256: ${card.source_sha256}`)); box.append(provenance);
     }
     if (matched) {
       box.append(el('p', `Historical evaluation: ${safeText(card.evaluation_window)}`), el('p', `Population: ${safeText(card.population)}`), el('p', `Validation sample: ${formatMetric(card.sample_size)} rows`));
@@ -61,10 +67,10 @@ export function renderCards(root, data) {
       for (const metric of card.metrics) { const group = el('div'); group.append(el('dt', safeText(metric.label)), el('dd', formatMetric(metric.value)), el('p', safeText(metric.context), 'muted')); metrics.append(group); }
       box.append(metrics);
       if (card.training_class_counts) box.append(el('p', `Training classes: call ${formatMetric(card.training_class_counts.call_edge)}, put ${formatMetric(card.training_class_counts.put_edge)}, no trade ${formatMetric(card.training_class_counts.no_trade)}.`));
-      if (card.replay) box.append(el('p', `Separate selected-policy quote replay: ${formatMetric(card.replay.sample_size)} selections; mean return ${formatMetric(typeof card.replay.mean_return === 'number' ? card.replay.mean_return * 100 : null)}%; median ${formatMetric(typeof card.replay.median_return === 'number' ? card.replay.median_return * 100 : null)}%. Not broker P&L.`));
+      if (card.replay) box.append(el('p', `Separate selected-policy quote replay: ${formatMetric(card.replay.sample_size)} selections; mean return ${formatReturn(card.replay.mean_return)}; median ${formatReturn(card.replay.median_return)}. Not broker P&L.`));
     }
     const list = el('ul'); for (const item of card.limitations) list.append(el('li', safeText(item))); box.append(list);
-    if (/^[a-f0-9]{64}$/.test(card.model_sha256 || '')) { const details = el('details'); details.append(el('summary', 'Model and source identity'), el('p', `Model artifact SHA-256 (declared): ${card.model_sha256}`), el('p', `Scaler SHA-256 (when applicable): ${safeText(card.scaler_sha256) || 'Not applicable'}`), el('p', `Source-card SHA-256: ${safeText(card.source_sha256)}`), el('p', `Source: ${safeText(card.source_path)}`)); box.append(details); }
+    if (/^[a-f0-9]{64}$/.test(card.model_sha256 || '')) { const details = el('details'); const summary = el('summary', 'Model and source identity'); summary.setAttribute('aria-label', `Model and source identity for ${safeText(card.title)}`); details.append(summary, el('p', `Model artifact SHA-256 (declared): ${card.model_sha256}`), el('p', `Scaler SHA-256 (when applicable): ${safeText(card.scaler_sha256) || 'Not applicable'}`), el('p', `Source-card SHA-256: ${safeText(card.source_sha256)}`), el('p', `Source: ${safeText(card.source_path)}`)); box.append(details); }
     grid.append(box);
   }
   root.append(grid);
@@ -76,7 +82,7 @@ export function renderCards(root, data) {
   ]) {
     const lane = el('div', undefined, 'model-flow'); lane.append(el('h4', title)); const list = el('ol'); for (const step of steps) list.append(el('li', step)); lane.append(list); architecture.append(lane);
   }
-  architecture.append(el('p', 'Cirrus design is a curated snapshot, not verification of its currently served release. The two inactive studies above are outside the email-model path. These cards do not change trading authority.'));
+  architecture.append(el('p', 'Cirrus design is a curated snapshot, not verification of its currently served release. Inactive discovery studies are outside the email-model path. These cards do not change trading authority.'));
   root.append(architecture);
   const source = el('a', 'View generated model-card snapshot'); source.href = MODEL_SOURCE; root.append(source);
 }
