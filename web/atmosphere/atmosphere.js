@@ -1,5 +1,5 @@
 import { mountReadiness } from './readiness.js';
-import { fetchSnapshot, compatible, count, timestamp, safeText, TOPICS, catalogRows, filterRows, metricValue, LIMITS } from './data.js';
+import { fetchSnapshot, compatible, count, timestamp, safeText, TOPICS, catalogRows, filterRows, metricValue, LIMITS, validGate } from './data.js';
 const $ = id => document.getElementById(id);
 const el = (tag, text, className) => { const node = document.createElement(tag); if (text !== undefined) node.textContent = text; if (className) node.className = className; return node; };
 const label = key => key.replaceAll('_', ' ').replace(/\b(orographic|cirrus)\b/g, word => word[0].toUpperCase() + word.slice(1));
@@ -39,7 +39,7 @@ function renderSummary() {
   if (!data || typeof data !== 'object') { $('summary').append(el('p', 'This summary is not available in the evidence snapshot.')); return; }
   $('summary').append(el('p', `Evidence generated ${timestamp(state.shadow.generated_at_utc)} · ${metrics.length} selected aggregate metrics`, 'muted'));
   const list = el('dl', undefined, 'metrics');
-  for (const metric of metrics) { const card = el('div', undefined, 'metric'); let value = metricValue(metric, data[metric]); if (key === 'shadow_entry_gates') { const gate = data[metric]; value = !gate || typeof gate.passed !== 'boolean' ? 'Not reported' : `${gate.passed ? 'Pass' : 'Not met'} · ${count(gate.actual)} / ${count(gate.required)}`; } card.append(el('dt', label(metric)), el('dd', value)); list.append(card); }
+  for (const metric of metrics) { const card = el('div', undefined, 'metric'); let value = metricValue(metric, data[metric]); if (key === 'shadow_entry_gates') { const gate = data[metric]; value = !validGate(gate) ? 'Not reported' : `${gate.passed ? 'Pass' : 'Not met'} · ${count(gate.actual)} / ${count(gate.required)}`; } card.append(el('dt', label(metric)), el('dd', value)); list.append(card); }
   $('summary').append(list);
 }
 async function refresh() {

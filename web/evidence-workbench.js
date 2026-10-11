@@ -1,3 +1,4 @@
+import { accountReturnsHtml, createReturnReceiptReader } from './account-returns.js';
 import { createGainLossLoader } from './gainloss-history.js';
 /** Read-only presentation of already loaded evidence. Never fetches or routes orders. */
 const escape = (value) => String(value ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -128,7 +129,7 @@ export function accountHtml(data) {
     ${!value.available ? notice(broker.loading ? "Refreshing account snapshot" : "Account values unavailable", broker.loading ? "Values will appear when the current account refresh completes." : "Use Refresh Tradier in Open Positions to reload account balances. Missing values are not zero.") : ""}
     <dl class="ew-metrics ew-account-metrics">${metric("Net liquidation", money(value.equity), "Current account value")}${metric("Closed P&L · current session", money(value.closed), "Broker-reported closed positions")}${metric("Open-position P&L", money(value.open), "Unrealized; current positions")}${metric("Cash balance", money(value.cash), "Not a performance measure")}</dl>
     <p class="ew-source">${value.available ? `Account retrieved ${escape(stamp(broker.lastLoadedAt))}` : "No current verified account snapshot"}</p>
-    ${notice("Period returns are not available yet", "No cash-flow-adjusted return or equity curve is available. Closed-history records below reconcile separately from this snapshot. Never add their subtotal to current-session closed P&L.")}`;
+    ${notice("Period returns are not available from the broker snapshot", "Closed-history records reconcile separately from this snapshot. Never add their subtotal to current-session closed P&L. Local return receipts below are separate, user-supplied evidence.")}`;
 }
 
 export function historyRows(state, filters = {}) {
@@ -202,6 +203,8 @@ export function createWorkbench(root, options = {}) {
   let identity = null;
   let stopped = false;
   let history = { pages: [], loading: false, error: null, loaded: false };
+  let returns = {};
+  const receiptReader = createReturnReceiptReader((next) => { returns = next; if (tab === "performance" && performance === "account") render(); });
   let historyFilters = { symbol: "", from: "", to: "", result: "all" };
   const historyLoader = mode === "research" ? null : createGainLossLoader((next) => { history = next; if (tab === "performance" && performance === "account") render(); });
   const panels = new Map((mode === "trading" ? ["performance"] : ["model", "changes", "performance"]).map((key) => [key, root.querySelector(`#ew-panel-${key}`)]));
@@ -228,7 +231,7 @@ export function createWorkbench(root, options = {}) {
     if (tab === "changes") panel.innerHTML = changesHtml(data, changeFilter);
     if (tab === "performance" && mode === "research") panel.innerHTML = researchHtml(data);
     else if (tab === "performance") {
-      panel.innerHTML = `<div class="ew-segments" role="group" aria-label="Performance evidence source">${(mode === "trading" ? [["account", "Account"], ["quotes", "Quoted recommendation outcomes"]] : [["account", "Account"], ["quotes", "Quoted outcomes"], ["research", "Research"]]).map(([key, label]) => `<button class="quiet-button" type="button" data-ew-performance="${key}" aria-pressed="${performance === key}">${label}</button>`).join("")}</div><section aria-label="Selected performance evidence">${performance === "account" ? accountHtml(data) + historyHtml(history, historyFilters, data.session) : performance === "quotes" ? quotesHtml(data, horizon) : researchHtml(data)}</section>`;
+      panel.innerHTML = `<div class="ew-segments" role="group" aria-label="Performance evidence source">${(mode === "trading" ? [["account", "Account"], ["quotes", "Quoted recommendation outcomes"]] : [["account", "Account"], ["quotes", "Quoted outcomes"], ["research", "Research"]]).map(([key, label]) => `<button class="quiet-button" type="button" data-ew-performance="${key}" aria-pressed="${performance === key}">${label}</button>`).join("")}</div><section aria-label="Selected performance evidence">${performance === "account" ? accountHtml(data) + accountReturnsHtml(returns, data.session, data.broker) + historyHtml(history, historyFilters, data.session) : performance === "quotes" ? quotesHtml(data, horizon) : researchHtml(data)}</section>`;
     }
     root.querySelectorAll("details[data-ew-key]").forEach((node) => { node.open = openDetails.has(node.dataset.ewKey); });
     if (focus) {
@@ -245,6 +248,7 @@ export function createWorkbench(root, options = {}) {
     }
   }
   root.addEventListener("click", (event) => {
+    if (event.target.closest("#ew-returns-clear")) { receiptReader.clear(); return; }
     const action = event.target.closest("#ew-history-load, #ew-history-older, #ew-history-clear");
     if (action && root.contains(action)) {
       if (stopped || data.session?.session?.role !== "admin") return;
@@ -266,6 +270,12 @@ export function createWorkbench(root, options = {}) {
     }
   });
   root.addEventListener("change", (event) => {
+    if (event.target.id === "ew-returns-import") {
+      if (stopped || data.session?.authenticated !== true || data.session?.session?.role !== "admin") return;
+      const file = event.target.files?.[0];
+      if (file) receiptReader.load(file, { accountId: data.broker?.accountId, mode: data.broker?.mode });
+      return;
+    }
     if (event.target.id === "ew-change-filter") changeFilter = event.target.value;
     else if (event.target.id === "ew-quote-horizon") horizon = event.target.value;
     else if (event.target.id.startsWith("ew-history-")) {
@@ -291,13 +301,14 @@ export function createWorkbench(root, options = {}) {
       const changedIdentity = identity !== null && identity !== nextIdentity;
       identity = nextIdentity; data = merged;
       if (changedIdentity) {
+        receiptReader.clear();
         if (panels.get("performance")) panels.get("performance").innerHTML = "";
         historyLoader?.reset(); historyFilters = { symbol: "", from: "", to: "", result: "all" };
       }
       render();
     },
     clearSensitiveData() {
-      stopped = true; data = { ...data, broker: null, session: { authenticated: false } };
+      stopped = true; receiptReader.clear(); data = { ...data, broker: null, session: { authenticated: false } };
       if (panels.get("performance")) panels.get("performance").innerHTML = "";
       historyLoader?.reset(); historyFilters = { symbol: "", from: "", to: "", result: "all" }; render();
     },

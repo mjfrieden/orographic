@@ -1,3 +1,4 @@
+import { renderModelHistory } from './model-history.js';
 import { readBoundedJson, timestamp, safeText } from './data.js';
 export const MODEL_SOURCE = '/data/diagnostics/current_model_cards_latest.json';
 export function freshness(data, now = Date.now()) {
@@ -43,6 +44,7 @@ export function renderCards(root, data) {
   root.append(el('p', `${freshness(data)} · Last observed Orographic runtime: ${timestamp(data.runtime_at_utc)}`), el('p', 'Orographic cards follow the existing scan publication. Cirrus uses a separately dated, manually reviewed summary. A new scan does not mean a new model, source review, or evaluation. Each task has its own labels and population.', 'muted'));
   if (!data.cards.length) {
     root.append(el('p', 'No model cards are present in this snapshot. No model identity or performance can be assessed. Refresh snapshots to check again.', 'notice'));
+    renderModelHistory(root, data);
     const source = el('a', 'View generated model-card snapshot'); source.href = MODEL_SOURCE; root.append(source);
     return;
   }
@@ -84,6 +86,7 @@ export function renderCards(root, data) {
   }
   architecture.append(el('p', 'Cirrus design is a curated snapshot, not verification of its currently served release. Inactive discovery studies are outside the email-model path. These cards do not change trading authority.'));
   root.append(architecture);
+  renderModelHistory(root, data);
   const source = el('a', 'View generated model-card snapshot'); source.href = MODEL_SOURCE; root.append(source);
 }
 export function mountModelCards(root, button, { fetcher = fetch } = {}) {
@@ -100,6 +103,7 @@ export function mountModelCards(root, button, { fetcher = fetch } = {}) {
     } catch (error) {
       if (current !== generation) return;
       root.replaceChildren(el('h2', 'Current model cards'), el('p', 'Model cards unavailable. No saved performance values are being shown. Refresh to retry.', 'notice'));
+      renderModelHistory(root, null);
       if (error?.code === 'auth') { const link = el('a', 'Sign in again'); link.href = '/login/?next=%2Fatmosphere%2F'; root.append(link); }
     } finally { clearTimeout(timer); if (current === generation) root.setAttribute('aria-busy', 'false'); }
   }
