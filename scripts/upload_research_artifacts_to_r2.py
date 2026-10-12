@@ -25,6 +25,8 @@ ARCHIVE_ROOT = "orographic/research-data"
 CANONICAL_PREFIX = "orographic/evidence-canonical/current"
 CIRRUS_EXPORT_ROOT = "cirrus"
 CIRRUS_EXPORT_PREFIX = "cirrus/options_research_bundle/current"
+# Wrangler's object-put transport limit, not R2's larger S3 object limit.
+WRANGLER_MAX_UPLOAD_BYTES = 300 * 1024 * 1024
 # Cheap extra listings for bundles uploaded under the wrong root. Do not list
 # orographic/research-data/ — that prefix is the live-options archive.
 CIRRUS_EXPORT_SEARCH_PREFIXES = (
@@ -193,6 +195,22 @@ def _upload_archive(
             print("Cloudflare account/token unavailable; snapshot manifest uploaded without catalog refresh.")
 
 
+def _preflight_upload_sizes(paths: list[Path]) -> None:
+    oversized: list[str] = []
+    for path in paths:
+        size = path.stat().st_size
+        if size > WRANGLER_MAX_UPLOAD_BYTES:
+            oversized.append(f"{path}: {size} bytes")
+    if oversized:
+        raise ValueError(
+            "Canonical R2 upload size preflight failed before any upload: "
+            + "; ".join(oversized)
+            + f". Wrangler limit is {WRANGLER_MAX_UPLOAD_BYTES} bytes (300 MiB). "
+            "The current manifest has not been published. Preserve all evidence; "
+            "use a reviewed lossless transport change rather than truncation."
+        )
+
+
 def _upload_canonical(*, bucket: str, prefix: str, bundle: Path) -> None:
     manifest = validate_canonical_bundle(bundle)
     # Immutable destinations make publishing the current manifest the sole commit
@@ -201,10 +219,17 @@ def _upload_canonical(*, bucket: str, prefix: str, bundle: Path) -> None:
     for record in manifest["files"]:
         relative = str(record["path"])
         record["object_key"] = f"{prefix}-bundles/{generation}/{relative}"
-        _put_object(bucket, record["object_key"], bundle / relative)
     with tempfile.TemporaryDirectory(prefix="orographic-publish-") as tmpdir:
         published = Path(tmpdir) / "evidence_manifest.json"
         published.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        # Check the complete plan, including the serialized commit point, before
+        # starting Wrangler. A late oversized artifact must not leave a partial
+        # generation behind or waste uploads of earlier, valid artifacts.
+        _preflight_upload_sizes(
+            [bundle / str(record["path"]) for record in manifest["files"]] + [published]
+        )
+        for record in manifest["files"]:
+            _put_object(bucket, record["object_key"], bundle / str(record["path"]))
         _put_object(bucket, f"{prefix}/evidence_manifest.json", published)
 
 
