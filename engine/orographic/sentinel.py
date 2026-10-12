@@ -629,6 +629,12 @@ def fetch_ai_multiplier(
     default_score.source = "default+structured_event_model"
     default_score.mode = sentinel_mode
 
+    # Explicit offline Sentinel opt-in; production behavior remains unchanged.
+    # Return before both Yahoo news lookup and the production AI endpoint POST.
+    if os.getenv("OROGRAPHIC_SENTINEL_DISABLE_NETWORK", "").strip() == "1":
+        default_score.rationale = "Sentinel network disabled; using local structured-event model."
+        return default_score
+
     try:
         news_items = yf.Ticker(symbol).news
         if not news_items:

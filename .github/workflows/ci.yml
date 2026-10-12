@@ -56,6 +56,9 @@ jobs:
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 
       - name: Snapshot smoke test
+        env:
+          # Keep real scan/validation coverage without production Sentinel calls.
+          OROGRAPHIC_SENTINEL_DISABLE_NETWORK: "1"
         run: |
           python engine/run_scan.py \
             --output /tmp/orographic_ci_latest.json \
