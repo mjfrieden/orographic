@@ -74,6 +74,20 @@ def build_shared_mart_shadow_evidence(consumer_dir: str | Path) -> dict[str, Any
                 avg(final_path_return) AS avg_final_path_return
             FROM per_recommendation
         """)
+        # Preserve bounded exclusion reasons even though invalid entries cannot
+        # contribute returns. Population: recommendations with non-entry path
+        # observations, not all recommendations or executable-label rows.
+        exit_summary.update(_record(connection, f"""
+            SELECT
+                count(*) FILTER (WHERE exit_replay_entry_eligibility_reason = 'crossed_entry_quote')
+                    AS crossed_entry_recommendations_with_path_quotes,
+                count(*) FILTER (WHERE exit_replay_entry_eligibility_reason = 'missing_or_invalid_entry_ask')
+                    AS invalid_ask_recommendations_with_path_quotes,
+                count(*) FILTER (WHERE exit_replay_entry_eligibility_reason = 'missing_or_invalid_entry_bid')
+                    AS invalid_bid_recommendations_with_path_quotes
+            FROM read_parquet('{execution}')
+            WHERE quote_observations > 0
+        """))
         disagreement_summary = _record(connection, f"""
             SELECT
                 count(*) AS daily_symbol_comparisons,

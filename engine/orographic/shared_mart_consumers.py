@@ -13,7 +13,7 @@ import uuid
 from .shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS, validate_shared_research_mart
 
 
-CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v4"
+CONSUMER_SCHEMA_VERSION = "orographic_shared_mart_consumers_v5"
 PRODUCTION_AUTHORITY = "observation_only_never_used_for_routing"
 
 
@@ -131,6 +131,14 @@ VIEW_SQL: dict[str, str] = {
             r.entry_bid,
             r.entry_ask,
             r.entry_mid,
+            CASE
+                WHEN r.entry_ask IS NULL OR NOT isfinite(r.entry_ask) OR r.entry_ask <= 0
+                    THEN 'missing_or_invalid_entry_ask'
+                WHEN r.entry_bid IS NULL OR NOT isfinite(r.entry_bid) OR r.entry_bid < 0
+                    THEN 'missing_or_invalid_entry_bid'
+                WHEN r.entry_ask < r.entry_bid THEN 'crossed_entry_quote'
+                ELSE 'eligible'
+            END AS exit_replay_entry_eligibility_reason,
             CASE WHEN r.entry_bid > 0 AND r.entry_ask >= r.entry_bid AND r.entry_mid > 0
                  THEN (r.entry_ask - r.entry_bid) / r.entry_mid END AS entry_spread_pct,
             r.score,
@@ -182,7 +190,10 @@ VIEW_SQL: dict[str, str] = {
         JOIN option_quotes q USING (recommendation_key)
         WHERE CAST(q.observed_at_utc AS TIMESTAMPTZ) >= CAST(r.decision_at_utc AS TIMESTAMPTZ)
           AND q.quote_source NOT IN ('scan_entry', 'emission_quote', 'archived_entry_mark')
-          AND coalesce(r.entry_ask, r.entry_mid) > 0
+          -- Match fixed-24h entry semantics; never synthesize an ask from mid.
+          AND r.entry_ask > 0 AND isfinite(r.entry_ask)
+          AND r.entry_bid >= 0 AND isfinite(r.entry_bid)
+          AND r.entry_ask >= r.entry_bid
           AND coalesce(q.executable_exit, q.bid) IS NOT NULL
     """,
     "cirrus_orographic_disagreement_v1": """
