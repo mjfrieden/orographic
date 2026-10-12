@@ -178,11 +178,35 @@ function renderCoverage(data) {
 
 function currentFilters() { return { query: byId("trade-search").value, side: byId("trade-side").value, outcome: byId("trade-outcome").value }; }
 
+function filtersAreActive(filters = currentFilters()) {
+  return Boolean(String(filters.query || "").trim()) || (filters.side && filters.side !== "all") || (filters.outcome && filters.outcome !== "all");
+}
+
+function clearTradeFilters() {
+  byId("trade-search").value = "";
+  byId("trade-side").value = "all";
+  byId("trade-outcome").value = "all";
+  visibleTrades = 30;
+  if (artifacts[activeSource]) renderTrades(artifacts[activeSource]);
+}
+
 function renderTrades(data) {
   const filtered = filterTrades(data.all_trades, currentFilters());
   const summary = summarizeTrades(filtered);
   byId("filtered-summary").textContent = `${summary.trades.toLocaleString()} observations · ${pct(summary.winRate)} win rate · ${summary.pnl >= 0 ? "+" : ""}${money(summary.pnl)} executable P&L · ${pct(summary.returnPct)} on deployed capital`;
   const shown = [...filtered].reverse().slice(0, visibleTrades);
+  const clearBtn = byId("clear-trade-filters");
+  if (!filtered.length) {
+    const miss = filtersAreActive();
+    byId("trade-rows").innerHTML = `<tr><td colspan="7" class="trade-empty${miss ? " is-filter-miss" : ""}">${miss
+      ? "No observations match these filters. Clear search or set All sides and All outcomes."
+      : "No trade-level observations in this artifact."}</td></tr>`;
+    byId("trade-count").textContent = miss ? "0 of the loaded observations match" : "Showing 0 of 0 observations";
+    byId("show-more").hidden = true;
+    if (clearBtn) clearBtn.hidden = !miss;
+    return;
+  }
+  if (clearBtn) clearBtn.hidden = true;
   byId("trade-rows").innerHTML = shown.map((trade) => {
     const positive = Number(trade.pnl) >= 0;
     return `<tr><td>${escapeHtml(trade.entry_date)}</td><td><strong>${escapeHtml(trade.symbol)}</strong><span class="pill">${escapeHtml(trade.option_type)}</span></td><td>${escapeHtml(trade.expiry)} · $${Number(trade.strike).toFixed(2)}</td><td>$${Number(trade.entry_price).toFixed(2)} → $${Number(trade.exit_price).toFixed(2)}</td><td>${pct(trade.options_data_coverage_pct, 0)}</td><td class="${positive ? "positive" : "negative"}">${positive ? "+" : ""}${money(trade.pnl)}</td><td class="${positive ? "positive" : "negative"}">${pct(trade.pnl_pct, 0)}</td></tr>`;
@@ -250,6 +274,7 @@ function bindEvents() {
   byId("export-manifest").addEventListener("click", downloadManifest);
   document.querySelectorAll("[data-source]").forEach((button) => button.addEventListener("click", () => { activeSource = button.dataset.source; document.querySelectorAll("[data-source]").forEach((item) => item.classList.toggle("is-active", item === button)); renderArtifact(); }));
   ["trade-search", "trade-side", "trade-outcome"].forEach((id) => byId(id).addEventListener("input", () => { visibleTrades = 30; renderTrades(artifacts[activeSource]); }));
+  byId("clear-trade-filters").addEventListener("click", clearTradeFilters);
   byId("show-more").addEventListener("click", () => { visibleTrades += 30; renderTrades(artifacts[activeSource]); });
   let resizeTimer; window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => artifacts[activeSource] && renderEquity(artifacts[activeSource]), 100); });
 }

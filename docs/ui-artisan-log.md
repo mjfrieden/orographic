@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 98 — 2026-10-12 — Dungeon quest-receipt filter recovery (NN/g H1/H6)
+
+- Filtering quest receipts to a symbol, side, or outcome with no matches no longer leaves a blank table. The well says no observations match and to clear search or set All sides and All outcomes. Clear filters sits next to Show more and restores the loaded set. A true empty artifact still says there are no trade-level observations. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more`, and 820px dungeon nav `display: flex` stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, cockpit.
+
 ## Cycle 97 — 2026-10-10 — Book unknown vs empty (NN/g H1)
 
 - When Tradier account refresh fails, the party roster, quest log, and ledgers no longer say the book is clear. They say positions or orders could not be loaded and to try Refresh Tradier. Tab counts show — instead of 0. A true empty book after a successful sync still says the book is clear. `#positions-sync-status`, `#book-positions-count`, `#book-orders-count`, and the `sync-line positions-sync-status` class contract stay.
