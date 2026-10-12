@@ -44,6 +44,41 @@ def dated(value):
     except ValueError:
         return False
 
+RELEASE_FIELDS = ['release_id', 'model_sha256', 'built_at_utc', 'source_data_end',
+                  'training_label_cutoff', 'fitted_feature_count', 'fitted_feature_names',
+                  'candidate_pool_count', 'reviewed_at_utc', 'historical_observation_at_utc']
+
+def reviewed_release(row):
+    """Optional, all-or-nothing reviewed metadata; never a serving/performance claim."""
+    value = row.get('reviewed_release_evidence')
+    if row.get('id') not in CIRRUS_IDS[:3] or row.get('evidence_kind') != 'registry_role' or not isinstance(value, dict):
+        return None
+    def instant(v):
+        return isinstance(v, str) and bool(re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z', v)) and dated(v)
+    def day(v):
+        if not isinstance(v, str) or not re.fullmatch(r'\d{4}-\d{2}-\d{2}', v):
+            return False
+        try:
+            return datetime.strptime(v, '%Y-%m-%d').strftime('%Y-%m-%d') == v
+        except ValueError:
+            return False
+    names = value.get('fitted_feature_names')
+    count, pool = value.get('fitted_feature_count'), value.get('candidate_pool_count')
+    if not (isinstance(value.get('release_id'), str) and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]{0,95}', value['release_id'])
+            and isinstance(value.get('model_sha256'), str) and SHA.fullmatch(value['model_sha256'])
+            and all(instant(value.get(key)) for key in ['built_at_utc', 'reviewed_at_utc', 'historical_observation_at_utc'])
+            and all(day(value.get(key)) for key in ['source_data_end', 'training_label_cutoff'])
+            and quantity(count) is not None and 1 <= count <= 64
+            and isinstance(names, list) and len(names) == count
+            and all(isinstance(name, str) and re.fullmatch(r'[A-Za-z][A-Za-z0-9_]{0,63}', name) for name in names)
+            and len(set(names)) == count
+            and (pool is None or (quantity(pool) is not None and count <= pool <= 10000))):
+        return None
+    if not (value['training_label_cutoff'] <= value['source_data_end'] <= value['built_at_utc'][:10]
+            and value['built_at_utc'] <= value['historical_observation_at_utc'] <= value['reviewed_at_utc']):
+        return None
+    return {key: value.get(key) for key in RELEASE_FIELDS}
+
 def cirrus_cards(root):
     """Project only reviewed summary fields; never consume private reports or ledgers."""
     fallback = [{'id': 'cirrus', 'system': 'Cirrus', 'title': 'Cirrus', 'version': None, 'trained_at': None, 'runtime_mode': 'unavailable', 'identity_status': 'unavailable', 'metrics': [], 'how_it_works': 'The curated public Cirrus summary is unavailable or malformed.', 'limitations': ['Model identity and current performance are unavailable. Shared research counts are not performance metrics.']}]
@@ -73,6 +108,9 @@ def cirrus_cards(root):
             cards.append({**{key: row[key] for key in ['id', 'evidence_kind', 'evaluation_completed_at', 'limitations', 'evaluation_summary', *text_fields]},
                 'system': 'Cirrus', 'version': None, 'trained_at': None, 'runtime_mode': 'not verified', 'identity_status': 'curated_snapshot', 'metrics': [],
                 'source_path': CIRRUS_SOURCE, 'source_sha256': digest, **{key: source[key] for key in ['verified_at_utc', 'source_revision', 'source_description', 'refresh_policy']}})
+            release = reviewed_release(row)
+            if release is not None:
+                cards[-1]['reviewed_release_evidence'] = release
         return cards
     except (AttributeError, TypeError, KeyError, ValueError):
         return fallback
