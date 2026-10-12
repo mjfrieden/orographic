@@ -11,6 +11,37 @@ export function curatedFreshness(card, now = Date.now()) {
   if (!Number.isFinite(time) || time > now + 300000) return 'Source verification date unavailable or invalid';
   return now - time > 96 * 3600000 ? 'Stale curated source review (over 96 hours old)' : 'Recent curated source review';
 }
+// Invalid optional evidence is withheld without hiding the existing card.
+export function reviewedRelease(card, now = Date.now()) {
+  const value = card?.reviewed_release_evidence;
+  if (card?.system !== 'Cirrus' || card.identity_status !== 'curated_snapshot' || card.evidence_kind !== 'registry_role' || !['cirrus-hybrid', 'cirrus-boosting', 'cirrus-tail-ensemble'].includes(card.id) || !value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const instant = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString() === v.replace('Z', '.000Z') && Date.parse(v) <= now;
+  const day = v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v;
+  const count = value.fitted_feature_count, names = value.fitted_feature_names, pool = value.candidate_pool_count;
+  if (typeof value.release_id !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/.test(value.release_id) || typeof value.model_sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(value.model_sha256) || !['built_at_utc', 'reviewed_at_utc', 'historical_observation_at_utc'].every(key => instant(value[key])) || !['source_data_end', 'training_label_cutoff'].every(key => day(value[key])) || !Number.isSafeInteger(count) || count < 1 || count > 64 || !Array.isArray(names) || names.length !== count || !names.every(name => typeof name === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(name)) || new Set(names).size !== count || (pool != null && (!Number.isSafeInteger(pool) || pool < count || pool > 10000))) return null;
+  if (!(value.training_label_cutoff <= value.source_data_end && value.source_data_end <= value.built_at_utc.slice(0, 10) && value.built_at_utc <= value.historical_observation_at_utc && value.historical_observation_at_utc <= value.reviewed_at_utc)) return null;
+  return value;
+}
+function renderReviewedRelease(box, card) {
+  const value = reviewedRelease(card);
+  if (!value) {
+    if (card.evidence_kind === 'registry_role') box.append(el('p', 'Reviewed Cirrus release evidence unavailable. Current served identity remains unverified.', 'muted'));
+    return;
+  }
+  const details = el('details');
+  const summary = el('summary', 'Reviewed Cirrus release evidence');
+  summary.setAttribute('aria-label', `Reviewed Cirrus release evidence for ${safeText(card.title)}`);
+  details.append(summary, el('p', 'Historical artifact metadata only. Build, data cutoff, observation and review dates are separate; neither a new scan nor a new review establishes a new release. Current serving, live AUC/F1, profitability and promotion remain unverified.', 'notice'));
+  for (const [label, text] of [
+    ['Release ID', value.release_id], ['Model artifact SHA-256 (reviewed declaration)', value.model_sha256],
+    ['Artifact built (not training time)', timestamp(value.built_at_utc)], ['Source-data end', value.source_data_end],
+    ['Training-label cutoff', value.training_label_cutoff], ['Fitted input count', String(value.fitted_feature_count)],
+    ['Fitted input names', value.fitted_feature_names.join(', ')],
+    ['Candidate-pool count (separate from fitted inputs)', value.candidate_pool_count == null ? 'Not reported' : String(value.candidate_pool_count)],
+    ['Historical artifact observation', timestamp(value.historical_observation_at_utc)], ['Release evidence reviewed', timestamp(value.reviewed_at_utc)]
+  ]) details.append(el('p', `${label}: ${text}`));
+  box.append(details);
+}
 export function validateCards(data) {
   if (data?.schema_version !== 1 || !Array.isArray(data.cards) || data.cards.length > 8) throw new Error('Model-card schema is unsupported.');
   for (const card of data.cards) {
@@ -60,6 +91,7 @@ export function renderCards(root, data) {
       const results = el('ul'); for (const item of card.evaluation_summary) results.append(el('li', safeText(item))); box.append(results);
       const provenance = el('details'); const summary = el('summary', 'Curated source provenance'); summary.setAttribute('aria-label', `Curated source provenance for ${safeText(card.title)}`); provenance.append(summary, el('p', safeText(card.source_description)), el('p', `Reviewed source revision: ${card.source_revision}`), el('p', `Public summary SHA-256: ${card.source_sha256}`)); box.append(provenance);
     }
+    if (card.identity_status === 'curated_snapshot') renderReviewedRelease(box, card);
     if (matched) {
       box.append(el('p', `Historical evaluation: ${safeText(card.evaluation_window)}`), el('p', `Population: ${safeText(card.population)}`), el('p', `Validation sample: ${formatMetric(card.sample_size)} rows`));
       const metrics = el('dl', undefined, 'model-card-metrics');
