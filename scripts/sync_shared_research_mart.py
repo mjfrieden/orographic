@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,7 @@ from scripts.upload_research_artifacts_to_r2 import (  # noqa: E402
     CIRRUS_EXPORT_PREFIX,
     CIRRUS_EXPORT_SEARCH_PREFIXES,
 )
+from scripts.shared_source_freshness import assess_source_freshness  # noqa: E402
 
 
 def _now_iso() -> str:
@@ -46,6 +48,78 @@ def _now_iso() -> str:
 def _write(path: Path, payload: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _source_freshness(
+    *,
+    manifest: dict,
+    mart_dir: Path,
+    source_manifest_paths: dict[str, Path],
+    as_of_utc: str,
+    required_not_before_utc: str | None,
+) -> dict:
+    """Add diagnostics only; never modify source selection or retained rows."""
+    import pandas as pd
+
+    try:
+        # Small scan-run table only. Do not scan millions of quote rows or use
+        # scan timestamps as a substitute for their observation coverage.
+        model_runs = pd.read_parquet(
+            mart_dir / "model_runs.parquet",
+            columns=["source_system", "source_bundle_id", "decision_at_utc"],
+        ).to_dict(orient="records")
+    except Exception:  # Diagnostics must not invalidate a usable historical mart.
+        model_runs = None
+    sources = {}
+    source_errors = []
+    for index, identity in enumerate(manifest.get("sources") or []):
+        system = identity.get("source_system") if isinstance(identity, dict) else None
+        if not isinstance(system, str) or not system.strip():
+            source_errors.append({"source_index": index, "reason": "malformed_source_identity"})
+            continue
+        if system in sources:
+            source_errors.append({"source_index": index, "reason": "duplicate_source_identity"})
+            continue
+        export_time = None
+        export_reason = "source_manifest_unavailable"
+        path = source_manifest_paths.get(system)
+        if path is not None:
+            try:
+                raw = path.read_bytes()
+                source = json.loads(raw)
+                if (
+                    hashlib.sha256(raw).hexdigest() == identity.get("manifest_sha256")
+                    and source.get("bundle_id") == identity.get("bundle_id")
+                ):
+                    field = "generated_at" if system == "cirrus" else "generated_at_utc"
+                    export_time = source.get(field)
+                    export_reason = None
+                else:
+                    export_reason = "source_manifest_identity_mismatch"
+            except (OSError, ValueError, AttributeError):
+                export_reason = "source_manifest_unreadable"
+        timestamps = None if model_runs is None else [
+            row.get("decision_at_utc") for row in model_runs
+            if row.get("source_system") == system
+            and row.get("source_bundle_id") == identity.get("bundle_id")
+        ]
+        report = assess_source_freshness(
+            source_identity=identity,
+            export_generated_at=export_time,
+            decision_timestamps=timestamps,
+            quote_observation_timestamps=None,
+            as_of_utc=as_of_utc,
+            required_not_before_utc=required_not_before_utc,
+        )
+        report["export_metadata_reason"] = export_reason
+        sources[system] = report
+    return {
+        "contract": "shared_source_freshness_v1",
+        "sources": sources,
+        "unassessed_sources": source_errors,
+        "authority": "diagnostic_only",
+        "legacy_current_flag_semantics": "source_selection_only",
+    }
 
 
 def _candidate_canonical_dirs(explicit: Path | None) -> list[Path]:
@@ -444,6 +518,12 @@ def parse_args() -> argparse.Namespace:
         default=Path("web/data/diagnostics/shared_mart_sync_latest.json"),
     )
     parser.add_argument("--allow-missing", action="store_true")
+    parser.add_argument(
+        "--source-freshness-not-before-utc",
+        default=None,
+        help=("Explicit timezone-aware cutoff for source recency diagnostics. "
+              "No calendar or session cutoff is inferred when omitted."),
+    )
     return parser.parse_args()
 
 
@@ -549,6 +629,14 @@ def main() -> int:
                     )
                 ),
             }
+            payload["cirrus_source_selection"] = "fallback"
+            payload["source_freshness"] = _source_freshness(
+                manifest=manifest,
+                mart_dir=mart_dir,
+                source_manifest_paths={"orographic": canonical / "evidence_manifest.json"},
+                as_of_utc=payload["generated_at_utc"],
+                required_not_before_utc=args.source_freshness_not_before_utc,
+            )
             _write(args.output, payload)
             print(json.dumps({
                 "status": payload["status"],
@@ -621,6 +709,17 @@ def main() -> int:
             )
         ),
     }
+    payload["cirrus_source_selection"] = cirrus_pin
+    payload["source_freshness"] = _source_freshness(
+        manifest=manifest,
+        mart_dir=args.mart_dir,
+        source_manifest_paths={
+            "orographic": canonical / "evidence_manifest.json",
+            "cirrus": cirrus_dir / "manifest.json",
+        },
+        as_of_utc=payload["generated_at_utc"],
+        required_not_before_utc=args.source_freshness_not_before_utc,
+    )
     _write(args.output, payload)
     print(json.dumps({key: payload[key] for key in (
         "status", "mart_id", "source_systems", "training_rows", "shadow_status"

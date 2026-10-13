@@ -53,6 +53,44 @@ evidence while keeping the archived Cirrus rows. That refresh is still
 Missing Cirrus data fails closed to that diagnostic and does not block the live scan.
 The diagnostic records every `cirrus/` prefix that contains a `manifest.json` so an
 empty `current` key is distinguishable from a bundle uploaded to the wrong path.
+
+### Source selection and freshness diagnostics
+
+`cirrus_pin` and the legacy `cirrus_export_is_current` flag describe where the
+selected export came from (`local`, the `current` prefix, or `fallback`). They do
+not attest to export age, underlying data recency, quote freshness, or complete
+market-session coverage. Their existing behavior is preserved for compatibility.
+The additive `cirrus_source_selection` label makes that meaning explicit.
+
+`source_freshness.sources` separately reports each selected bundle's identity,
+upstream export timestamp, model-run decision range, and quote-observation range.
+The sync report's own `generated_at_utc` is only the diagnostic generation time.
+Upstream export metadata is accepted only when its manifest hash and bundle ID
+match the selected mart source. A newly rebuilt mart or newly copied export does
+not refresh the timestamps of retained historical observations.
+
+The optional `--source-freshness-not-before-utc` argument supplies an explicit
+timezone-aware recency cutoff. The evaluation clock is the sync diagnostic's
+`generated_at_utc`. There is no inferred daily, weekday, holiday, or market-session
+policy. Missing, date-only, naive, invalid, future, or inconsistent timestamps
+cannot produce a positive freshness claim. A known old range is reported as
+`stale`; unavailable coverage remains `unknown`. Historical rows are retained.
+
+This adapter reads only the small, validated `model_runs` table. Quote-observation
+coverage is explicitly unknown; it does not read millions of quote rows on every
+sync or substitute decision times for quote observations. Consequently it cannot
+currently report `source_is_fresh: true`, even with a recent export and cutoff.
+The pure assessor supports a separately supplied full quote-observation population
+for a future identity-pinned adapter. Its `fresh` result only establishes that the
+latest valid observation of each supplied population reaches the cutoff. It never
+attests provider bid/ask recency or complete session/entity coverage.
+
+This is an additive diagnostic contract (`shared_source_freshness_v1`), not a
+schema migration or an activated selection, training, publication, or alpha gate.
+Existing weekly-alpha and readiness UI consumers still read the legacy flag and
+require a separately reviewed migration before treating these fields as gates.
+`ready_two_source` continues to mean a structurally usable historical mart.
+
 Research-data audits are persisted to
 `web/data/diagnostics/research_data_capture_audit_latest.json` and are warn-only in the
 scan job so a Moonshot/dataset mismatch cannot skip mart consolidation.
