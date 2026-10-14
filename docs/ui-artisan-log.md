@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
+
+- The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay. Cycle 98 dungeon filters remain on PR #86.
+
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, dungeon (PR #86 open), cockpit, admin.
+
 ## Cycle 97 — 2026-10-10 — Book unknown vs empty (NN/g H1)
 
 - When Tradier account refresh fails, the party roster, quest log, and ledgers no longer say the book is clear. They say positions or orders could not be loaded and to try Refresh Tradier. Tab counts show — instead of 0. A true empty book after a successful sync still says the book is clear. `#positions-sync-status`, `#book-positions-count`, `#book-orders-count`, and the `sync-line positions-sync-status` class contract stay.
