@@ -359,6 +359,33 @@ function martSyncLabel(status) {
   return value || "missing";
 }
 
+function signedPercent(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return "--";
+  }
+  const label = percent(Math.abs(amount));
+  return `${amount > 0 ? "+" : amount < 0 ? "-" : ""}${label}`;
+}
+
+function weeklyAlphaNote(weekly, liveLabel, liveResolved) {
+  const challenger = weekly.challenger_to_open || {};
+  const winner = weekly.winner_run_overlay || {};
+  const winnerLift = signedPercent((winner.overall || {}).mean_return_lift);
+  const experiment = String(challenger.experiment_id || "none").replaceAll("_", " ");
+  const lift = signedPercent(challenger.mean_return_lift);
+  const liveClause = liveResolved
+    ? `Live week ${liveLabel} on ${liveResolved} resolved contract${liveResolved === 1 ? "" : "s"}.`
+    : "No resolved live marks this week.";
+  if (!challenger.experiment_id) {
+    return `${liveClause} Internal challengers have not published paired lifts yet. Keep production_v2.`;
+  }
+  if (challenger.beats_live === true) {
+    return `${liveClause} Challenger to open: ${experiment} beat live (lift ${lift}). Still observation-only. Winner-run overlay lift ${winnerLift}.`;
+  }
+  return `${liveClause} Best internal challenger ${experiment} trails live (lift ${lift}). Do not open a replacement lane. Winner-run overlay lift ${winnerLift}.`;
+}
+
 function renderMartAudit(payload, sync, weekly) {
   const bundle = payload.consumer_bundle || {};
   const views = bundle.views || {};
@@ -378,14 +405,29 @@ function renderMartAudit(payload, sync, weekly) {
       : martSyncLabel(cirrusPin === "fallback" ? "stale_cirrus_fallback" : syncStatus);
     status.classList.toggle("is-ready", readyCurrent);
   }
+  const pairedDates = gates.paired_market_dates || {};
+  const coverage = Number(execution.executable_recommendations || 0) / Math.max(Number(execution.recommendations || 0), 1);
+  const liveMean = Number(live.mean_return);
+  const liveLabel = Number.isFinite(liveMean) ? signedPercent(liveMean) : "--";
+  const liveResolved = Number(live.resolved);
+  const verdict = cirrus.alpha_verdict || weekly.alpha_verdict || "--";
+  const challenger = weekly.challenger_to_open || {};
+  const challengerName = String(challenger.experiment_id || "--").replaceAll("_", " ");
+  const challengerLift = signedPercent(challenger.mean_return_lift);
+  const challengerLabel = challenger.beats_live === true
+    ? "Challenger to open"
+    : "Best internal challenger (trails live)";
+  const note = document.getElementById("admin-mart-alpha-note");
+  if (note) {
+    note.textContent = weeklyAlphaNote(weekly, liveLabel, Number.isFinite(liveResolved) ? liveResolved : 0);
+  }
   const summary = document.getElementById("admin-mart-summary");
   if (summary) {
-    const pairedDates = gates.paired_market_dates || {};
-    const coverage = Number(execution.executable_recommendations || 0) / Math.max(Number(execution.recommendations || 0), 1);
-    const liveMean = Number(live.mean_return);
-    const liveLabel = Number.isFinite(liveMean) ? percent(liveMean) : "--";
-    const verdict = cirrus.alpha_verdict || weekly.alpha_verdict || "--";
     summary.innerHTML = [
+      ["Live week return", liveLabel],
+      [challengerLabel, `${challengerName} · ${challengerLift}`],
+      ["Winner-run overlay", signedPercent(((weekly.winner_run_overlay || {}).overall || {}).mean_return_lift)],
+      ["Alpha vs Cirrus", String(verdict).replaceAll("_", " ")],
       ["Mart ID", payload.mart_id || "--"],
       ["Mart sync", martSyncLabel(syncStatus)],
       ["Cirrus pin", String(cirrusPin).replaceAll("_", " ")],
@@ -397,8 +439,6 @@ function renderMartAudit(payload, sync, weekly) {
       ["Cirrus R2 prefixes", integer(listed.length)],
       ["R2 bucket roots", (restore.bucket_roots || []).map((row) => String(row).replace(/\/$/, "")).join(" · ") || "--"],
       ["Shared mart roots", (restore.shared_mart_roots || []).map((row) => String(row).replace(/\/$/, "")).join(" · ") || "--"],
-      ["Alpha vs Cirrus", String(verdict).replaceAll("_", " ")],
-      ["Live week return", liveLabel],
       ["Paired executable", integer(cirrus.paired_executable_outcomes ?? gates.paired_executable_outcomes?.actual)],
       ["Paired-date gate", `${integer(pairedDates.actual)} / ${integer(pairedDates.required)}`],
       ["Source systems", (bundle.source_systems || []).join(" + ") || "--"],
@@ -421,8 +461,10 @@ function renderMartAudit(payload, sync, weekly) {
 function renderMartAuditError(error) {
   const message = escapeHtml(friendlyLoadError(error, "mart"));
   const status = document.getElementById("admin-mart-status");
+  const note = document.getElementById("admin-mart-alpha-note");
   const tbody = document.getElementById("admin-mart-views-tbody");
   if (status) status.textContent = "Unavailable";
+  if (note) note.textContent = friendlyLoadError(error, "mart");
   if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="admin-history-loading is-error">${message}</td></tr>`;
 }
 

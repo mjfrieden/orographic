@@ -5,10 +5,11 @@ import { readinessModel, snapshotAge, mountReadiness } from '../../web/atmospher
 const fixture = name => JSON.parse(readFileSync(new URL(`../../web/data/diagnostics/shared_mart_${name}_latest.json`, import.meta.url)));
 const sync = fixture('sync'), shadow = fixture('shadow_evidence');
 const now = Date.parse('2026-10-11T22:00:00Z');
+const fixtureNow = Date.parse('2026-10-16T00:00:00Z');
 test('pinned aggregate values are read dynamically with distinct scopes', () => {
- const result = readinessModel(sync, shadow, 'all', now);
+ const result = readinessModel(sync, shadow, 'all', fixtureNow);
  assert.equal(result.matched, true); assert.match(result.age,/Stale/);
- assert.deepEqual(result.metrics.map(x=>x.value), [543,5079,5079,6089004,151407,3637,3527,1552,113,152,0,2]);
+ assert.deepEqual(result.metrics.map(x=>x.value), [546,5102,5102,6138665,151727,3637,3527,1575,113,152,0,2]);
  assert.equal(result.metrics[5].scope, 'Stored table rows'); assert.equal(result.metrics[6].scope,'Generic training funnel');
  const changed = structuredClone(shadow); changed.training_funnel.dropped_missing_executable_outcome=100;
  assert.equal(readinessModel(sync,changed).metrics[7].value,100);
@@ -42,11 +43,11 @@ class Node {
 }
 const flatten = node => [node,...node.children.flatMap(flatten)];
 test('native source control, disclosure provenance, freshness separation and refresh states', () => {
- const root=new Node('section'); const update=mountReadiness(root,{doc:{createElement:tag=>new Node(tag)},now:()=>now});
- update({sync,shadow}); assert.match(root.textContent,/6,089,004/);assert.match(root.textContent,/Cirrus export marked current: Yes/);assert.match(root.textContent,/Current export: No/);
- assert.match(root.textContent,/2026-10-09/);assert.match(root.textContent,/2026-10-08/);
+ const root=new Node('section'); const update=mountReadiness(root,{doc:{createElement:tag=>new Node(tag)},now:()=>fixtureNow});
+ update({sync,shadow}); assert.match(root.textContent,/6,138,665/);assert.match(root.textContent,/Cirrus export marked current: Yes/);assert.match(root.textContent,/Current export: No/);
+ assert.match(root.textContent,/2026-10-13/);assert.match(root.textContent,/2026-10-12/);
  const select=flatten(root).find(n=>n.tag==='select');select.value='cirrus';select.events.change();
- assert.match(root.textContent,/Cirrus SHADOW/);assert.doesNotMatch(root.textContent,/6,089,004/);
+ assert.match(root.textContent,/Cirrus SHADOW/);assert.doesNotMatch(root.textContent,/6,138,665/);
  assert.ok(flatten(root).some(n=>n.tag==='summary'&&n.textContent==='Scope & provenance'));
  assert.ok(flatten(root).filter(n=>n.tag==='a').every(n=>n.href.startsWith('/data/diagnostics/shared_mart_')));
  update({sync:null,shadow:null});assert.match(root.textContent,/Evidence unavailable/);assert.doesNotMatch(root.textContent,/Current export: No/);

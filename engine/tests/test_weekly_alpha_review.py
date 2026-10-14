@@ -9,11 +9,14 @@ import unittest
 from engine.orographic.trajectory_exit_overlay import (
     ARTIFACT as TRAJECTORY_EXIT_OVERLAY,
     EARLY_HARVEST_ARTIFACT,
+    WINNER_RUN_ARTIFACT,
     evaluate_early_harvest_overlay,
     evaluate_pick_overlay,
     evaluate_trajectory_exit_overlay,
+    evaluate_winner_run_overlay,
 )
 from engine.orographic.weekly_alpha_review import (
+    FRICTION_VETO_PAIRED,
     FRICTION_VETO_VALUE,
     HOLD_OUT_CHALLENGER,
     PAIRED_OPPOSITE_CHALLENGER,
@@ -188,6 +191,114 @@ class TrajectoryExitOverlayTests(unittest.TestCase):
         self.assertEqual(report["coverage"]["target_hits"], 1)
         self.assertFalse(report["promotion_ready"])
 
+    def test_winner_run_lets_a_harvested_winner_continue_to_friday(self) -> None:
+        pick = {
+            "lane": "live",
+            "emission_quote": {"ask": 1.0},
+            "outcomes": {
+                "trajectory_overlay": {
+                    "mark_count": 8,
+                    "first_hit": {
+                        "captured_at_utc": "2026-10-08T16:00:00+00:00",
+                        "pnl_pct_from_emission": 0.25,
+                        "event": "target_25_bid",
+                    },
+                    "crossings": {
+                        "target_25_bid": {
+                            "captured_at_utc": "2026-10-08T16:00:00+00:00",
+                            "pnl_pct_from_emission": 0.25,
+                            "event": "target_25_bid",
+                        },
+                        "target_40_bid": {
+                            "captured_at_utc": "2026-10-09T13:00:00+00:00",
+                            "pnl_pct_from_emission": 0.47,
+                            "event": "target_40_bid",
+                        },
+                    },
+                },
+                "fixed_exit_marks": _mark("friday_close", 1.13),
+            },
+        }
+        harvested = evaluate_pick_overlay(pick)
+        winner = evaluate_pick_overlay(pick, target_return=None, stop_return=-0.50)
+        assert harvested is not None and winner is not None
+        self.assertEqual(harvested["overlay_reason"], "target_25_bid")
+        self.assertAlmostEqual(harvested["overlay_return"], 0.25)
+        self.assertEqual(winner["overlay_reason"], "friday_close_hold")
+        self.assertAlmostEqual(winner["overlay_return"], 1.13)
+
+    def test_winner_run_still_stops_at_fifty_percent(self) -> None:
+        pick = {
+            "lane": "live",
+            "emission_quote": {"ask": 1.0},
+            "outcomes": {
+                "trajectory_marks": [
+                    {"captured_at_utc": "2026-10-08T16:00:00+00:00", "pnl_pct_from_emission": -0.55},
+                ],
+                "fixed_exit_marks": _mark("friday_close", -0.80),
+            },
+        }
+        scored = evaluate_pick_overlay(pick, target_return=None, stop_return=-0.50)
+        assert scored is not None
+        self.assertEqual(scored["overlay_reason"], "stop_50_bid")
+        self.assertAlmostEqual(scored["overlay_return"], -0.50)
+        self.assertAlmostEqual(scored["return_lift"], 0.30)
+
+    def test_winner_run_overlay_stays_observation_only(self) -> None:
+        ledger = {
+            "entries": [{
+                "run_generated_at_utc": "2026-10-08T14:00:00+00:00",
+                "picks": [{
+                    "lane": "live",
+                    "emission_quote": {"ask": 1.0},
+                    "outcomes": {
+                        "trajectory_marks": [
+                            {"captured_at_utc": "2026-10-08T16:00:00+00:00", "pnl_pct_from_emission": 0.40},
+                        ],
+                        "fixed_exit_marks": _mark("friday_close", 1.13),
+                    },
+                }],
+            }]
+        }
+        report = evaluate_winner_run_overlay(ledger, as_of_utc=datetime(2026, 10, 14, tzinfo=UTC))
+        self.assertEqual(report["artifact"], WINNER_RUN_ARTIFACT)
+        self.assertFalse(report["policy"]["harvest"])
+        self.assertEqual(report["coverage"]["target_hits"], 0)
+        self.assertEqual(report["coverage"]["hold_fallbacks"], 1)
+        self.assertFalse(report["promotion_ready"])
+
+    def test_negative_live_lift_blocks_overlay_promotion(self) -> None:
+        def _pick(lane: str, overlay_pnl: float, hold_pnl: float) -> dict:
+            return {
+                "lane": lane,
+                "emission_quote": {"ask": 1.0},
+                "outcomes": {
+                    "trajectory_marks": [
+                        {"captured_at_utc": "2026-10-08T16:00:00+00:00", "pnl_pct_from_emission": overlay_pnl},
+                    ],
+                    "fixed_exit_marks": _mark("friday_close", hold_pnl),
+                },
+            }
+
+        holdout_winners = [
+            _pick("council_holdout", 0.25 if i < 20 else -0.55, -0.40)
+            for i in range(30)
+        ]
+        live_loser = _pick("live", 0.25, 1.13)
+        ledger = {
+            "entries": [{
+                "run_generated_at_utc": "2026-10-08T14:00:00+00:00",
+                "picks": [*holdout_winners, live_loser],
+            }]
+        }
+        report = evaluate_trajectory_exit_overlay(ledger, as_of_utc=datetime(2026, 10, 14, tzinfo=UTC))
+        self.assertGreater(report["coverage"]["resolved_picks"], 29)
+        self.assertGreater(report["coverage"]["target_hits"], 9)
+        self.assertGreater(report["coverage"]["stop_hits"], 9)
+        self.assertGreater(report["overall"]["mean_return_lift"] or 0, 0)
+        self.assertLess(report["live"]["mean_return_lift"] or 0, 0)
+        self.assertFalse(report["promotion_ready"])
+
 
 class WeeklyAlphaReviewTests(unittest.TestCase):
     def test_selects_holdout_by_decision_score_not_realized_pnl(self) -> None:
@@ -325,13 +436,15 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
             mart_sync={"status": "missing_orographic_canonical"},
         )
 
-        self.assertEqual(review["schema_version"], 4)
+        self.assertEqual(review["schema_version"], 5)
         self.assertEqual(review["challenger_to_open"]["experiment_id"], PAIRED_OPPOSITE_CHALLENGER)
+        self.assertTrue(review["challenger_to_open"]["beats_live"])
         self.assertAlmostEqual(review["paired_opposite_challenger"]["mean_return_lift"], 0.7908)
         self.assertAlmostEqual(review["tight_spread_challenger"]["mean_return_lift"], 0.2499)
         self.assertEqual(review["tight_spread_challenger"]["rows"][0]["holdout_contract"], "WFC1")
         self.assertTrue(review["friction_veto_value"]["gate_working"])
         self.assertEqual(review["friction_veto_value"]["action"], "keep_as_gate")
+        self.assertEqual(review["friction_veto_paired"]["paired_scans"], 1)
         self.assertEqual(review["production"]["week_live_marks"]["resolved"], 1)
         self.assertAlmostEqual(review["production"]["week_live_marks"]["mean_return"], -0.4085)
         self.assertAlmostEqual(review["research_side_split"]["put_minus_call_return"], 0.7908)
@@ -340,8 +453,10 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         actions = {row["lane"]: row["action"] for row in review["lane_decisions"]}
         self.assertEqual(actions[PRODUCTION_LANE], "keep")
         self.assertEqual(actions[FRICTION_VETO_VALUE], "keep_as_gate")
+        self.assertEqual(actions[FRICTION_VETO_PAIRED], "keep_as_gate")
         self.assertEqual(actions[TRAJECTORY_EXIT_OVERLAY], "replace")
-        self.assertEqual(actions[EARLY_HARVEST_ARTIFACT], "hold_do_not_promote")
+        self.assertEqual(actions[EARLY_HARVEST_ARTIFACT], "replace")
+        self.assertEqual(actions[WINNER_RUN_ARTIFACT], "keep_observation_only")
         self.assertEqual(actions[PAIRED_OPPOSITE_CHALLENGER], "keep_observation_only")
         self.assertEqual(actions[TIGHT_SPREAD_CHALLENGER], "keep_observation_only")
         self.assertEqual(actions[RESEARCH_SIDE_SPLIT], "keep_observation_only")
@@ -414,6 +529,52 @@ class WeeklyAlphaReviewTests(unittest.TestCase):
         self.assertTrue(review["cirrus"]["orographic_refreshed"])
         self.assertEqual(review["cirrus"]["training_rows"], 12)
         self.assertTrue(any("--mode cirrus" in action for action in review["next_actions"]))
+
+    def test_challenger_to_open_uses_algebraic_lift_not_absolute_lift(self) -> None:
+        as_of = datetime(2026, 10, 14, 16, 0, tzinfo=UTC)
+        dashboard = {"entries": [{
+            "run_generated_at_utc": "2026-10-13T17:34:01+00:00",
+            "picks": [
+                {
+                    "lane": "live", "symbol": "XLE", "contract_symbol": "XLEC",
+                    "option_type": "call",
+                    "emission_quote": {"ask": 1.35, "spread_pct": 0.069},
+                    "outcomes": {"fixed_exit_marks": _mark("end_of_day", 0.2184)},
+                },
+                {
+                    "lane": "council_holdout", "symbol": "SPY", "contract_symbol": "SPYC",
+                    "option_type": "call",
+                    "emission_quote": {"ask": 1.1, "spread_pct": 0.0076},
+                    "outcomes": {"fixed_exit_marks": _mark("end_of_day", 0.0315)},
+                },
+                {
+                    "lane": "paired_side_observation", "symbol": "XLE", "contract_symbol": "XLEP",
+                    "option_type": "put",
+                    "emission_quote": {"ask": 1.2, "spread_pct": 0.04},
+                    "outcomes": {"fixed_exit_marks": _mark("end_of_day", -0.4655)},
+                },
+            ],
+        }]}
+        review = build_weekly_alpha_review(
+            as_of_utc=as_of,
+            snapshot={
+                "scan_settings": {"model_stack": "production_v2"},
+                "regime": {"mode": "neutral"},
+                "council": {"live_board": [], "abstain": True},
+            },
+            board_history={"entries": []},
+            dashboard=dashboard,
+            scan_health={"status": "failed", "failed_checks": [{"name": "r2_archival_completed"}]},
+            rebuild_readiness={"production_model_change_allowed": False},
+            mart_shadow={"generated_at_utc": "2026-10-13T22:00:00+00:00", "cross_system_comparison": {"paired_executable_outcomes": 7}},
+            mart_sync={"status": "ready_two_source", "cirrus_pin": "local", "cirrus_export_is_current": True},
+        )
+        self.assertAlmostEqual(review["paired_opposite_challenger"]["mean_return_lift"], -0.6839)
+        self.assertLess(review["paired_opposite_challenger"]["mean_return_lift"], review["tight_spread_challenger"]["mean_return_lift"])
+        self.assertEqual(review["challenger_to_open"]["experiment_id"], TIGHT_SPREAD_CHALLENGER)
+        self.assertFalse(review["challenger_to_open"]["beats_live"])
+        self.assertIn("Do not open a replacement lane", review["challenger_to_open"]["reason"])
+        self.assertTrue(any("r2_archival_completed" in action for action in review["next_actions"]))
 
 
 class CirrusComparisonGateTests(unittest.TestCase):
