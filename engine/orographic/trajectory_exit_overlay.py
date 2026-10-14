@@ -14,11 +14,13 @@ from typing import Any
 
 ARTIFACT = "trajectory_exit_overlay_v1"
 EARLY_HARVEST_ARTIFACT = "early_harvest_overlay_v1"
+WINNER_RUN_ARTIFACT = "winner_run_overlay_v1"
 SCHEMA_VERSION = 1
 TARGET_RETURN = 0.25
 STOP_RETURN = -0.50
 EARLY_HARVEST_TARGET_RETURN = 0.10
 EARLY_HARVEST_STOP_RETURN = -0.40
+WINNER_RUN_STOP_RETURN = -0.50
 AUTHORITY = "observation_only_never_used_for_routing"
 
 
@@ -116,10 +118,13 @@ def _friday_return(pick: dict[str, Any]) -> tuple[float | None, str | None]:
 def evaluate_pick_overlay(
     pick: dict[str, Any],
     *,
-    target_return: float = TARGET_RETURN,
+    target_return: float | None = TARGET_RETURN,
     stop_return: float = STOP_RETURN,
 ) -> dict[str, Any] | None:
-    """Score one pick: harvest at the target bid, stop at the stop bid, else hold to Friday."""
+    """Score one pick: harvest at the target bid, stop at the stop bid, else hold to Friday.
+
+    Pass ``target_return=None`` for a never-harvest overlay that only stops.
+    """
     ask = _entry_ask(pick)
     if ask is None:
         return None
@@ -128,7 +133,8 @@ def evaluate_pick_overlay(
     overlay_reason = "unresolved"
     overlay_at = None
     valid_marks = 0
-    target_label = f"target_{int(round(target_return * 100))}_bid"
+    harvest = target_return is not None
+    target_label = f"target_{int(round(target_return * 100))}_bid" if harvest else "no_harvest"
     stop_label = f"stop_{int(round(abs(stop_return) * 100))}_bid"
     for mark in _trajectory_marks(pick):
         value = _mark_return(ask, mark)
@@ -139,8 +145,8 @@ def evaluate_pick_overlay(
         event = str(mark.get("event") or "")
         # Compact first-hit rows record the +25/-50 crossing. A tighter overlay
         # must have been touched first, so credit the tighter threshold rather
-        # than the recorded 25/50 fill.
-        if event == "target_25_bid" and value >= target_return:
+        # than the recorded 25/50 fill. Never-harvest overlays ignore targets.
+        if harvest and event == "target_25_bid" and value >= target_return:
             overlay_return = target_return
             overlay_reason = target_label
             overlay_at = captured
@@ -150,7 +156,7 @@ def evaluate_pick_overlay(
             overlay_reason = stop_label
             overlay_at = captured
             break
-        if value >= target_return:
+        if harvest and value >= target_return:
             overlay_return = target_return
             overlay_reason = target_label
             overlay_at = captured
@@ -187,13 +193,14 @@ def evaluate_trajectory_exit_overlay(
     start: datetime | None = None,
     end: datetime | None = None,
     as_of_utc: datetime | None = None,
-    target_return: float = TARGET_RETURN,
+    target_return: float | None = TARGET_RETURN,
     stop_return: float = STOP_RETURN,
     artifact: str = ARTIFACT,
 ) -> dict[str, Any]:
     rows: list[dict[str, Any]] = []
     marks_seen = 0
-    target_label = f"target_{int(round(target_return * 100))}_bid"
+    harvest = target_return is not None
+    target_label = f"target_{int(round(target_return * 100))}_bid" if harvest else "no_harvest"
     stop_label = f"stop_{int(round(abs(stop_return) * 100))}_bid"
     for entry in _as_list(ledger.get("entries")):
         if not isinstance(entry, dict):
@@ -221,24 +228,49 @@ def evaluate_trajectory_exit_overlay(
     mean_lift = round(sum(lifts) / len(lifts), 4) if lifts else None
     live_rows = [row for row in rows if row.get("lane") == "live"]
     live_lifts = [float(row["return_lift"]) for row in live_rows]
+    live_mean_lift = round(sum(live_lifts) / len(live_lifts), 4) if live_lifts else None
     generated = (as_of_utc or datetime.now(UTC)).astimezone(UTC).replace(microsecond=0)
+    live_lift_ok = live_mean_lift is None or live_mean_lift >= 0
+    target_ok = True if not harvest else target_hits >= 10
     promotion_ready = (
         len(rows) >= 30
         and mean_lift is not None
         and mean_lift > 0
-        and target_hits >= 10
+        and target_ok
         and stop_hits >= 10
+        and live_lift_ok
     )
+    if promotion_ready:
+        reason = "Overlay has enough stop hits and a positive paired lift versus hold-to-Friday."
+        if harvest:
+            reason = "Overlay has enough target/stop hits and a positive paired lift versus hold-to-Friday."
+    elif not harvest:
+        reason = (
+            "Observation-only never-harvest overlay. Needs 30 resolved picks, 10 stop hits, "
+            "a positive mean lift versus hold-to-Friday, and non-negative live lift "
+            "before any production exit change."
+        )
+    else:
+        reason = (
+            "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, "
+            "a positive mean lift versus hold-to-Friday, and non-negative live lift "
+            "before any production exit change."
+        )
     return {
         "artifact": artifact,
         "schema_version": SCHEMA_VERSION,
         "generated_at_utc": generated.isoformat(),
         "authority": AUTHORITY,
         "production_effect": "none",
-        "replaces": "path_hazard_challenger" if artifact == ARTIFACT else ARTIFACT,
+        "replaces": (
+            EARLY_HARVEST_ARTIFACT if artifact == WINNER_RUN_ARTIFACT
+            else "path_hazard_challenger" if artifact == ARTIFACT
+            else ARTIFACT
+        ),
         "policy": {
             "target_return": target_return,
             "stop_return": stop_return,
+            "harvest": harvest,
             "fill_rule": "recorded bid at or beyond the target/stop; midpoint touches never count",
             "fallback": "hold to the latest resolved fixed-exit window, preferring Friday close",
         },
@@ -257,17 +289,10 @@ def evaluate_trajectory_exit_overlay(
         },
         "live": {
             "resolved_picks": len(live_rows),
-            "mean_return_lift": round(sum(live_lifts) / len(live_lifts), 4) if live_lifts else None,
+            "mean_return_lift": live_mean_lift,
         },
         "promotion_ready": promotion_ready,
-        "reason": (
-            "Overlay has enough target/stop hits and a positive paired lift versus hold-to-Friday."
-            if promotion_ready
-            else (
-                "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, "
-                "and a positive mean lift versus hold-to-Friday before any production exit change."
-            )
-        ),
+        "reason": reason,
     }
 
 
@@ -287,4 +312,23 @@ def evaluate_early_harvest_overlay(
         target_return=EARLY_HARVEST_TARGET_RETURN,
         stop_return=EARLY_HARVEST_STOP_RETURN,
         artifact=EARLY_HARVEST_ARTIFACT,
+    )
+
+
+def evaluate_winner_run_overlay(
+    ledger: dict[str, Any],
+    *,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    as_of_utc: datetime | None = None,
+) -> dict[str, Any]:
+    """Stop at -50% bid and never harvest. Replaces harvest overlays that cut winners."""
+    return evaluate_trajectory_exit_overlay(
+        ledger,
+        start=start,
+        end=end,
+        as_of_utc=as_of_utc,
+        target_return=None,
+        stop_return=WINNER_RUN_STOP_RETURN,
+        artifact=WINNER_RUN_ARTIFACT,
     )
