@@ -130,6 +130,7 @@ Audit juice shipped:
 95. Daily decision visibility and recent recommendations (NN/g H1/H9). **Logged in cycle 95.**
 96. Master Harbor history and mart failures name the next step (NN/g H9). **Shipped in cycle 96.**
 97. Book empty state does not claim a clear roster when Tradier failed (NN/g H1). **Shipped in cycle 97.**
+98. Research dungeon quest-receipt filters name a miss and offer Clear filters (NN/g H1/H6). **Shipped in cycle 98.**
 99. Harbor Gate password field offers Show / Hide (NN/g H4, Jakob). **Shipped in cycle 99.**
 
 ## Done when

@@ -4,9 +4,15 @@ Newest cycle first. Each run appends what shipped, which surfaces changed, and w
 
 ## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
 
-- The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay. Cycle 98 dungeon filters remain on PR #86.
+- The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.
 
-Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, dungeon (PR #86 open), cockpit, admin.
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, dungeon, cockpit, admin.
+
+## Cycle 98 — 2026-10-12 — Dungeon quest-receipt filter recovery (NN/g H1/H6)
+
+- Filtering quest receipts to a symbol, side, or outcome with no matches no longer leaves a blank table. The well says no observations match and to clear search or set All sides and All outcomes. Clear filters sits next to Show more and restores the loaded set. A true empty artifact still says there are no trade-level observations. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more`, and 820px dungeon nav `display: flex` stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, cockpit.
 
 ## Cycle 97 — 2026-10-10 — Book unknown vs empty (NN/g H1)
 
