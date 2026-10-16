@@ -690,8 +690,51 @@
     linear-gradient(#e8c56d, #e8c56d) bottom right / 1.5px 7px no-repeat;
 }
 
+.lab-page .table-footer {
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.95rem;
+  color: #e8d9a8;
+}
+
+.lab-page .trade-empty {
+  text-align: center;
+  color: #e8d9a8;
+  font-family: "Cormorant Garamond", Georgia, serif;
+  font-size: 1.05rem;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  padding: 28px 16px;
+  background:
+    linear-gradient(#e8c56d, #e8c56d) top 8px left 8px / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top 8px left 8px / 1.5px 6px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top 8px right 8px / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) top 8px right 8px / 1.5px 6px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom 8px left 8px / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom 8px left 8px / 1.5px 6px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom 8px right 8px / 6px 1.5px no-repeat,
+    linear-gradient(#e8c56d, #e8c56d) bottom 8px right 8px / 1.5px 6px no-repeat,
+    rgba(12, 18, 28, 0.45);
+}
+
+.lab-page .trade-empty.is-filter-miss {
+  color: #ffc9c6;
+  background:
+    linear-gradient(#ffc9c6, #ffc9c6) top 8px left 8px / 6px 1.5px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) top 8px left 8px / 1.5px 6px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) top 8px right 8px / 6px 1.5px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) top 8px right 8px / 1.5px 6px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) bottom 8px left 8px / 6px 1.5px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) bottom 8px left 8px / 1.5px 6px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) bottom 8px right 8px / 6px 1.5px no-repeat,
+    linear-gradient(#ffc9c6, #ffc9c6) bottom 8px right 8px / 1.5px 6px no-repeat,
+    rgba(90, 18, 18, 0.55);
+}
+
 .lab-page #export-manifest,
 .lab-page #copy-command,
+.lab-page #clear-trade-filters,
 .lab-page #show-more {
   position: relative;
   border: 1px solid rgba(232, 197, 109, 0.38);
@@ -701,13 +744,19 @@
 }
 
 .lab-page #copy-command,
+.lab-page #clear-trade-filters,
 .lab-page #show-more {
   min-height: 32px;
   padding: 0 12px;
 }
 
+.lab-page #clear-trade-filters {
+  min-height: 44px;
+}
+
 .lab-page #export-manifest::before,
 .lab-page #copy-command::before,
+.lab-page #clear-trade-filters::before,
 .lab-page #show-more::before {
   content: "";
   position: absolute;
@@ -730,6 +779,8 @@
 .lab-page #export-manifest:focus-visible,
 .lab-page #copy-command:hover,
 .lab-page #copy-command:focus-visible,
+.lab-page #clear-trade-filters:hover,
+.lab-page #clear-trade-filters:focus-visible,
 .lab-page #show-more:hover,
 .lab-page #show-more:focus-visible {
   color: #1a0f00;
@@ -742,6 +793,8 @@
 .lab-page #export-manifest:focus-visible::before,
 .lab-page #copy-command:hover::before,
 .lab-page #copy-command:focus-visible::before,
+.lab-page #clear-trade-filters:hover::before,
+.lab-page #clear-trade-filters:focus-visible::before,
 .lab-page #show-more:hover::before,
 .lab-page #show-more:focus-visible::before {
   opacity: 0.45;

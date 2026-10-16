@@ -30,6 +30,29 @@ test("summarizeTrades recalculates the filtered observation set", () => {
   assert.equal(summary.returnPct, 0.2);
 });
 
+test("filtered trade empty state names the miss and offers Clear filters", async () => {
+  const html = await readFile(new URL("../../web/backtest/index.html", import.meta.url), "utf8");
+  const source = await readFile(new URL("../../web/backtest/backtest.js", import.meta.url), "utf8");
+  const theme = await readFile(new URL("../../web/backtest/arena-theme.css", import.meta.url), "utf8");
+  assert.ok(html.includes('id="clear-trade-filters"'));
+  assert.match(source, /function clearTradeFilters/);
+  assert.ok(
+    source.includes("No observations match these filters. Clear search or set All sides and All outcomes."),
+    "filter miss must name the next step",
+  );
+  assert.ok(
+    source.includes("No trade-level observations in this artifact."),
+    "true empty artifact must not blame filters",
+  );
+  assert.ok(
+    source.includes(
+      'return `<tr><td>${escapeHtml(trade.entry_date)}</td><td><strong>${escapeHtml(trade.symbol)}</strong><span class="pill">${escapeHtml(trade.option_type)}</span></td><td>${escapeHtml(trade.expiry)} · $${Number(trade.strike).toFixed(2)}</td><td>$${Number(trade.entry_price).toFixed(2)} → $${Number(trade.exit_price).toFixed(2)}</td><td>${pct(trade.options_data_coverage_pct, 0)}</td><td class="${positive ? "positive" : "negative"}">${positive ? "+" : ""}${money(trade.pnl)}</td><td class="${positive ? "positive" : "negative"}">${pct(trade.pnl_pct, 0)}</td></tr>`',
+    ),
+    "trade row innerHTML template must stay",
+  );
+  assert.match(theme, /@media \(max-width: 820px\)[\s\S]*?\.lab-topbar nav \{\s*display: flex;/);
+});
+
 test("shared mart tooling is confined to research and admin surfaces", async () => {
   const [backtestHtml, backtestSource, adminHtml, adminSource, cockpitHtml, cockpitSource] = await Promise.all([
     readFile(new URL("../../web/backtest/index.html", import.meta.url), "utf8"),
