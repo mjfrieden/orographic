@@ -3249,11 +3249,43 @@ body.cockpit-page {
     padding-left: 0;
   }
   .cockpit-position-row {
-    grid-template-columns: 44px 1fr 80px 34px;
+    grid-template-columns: 44px minmax(0, 1.4fr) minmax(0, 1fr) 44px;
+    grid-template-areas:
+      "portrait name pnl chevron"
+      "portrait size action action"
+      "bars bars bars bars";
+    align-items: start;
+    row-gap: 8px;
   }
-  .position-action,
-  .position-size {
-    display: none;
+  .cockpit-position-row .unit-portrait {
+    grid-area: portrait;
+    align-self: start;
+  }
+  .cockpit-position-row .position-name {
+    grid-area: name;
+    min-width: 0;
+  }
+  .cockpit-position-row .position-size {
+    grid-area: size;
+    display: block;
+    min-width: 0;
+  }
+  .cockpit-position-row .position-pnl {
+    grid-area: pnl;
+  }
+  .cockpit-position-row .position-action {
+    grid-area: action;
+    display: block;
+    min-width: 0;
+  }
+  .cockpit-position-row .position-row-action {
+    grid-area: chevron;
+    min-width: 44px;
+    min-height: 44px;
+    align-self: start;
+  }
+  .cockpit-position-row .unit-bars {
+    grid-area: bars;
   }
   .evidence-ribbon {
     display: block;
