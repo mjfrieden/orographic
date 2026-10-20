@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 101 — 2026-10-20 — Master Harbor error wells wrap on phone (NN/g H9/H6)
+
+- Position history, order ledger, and Reliquary audit failures no longer sit in a 720px-min table that forces a sideways scroll to read the next step. On a 720px phone a lone loading or error well uses the viewport width and wraps. `#admin-overview-grid`, `#admin-history-tbody`, `#admin-order-ledger-tbody`, `#admin-mart-status`, `/api/admin/` paths, and the cycle 96 recovery copy stay. Cycle 100 Book party frames remain on PR #92.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, dungeon, cockpit (PR #92 open).
+
 ## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
 
 - The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.
