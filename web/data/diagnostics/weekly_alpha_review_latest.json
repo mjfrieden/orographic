@@ -1,17 +1,25 @@
 {
   "artifact": "orographic_weekly_alpha_review",
   "schema_version": 4,
-  "generated_at_utc": "2026-10-19T20:30:00+00:00",
-  "week_start_utc": "2026-10-12T20:30:00+00:00",
-  "week_end_utc": "2026-10-19T20:30:00+00:00",
+  "generated_at_utc": "2026-10-20T14:29:32+00:00",
+  "week_start_utc": "2026-10-13T14:29:32+00:00",
+  "week_end_utc": "2026-10-20T14:29:32+00:00",
   "objective": "after_cost_alpha_versus_cirrus_and_internal_challengers",
   "production": {
     "lane": "production_v2_council_live_board",
     "model_stack": "production_v2",
-    "regime": "risk_off",
-    "current_pick": null,
+    "regime": "neutral",
+    "current_pick": {
+      "symbol": "BAC",
+      "contract_symbol": "BAC261030C00050000",
+      "option_type": "call",
+      "ask": 1.72,
+      "spread_pct": 0.0785,
+      "prob_big_win": 0.6152,
+      "expected_tail_utility": 0.7895
+    },
     "week": {
-      "scans": 15,
+      "scans": 16,
       "abstain_scans": 12,
       "live_emissions": [
         {
@@ -37,9 +45,17 @@
           "option_type": "call",
           "ask": 1.58,
           "spread_pct": 0.0789
+        },
+        {
+          "run_generated_at_utc": "2026-10-20T14:29:32+00:00",
+          "symbol": "BAC",
+          "contract_symbol": "BAC261030C00050000",
+          "option_type": "call",
+          "ask": 1.72,
+          "spread_pct": 0.0785
         }
       ],
-      "unique_live_days": 3
+      "unique_live_days": 4
     },
     "week_live_marks": {
       "emissions_with_marks": [
@@ -72,6 +88,14 @@
           "spread_pct": 0.0789,
           "mark_window": "friday_close",
           "pnl_pct_from_emission": 0.2664
+        },
+        {
+          "run_generated_at_utc": "2026-10-20T14:29:32+00:00",
+          "symbol": "BAC",
+          "contract_symbol": "BAC261030C00050000",
+          "option_type": "call",
+          "ask": 1.72,
+          "spread_pct": 0.0785
         }
       ],
       "resolved": 3,
@@ -82,10 +106,10 @@
   },
   "research_evidence_source": "prospective_ledger",
   "research_lanes": {
-    "picks": 329,
+    "picks": 357,
     "lanes": {
       "paired_side_observation": {
-        "picks": 172,
+        "picks": 188,
         "mark_windows": {
           "next_day_close": 38,
           "friday_close": 74,
@@ -97,7 +121,7 @@
         "equal_weight_sum": 19.4454,
         "by_option_type": {
           "call": {
-            "picks": 67,
+            "picks": 73,
             "mark_windows": {
               "next_day_close": 12,
               "friday_close": 33,
@@ -109,7 +133,7 @@
             "equal_weight_sum": -15.8804
           },
           "put": {
-            "picks": 105,
+            "picks": 115,
             "mark_windows": {
               "next_day_close": 26,
               "friday_close": 41,
@@ -123,7 +147,7 @@
         }
       },
       "council_holdout": {
-        "picks": 77,
+        "picks": 81,
         "mark_windows": {
           "next_day_close": 32,
           "friday_close": 9,
@@ -135,7 +159,7 @@
         "equal_weight_sum": 9.1644,
         "by_option_type": {
           "call": {
-            "picks": 77,
+            "picks": 81,
             "mark_windows": {
               "next_day_close": 32,
               "friday_close": 9,
@@ -149,7 +173,7 @@
         }
       },
       "friction_veto": {
-        "picks": 77,
+        "picks": 84,
         "mark_windows": {
           "next_day_close": 22,
           "friday_close": 34,
@@ -161,7 +185,7 @@
         "equal_weight_sum": -8.3812,
         "by_option_type": {
           "call": {
-            "picks": 77,
+            "picks": 84,
             "mark_windows": {
               "next_day_close": 22,
               "friday_close": 34,
@@ -175,7 +199,7 @@
         }
       },
       "live": {
-        "picks": 3,
+        "picks": 4,
         "mark_windows": {
           "next_day_close": 1,
           "friday_close": 2
@@ -186,7 +210,7 @@
         "equal_weight_sum": 0.7285,
         "by_option_type": {
           "call": {
-            "picks": 3,
+            "picks": 4,
             "mark_windows": {
               "next_day_close": 1,
               "friday_close": 2
@@ -327,7 +351,7 @@
     "experiment_id": "friction_veto_value_v1",
     "authority": "observation_only_never_used_for_routing",
     "interpretation": "negative_veto_returns_are_avoided_loss",
-    "picks": 77,
+    "picks": 84,
     "resolved": 69,
     "win_rate": 0.2754,
     "veto_mean_return": -0.1215,
@@ -342,7 +366,7 @@
     "authority": "observation_only_never_used_for_routing",
     "selection_rule": "split paired_side_observation marks by inferred OCC option_type",
     "paired_side_calls": {
-      "picks": 67,
+      "picks": 73,
       "mark_windows": {
         "next_day_close": 12,
         "friday_close": 33,
@@ -354,7 +378,7 @@
       "equal_weight_sum": -15.8804
     },
     "paired_side_puts": {
-      "picks": 105,
+      "picks": 115,
       "mark_windows": {
         "next_day_close": 26,
         "friday_close": 41,
@@ -365,7 +389,7 @@
       "mean_return": 0.384,
       "equal_weight_sum": 35.3258
     },
-    "live_call_picks": 3,
+    "live_call_picks": 4,
     "live_put_picks": 0,
     "put_minus_call_return": 0.6578,
     "live_emitted_losing_side": true,
@@ -376,7 +400,7 @@
   "exit_overlay": {
     "artifact": "trajectory_exit_overlay_v1",
     "schema_version": 1,
-    "generated_at_utc": "2026-10-19T20:30:00+00:00",
+    "generated_at_utc": "2026-10-20T14:29:32+00:00",
     "authority": "observation_only_never_used_for_routing",
     "production_effect": "none",
     "replaces": "path_hazard_challenger",
@@ -388,16 +412,16 @@
     },
     "coverage": {
       "resolved_picks": 290,
-      "trajectory_marks_seen": 24064,
-      "target_hits": 133,
-      "stop_hits": 81,
-      "hold_fallbacks": 76
+      "trajectory_marks_seen": 24731,
+      "target_hits": 156,
+      "stop_hits": 84,
+      "hold_fallbacks": 50
     },
     "overall": {
-      "mean_overlay_return": -0.0566,
+      "mean_overlay_return": -0.0386,
       "mean_hold_return": 0.0723,
-      "mean_return_lift": -0.1289,
-      "positive_lift_rate": 0.3621
+      "mean_return_lift": -0.1109,
+      "positive_lift_rate": 0.4414
     },
     "live": {
       "resolved_picks": 3,
@@ -409,7 +433,7 @@
   "early_harvest_overlay": {
     "artifact": "early_harvest_overlay_v1",
     "schema_version": 1,
-    "generated_at_utc": "2026-10-19T20:30:00+00:00",
+    "generated_at_utc": "2026-10-20T14:29:32+00:00",
     "authority": "observation_only_never_used_for_routing",
     "production_effect": "none",
     "replaces": "trajectory_exit_overlay_v1",
@@ -421,16 +445,16 @@
     },
     "coverage": {
       "resolved_picks": 290,
-      "trajectory_marks_seen": 24064,
-      "target_hits": 180,
-      "stop_hits": 76,
-      "hold_fallbacks": 34
+      "trajectory_marks_seen": 24731,
+      "target_hits": 202,
+      "stop_hits": 79,
+      "hold_fallbacks": 9
     },
     "overall": {
-      "mean_overlay_return": -0.0518,
+      "mean_overlay_return": -0.0432,
       "mean_hold_return": 0.0723,
-      "mean_return_lift": -0.1241,
-      "positive_lift_rate": 0.4828
+      "mean_return_lift": -0.1155,
+      "positive_lift_rate": 0.5586
     },
     "live": {
       "resolved_picks": 3,
@@ -476,16 +500,16 @@
       "action": "hold_do_not_promote",
       "replacement": null,
       "authority": "observation_only",
-      "reason": "Mechanical +25% bid harvest / -50% bid stop versus hold-to-Friday on current trajectory marks. Mean lift versus hold -0.1289. Fills exist but mean lift versus hold is not positive. No production exit change.",
-      "mean_return_lift": -0.1289,
+      "reason": "Mechanical +25% bid harvest / -50% bid stop versus hold-to-Friday on current trajectory marks. Mean lift versus hold -0.1109. Fills exist but mean lift versus hold is not positive. No production exit change.",
+      "mean_return_lift": -0.1109,
       "resolved_picks": 290
     },
     {
       "lane": "early_harvest_overlay_v1",
       "action": "hold_do_not_promote",
       "authority": "observation_only",
-      "reason": "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. Mean lift versus hold -0.1241. Trails hold and/or the +25 overlay; do not change live exits.",
-      "mean_return_lift": -0.1241,
+      "reason": "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. Mean lift versus hold -0.1155. Trails hold and/or the +25 overlay; do not change live exits.",
+      "mean_return_lift": -0.1155,
       "resolved_picks": 290
     },
     {
