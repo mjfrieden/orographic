@@ -154,6 +154,12 @@ class EvidenceStoreTests(unittest.TestCase):
                 ],
                 1,
             )
+            canonical_ledger = output / "prospective_pick_ledger.json"
+            canonical_payload = json.loads(canonical_ledger.read_text(encoding="utf-8"))
+            self.assertEqual(
+                canonical_ledger.read_text(encoding="utf-8"),
+                json.dumps(canonical_payload, sort_keys=True, separators=(",", ":")),
+            )
             self.assertEqual(manifest["bundle_id"], repeated_manifest["bundle_id"])
             validate_canonical_bundle(output)
 
