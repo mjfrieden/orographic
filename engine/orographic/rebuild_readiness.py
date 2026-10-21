@@ -13,6 +13,34 @@ def _gate(passed: bool, *, actual: object, required: object) -> dict[str, Any]:
     return {"passed": bool(passed), "actual": actual, "required": required}
 
 
+def consumer_from_shadow_evidence(shadow: dict[str, Any] | None) -> dict[str, Any]:
+    """Map the published shadow-evidence bundle onto the consumer-manifest contract.
+
+    Scan jobs often lack `output/shared_mart_consumers/consumer_manifest.json`
+    even when the two-source mart was already validated and committed. The
+    git-tracked shadow artifact is the same consumer identity.
+    """
+    payload = shadow if isinstance(shadow, dict) else {}
+    bundle = payload.get("consumer_bundle") if isinstance(payload.get("consumer_bundle"), dict) else {}
+    views = bundle.get("views") if isinstance(bundle.get("views"), dict) else {}
+    if (
+        payload.get("consumer_schema_version") != CONSUMER_SCHEMA_VERSION
+        or bundle.get("status") != "ready"
+        or not views
+    ):
+        return {}
+    return {
+        "artifact": "orographic_shared_mart_consumer_bundle",
+        "status": "ready",
+        "schema_version": CONSUMER_SCHEMA_VERSION,
+        "mart_schema_version": MART_SCHEMA_VERSION,
+        "production_authority": payload.get("production_authority"),
+        "source_systems": bundle.get("source_systems"),
+        "views": views,
+        "source": "published_shadow_evidence",
+    }
+
+
 def build_rebuild_readiness(
     pair_readiness: dict[str, Any],
     exit_shadow: dict[str, Any],

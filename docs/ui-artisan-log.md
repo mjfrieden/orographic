@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 100 — 2026-10-21 — Master Harbor weekly alpha visibility (NN/g H1)
+
+- Shared Research Mart now shows this week's live return, challenger lift, Cirrus verdict, Iceberg current-export lag, scan-health/R2 failure, kill-switch freeze, next action, and lane decisions. Operators no longer have to open `weekly_alpha_review_latest.json` to see whether the week produced alpha. `#admin-mart-status`, `#admin-mart-summary`, `#shared-mart-audit`, and mart fetch URLs stay. New `#admin-weekly-alpha` is display-only.
+
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, login, dungeon, cockpit.
+
 ## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
 
 - The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.

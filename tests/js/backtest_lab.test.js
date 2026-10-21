@@ -65,7 +65,13 @@ test("shared mart tooling is confined to research and admin surfaces", async () 
   assert.ok(backtestHtml.includes("mart-research-summary"));
   assert.ok(backtestSource.includes("SHARED_MART_EVIDENCE_SOURCE"));
   assert.ok(adminHtml.includes("shared-mart-audit"));
+  assert.ok(adminHtml.includes('id="admin-weekly-alpha"'));
   assert.ok(adminSource.includes("renderMartAudit"));
+  assert.ok(adminSource.includes("function renderWeeklyAlpha"));
+  assert.ok(adminSource.includes("challenger_to_open"));
+  assert.ok(adminSource.includes("kill_switch"));
+  assert.ok(adminSource.includes("Iceberg current export"));
+  assert.ok(adminSource.includes("Retry the scan R2 upload"));
   assert.ok(!cockpitHtml.includes("governance-mart-status"));
   assert.ok(!cockpitSource.includes("SHARED_MART_SHADOW_SOURCE"));
 });

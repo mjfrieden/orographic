@@ -1,6 +1,6 @@
 {
   "artifact": "orographic_weekly_alpha_review",
-  "schema_version": 4,
+  "schema_version": 5,
   "generated_at_utc": "2026-10-20T20:29:36+00:00",
   "week_start_utc": "2026-10-13T20:29:36+00:00",
   "week_end_utc": "2026-10-20T20:29:36+00:00",
@@ -79,7 +79,7 @@
           "ask": 1.72,
           "spread_pct": 0.0785,
           "mark_window": "end_of_day",
-          "pnl_pct_from_emission": -0.1272
+          "pnl_pct_from_emission": -0.2538
         },
         {
           "run_generated_at_utc": "2026-10-20T17:29:42+00:00",
@@ -94,14 +94,40 @@
       ],
       "resolved": 4,
       "win_rate": 0.5,
-      "mean_return": 0.04,
-      "equal_weight_sum": 0.1599
+      "mean_return": 0.0083,
+      "equal_weight_sum": 0.0333
     }
   },
-  "research_evidence_source": "prospective_ledger",
+  "research_evidence_source": "dashboard_summary",
   "research_lanes": {
     "picks": 365,
     "lanes": {
+      "council_holdout": {
+        "picks": 78,
+        "mark_windows": {
+          "friday_close": 6,
+          "next_day_close": 45,
+          "end_of_day": 18
+        },
+        "resolved": 69,
+        "win_rate": 0.6522,
+        "mean_return": 0.2123,
+        "equal_weight_sum": 14.6482,
+        "by_option_type": {
+          "call": {
+            "picks": 78,
+            "mark_windows": {
+              "friday_close": 6,
+              "next_day_close": 45,
+              "end_of_day": 18
+            },
+            "resolved": 69,
+            "win_rate": 0.6522,
+            "mean_return": 0.2123,
+            "equal_weight_sum": 14.6482
+          }
+        }
+      },
       "friction_veto": {
         "picks": 86,
         "mark_windows": {
@@ -166,32 +192,6 @@
           }
         }
       },
-      "council_holdout": {
-        "picks": 78,
-        "mark_windows": {
-          "next_day_close": 45,
-          "friday_close": 6,
-          "end_of_day": 18
-        },
-        "resolved": 69,
-        "win_rate": 0.6522,
-        "mean_return": 0.2123,
-        "equal_weight_sum": 14.6482,
-        "by_option_type": {
-          "call": {
-            "picks": 78,
-            "mark_windows": {
-              "next_day_close": 45,
-              "friday_close": 6,
-              "end_of_day": 18
-            },
-            "resolved": 69,
-            "win_rate": 0.6522,
-            "mean_return": 0.2123,
-            "equal_weight_sum": 14.6482
-          }
-        }
-      },
       "live": {
         "picks": 4,
         "mark_windows": {
@@ -219,68 +219,52 @@
     }
   },
   "challenger_to_open": {
-    "experiment_id": "tight_spread_holdout_v1",
+    "experiment_id": "paired_opposite_side_v1",
     "authority": "observation_only_never_used_for_routing",
-    "selection_rule": "lowest decision-time entry spread_pct among council_holdout",
-    "paired_scans": 4,
-    "mean_return_lift": -0.1477,
-    "positive_lift_rate": 0.5,
+    "selection_rule": "same-symbol paired_side_observation of the opposite option type",
+    "paired_scans": 3,
+    "mean_return_lift": 0.1391,
+    "positive_lift_rate": 0.6667,
     "rows": [
       {
         "run_generated_at_utc": "2026-10-14T14:30:54+00:00",
         "live_symbol": "XLE",
+        "live_side": "call",
         "live_return": 0.1479,
         "live_window": "friday_close",
-        "live_spread_pct": 0.0118,
-        "holdout_symbol": "AAPL",
-        "holdout_contract": "AAPL261023C00352500",
-        "holdout_spread_pct": 0.0403,
-        "holdout_return": -0.4677,
-        "holdout_window": "next_day_close",
-        "return_lift": -0.6156
-      },
-      {
-        "run_generated_at_utc": "2026-10-15T17:29:20+00:00",
-        "live_symbol": "XLP",
-        "live_return": 0.2664,
-        "live_window": "friday_close",
-        "live_spread_pct": 0.0789,
-        "holdout_symbol": "PFE",
-        "holdout_contract": "PFE261023C00029000",
-        "holdout_spread_pct": 0.0476,
-        "holdout_return": -0.1964,
-        "holdout_window": "end_of_day",
-        "return_lift": -0.4628
+        "opposite_side": "put",
+        "opposite_contract": "XLE261023P00066000",
+        "opposite_return": -0.3922,
+        "opposite_window": "friday_close",
+        "return_lift": -0.5401
       },
       {
         "run_generated_at_utc": "2026-10-20T14:29:32+00:00",
         "live_symbol": "BAC",
+        "live_side": "call",
         "live_return": -0.2538,
         "live_window": "end_of_day",
-        "live_spread_pct": 0.0785,
-        "holdout_symbol": "IWM",
-        "holdout_contract": "IWM261027C00277000",
-        "holdout_spread_pct": 0.0181,
-        "holdout_return": -0.0633,
-        "holdout_window": "end_of_day",
-        "return_lift": 0.1905
+        "opposite_side": "put",
+        "opposite_contract": "BAC261030P00051000",
+        "opposite_return": 0.383,
+        "opposite_window": "end_of_day",
+        "return_lift": 0.6368
       },
       {
         "run_generated_at_utc": "2026-10-20T17:29:42+00:00",
         "live_symbol": "BAC",
+        "live_side": "call",
         "live_return": -0.1272,
         "live_window": "end_of_day",
-        "live_spread_pct": 0.0495,
-        "holdout_symbol": "KO",
-        "holdout_contract": "KO261030C00092000",
-        "holdout_spread_pct": 0.0362,
-        "holdout_return": 0.1697,
-        "holdout_window": "end_of_day",
-        "return_lift": 0.2969
+        "opposite_side": "put",
+        "opposite_contract": "BAC261030P00050000",
+        "opposite_return": 0.1935,
+        "opposite_window": "end_of_day",
+        "return_lift": 0.3207
       }
     ],
     "promotion_ready": false,
-    "reason": "Challenger trailed the live pick on 4 paired scans (mean lift -0.1477). Friday-close labels and 30 paired days are still required before any production change."
+    "reason": "Challenger beat the live pick on 3 paired scans (mean lift 0.1391). Friday-close labels and 30 paired days are still required before any production change."
   },
   "tight_spread_challenger": {
     "experiment_id": "tight_spread_holdout_v1",
@@ -408,6 +392,68 @@
     "promotion_ready": false,
     "reason": "Vetoed names returned -8.54% after friction (77 resolved, win rate 0.2857). Negative veto P&L is avoided loss; keep the gate."
   },
+  "friction_veto_paired": {
+    "experiment_id": "friction_veto_paired_v1",
+    "authority": "observation_only_never_used_for_routing",
+    "selection_rule": "highest decision-time score among same-scan friction_veto names",
+    "paired_scans": 4,
+    "mean_return_lift": 0.0025,
+    "positive_lift_rate": 0.5,
+    "rows": [
+      {
+        "run_generated_at_utc": "2026-10-14T14:30:54+00:00",
+        "live_symbol": "XLE",
+        "live_return": 0.1479,
+        "live_window": "friday_close",
+        "veto_symbol": "SPY",
+        "veto_contract": "SPY261022C00776000",
+        "veto_score": 0.6818,
+        "veto_return": -0.8333,
+        "veto_window": "friday_close",
+        "return_lift": -0.9812
+      },
+      {
+        "run_generated_at_utc": "2026-10-15T17:29:20+00:00",
+        "live_symbol": "XLP",
+        "live_return": 0.2664,
+        "live_window": "friday_close",
+        "veto_symbol": "XLE",
+        "veto_contract": "XLE261023C00067500",
+        "veto_score": 0.7959,
+        "veto_return": 1.1469,
+        "veto_window": "friday_close",
+        "return_lift": 0.8805
+      },
+      {
+        "run_generated_at_utc": "2026-10-20T14:29:32+00:00",
+        "live_symbol": "BAC",
+        "live_return": -0.2538,
+        "live_window": "end_of_day",
+        "veto_symbol": "AAPL",
+        "veto_contract": "AAPL261030C00350000",
+        "veto_score": 0.5517,
+        "veto_return": -0.3209,
+        "veto_window": "end_of_day",
+        "return_lift": -0.0671
+      },
+      {
+        "run_generated_at_utc": "2026-10-20T17:29:42+00:00",
+        "live_symbol": "BAC",
+        "live_return": -0.1272,
+        "live_window": "end_of_day",
+        "veto_symbol": "IWM",
+        "veto_contract": "IWM261030C00278000",
+        "veto_score": 0.6738,
+        "veto_return": 0.0506,
+        "veto_window": "end_of_day",
+        "return_lift": 0.1778
+      }
+    ],
+    "gate_may_block_winners": true,
+    "action": "review_do_not_loosen",
+    "promotion_ready": false,
+    "reason": "Highest-score veto beat the live pick on 4 paired scans (mean lift 0.0025). The gate may be blocking winners; keep observation-only and do not loosen production friction."
+  },
   "research_side_split": {
     "experiment_id": "research_side_split_v1",
     "authority": "observation_only_never_used_for_routing",
@@ -454,6 +500,7 @@
     "policy": {
       "target_return": 0.25,
       "stop_return": -0.5,
+      "harvest": true,
       "fill_rule": "recorded bid at or beyond the target/stop; midpoint touches never count",
       "fallback": "hold to the latest resolved fixed-exit window, preferring Friday close"
     },
@@ -475,7 +522,7 @@
       "mean_return_lift": 0.0214
     },
     "promotion_ready": false,
-    "reason": "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, and a positive mean lift versus hold-to-Friday before any production exit change."
+    "reason": "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, a positive mean lift versus hold-to-Friday, and non-negative live lift before any production exit change."
   },
   "early_harvest_overlay": {
     "artifact": "early_harvest_overlay_v1",
@@ -487,6 +534,7 @@
     "policy": {
       "target_return": 0.1,
       "stop_return": -0.4,
+      "harvest": true,
       "fill_rule": "recorded bid at or beyond the target/stop; midpoint touches never count",
       "fallback": "hold to the latest resolved fixed-exit window, preferring Friday close"
     },
@@ -508,7 +556,41 @@
       "mean_return_lift": -0.0536
     },
     "promotion_ready": false,
-    "reason": "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, and a positive mean lift versus hold-to-Friday before any production exit change."
+    "reason": "Observation-only. Needs 30 resolved picks, 10 target hits, 10 stop hits, a positive mean lift versus hold-to-Friday, and non-negative live lift before any production exit change."
+  },
+  "winner_run_overlay": {
+    "artifact": "winner_run_overlay_v1",
+    "schema_version": 1,
+    "generated_at_utc": "2026-10-20T20:29:36+00:00",
+    "authority": "observation_only_never_used_for_routing",
+    "production_effect": "none",
+    "replaces": "early_harvest_overlay_v1",
+    "policy": {
+      "target_return": null,
+      "stop_return": -0.5,
+      "harvest": false,
+      "fill_rule": "recorded bid at or beyond the stop; target/midpoint touches never count",
+      "fallback": "hold to the latest resolved fixed-exit window, preferring Friday close"
+    },
+    "coverage": {
+      "resolved_picks": 324,
+      "trajectory_marks_seen": 22136,
+      "target_hits": 0,
+      "stop_hits": 98,
+      "hold_fallbacks": 226
+    },
+    "overall": {
+      "mean_overlay_return": 0.0518,
+      "mean_hold_return": 0.0559,
+      "mean_return_lift": -0.0041,
+      "positive_lift_rate": 0.1852
+    },
+    "live": {
+      "resolved_picks": 4,
+      "mean_return_lift": 0.0
+    },
+    "promotion_ready": false,
+    "reason": "Observation-only. Needs 30 resolved picks, 10 stop hits, a positive mean lift versus hold-to-Friday, and non-negative live lift before any production exit change. Harvest fills are never taken."
   },
   "lane_decisions": [
     {
@@ -553,10 +635,20 @@
     },
     {
       "lane": "early_harvest_overlay_v1",
-      "action": "hold_do_not_promote",
+      "action": "replace",
+      "replacement": "winner_run_overlay_v1",
       "authority": "observation_only",
-      "reason": "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. Mean lift versus hold -0.1003. Trails hold and/or the +25 overlay; do not change live exits.",
+      "reason": "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. Mean lift versus hold -0.1003. Harvest overlays trail hold; winner_run_overlay_v1 is the active exit experiment.",
       "mean_return_lift": -0.1003,
+      "resolved_picks": 324
+    },
+    {
+      "lane": "winner_run_overlay_v1",
+      "action": "keep_observation_only",
+      "authority": "observation_only",
+      "reason": "Stop \u221250% bid and never harvest versus hold-to-Friday. Mean lift versus hold -0.0041; live lift 0.0. Observation-only; it cannot route exits. Promotion also requires non-negative live lift.",
+      "mean_return_lift": -0.0041,
+      "live_mean_return_lift": 0.0,
       "resolved_picks": 324
     },
     {
@@ -598,6 +690,15 @@
       "gate_working": true
     },
     {
+      "lane": "friction_veto_paired_v1",
+      "action": "review_do_not_loosen",
+      "authority": "observation_only",
+      "reason": "Highest-score veto beat the live pick on 4 paired scans (mean lift 0.0025). The gate may be blocking winners; keep observation-only and do not loosen production friction.",
+      "paired_scans": 4,
+      "mean_return_lift": 0.0025,
+      "gate_may_block_winners": true
+    },
+    {
       "lane": "research_side_split_v1",
       "action": "keep_observation_only",
       "authority": "observation_only",
@@ -637,6 +738,9 @@
     "cirrus_only": 162,
     "orographic_executable_win_rate": 0.2739105829088851,
     "orographic_avg_executable_return": -0.1750578059847394,
+    "iceberg_current_export": false,
+    "iceberg_max_decision_at_utc": "2026-10-14T17:20:21.642249+00:00",
+    "iceberg_latest_publication_mart_id": "c86f3d0e2b1d9a55e0dd4da51000578ab3876b2bee600b3521f1a2cc32dcce7f",
     "alpha_verdict": "insufficient_paired_evidence"
   },
   "platform": {
@@ -660,11 +764,12 @@
     "Keep production_v2 as the only Tradier lane.",
     "Rebuild the two-source mart after each scan when a Cirrus export is present; use restored canonical evidence if consolidate has not written yet.",
     "Publish Cirrus with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir> so scans restore r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current.",
-    "Keep friction_veto_value_v1 as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
-    "Collect paired_opposite_side_v1 and tight_spread_holdout_v1 as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
-    "Score early_harvest_overlay_v1 (+10/-40) alongside trajectory_exit_overlay_v1; do not change live exits.",
+    "Republish the two-source mart to Iceberg when iceberg_current_export is false so catalog backtests stay on the same mart_id as the repo diagnostics.",
+    "Keep friction_veto_value_v1 as a production execution gate; score friction_veto_paired_v1 as the same-scan estimand and do not loosen the gate.",
+    "Collect paired_opposite_side_v1 and tight_spread_holdout_v1 as observation-only; challenger_to_open ranks algebraic lift, not |lift|.",
+    "Replace harvest overlays with winner_run_overlay_v1 (stop \u221250%, never harvest); do not change live exits.",
     "Keep research_side_split_v1 observation-only; a one-week put/call gap is not a Scout rewrite.",
     "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart."
   ],
-  "research_ledger_path": "output/canonical_evidence/prospective_pick_ledger.json"
+  "research_ledger_path": "web/data/diagnostics/prospective_pick_ledger.json"
 }
