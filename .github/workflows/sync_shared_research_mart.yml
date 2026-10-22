@@ -52,7 +52,33 @@ permissions:
   contents: write
 
 jobs:
+  offline-pr-check:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: pip install -r engine/requirements-mart.txt pytest
+      - name: Run offline mart and archive contract tests
+        run: >-
+          python -m pytest -q
+          engine/tests/test_shared_research_mart.py
+          engine/tests/test_r2_evidence_scripts.py
+          engine/tests/test_canonical_atomic_publish.py
+          engine/tests/test_evidence_store.py
+
   sync:
+    # Pull requests must not receive catalog credentials, restore real evidence,
+    # or upload private-derived diagnostics. Scheduled/manual/main behavior stays.
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
