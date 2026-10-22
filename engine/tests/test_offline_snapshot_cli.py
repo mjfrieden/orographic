@@ -77,4 +77,23 @@ def test_shared_mart_pull_requests_use_secret_free_offline_job():
     assert "secrets." not in offline
     assert "contents: read" in offline
     assert "python -m pytest" in offline
-    assert "if: ${{ github.event_name != 'pull_request' }}" in live.split("steps:", 1)[0]
+    header = live.split("steps:", 1)[0]
+    assert "if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}" in header
+
+
+def test_shared_mart_production_guard_allows_only_existing_schedule_and_manual_events():
+    workflow = Path(".github/workflows/sync_shared_research_mart.yml").read_text()
+    header = workflow.split("  sync:", 1)[1].split("steps:", 1)[0]
+    condition = next(line.strip()[4:] for line in header.splitlines() if line.strip().startswith("if: "))
+    # Strictly parse this intentionally small allowlist, not arbitrary code.
+    assert condition.startswith("${{ ") and condition.endswith(" }}")
+    terms = condition[4:-3].split(" || ")
+    prefix = "github.event_name == '"
+    assert all(term.startswith(prefix) and term.endswith("'") for term in terms)
+    allowed_events = {term[len(prefix):-1] for term in terms}
+    assert allowed_events == {"schedule", "workflow_dispatch"}
+    assert "pull_request" not in allowed_events
+    assert "push" not in allowed_events  # Includes the eventual merge to main.
+    assert "pull_request_target" not in allowed_events
+    assert 'cron: "30 17 * * 1-5"' in workflow
+    assert "  workflow_dispatch:" in workflow

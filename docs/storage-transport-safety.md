@@ -38,8 +38,11 @@ single-request limit.
 Pull requests use synthetic providers and local object-store doubles. The CLI,
 writers, byte hashes, failure handling, and snapshot validator are exercised;
 the independent real-model artifact hash gate remains unchanged. Shared-mart
-PR tests have no provider/catalog secrets or real evidence downloads. Scheduled,
-manual, and main-branch production jobs are not dispatched by these tests.
+PR tests have no provider/catalog secrets or real evidence downloads. Production
+shared-mart sync is eligible only on the existing schedule or explicit manual
+dispatch. A code push, including merging this fix to main, cannot run that job.
+The existing schedule and manual inputs are unchanged; they are not dispatched
+by these tests. Other scan and broker/execution schedules are untouched.
 
 Neither a missing catalog object nor historical catalog inconsistency is repaired
 by transport changes. Do not delete catalog files or blindly retry publication
