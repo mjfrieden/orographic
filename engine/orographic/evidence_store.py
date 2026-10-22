@@ -31,7 +31,16 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    # Canonical ledgers grow with every hosted scan and are uploaded to R2 as
+    # single immutable objects.  Pretty-printing duplicated tens of millions
+    # of whitespace bytes and eventually exceeded Wrangler's 300 MiB upload
+    # limit even though the semantic payload still fit comfortably.  Keep the
+    # stable key order, but serialize canonical JSON without presentation-only
+    # whitespace.  Readers already treat these files as machine artifacts.
+    path.write_text(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")),
+        encoding="utf-8",
+    )
 
 
 def _sha256(path: Path) -> str:
