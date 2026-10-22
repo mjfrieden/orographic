@@ -12,6 +12,8 @@ import sys
 import tempfile
 import time
 from typing import Any
+from urllib.error import HTTPError
+from functools import lru_cache
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -56,7 +58,66 @@ def _iter_files(paths: list[Path]) -> list[tuple[Path, Path]]:
     return files
 
 
+# Wrangler's REST transport caps individual objects at 300 MiB. Keep canonical
+# bytes/keys unchanged; use S3 multipart for large objects instead of compression
+# or a new manifest format that existing restorers would not understand.
+WRANGLER_MAX_BYTES = 300 * 1024 * 1024
+
+
+@lru_cache(maxsize=1)
+def _large_object_client():
+    import boto3
+    from botocore.config import Config
+
+    account = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
+    token = (os.environ.get("CLOUDFLARE_R2_API_TOKEN") or
+             os.environ.get("CLOUDFLARE_API_TOKEN", "")).strip()
+    if not re.fullmatch(r"[a-fA-F0-9]{32}", account) or not token:
+        raise RuntimeError("Large R2 uploads require the Cloudflare account and R2 API token")
+    # Both account-owned and user-owned R2 tokens are supported. Never log the
+    # token, derived S3 secret, or verification response.
+    token_id = None
+    for path in (f"accounts/{account}/tokens/verify", "user/tokens/verify"):
+        request = Request("https://api.cloudflare.com/client/v4/" + path,
+                          headers={"Authorization": f"Bearer {token}"})
+        try:
+            with urlopen(request, timeout=60) as response:
+                payload = json.loads(response.read())
+        except HTTPError as exc:
+            if exc.code in (400, 401, 403):
+                continue
+            raise RuntimeError("R2 token verification request failed") from None
+        result = payload.get("result") or {}
+        if payload.get("success") and result.get("status") == "active":
+            token_id = result.get("id")
+            break
+    if not isinstance(token_id, str) or not re.fullmatch(r"[a-fA-F0-9]{32}", token_id):
+        raise RuntimeError("Cannot verify an active R2 API token for multipart upload")
+    # Cloudflare documents S3 credentials as token ID + SHA256(token value).
+    return boto3.client(
+        "s3", endpoint_url=f"https://{account}.r2.cloudflarestorage.com",
+        aws_access_key_id=token_id,
+        aws_secret_access_key=hashlib.sha256(token.encode()).hexdigest(),
+        region_name="auto",
+        config=Config(retries={"mode": "standard", "max_attempts": 4},
+                      request_checksum_calculation="when_required",
+                      response_checksum_validation="when_required"),
+    )
+
+
+
 def _put_object(bucket: str, object_key: str, file_path: Path) -> None:
+    if file_path.stat().st_size > WRANGLER_MAX_BYTES:
+        from boto3.s3.transfer import TransferConfig
+
+        _large_object_client().upload_file(
+            str(file_path), bucket, object_key,
+            Config=TransferConfig(multipart_threshold=64 * 1024 * 1024,
+                                  multipart_chunksize=64 * 1024 * 1024,
+                                  max_concurrency=2),
+        )
+        print(f"Uploaded {file_path} -> r2://{bucket}/{object_key} (multipart)")
+        return
     command = [
         "npx", "wrangler", "r2", "object", "put",
         f"{bucket}/{object_key}", "--remote", "--file", str(file_path),
