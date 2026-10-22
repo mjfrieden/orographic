@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 102 — 2026-10-22 — Dungeon quest-receipt targets reach 44px (NN/g H6, Fitts)
+
+- Search, side, outcome, and Show more on quest receipts are 44px targets so a phone user can filter and page without missing a 32px gold gate. Clear filters was already 44px. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more` / `#clear-trade-filters`, and 820px dungeon nav `display: flex` stay. Cycles 100 and 101 remain on PRs #92 and #93.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, cockpit (PR #92 open), admin (PR #93 open).
+
 ## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
 
 - The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.

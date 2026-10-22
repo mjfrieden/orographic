@@ -51,6 +51,9 @@ test("filtered trade empty state names the miss and offers Clear filters", async
     "trade row innerHTML template must stay",
   );
   assert.match(theme, /@media \(max-width: 820px\)[\s\S]*?\.lab-topbar nav \{\s*display: flex;/);
+  assert.match(html, /arena-theme\.css\?v=20261022a/);
+  assert.match(theme, /\.lab-page \.trade-filters input,\s*\.lab-page \.trade-filters select \{\s*min-height:\s*44px;/);
+  assert.match(theme, /\.lab-page #clear-trade-filters,\s*\.lab-page #show-more \{\s*min-height:\s*44px;/);
 });
 
 test("shared mart tooling is confined to research and admin surfaces", async () => {
