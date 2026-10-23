@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from engine.orographic.evidence_store import validate_canonical_bundle  # noqa: E402
+from scripts.r2_multipart import WRANGLER_MAX_BYTES, upload_large_object  # noqa: E402
 
 
 ARCHIVE_ROOT = "orographic/research-data"
@@ -57,6 +59,10 @@ def _iter_files(paths: list[Path]) -> list[tuple[Path, Path]]:
 
 
 def _put_object(bucket: str, object_key: str, file_path: Path) -> None:
+    if file_path.stat().st_size > WRANGLER_MAX_BYTES:
+        upload_large_object(bucket, object_key, file_path)
+        print(f"Uploaded {file_path} -> r2://{bucket}/{object_key} (multipart)")
+        return
     command = [
         "npx", "wrangler", "r2", "object", "put",
         f"{bucket}/{object_key}", "--remote", "--file", str(file_path),
@@ -195,14 +201,32 @@ def _upload_archive(
 
 def _upload_canonical(*, bucket: str, prefix: str, bundle: Path) -> None:
     manifest = validate_canonical_bundle(bundle)
-    # Immutable destinations make publishing the current manifest the sole commit
-    # point. A failed upload cannot replace bytes referenced by the previous one.
-    generation = _sha256(bundle / "evidence_manifest.json")
-    for record in manifest["files"]:
-        relative = str(record["path"])
-        record["object_key"] = f"{prefix}-bundles/{generation}/{relative}"
-        _put_object(bucket, record["object_key"], bundle / relative)
-    with tempfile.TemporaryDirectory(prefix="orographic-publish-") as tmpdir:
+    original_manifest = (bundle / "evidence_manifest.json").read_bytes()
+    if json.loads(original_manifest) != manifest:
+        raise RuntimeError("Canonical manifest changed after validation")
+    generation = hashlib.sha256(original_manifest).hexdigest()
+    with tempfile.TemporaryDirectory(prefix="orographic-publish-", dir=bundle.parent) as tmpdir:
+        # Snapshot every input before the first remote write, then validate that
+        # exact snapshot against the original manifest. Never overwrite an
+        # already-published generation with source files changed after validation.
+        # Stage beside the input, avoiding a potentially RAM-backed system /tmp.
+        # The caller must budget one extra bundle on this filesystem.
+        staged = Path(tmpdir) / "bundle"
+        staged.mkdir()
+        (staged / "evidence_manifest.json").write_bytes(original_manifest)
+        for record in manifest["files"]:
+            relative = Path(str(record["path"]))
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("Canonical manifest contains an unsafe path")
+            destination = staged / relative
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(bundle / relative, destination)
+        validate_canonical_bundle(staged)
+        # Publishing the current manifest remains the sole remote commit point.
+        for record in manifest["files"]:
+            relative = str(record["path"])
+            record["object_key"] = f"{prefix}-bundles/{generation}/{relative}"
+            _put_object(bucket, record["object_key"], staged / relative)
         published = Path(tmpdir) / "evidence_manifest.json"
         published.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         _put_object(bucket, f"{prefix}/evidence_manifest.json", published)
@@ -272,3 +296,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
