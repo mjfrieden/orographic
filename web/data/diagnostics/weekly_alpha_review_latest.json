@@ -1,17 +1,25 @@
 {
   "artifact": "orographic_weekly_alpha_review",
   "schema_version": 4,
-  "generated_at_utc": "2026-10-22T20:31:37+00:00",
-  "week_start_utc": "2026-10-15T20:31:37+00:00",
-  "week_end_utc": "2026-10-22T20:31:37+00:00",
+  "generated_at_utc": "2026-10-23T14:29:25+00:00",
+  "week_start_utc": "2026-10-16T14:29:25+00:00",
+  "week_end_utc": "2026-10-23T14:29:25+00:00",
   "objective": "after_cost_alpha_versus_cirrus_and_internal_challengers",
   "production": {
     "lane": "production_v2_council_live_board",
     "model_stack": "production_v2",
     "regime": "neutral",
-    "current_pick": null,
+    "current_pick": {
+      "symbol": "BAC",
+      "contract_symbol": "BAC261030C00051000",
+      "option_type": "call",
+      "ask": 0.53,
+      "spread_pct": 0.0583,
+      "prob_big_win": 0.6255,
+      "expected_tail_utility": 0.7618
+    },
     "week": {
-      "scans": 15,
+      "scans": 16,
       "abstain_scans": 12,
       "live_emissions": [
         {
@@ -37,9 +45,17 @@
           "option_type": "call",
           "ask": 4.19,
           "spread_pct": 0.012
+        },
+        {
+          "run_generated_at_utc": "2026-10-23T14:29:25+00:00",
+          "symbol": "BAC",
+          "contract_symbol": "BAC261030C00051000",
+          "option_type": "call",
+          "ask": 0.53,
+          "spread_pct": 0.0583
         }
       ],
-      "unique_live_days": 2
+      "unique_live_days": 3
     },
     "week_live_marks": {
       "emissions_with_marks": [
@@ -72,6 +88,14 @@
           "spread_pct": 0.012,
           "mark_window": "next_day_close",
           "pnl_pct_from_emission": -0.6351
+        },
+        {
+          "run_generated_at_utc": "2026-10-23T14:29:25+00:00",
+          "symbol": "BAC",
+          "contract_symbol": "BAC261030C00051000",
+          "option_type": "call",
+          "ask": 0.53,
+          "spread_pct": 0.0583
         }
       ],
       "resolved": 3,
@@ -82,10 +106,10 @@
   },
   "research_evidence_source": "prospective_ledger",
   "research_lanes": {
-    "picks": 327,
+    "picks": 350,
     "lanes": {
       "paired_side_observation": {
-        "picks": 185,
+        "picks": 195,
         "mark_windows": {
           "next_day_close": 133,
           "friday_close": 11,
@@ -97,7 +121,7 @@
         "equal_weight_sum": 6.4198,
         "by_option_type": {
           "call": {
-            "picks": 77,
+            "picks": 80,
             "mark_windows": {
               "next_day_close": 56,
               "friday_close": 6,
@@ -109,7 +133,7 @@
             "equal_weight_sum": 2.8996
           },
           "put": {
-            "picks": 108,
+            "picks": 115,
             "mark_windows": {
               "next_day_close": 77,
               "friday_close": 5,
@@ -123,7 +147,7 @@
         }
       },
       "friction_veto": {
-        "picks": 77,
+        "picks": 85,
         "mark_windows": {
           "next_day_close": 49,
           "friday_close": 5,
@@ -135,7 +159,7 @@
         "equal_weight_sum": 4.8211,
         "by_option_type": {
           "call": {
-            "picks": 77,
+            "picks": 85,
             "mark_windows": {
               "next_day_close": 49,
               "friday_close": 5,
@@ -149,7 +173,7 @@
         }
       },
       "council_holdout": {
-        "picks": 62,
+        "picks": 66,
         "mark_windows": {
           "next_day_close": 47,
           "friday_close": 2,
@@ -161,7 +185,7 @@
         "equal_weight_sum": 9.3835,
         "by_option_type": {
           "call": {
-            "picks": 62,
+            "picks": 66,
             "mark_windows": {
               "next_day_close": 47,
               "friday_close": 2,
@@ -175,7 +199,7 @@
         }
       },
       "live": {
-        "picks": 3,
+        "picks": 4,
         "mark_windows": {
           "next_day_close": 3
         },
@@ -185,7 +209,7 @@
         "equal_weight_sum": -0.7998,
         "by_option_type": {
           "call": {
-            "picks": 3,
+            "picks": 4,
             "mark_windows": {
               "next_day_close": 3
             },
@@ -352,7 +376,7 @@
     "experiment_id": "friction_veto_value_v1",
     "authority": "observation_only_never_used_for_routing",
     "interpretation": "negative_veto_returns_are_avoided_loss",
-    "picks": 77,
+    "picks": 85,
     "resolved": 68,
     "win_rate": 0.5882,
     "veto_mean_return": 0.0709,
@@ -367,7 +391,7 @@
     "authority": "observation_only_never_used_for_routing",
     "selection_rule": "split paired_side_observation marks by inferred OCC option_type",
     "paired_side_calls": {
-      "picks": 77,
+      "picks": 80,
       "mark_windows": {
         "next_day_close": 56,
         "friday_close": 6,
@@ -379,7 +403,7 @@
       "equal_weight_sum": 2.8996
     },
     "paired_side_puts": {
-      "picks": 108,
+      "picks": 115,
       "mark_windows": {
         "next_day_close": 77,
         "friday_close": 5,
@@ -390,7 +414,7 @@
       "mean_return": 0.0356,
       "equal_weight_sum": 3.5202
     },
-    "live_call_picks": 3,
+    "live_call_picks": 4,
     "live_put_picks": 0,
     "put_minus_call_return": -0.0041,
     "live_emitted_losing_side": false,
@@ -401,7 +425,7 @@
   "exit_overlay": {
     "artifact": "trajectory_exit_overlay_v1",
     "schema_version": 1,
-    "generated_at_utc": "2026-10-22T20:31:37+00:00",
+    "generated_at_utc": "2026-10-23T14:29:25+00:00",
     "authority": "observation_only_never_used_for_routing",
     "production_effect": "none",
     "replaces": "path_hazard_challenger",
@@ -413,16 +437,16 @@
     },
     "coverage": {
       "resolved_picks": 302,
-      "trajectory_marks_seen": 25716,
-      "target_hits": 165,
-      "stop_hits": 70,
-      "hold_fallbacks": 67
+      "trajectory_marks_seen": 27907,
+      "target_hits": 178,
+      "stop_hits": 83,
+      "hold_fallbacks": 41
     },
     "overall": {
-      "mean_overlay_return": -0.0074,
+      "mean_overlay_return": -0.0073,
       "mean_hold_return": 0.0656,
       "mean_return_lift": -0.073,
-      "positive_lift_rate": 0.4007
+      "positive_lift_rate": 0.4437
     },
     "live": {
       "resolved_picks": 3,
@@ -434,7 +458,7 @@
   "early_harvest_overlay": {
     "artifact": "early_harvest_overlay_v1",
     "schema_version": 1,
-    "generated_at_utc": "2026-10-22T20:31:37+00:00",
+    "generated_at_utc": "2026-10-23T14:29:25+00:00",
     "authority": "observation_only_never_used_for_routing",
     "production_effect": "none",
     "replaces": "trajectory_exit_overlay_v1",
@@ -446,16 +470,16 @@
     },
     "coverage": {
       "resolved_picks": 302,
-      "trajectory_marks_seen": 25716,
-      "target_hits": 220,
-      "stop_hits": 65,
-      "hold_fallbacks": 17
+      "trajectory_marks_seen": 27907,
+      "target_hits": 222,
+      "stop_hits": 74,
+      "hold_fallbacks": 6
     },
     "overall": {
-      "mean_overlay_return": -0.0181,
+      "mean_overlay_return": -0.0252,
       "mean_hold_return": 0.0656,
-      "mean_return_lift": -0.0837,
-      "positive_lift_rate": 0.4868
+      "mean_return_lift": -0.0909,
+      "positive_lift_rate": 0.4934
     },
     "live": {
       "resolved_picks": 3,
@@ -509,8 +533,8 @@
       "lane": "early_harvest_overlay_v1",
       "action": "hold_do_not_promote",
       "authority": "observation_only",
-      "reason": "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. Mean lift versus hold -0.0837. Trails hold and/or the +25 overlay; do not change live exits.",
-      "mean_return_lift": -0.0837,
+      "reason": "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. Mean lift versus hold -0.0909. Trails hold and/or the +25 overlay; do not change live exits.",
+      "mean_return_lift": -0.0909,
       "resolved_picks": 302
     },
     {
@@ -594,10 +618,8 @@
     "alpha_verdict": "insufficient_paired_evidence"
   },
   "platform": {
-    "scan_health_status": "failed",
-    "scan_health_failed_checks": [
-      "r2_archival_completed"
-    ],
+    "scan_health_status": "passed",
+    "scan_health_failed_checks": [],
     "rebuild_readiness": "hold_collecting_executable_evidence",
     "promotion_decision": "not_ready",
     "feature_snapshot_schema": "orographic_pick_features_v1",
