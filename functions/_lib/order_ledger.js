@@ -1,3 +1,5 @@
+import { normalizeOrderId, parseOrderJson } from "./order_ids.js";
+
 function toList(value) {
   if (!value) {
     return [];
@@ -256,7 +258,7 @@ export function buildOrderProvenanceEvent({
     side: cleanText(envelope?.side || ""),
     quantity: asNumber(envelope?.quantity, 0),
     limit_price: asNumber(envelope?.price, null),
-    broker_order_id: cleanText(order?.id || result?.order?.id || ""),
+    broker_order_id: normalizeOrderId(order?.id) ?? normalizeOrderId(result?.order?.id) ?? "",
     broker_status: cleanText(
       order?.status || result?.order?.status || blockReason || "",
     ),
@@ -377,7 +379,7 @@ export async function listOrderProvenance(env, limit = 50) {
   return toList(result?.results).map((row) => {
     let payload = null;
     try {
-      payload = JSON.parse(String(row.payload_json || "null"));
+      payload = parseOrderJson(String(row.payload_json || "null"));
     } catch {
       payload = null;
     }
@@ -395,7 +397,7 @@ export async function listOrderProvenance(env, limit = 50) {
       side: cleanText(row.side),
       quantity: Number(row.quantity || 0),
       limit_price: asNumber(row.limit_price, null),
-      broker_order_id: cleanText(row.broker_order_id),
+      broker_order_id: normalizeOrderId(row.broker_order_id) ?? "",
       broker_status: cleanText(row.broker_status),
       exit_policy_action: cleanText(row.exit_policy_action),
       payload,
