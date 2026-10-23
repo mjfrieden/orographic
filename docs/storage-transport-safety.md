@@ -16,6 +16,12 @@
   already-configured `CLOUDFLARE_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, and
   `R2_SECRET_ACCESS_KEY`. Missing configuration fails closed. No REST token is
   converted into credentials, and no AWS ambient credential chain is used.
+  The four existing archive/export upload steps map repository Actions secrets
+  with those S3 names into step-local environment variables. No job-level or CI
+  mapping is added. This wiring does not create credentials or set secret values.
+  The current endpoint is for the default R2 jurisdiction; verify the existing
+  account, bucket and jurisdiction before configuration. A jurisdiction-specific
+  bucket needs a separately reviewed endpoint adjustment.
 - Multipart uploads use the account's R2 S3 endpoint, 64 MiB parts, at most two
   workers, and at most four attempts per SDK request. Inputs exceeding 10,000
   parts fail rather than enlarging the parts. Managed-transfer failures attempt to abort
