@@ -16,7 +16,7 @@ on:
   # authority avoids duplicate jobs and GitHub schedule jitter.
 
 concurrency:
-  group: orographic-research-write-${{ github.ref }}
+  group: orographic-operational-ledger-writer
   cancel-in-progress: false
 
 permissions:
@@ -71,12 +71,12 @@ jobs:
           node-version: "22"
 
       - name: Restore mutable research ledgers from R2
+        id: operational_restore
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
           python scripts/sync_operational_ledgers_r2.py pull \
-            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
-            --allow-missing
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
 
       - name: Check Tradier capture configuration
         id: capture_config
@@ -127,7 +127,7 @@ jobs:
           python scripts/build_dashboard_prospective_summary.py
 
       - name: Publish mutable research ledgers to R2
-        if: ${{ always() }}
+        if: ${{ !cancelled() && steps.operational_restore.outcome == 'success' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |

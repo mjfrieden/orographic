@@ -310,6 +310,7 @@ class CouncilTests(unittest.TestCase):
             live_size=2,
             shadow_size=2,
             market_shock=shock,
+            fetch_live_corr=False,  # This test exercises shock policy, not a provider.
         )
 
         self.assertTrue(result.abstain)

@@ -44,10 +44,6 @@ on:
       - "engine/orographic/shared_mart_shadow.py"
       - "engine/orographic/iceberg_mart.py"
 
-concurrency:
-  group: orographic-research-write-${{ github.ref }}
-  cancel-in-progress: false
-
 permissions:
   contents: write
 
@@ -76,6 +72,9 @@ jobs:
           engine/tests/test_evidence_store.py
 
   sync:
+    concurrency:
+      group: orographic-operational-ledger-writer
+      cancel-in-progress: false
     # Code pushes and pull requests must not trigger production publication.
     # Retain only the existing schedule and explicit manual dispatch authority.
     if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
