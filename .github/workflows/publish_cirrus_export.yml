@@ -52,6 +52,9 @@ jobs:
             --output-dir output/cirrus_export
 
       - name: Publish to current Cirrus export prefix
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           python scripts/upload_research_artifacts_to_r2.py \
             --mode cirrus \

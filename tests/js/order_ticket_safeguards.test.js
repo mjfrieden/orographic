@@ -85,6 +85,22 @@ test("accepted order with unavailable status shows its ID and warning, and canno
   assert.equal(calls, 1);
 });
 
+for (const id of ["152158800", "91759371479", "9223372036854775807", "000123", "ORD/2026?x# part"]) {
+  test(`receipt displays opaque order ID ${id} unchanged and remains single-use`, async () => {
+    let calls = 0;
+    const ui = harness(async () => {
+      calls++;
+      return response({ ok: true, outcome: "accepted", order: { id }, envelope });
+    });
+    ui.openModal("Preview", "", true, envelope);
+    await ui.click();
+    assert.ok(ui.element("modal-body").innerHTML.includes(`Order ID: ${id};`));
+    assert.equal(ui.pending(), null);
+    await ui.click();
+    assert.equal(calls, 1);
+  });
+}
+
 test("a rejected confirmation retains the order ID and disables the ticket", async () => {
   const ui = harness(async () => response({ ok: true, outcome: "rejected", confirmation_status: "confirmed",
     order: { id: "ORDER-1", status: "submitted" }, confirmation: { id: "ORDER-1", status: "rejected" }, envelope }));

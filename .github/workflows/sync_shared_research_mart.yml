@@ -52,7 +52,33 @@ permissions:
   contents: write
 
 jobs:
+  offline-pr-check:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Install test dependencies
+        run: pip install -r engine/requirements-mart.txt pytest
+      - name: Run offline mart and archive contract tests
+        run: >-
+          python -m pytest -q
+          engine/tests/test_shared_research_mart.py
+          engine/tests/test_r2_evidence_scripts.py
+          engine/tests/test_canonical_atomic_publish.py
+          engine/tests/test_evidence_store.py
+
   sync:
+    # Code pushes and pull requests must not trigger production publication.
+    # Retain only the existing schedule and explicit manual dispatch authority.
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -141,6 +167,8 @@ jobs:
         continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           pin="$(python - <<'PY'
           import json

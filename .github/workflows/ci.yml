@@ -55,12 +55,7 @@ jobs:
       - name: Run observation tooling tests
         run: python -m unittest discover -s tests -p 'test_*.py' -v
 
-      - name: Snapshot smoke test
-        run: |
-          python engine/run_scan.py \
-            --output /tmp/orographic_ci_latest.json \
-            --prospective-ledger-output /tmp/orographic_ci_prospective_ledger.json
-          python scripts/validate_snapshot_smoke.py \
-            --snapshot /tmp/orographic_ci_latest.json \
-            --prospective-ledger /tmp/orographic_ci_prospective_ledger.json \
-            --diagnostics-dir /tmp/diagnostics
+      - name: Offline snapshot smoke test
+        # Synthetic providers; actual CLI, writers and snapshot validator.
+        # Keep the independent real-model hash gate above unchanged.
+        run: python -m pytest -q engine/tests/test_offline_snapshot_cli.py
