@@ -1,4 +1,5 @@
 import { readSession } from "./auth.js";
+import { normalizeOrderId, parseOrderJson } from "./order_ids.js";
 
 const DEFAULT_LIVE_BASE_URL = "https://api.tradier.com/v1";
 const DEFAULT_SANDBOX_BASE_URL = "https://sandbox.tradier.com/v1";
@@ -318,7 +319,7 @@ function normalizeOrderPayload(payload) {
   const reasonDescription = cleanMessage(order.reason_description || "");
   const message = cleanMessage(order.message || "");
   return {
-    id: order.id ?? null,
+    id: normalizeOrderId(order.id),
     status: String(order.status || ""),
     result: order.result ?? null,
     symbol: String(order.symbol || ""),
@@ -347,7 +348,7 @@ function normalizeOrderPayload(payload) {
 function normalizeOrders(payload) {
   return toList(payload?.orders?.order)
     .map((order) => ({
-      id: order.id ?? null,
+      id: normalizeOrderId(order.id),
       symbol: String(order.symbol || ""),
       option_symbol: String(order.option_symbol || ""),
       status: String(order.status || ""),
@@ -584,7 +585,11 @@ export async function tradierRequest(
 
   let data = null;
   try {
-    data = text ? JSON.parse(text) : null;
+    // Only order endpoints use the identifier parser; prices, quotes, account
+    // and position payloads keep their existing JSON types.
+    const parse = /^\/?accounts\/[^/]+\/orders(?:\/|$)/.test(request.path)
+      ? parseOrderJson : JSON.parse;
+    data = text ? parse(text) : null;
   } catch {
     data = text ? { raw: text } : null;
   }
@@ -753,11 +758,16 @@ export async function previewOrPlaceOrder(env, payload, { preview }) {
       };
     }
     try {
+      // URL parsers normalize dot segments even when percent-encoded. Retain
+      // such an opaque ID for review, but never look up a different resource.
+      if (order.id === "." || order.id === "..") {
+        throw new Error("Order ID cannot be used as a URL path segment.");
+      }
       const detailResponse = await tradierRequest(env, {
         path: `/accounts/${settings.accountId}/orders/${encodeURIComponent(order.id)}`,
       });
       const confirmation = normalizeOrderPayload(detailResponse.data);
-      if (!detailResponse.ok || String(confirmation.id) !== String(order.id) || !confirmation.status) {
+      if (!detailResponse.ok || confirmation.id !== order.id || !confirmation.status) {
         throw new Error("Order status could not be verified.");
       }
       const rejected = isRejectedOrder(confirmation) || confirmation.result === false;
