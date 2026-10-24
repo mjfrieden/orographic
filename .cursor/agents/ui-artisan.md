@@ -132,6 +132,10 @@ Audit juice shipped:
 97. Book empty state does not claim a clear roster when Tradier failed (NN/g H1). **Shipped in cycle 97.**
 98. Research dungeon quest-receipt filters name a miss and offer Clear filters (NN/g H1/H6). **Shipped in cycle 98.**
 99. Harbor Gate password field offers Show / Hide (NN/g H4, Jakob). **Shipped in cycle 99.**
+100. Book party frames keep quantity and action on a 720px phone (NN/g H6). **Shipped in cycle 100 (PR #92).**
+101. Master Harbor history and ledger errors wrap on a 720px phone (NN/g H9/H6). **Shipped in cycle 101 (PR #93).**
+102. Research dungeon quest-receipt filters and Show more are 44px targets (NN/g H6, Fitts). **Shipped in cycle 102 (PR #96).**
+103. Harbor Gate username and password fields are 44px targets (NN/g H6, Fitts). **Shipped in cycle 103.**
 
 ## Done when
 

@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 103 — 2026-10-24 — Harbor Gate credential fields reach 44px (NN/g H6, Fitts)
+
+- Username and password inputs match the Show control at 44px so a phone user can tap the fields without missing a 42px well. `#login-form`, `#username`, `#password`, `#error`, `#toggle-password`, and the `/api/login` payload stay. Cycles 100–102 remain on PRs #92, #93, and #96.
+
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, dungeon (PR #96 open), cockpit (PR #92 open), admin (PR #93 open).
+
 ## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
 
 - The password field now has a Show / Hide control so people can check what they typed without leaving the Harbor Gate. `#login-form`, `#username`, `#password`, `#error`, and the `/api/login` payload stay.
