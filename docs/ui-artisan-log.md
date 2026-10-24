@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 103 — 2026-10-24 — Harbor Gate credential fields reach 44px (NN/g H6, Fitts)
+
+- Username and password inputs match the Show control at 44px so a phone user can tap the fields without missing a 42px well. `#login-form`, `#username`, `#password`, `#error`, `#toggle-password`, and the `/api/login` payload stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, dungeon, cockpit, admin.
+
 ## Cycle 102 — 2026-10-22 — Dungeon quest-receipt targets reach 44px (NN/g H6, Fitts)
 
 - Search, side, outcome, and Show more on quest receipts are 44px targets so a phone user can filter and page without missing a 32px gold gate. Clear filters was already 44px. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more` / `#clear-trade-filters`, and 820px dungeon nav `display: flex` stay.

@@ -28,4 +28,6 @@ test("Harbor Gate keeps login contracts and adds a show-password control", async
   assert.match(html, /body:\s*JSON\.stringify\(payload\)/);
   assert.ok(css.includes(".login-page #toggle-password"));
   assert.match(css, /#toggle-password[\s\S]*min-height:\s*44px/);
+  assert.match(css, /\.login-page \.field input[\s\S]*min-height:\s*44px/);
+  assert.match(html, /login-gate\.css\?v=20261024a/);
 });
