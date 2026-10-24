@@ -37,6 +37,9 @@ jobs:
       - name: Verify Cloudflare authentication
         run: npx wrangler whoami
       - name: Validate and publish recovered canonical bundle
+        env:
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
           python scripts/upload_research_artifacts_to_r2.py --mode canonical output/recovery/output/canonical_evidence
       - name: Verify restored bundle hashes from R2

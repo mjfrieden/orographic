@@ -31,7 +31,11 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _write_json(path: Path, payload: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    # This produces a NEW bundle: file checksums and the bundle ID are computed
+    # from these exact bytes below. Existing archived bundles remain untouched.
+    # Stream encoding to avoid another whole-ledger JSON string in memory.
+    with path.open("w", encoding="utf-8") as handle:
+        json.dump(payload, handle, sort_keys=True, separators=(",", ":"))
 
 
 def _sha256(path: Path) -> str:
@@ -541,3 +545,4 @@ def validate_canonical_bundle(root: str | Path) -> dict[str, Any]:
     if failures:
         raise ValueError("Canonical evidence validation failed: " + ", ".join(failures))
     return manifest
+

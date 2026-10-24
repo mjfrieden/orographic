@@ -4,9 +4,21 @@ Newest cycle first. Each run appends what shipped, which surfaces changed, and w
 
 ## Cycle 102 — 2026-10-22 — Dungeon quest-receipt targets reach 44px (NN/g H6, Fitts)
 
-- Search, side, outcome, and Show more on quest receipts are 44px targets so a phone user can filter and page without missing a 32px gold gate. Clear filters was already 44px. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more` / `#clear-trade-filters`, and 820px dungeon nav `display: flex` stay. Cycles 100 and 101 remain on PRs #92 and #93.
+- Search, side, outcome, and Show more on quest receipts are 44px targets so a phone user can filter and page without missing a 32px gold gate. Clear filters was already 44px. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more` / `#clear-trade-filters`, and 820px dungeon nav `display: flex` stay.
 
-Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, cockpit (PR #92 open), admin (PR #93 open).
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, cockpit, admin.
+
+## Cycle 101 — 2026-10-20 — Master Harbor error wells wrap on phone (NN/g H9/H6)
+
+- Position history, order ledger, and Reliquary audit failures no longer sit in a 720px-min table that forces a sideways scroll to read the next step. On a 720px phone a lone loading or error well uses the viewport width and wraps. `#admin-overview-grid`, `#admin-history-tbody`, `#admin-order-ledger-tbody`, `#admin-mart-status`, `/api/admin/` paths, and the cycle 96 recovery copy stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, dungeon, cockpit.
+
+## Cycle 100 — 2026-10-18 — Book party frames keep quantity and action on phone (NN/g H6)
+
+- On a 720px phone the party roster no longer hides contract quantity and the monitor/reduce action. Those sit on a second row under the symbol, with P&L and the details chevron still on the first. Party-row innerHTML, `#cockpit-positions-list`, both `let className = "sync-line positions-sync-status"` lines, and `.positions-toolbar` row/column flex stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required DOM ids, login, dungeon, admin.
 
 ## Cycle 99 — 2026-10-14 — Harbor Gate show password (NN/g H4, Jakob)
 
