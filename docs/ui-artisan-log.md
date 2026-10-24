@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 102 — 2026-10-22 — Dungeon quest-receipt targets reach 44px (NN/g H6, Fitts)
+
+- Search, side, outcome, and Show more on quest receipts are 44px targets so a phone user can filter and page without missing a 32px gold gate. Clear filters was already 44px. Trade-row innerHTML, `#trade-search` / `#trade-side` / `#trade-outcome` / `#show-more` / `#clear-trade-filters`, and 820px dungeon nav `display: flex` stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, cockpit, admin.
+
 ## Cycle 101 — 2026-10-20 — Master Harbor error wells wrap on phone (NN/g H9/H6)
 
 - Position history, order ledger, and Reliquary audit failures no longer sit in a 720px-min table that forces a sideways scroll to read the next step. On a 720px phone a lone loading or error well uses the viewport width and wraps. `#admin-overview-grid`, `#admin-history-tbody`, `#admin-order-ledger-tbody`, `#admin-mart-status`, `/api/admin/` paths, and the cycle 96 recovery copy stay.
