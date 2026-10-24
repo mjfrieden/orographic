@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 101 — 2026-10-20 — Master Harbor error wells wrap on phone (NN/g H9/H6)
+
+- Position history, order ledger, and Reliquary audit failures no longer sit in a 720px-min table that forces a sideways scroll to read the next step. On a 720px phone a lone loading or error well uses the viewport width and wraps. `#admin-overview-grid`, `#admin-history-tbody`, `#admin-order-ledger-tbody`, `#admin-mart-status`, `/api/admin/` paths, and the cycle 96 recovery copy stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required cockpit DOM ids, login, dungeon, cockpit.
+
 ## Cycle 100 — 2026-10-18 — Book party frames keep quantity and action on phone (NN/g H6)
 
 - On a 720px phone the party roster no longer hides contract quantity and the monitor/reduce action. Those sit on a second row under the symbol, with P&L and the details chevron still on the first. Party-row innerHTML, `#cockpit-positions-list`, both `let className = "sync-line positions-sync-status"` lines, and `.positions-toolbar` row/column flex stay.
