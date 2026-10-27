@@ -3,22 +3,22 @@
   "schema_version": 1,
   "status": "passed",
   "summary": {
-    "archived_rows": 47778,
+    "archived_rows": 46570,
     "archived_symbols": 60,
-    "prospective_ledger_pick_rows": 5106,
+    "prospective_ledger_pick_rows": 5133,
     "moonshot_ledger_pick_rows": 474,
-    "recommendation_dataset_rows": 5106,
+    "recommendation_dataset_rows": 5133,
     "moonshot_dataset_rows": -1,
-    "combined_dataset_rows": 5106,
-    "event_observation_rows": 7175,
+    "combined_dataset_rows": 5133,
+    "event_observation_rows": 7254,
     "event_enriched_dataset_rows": -1,
     "rows_with_prior_events": 0,
     "complete_outcome_event_coverage_pct": 0.0,
-    "event_feed_status": "rate_limited",
+    "event_feed_status": "rate_limit_cooldown",
     "event_feed_new_rows": 0,
     "event_feed_mapped_symbols": 31,
-    "event_feed_http_429_responses": 1,
-    "event_feed_elapsed_seconds": 9.896
+    "event_feed_http_429_responses": 0,
+    "event_feed_elapsed_seconds": 0.07
   },
   "checks": [
     {
@@ -30,7 +30,7 @@
     {
       "name": "live_archive_rows",
       "passed": true,
-      "actual": 47778,
+      "actual": 46570,
       "required_min": 1
     },
     {
@@ -70,14 +70,14 @@
     {
       "name": "recommendation_dataset_rows",
       "passed": true,
-      "actual": 5106,
+      "actual": 5133,
       "required_min": 0
     },
     {
       "name": "recommendation_dataset_matches_ledger",
       "passed": true,
-      "actual": 5106,
-      "expected": 5106
+      "actual": 5133,
+      "expected": 5133
     },
     {
       "name": "moonshot_dataset_matches_ledger",
@@ -89,15 +89,15 @@
     {
       "name": "combined_dataset_consistency",
       "passed": true,
-      "actual": 5106,
-      "expected": 5106,
+      "actual": 5133,
+      "expected": 5133,
       "moonshot_dataset_missing": true
     },
     {
       "name": "combined_dataset_matches_ledgers",
       "passed": true,
-      "actual": 5106,
-      "expected": 5106,
+      "actual": 5133,
+      "expected": 5133,
       "moonshot_dataset_missing": true
     },
     {
@@ -115,9 +115,9 @@
   "warnings": [
     {
       "name": "event_feed_degraded",
-      "status": "rate_limited",
-      "http_429_responses": 1,
-      "failed_batches": 1,
+      "status": "rate_limit_cooldown",
+      "http_429_responses": 0,
+      "failed_batches": 0,
       "new_rows": 0
     }
   ]
