@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 104 — 2026-10-26 — HOLD Why no trade? reason stacks on phone (NN/g H6)
+
+- On a phone the live-gate reason no longer sits in a cramped column beside Why no trade?. It stacks under the heading, matching Came close, and wraps. Funnel stage markup, `#cockpit-signal`, both `let className = "sync-line positions-sync-status"` lines, and `.positions-toolbar` row/column flex stay.
+
+Left alone: Scout/Forge/Council, Tradier payloads, auth, required DOM ids, login skip-link, dungeon, admin.
+
 ## Cycle 103 — 2026-10-24 — Harbor Gate credential fields reach 44px (NN/g H6, Fitts)
 
 - Username and password inputs match the Show control at 44px so a phone user can tap the fields without missing a 42px well. `#login-form`, `#username`, `#password`, `#error`, `#toggle-password`, and the `/api/login` payload stay.
