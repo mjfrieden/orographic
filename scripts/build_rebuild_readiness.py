@@ -8,7 +8,10 @@ import sys
 if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from engine.orographic.rebuild_readiness import build_rebuild_readiness
+from engine.orographic.rebuild_readiness import (
+    build_rebuild_readiness,
+    consumer_from_shadow_evidence,
+)
 
 
 def _read(path: Path) -> dict:
@@ -17,6 +20,13 @@ def _read(path: Path) -> dict:
 
 def _read_optional(path: Path) -> dict:
     return _read(path) if path.exists() else {}
+
+
+def _resolve_mart_consumer(manifest_path: Path, shadow_path: Path) -> dict:
+    manifest = _read_optional(manifest_path)
+    if manifest.get("artifact") == "orographic_shared_mart_consumer_bundle":
+        return manifest
+    return consumer_from_shadow_evidence(_read_optional(shadow_path))
 
 
 def main() -> int:
@@ -30,6 +40,11 @@ def main() -> int:
         type=Path,
         default=Path("output/shared_mart_consumers/consumer_manifest.json"),
     )
+    parser.add_argument(
+        "--mart-shadow",
+        type=Path,
+        default=Path("web/data/diagnostics/shared_mart_shadow_evidence_latest.json"),
+    )
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/orographic_rebuild_readiness_latest.json"))
     args = parser.parse_args()
     artifact = build_rebuild_readiness(
@@ -37,7 +52,7 @@ def main() -> int:
         _read(args.exit_shadow),
         _read(args.promotion),
         _read(args.scan_health),
-        _read_optional(args.mart_consumer_manifest),
+        _resolve_mart_consumer(args.mart_consumer_manifest, args.mart_shadow),
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(artifact, indent=2), encoding="utf-8")

@@ -26,6 +26,7 @@ on:
       - "engine/orographic/shared_mart_consumers.py"
       - "engine/orographic/shared_mart_shadow.py"
       - "engine/orographic/iceberg_mart.py"
+      - "engine/tests/test_iceberg_mart.py"
   push:
     branches:
       - main
@@ -43,6 +44,7 @@ on:
       - "engine/orographic/shared_mart_consumers.py"
       - "engine/orographic/shared_mart_shadow.py"
       - "engine/orographic/iceberg_mart.py"
+      - "engine/tests/test_iceberg_mart.py"
 
 concurrency:
   group: orographic-research-write-${{ github.ref }}
@@ -74,6 +76,8 @@ jobs:
           engine/tests/test_r2_evidence_scripts.py
           engine/tests/test_canonical_atomic_publish.py
           engine/tests/test_evidence_store.py
+          engine/tests/test_iceberg_mart.py
+          engine/tests/test_weekly_alpha_review.py
 
   sync:
     # Code pushes and pull requests must not trigger production publication.
@@ -139,6 +143,7 @@ jobs:
 
       - name: Publish two-source mart to Iceberg
         if: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+        continue-on-error: true
         run: |
           status="$(python - <<'PY'
           import json
@@ -217,7 +222,8 @@ jobs:
             web/data/diagnostics/weekly_alpha_review_latest.json \
             web/data/diagnostics/model_governance_summary_latest.json \
             web/data/diagnostics/trajectory_exit_overlay_latest.json \
-            web/data/diagnostics/early_harvest_overlay_latest.json
+            web/data/diagnostics/early_harvest_overlay_latest.json \
+            web/data/diagnostics/winner_run_overlay_latest.json
           if git diff --cached --quiet; then
             echo "diagnostics_changed=false" >> "$GITHUB_OUTPUT"
             echo "No mart sync diagnostic changes to commit."

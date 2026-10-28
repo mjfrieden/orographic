@@ -104,6 +104,22 @@ def _attach_iceberg_catalog(
     )
 
 
+def _is_missing_iceberg_object(exc: BaseException) -> bool:
+    """R2 Iceberg MERGE fails closed when a referenced delete file 404s."""
+    text = str(exc)
+    lowered = text.lower()
+    return "http 404" in lowered and (
+        "deletes.parquet" in lowered
+        or "http get error" in lowered
+        or "not found" in lowered
+    )
+
+
+def _replace_iceberg_table(connection: Any, *, target: str, view: str) -> None:
+    connection.execute(f"DROP TABLE IF EXISTS {target}")
+    connection.execute(f"CREATE TABLE {target} AS SELECT * FROM {view}")
+
+
 def publish_iceberg_mart(
     *,
     mart_dir: str | Path,
@@ -162,11 +178,16 @@ def publish_iceberg_mart(
             update = ", ".join(f"{column} = source.{column}" for column in columns)
             insert_columns = ", ".join(columns)
             insert_values = ", ".join(f"source.{column}" for column in columns)
-            connection.execute(
-                f"MERGE INTO {target} AS target USING {view} AS source ON {join} "
-                f"WHEN MATCHED THEN UPDATE SET {update} "
-                f"WHEN NOT MATCHED THEN INSERT ({insert_columns}) VALUES ({insert_values})"
-            )
+            try:
+                connection.execute(
+                    f"MERGE INTO {target} AS target USING {view} AS source ON {join} "
+                    f"WHEN MATCHED THEN UPDATE SET {update} "
+                    f"WHEN NOT MATCHED THEN INSERT ({insert_columns}) VALUES ({insert_values})"
+                )
+            except Exception as exc:  # noqa: BLE001 - catalog 404s are recoverable
+                if not _is_missing_iceberg_object(exc):
+                    raise
+                _replace_iceberg_table(connection, target=target, view=view)
 
         publication_target = f"{catalog}.{schema}.mart_publications"
         connection.execute(

@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 104 — 2026-10-28 — Reliquary weekly alpha is visible status (NN/g H1)
+
+- Shared Research Mart now shows this week's live return, featured challenger, name concentration, Iceberg lag, kill-switch rolling count, next action, and lane decisions so an operator does not have to open raw JSON to know whether production is making or losing money. `#admin-mart-status`, `#admin-mart-summary`, `#admin-weekly-alpha`, and `/data/diagnostics/weekly_alpha_review_latest.json` stay read-only.
+
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, login, dungeon, cockpit.
+
 ## Cycle 103 — 2026-10-24 — Harbor Gate credential fields reach 44px (NN/g H6, Fitts)
 
 - Username and password inputs match the Show control at 44px so a phone user can tap the fields without missing a 42px well. `#login-form`, `#username`, `#password`, `#error`, `#toggle-password`, and the `/api/login` payload stay.

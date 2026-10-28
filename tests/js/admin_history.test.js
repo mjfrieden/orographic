@@ -15,7 +15,12 @@ test("Master Harbor history errors wrap on a 720px phone without changing recove
   assert.ok(html.includes('id="admin-history-tbody"'));
   assert.ok(html.includes('id="admin-order-ledger-tbody"'));
   assert.ok(html.includes('id="admin-mart-status"'));
-  assert.match(html, /admin-harbor\.css\?v=20261020a/);
+  assert.ok(html.includes('id="admin-weekly-alpha"'));
+  assert.match(html, /admin-harbor\.css\?v=20261028a/);
+  assert.ok(source.includes("function renderWeeklyAlpha"));
+  assert.ok(source.includes("Next action."));
+  assert.ok(source.includes("Kill switch"));
+  assert.ok(source.includes("Name concentration"));
 
   assert.match(css, /\.admin-page \.admin-history-table\s*\{[^}]*min-width:\s*720px;/s);
   assert.match(css, /\.admin-page \.admin-history-loading\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
