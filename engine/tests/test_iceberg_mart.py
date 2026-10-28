@@ -11,7 +11,12 @@ from unittest import mock
 
 import pandas as pd
 
-from engine.orographic.iceberg_mart import build_iceberg_publication_plan, verify_iceberg_mart
+from engine.orographic.iceberg_mart import (
+    _is_missing_iceberg_object,
+    build_iceberg_publication_plan,
+    publish_iceberg_mart,
+    verify_iceberg_mart,
+)
 from engine.orographic.shared_research_mart import MART_SCHEMA_VERSION, TABLE_CONTRACTS
 
 
@@ -179,6 +184,58 @@ class IcebergMartTests(unittest.TestCase):
         self.assertEqual(result["retained_historical_rows"]["model_runs"], 5)
         self.assertEqual(result["retained_historical_rows"]["path_exclusions"], 4)
         self.assertEqual(connection.last_count_params, ["cirrus-current", "oro-current"])
+
+    def test_missing_delete_parquet_is_a_recoverable_404(self) -> None:
+        exc = RuntimeError(
+            "HTTP GET error reading 'https://example/__r2_data_catalog/"
+            "data/07304215-c8b1-41a2-8353-9a1e91d3d3d2-deletes.parquet' "
+            "in region 'auto' (HTTP 404 Not Found)"
+        )
+        self.assertTrue(_is_missing_iceberg_object(exc))
+        self.assertFalse(_is_missing_iceberg_object(RuntimeError("permission denied")))
+
+    def test_publish_recreates_table_when_merge_hits_missing_delete_file(self) -> None:
+        class FakeResult:
+            def fetchone(self):
+                return (1,)
+
+        class FakeConnection:
+            def __init__(self):
+                self.sql: list[str] = []
+
+            def execute(self, sql, params=None):
+                self.sql.append(sql)
+                if "MERGE INTO" in sql:
+                    raise RuntimeError(
+                        "HTTP GET error reading 'https://example/data/x-deletes.parquet' "
+                        "(HTTP 404 Not Found)"
+                    )
+                if "information_schema.tables" in sql:
+                    return FakeResult()
+                return FakeResult()
+
+            def close(self):
+                return None
+
+        fake_duckdb = mock.Mock()
+        fake_duckdb.connect.return_value = FakeConnection()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            mart = self._mart(Path(tmpdir), sources=("cirrus", "orographic"))
+            with (
+                mock.patch.dict(sys.modules, {"duckdb": fake_duckdb}),
+                mock.patch("engine.orographic.iceberg_mart._attach_iceberg_catalog"),
+            ):
+                result = publish_iceberg_mart(
+                    mart_dir=mart,
+                    catalog_uri="https://catalog.example/mart",
+                    warehouse="warehouse",
+                    token="token",
+                )
+        self.assertEqual(result["status"], "published")
+        merged = fake_duckdb.connect.return_value.sql
+        self.assertTrue(any("MERGE INTO" in sql for sql in merged))
+        self.assertTrue(any(sql.startswith("DROP TABLE IF EXISTS") for sql in merged))
+        self.assertTrue(any("CREATE TABLE" in sql and "AS SELECT" in sql for sql in merged))
 
 
 if __name__ == "__main__":

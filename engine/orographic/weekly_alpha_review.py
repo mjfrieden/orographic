@@ -11,8 +11,10 @@ from engine.orographic.shared_research_mart import OROGRAPHIC_FEATURE_SCHEMA_VER
 from engine.orographic.trajectory_exit_overlay import (
     ARTIFACT as TRAJECTORY_EXIT_OVERLAY,
     EARLY_HARVEST_ARTIFACT,
+    WINNER_RUN_ARTIFACT,
     evaluate_early_harvest_overlay,
     evaluate_trajectory_exit_overlay,
+    evaluate_winner_run_overlay,
 )
 
 
@@ -21,8 +23,12 @@ HOLD_OUT_CHALLENGER = "holdout_top1_vs_live_v1"
 TIGHT_SPREAD_CHALLENGER = "tight_spread_holdout_v1"
 PAIRED_OPPOSITE_CHALLENGER = "paired_opposite_side_v1"
 FRICTION_VETO_VALUE = "friction_veto_value_v1"
+FRICTION_VETO_PAIRED = "friction_veto_paired_v1"
 RESEARCH_SIDE_SPLIT = "research_side_split_v1"
+SAME_SYMBOL_REPEAT = "same_symbol_repeat_v1"
 MART_STALE_AFTER = timedelta(days=7)
+KILL_SWITCH_RESOLVED = 10
+REVIEW_SCHEMA_VERSION = 6
 
 
 def _as_dict(value: object) -> dict[str, Any]:
@@ -153,11 +159,14 @@ def _board_week(board: dict[str, Any], start: datetime, end: datetime) -> dict[s
                     "ask": row.get("ask"),
                     "spread_pct": row.get("spread_pct"),
                 })
+    symbols = [str(row.get("symbol") or "") for row in live if row.get("symbol")]
     return {
         "scans": len(runs),
         "abstain_scans": sum(1 for entry in runs if bool(entry.get("abstain"))),
         "live_emissions": live,
         "unique_live_days": len({str(row["run_generated_at_utc"])[:10] for row in live}),
+        "unique_live_symbols": len(set(symbols)),
+        "live_symbol_counts": dict(Counter(symbols)),
     }
 
 
@@ -513,12 +522,252 @@ def _friction_veto_value(lanes: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _friction_veto_paired(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """Same-scan highest-score friction veto versus the live pick.
+
+    Unconditional veto means mix winners the gate never saw at decision time
+    with names Council actually had to choose against. This estimand uses only
+    the highest decision-time score on the veto list in the same scan as a
+    live emission. Realized P&L is never used to choose the vetoed name.
+    """
+    paired: list[dict[str, Any]] = []
+    for entry in entries:
+        picks = [pick for pick in _as_list(entry.get("picks")) if isinstance(pick, dict)]
+        live_rows = [pick for pick in picks if pick.get("lane") == "live"]
+        live = live_rows[0] if live_rows else None
+        live_window, live_pnl = _latest_mark(live) if isinstance(live, dict) else (None, None)
+        if live_pnl is None:
+            continue
+        scored: list[tuple[float, int, dict[str, Any]]] = []
+        for index, pick in enumerate(picks):
+            if pick.get("lane") != "friction_veto":
+                continue
+            window, pnl = _latest_mark(pick)
+            if pnl is None:
+                continue
+            score = _decision_score(pick)
+            rank_key = score if score is not None else -index
+            scored.append((rank_key, index, pick))
+        if not scored:
+            continue
+        scored.sort(key=lambda row: (-row[0], row[1]))
+        best_pick = scored[0][2]
+        best_window, best_pnl = _latest_mark(best_pick)
+        paired.append({
+            "run_generated_at_utc": entry.get("run_generated_at_utc"),
+            "live_symbol": live.get("symbol") if isinstance(live, dict) else None,
+            "live_return": live_pnl,
+            "live_window": live_window,
+            "veto_symbol": best_pick.get("symbol"),
+            "veto_contract": best_pick.get("contract_symbol"),
+            "veto_score": _decision_score(best_pick),
+            "veto_return": best_pnl,
+            "veto_window": best_window,
+            "return_lift": round((best_pnl or 0.0) - live_pnl, 4),
+        })
+    lifts = [row["return_lift"] for row in paired]
+    mean_lift = round(sum(lifts) / len(lifts), 4) if lifts else None
+    blocking = mean_lift is not None and mean_lift > 0
+    if not paired:
+        reason = (
+            "No same-scan live/veto pairs with resolved marks this week. "
+            "Keep the friction gate; the paired estimand cannot loosen it."
+        )
+        action = "keep_as_gate"
+    elif blocking:
+        reason = (
+            f"Highest-score veto beat the live pick on {len(paired)} paired scans "
+            f"(mean lift {mean_lift}). The gate may be blocking winners; keep "
+            "observation-only and do not loosen production friction."
+        )
+        action = "review_do_not_loosen"
+    else:
+        reason = (
+            f"Highest-score veto trailed the live pick on {len(paired)} paired scans "
+            f"(mean lift {mean_lift}). Negative paired lift is avoided loss; keep the gate."
+        )
+        action = "keep_as_gate"
+    return {
+        "experiment_id": FRICTION_VETO_PAIRED,
+        "authority": "observation_only_never_used_for_routing",
+        "selection_rule": "highest decision-time score among same-scan friction_veto names",
+        "paired_scans": len(paired),
+        "mean_return_lift": mean_lift,
+        "positive_lift_rate": round(sum(1 for value in lifts if value > 0) / len(lifts), 4) if lifts else None,
+        "rows": paired,
+        "gate_may_block_winners": blocking,
+        "action": action,
+        "promotion_ready": False,
+        "reason": reason,
+    }
+
+
+def _same_symbol_repeat(entries: list[dict[str, Any]]) -> dict[str, Any]:
+    """Skip later live prints of an underlying already taken this week.
+
+    Production cooldown is per contract, not per symbol, so a new strike or
+    expiry of the same name can reprint inside 72 hours. Decision-time rule:
+    keep the first live emission of a symbol; later same-symbol prints are
+    skipped to cash (return 0). Realized P&L is never used to pick a substitute.
+    """
+    seen: dict[str, str] = {}
+    paired: list[dict[str, Any]] = []
+    ordered = sorted(entries, key=lambda entry: str(entry.get("run_generated_at_utc") or ""))
+    for entry in ordered:
+        run_at = str(entry.get("run_generated_at_utc") or "")
+        live_rows = [
+            pick
+            for pick in _as_list(entry.get("picks"))
+            if isinstance(pick, dict) and pick.get("lane") == "live"
+        ]
+        live = live_rows[0] if live_rows else None
+        if not isinstance(live, dict):
+            continue
+        window, pnl = _latest_mark(live)
+        symbol = str(live.get("symbol") or "")
+        if pnl is None or not symbol:
+            continue
+        first_at = seen.get(symbol)
+        if first_at is None:
+            seen[symbol] = run_at
+            continue
+        paired.append({
+            "run_generated_at_utc": run_at,
+            "live_symbol": symbol,
+            "live_contract": live.get("contract_symbol"),
+            "live_return": pnl,
+            "live_window": window,
+            "first_live_at_utc": first_at,
+            "skip_return": 0.0,
+            "return_lift": round(0.0 - pnl, 4),
+        })
+    lifts = [row["return_lift"] for row in paired]
+    mean_lift = round(sum(lifts) / len(lifts), 4) if lifts else None
+    repeats = len(paired)
+    unique_live = len(seen)
+    if not paired:
+        reason = (
+            "No same-symbol live reprints this week. Keep the per-contract cooldown; "
+            "do not add a production symbol cooldown from an empty tape."
+        )
+        action = "open_observation_only"
+    else:
+        direction = "beat" if (mean_lift or 0) > 0 else "trailed"
+        reason = (
+            f"Skipping later same-symbol live prints {direction} taking them on "
+            f"{repeats} reprints ({unique_live} unique live names, mean lift {mean_lift}). "
+            "Production cooldown remains per contract; this is observation-only."
+        )
+        action = "keep_observation_only"
+    return {
+        "experiment_id": SAME_SYMBOL_REPEAT,
+        "authority": "observation_only_never_used_for_routing",
+        "selection_rule": "skip later live emissions of a symbol already taken this week; cash return 0",
+        "paired_scans": repeats,
+        "unique_live_symbols": unique_live,
+        "mean_return_lift": mean_lift,
+        "positive_lift_rate": round(sum(1 for value in lifts if value > 0) / len(lifts), 4) if lifts else None,
+        "rows": paired,
+        "action": action,
+        "promotion_ready": False,
+        "reason": reason,
+    }
+
+
+def _kill_switch(
+    *,
+    week_live_marks: dict[str, Any],
+    evidence: dict[str, Any],
+    rebuild_readiness: dict[str, Any],
+) -> dict[str, Any]:
+    """Count rolling resolved live P&L. Never disable routing from this review."""
+    recent: list[tuple[str, float, str | None, object, object]] = []
+    for entry in _as_list(evidence.get("entries")):
+        if not isinstance(entry, dict):
+            continue
+        run_at = str(entry.get("run_generated_at_utc") or "")
+        for pick in _as_list(entry.get("picks")):
+            if not isinstance(pick, dict) or pick.get("lane") != "live":
+                continue
+            window, pnl = _latest_mark(pick)
+            if pnl is None:
+                continue
+            recent.append((run_at, pnl, window, pick.get("symbol"), pick.get("contract_symbol")))
+    recent.sort(key=lambda row: row[0])
+    last = recent[-KILL_SWITCH_RESOLVED:]
+    pnls = [row[1] for row in last]
+    rolling_sum = round(sum(pnls), 4) if pnls else None
+    resolved = len(pnls)
+    remaining = max(0, KILL_SWITCH_RESOLVED - resolved)
+    week_resolved = int(week_live_marks.get("resolved") or 0)
+    week_sum = _number(week_live_marks.get("equal_weight_sum"))
+    rebuild_ok = bool(rebuild_readiness.get("production_model_change_allowed"))
+    fire_bar = (
+        resolved >= KILL_SWITCH_RESOLVED
+        and rolling_sum is not None
+        and rolling_sum < 0
+    )
+    if fire_bar and rebuild_ok:
+        status = "fire_eligible"
+        reason = (
+            f"Last {KILL_SWITCH_RESOLVED} resolved live marks have cumulative after-friction "
+            f"return {rolling_sum}. Rebuild readiness is unblocked, but this review still "
+            "does not disable Tradier; a human must arm the kill switch."
+        )
+    elif fire_bar:
+        status = "watch"
+        reason = (
+            f"Last {KILL_SWITCH_RESOLVED} resolved live marks have cumulative after-friction "
+            f"return {rolling_sum}, but rebuild readiness is blocked so production stays frozen "
+            "rather than kill-switched. This week "
+            f"{week_resolved} resolved (equal-weight sum {week_sum})."
+        )
+    elif resolved >= KILL_SWITCH_RESOLVED:
+        status = "watch"
+        reason = (
+            f"{resolved}/{KILL_SWITCH_RESOLVED} resolved live marks on the rolling tape "
+            f"(cumulative {rolling_sum} is not negative); this week {week_resolved} resolved "
+            f"(equal-weight sum {week_sum}). Do not fire on a single losing week while the "
+            "rolling ten stay non-negative, and do not change production artifacts while "
+            "rebuild readiness is blocked."
+        )
+    else:
+        status = "watch"
+        reason = (
+            f"{resolved}/{KILL_SWITCH_RESOLVED} resolved live marks on the rolling tape "
+            f"(cumulative {rolling_sum}); this week {week_resolved} resolved "
+            f"(equal-weight sum {week_sum}). Remaining {remaining} to the fire bar. "
+            "Do not fire on intraweek partials, and do not change production artifacts "
+            "while rebuild readiness is blocked."
+        )
+    return {
+        "rule": (
+            "Disable active routing if 10 resolved live picks have negative "
+            "cumulative after-friction return."
+        ),
+        "status": status,
+        "resolved_live_marks": resolved,
+        "remaining_to_fire": remaining,
+        "rolling_equal_weight_sum": rolling_sum,
+        "week_resolved": week_resolved,
+        "week_equal_weight_sum": week_sum,
+        "reason": reason,
+        "rebuild_production_change_allowed": rebuild_ok,
+    }
+
+
 def _join_live_marks(
     emissions: list[dict[str, Any]],
     research_entries: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    by_contract: dict[str, dict[str, Any]] = {}
+    """Join each live emission to its own scan mark.
+
+    Repeated same-contract emissions (cooldown re-prints) must not overwrite
+    each other. Key is (run_generated_at_utc, contract_symbol).
+    """
+    by_scan_contract: dict[tuple[str, str], dict[str, Any]] = {}
     for entry in research_entries:
+        run_at = str(entry.get("run_generated_at_utc") or "")
         for pick in _as_list(entry.get("picks")):
             if not isinstance(pick, dict) or pick.get("lane") != "live":
                 continue
@@ -526,7 +775,8 @@ def _join_live_marks(
             window, pnl = _latest_mark(pick)
             if not contract or pnl is None:
                 continue
-            by_contract[contract] = {
+            pick_run = str(pick.get("run_generated_at_utc") or run_at)
+            by_scan_contract[(pick_run, contract)] = {
                 "mark_window": window,
                 "pnl_pct_from_emission": pnl,
                 "option_type": pick.get("option_type"),
@@ -534,8 +784,9 @@ def _join_live_marks(
     rows: list[dict[str, Any]] = []
     for emission in emissions:
         contract = str(emission.get("contract_symbol") or "")
+        run_at = str(emission.get("run_generated_at_utc") or "")
         row = dict(emission)
-        row.update(by_contract.get(contract) or {})
+        row.update(by_scan_contract.get((run_at, contract)) or {})
         rows.append(row)
     pnls = [
         float(row["pnl_pct_from_emission"])
@@ -546,13 +797,22 @@ def _join_live_marks(
 
 
 def _primary_challenger(*candidates: dict[str, Any]) -> dict[str, Any]:
+    """Feature the challenger with the most algebraic lift, not the largest |lift|.
+
+    Absolute lift promoted the worst loser whenever a large negative print
+    outranked a smaller (or positive) alternative. Algebraic lift is the alpha
+    ranking: less negative beats more negative; positive beats both.
+    """
     scored = [row for row in candidates if int(row.get("paired_scans") or 0) > 0]
     if not scored:
         return candidates[0] if candidates else {}
-    return max(
-        scored,
-        key=lambda row: (abs(float(row.get("mean_return_lift") or 0.0)), int(row.get("paired_scans") or 0)),
-    )
+
+    def _algebraic_key(row: dict[str, Any]) -> tuple[float, int]:
+        lift = _number(row.get("mean_return_lift"))
+        lift_val = lift if lift is not None else float("-inf")
+        return (lift_val, int(row.get("paired_scans") or 0))
+
+    return max(scored, key=_algebraic_key)
 
 
 def _lane_decisions(
@@ -561,9 +821,12 @@ def _lane_decisions(
     tight_spread: dict[str, Any],
     opposite: dict[str, Any],
     friction: dict[str, Any],
+    friction_paired: dict[str, Any],
     side_split: dict[str, Any],
+    same_symbol: dict[str, Any],
     overlay: dict[str, Any],
     early_harvest: dict[str, Any],
+    winner_run: dict[str, Any],
     payoff: dict[str, Any],
     path_hazard: dict[str, Any],
     mart_shadow: dict[str, Any],
@@ -592,17 +855,26 @@ def _lane_decisions(
         if isinstance(early_harvest.get("overall"), dict)
         else None
     )
-    early_beats_hold = early_lift is not None and early_lift > 0
-    early_beats_overlay = (
-        early_lift is not None
-        and overlay_lift is not None
-        and early_lift > overlay_lift
+    winner_lift = (
+        winner_run.get("overall", {}).get("mean_return_lift")
+        if isinstance(winner_run.get("overall"), dict)
+        else None
+    )
+    winner_live_lift = (
+        winner_run.get("live", {}).get("mean_return_lift")
+        if isinstance(winner_run.get("live"), dict)
+        else None
+    )
+    harvest_destroyed = (
+        (overlay_lift is not None and overlay_lift <= 0)
+        or (early_lift is not None and early_lift <= 0)
+        or overlay_hits == 0
     )
     if overlay_hits == 0:
         overlay_action = "replace"
-        overlay_replacement = EARLY_HARVEST_ARTIFACT
+        overlay_replacement = WINNER_RUN_ARTIFACT
         overlay_note = (
-            f"Zero target/stop fills this week; {EARLY_HARVEST_ARTIFACT} is the active exit experiment."
+            f"Zero target/stop fills this week; {WINNER_RUN_ARTIFACT} is the active exit experiment."
         )
     elif overlay_lift is not None and overlay_lift <= 0:
         overlay_action = "hold_do_not_promote"
@@ -612,18 +884,28 @@ def _lane_decisions(
         overlay_action = "hold_do_not_promote"
         overlay_replacement = None
         overlay_note = "No production exit change."
-    if early_beats_hold and (overlay_hits == 0 or early_beats_overlay):
-        early_action = "keep_observation_only"
+    if harvest_destroyed:
+        early_action = "replace"
+        early_replacement = WINNER_RUN_ARTIFACT
         early_note = (
             "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
-            f"Mean lift versus hold {early_lift}. Observation-only; it cannot route exits."
+            f"Mean lift versus hold {early_lift}. Harvest overlays trail hold; "
+            f"{WINNER_RUN_ARTIFACT} is the active exit experiment."
         )
     else:
         early_action = "hold_do_not_promote"
+        early_replacement = None
         early_note = (
             "Mechanical +10% bid harvest / -40% bid stop versus hold-to-Friday. "
-            f"Mean lift versus hold {early_lift}. Trails hold and/or the +25 overlay; do not change live exits."
+            f"Mean lift versus hold {early_lift}. Do not change live exits."
         )
+    winner_action = "keep_observation_only"
+    winner_note = (
+        "Stop −50% bid and never harvest versus hold-to-Friday. "
+        f"Mean lift versus hold {winner_lift}; live lift {winner_live_lift}. "
+        "Observation-only; it cannot route exits. Promotion also requires "
+        "non-negative live lift."
+    )
     return [
         {
             "lane": PRODUCTION_LANE,
@@ -681,10 +963,20 @@ def _lane_decisions(
         {
             "lane": EARLY_HARVEST_ARTIFACT,
             "action": early_action,
+            "replacement": early_replacement,
             "authority": "observation_only",
             "reason": early_note,
             "mean_return_lift": early_lift,
             "resolved_picks": _as_dict(early_harvest.get("coverage")).get("resolved_picks"),
+        },
+        {
+            "lane": WINNER_RUN_ARTIFACT,
+            "action": winner_action,
+            "authority": "observation_only",
+            "reason": winner_note,
+            "mean_return_lift": winner_lift,
+            "live_mean_return_lift": winner_live_lift,
+            "resolved_picks": _as_dict(winner_run.get("coverage")).get("resolved_picks"),
         },
         {
             "lane": "side_aware_scout_shadow_ledger",
@@ -725,12 +1017,30 @@ def _lane_decisions(
             "gate_working": friction.get("gate_working"),
         },
         {
+            "lane": FRICTION_VETO_PAIRED,
+            "action": friction_paired.get("action") or "keep_as_gate",
+            "authority": "observation_only",
+            "reason": friction_paired.get("reason"),
+            "paired_scans": friction_paired.get("paired_scans"),
+            "mean_return_lift": friction_paired.get("mean_return_lift"),
+            "gate_may_block_winners": friction_paired.get("gate_may_block_winners"),
+        },
+        {
             "lane": RESEARCH_SIDE_SPLIT,
             "action": side_split.get("action") or "keep_observation_only",
             "authority": "observation_only",
             "reason": side_split.get("reason"),
             "put_minus_call_return": side_split.get("put_minus_call_return"),
             "live_emitted_losing_side": side_split.get("live_emitted_losing_side"),
+        },
+        {
+            "lane": SAME_SYMBOL_REPEAT,
+            "action": same_symbol.get("action") or "open_observation_only",
+            "authority": "observation_only",
+            "reason": same_symbol.get("reason"),
+            "paired_scans": same_symbol.get("paired_scans"),
+            "mean_return_lift": same_symbol.get("mean_return_lift"),
+            "unique_live_symbols": same_symbol.get("unique_live_symbols"),
         },
         {
             "lane": "cirrus_paired_alpha",
@@ -752,6 +1062,7 @@ def _cirrus_comparison(
 ) -> dict[str, Any]:
     cross = _as_dict(mart_shadow.get("cross_system_comparison"))
     execution = _as_dict(mart_shadow.get("execution_quality"))
+    iceberg = _as_dict(mart_sync.get("iceberg"))
     generated = _parse_dt(mart_shadow.get("generated_at_utc") or mart_sync.get("generated_at_utc"))
     stale = generated is None or (as_of_utc - generated) > MART_STALE_AFTER
     cirrus_pin = str(mart_sync.get("cirrus_pin") or "")
@@ -795,6 +1106,9 @@ def _cirrus_comparison(
         "cirrus_only": cross.get("cirrus_only"),
         "orographic_executable_win_rate": execution.get("executable_win_rate"),
         "orographic_avg_executable_return": execution.get("avg_executable_return"),
+        "iceberg_current_export": iceberg.get("current_export"),
+        "iceberg_max_decision_at_utc": iceberg.get("max_decision_at_utc"),
+        "iceberg_latest_publication_mart_id": iceberg.get("latest_publication_mart_id"),
         "alpha_verdict": verdict,
     }
 
@@ -833,7 +1147,9 @@ def build_weekly_alpha_review(
     tight_spread = _tight_spread_challenger(research_entries)
     opposite = _paired_opposite_challenger(research_entries)
     friction = _friction_veto_value(lanes["lanes"])
+    friction_paired = _friction_veto_paired(research_entries)
     side_split = _research_side_split(lanes["lanes"])
+    same_symbol = _same_symbol_repeat(research_entries)
     overlay = evaluate_trajectory_exit_overlay(
         {"entries": research_entries},
         start=start,
@@ -841,6 +1157,12 @@ def build_weekly_alpha_review(
         as_of_utc=as_of_utc,
     )
     early_harvest = evaluate_early_harvest_overlay(
+        {"entries": research_entries},
+        start=start,
+        end=end,
+        as_of_utc=as_of_utc,
+    )
+    winner_run = evaluate_winner_run_overlay(
         {"entries": research_entries},
         start=start,
         end=end,
@@ -854,9 +1176,12 @@ def build_weekly_alpha_review(
         tight_spread=tight_spread,
         opposite=opposite,
         friction=friction,
+        friction_paired=friction_paired,
         side_split=side_split,
+        same_symbol=same_symbol,
         overlay=overlay,
         early_harvest=early_harvest,
+        winner_run=winner_run,
         payoff=payoff_challenger,
         path_hazard=path_hazard,
         mart_shadow=mart_shadow,
@@ -864,18 +1189,14 @@ def build_weekly_alpha_review(
     council = _as_dict(snapshot.get("council"))
     live_board = _as_list(council.get("live_board"))
     current_pick = live_board[0] if live_board else None
-    kill_watch = {
-        "rule": "Disable active routing if 10 resolved live picks have negative cumulative after-friction return.",
-        "status": "watch",
-        "reason": (
-            "Do not fire the kill switch on intraweek partials, and do not change production artifacts "
-            "while rebuild readiness is blocked."
-        ),
-        "rebuild_production_change_allowed": bool(rebuild_readiness.get("production_model_change_allowed")),
-    }
+    kill_watch = _kill_switch(
+        week_live_marks=live_marks if live_marks.get("resolved") else live_lane,
+        evidence=prospective_ledger or dashboard,
+        rebuild_readiness=rebuild_readiness,
+    )
     return {
         "artifact": "orographic_weekly_alpha_review",
-        "schema_version": 4,
+        "schema_version": REVIEW_SCHEMA_VERSION,
         "generated_at_utc": as_of_utc.astimezone(UTC).replace(microsecond=0).isoformat(),
         "week_start_utc": start.replace(microsecond=0).isoformat(),
         "week_end_utc": end.replace(microsecond=0).isoformat(),
@@ -898,13 +1219,16 @@ def build_weekly_alpha_review(
         },
         "research_evidence_source": evidence_source,
         "research_lanes": lanes,
-        "challenger_to_open": _primary_challenger(opposite, tight_spread, holdout),
+        "challenger_to_open": _primary_challenger(opposite, tight_spread, holdout, same_symbol),
         "tight_spread_challenger": tight_spread,
         "paired_opposite_challenger": opposite,
         "friction_veto_value": friction,
+        "friction_veto_paired": friction_paired,
         "research_side_split": side_split,
+        "same_symbol_repeat": same_symbol,
         "exit_overlay": overlay,
         "early_harvest_overlay": early_harvest,
+        "winner_run_overlay": winner_run,
         "lane_decisions": decisions,
         "cirrus": cirrus,
         "platform": {
@@ -925,10 +1249,12 @@ def build_weekly_alpha_review(
             "Keep production_v2 as the only Tradier lane.",
             "Rebuild the two-source mart after each scan when a Cirrus export is present; use restored canonical evidence if consolidate has not written yet.",
             "Publish Cirrus with python scripts/upload_research_artifacts_to_r2.py --mode cirrus <bundle-dir> so scans restore r2://$OROGRAPHIC_RESEARCH_R2_BUCKET/cirrus/options_research_bundle/current.",
-            f"Keep {FRICTION_VETO_VALUE} as a production execution gate; negative veto returns are avoided loss, not a reason to retire the lane.",
-            f"Collect {PAIRED_OPPOSITE_CHALLENGER} and {TIGHT_SPREAD_CHALLENGER} as observation-only replacements for inert score-rank holdout when spreads/scores are missing.",
-            f"Score {EARLY_HARVEST_ARTIFACT} (+10/-40) alongside {TRAJECTORY_EXIT_OVERLAY}; do not change live exits.",
+            "Republish the two-source mart to Iceberg when iceberg_current_export is false so catalog backtests stay on the same mart_id as the repo diagnostics.",
+            f"Keep {FRICTION_VETO_VALUE} as a production execution gate; score {FRICTION_VETO_PAIRED} as the same-scan estimand and do not loosen the gate.",
+            f"Collect {PAIRED_OPPOSITE_CHALLENGER}, {TIGHT_SPREAD_CHALLENGER}, and {SAME_SYMBOL_REPEAT} as observation-only; challenger_to_open ranks algebraic lift, not |lift|.",
+            f"Replace harvest overlays with {WINNER_RUN_ARTIFACT} (stop −50%, never harvest); do not change live exits.",
             f"Keep {RESEARCH_SIDE_SPLIT} observation-only; a one-week put/call gap is not a Scout rewrite.",
+            "If Iceberg MERGE 404s on missing delete files, recreate the table from the staged parquet so catalog backtests stay on the same mart_id as the repo diagnostics.",
             "Do not claim Cirrus alpha until paired executable outcomes reach 30 independent dates on a fresh mart.",
         ],
     }

@@ -29,6 +29,15 @@ function percent(value) {
   return Number.isFinite(amount) ? `${(amount * 100).toFixed(1)}%` : "--";
 }
 
+function signedPercent(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return "--";
+  }
+  const label = percent(amount);
+  return amount > 0 ? `+${label}` : label;
+}
+
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (char) => {
     switch (char) {
@@ -359,6 +368,88 @@ function martSyncLabel(status) {
   return value || "missing";
 }
 
+function icebergExportLabel(value) {
+  if (value === true) {
+    return "Yes";
+  }
+  if (value === false) {
+    return "No · catalog lags the local mart";
+  }
+  return "--";
+}
+
+function renderWeeklyAlpha(weekly, sync) {
+  const root = document.getElementById("admin-weekly-alpha");
+  if (!root) {
+    return;
+  }
+  if (!weekly || !weekly.artifact) {
+    root.innerHTML = `<p class="admin-history-loading">Weekly alpha review is not published yet. Wait for the next research sync.</p>`;
+    return;
+  }
+  const production = weekly.production || {};
+  const week = production.week || {};
+  const live = production.week_live_marks || {};
+  const cirrus = weekly.cirrus || {};
+  const challenger = weekly.challenger_to_open || {};
+  const kill = weekly.kill_switch || {};
+  const platform = weekly.platform || {};
+  const failed = Array.isArray(platform.scan_health_failed_checks)
+    ? platform.scan_health_failed_checks.filter(Boolean)
+    : [];
+  const nextAction = Array.isArray(weekly.next_actions) && weekly.next_actions.length
+    ? weekly.next_actions[0]
+    : "Keep production_v2 as the only Tradier lane.";
+  const scanStatus = String(platform.scan_health_status || "unknown").replaceAll("_", " ");
+  const scanDetail = failed.length
+    ? `${scanStatus}: ${failed.join(", ").replaceAll("_", " ")}. Retry the scan R2 upload.`
+    : scanStatus;
+  const icebergCurrent = cirrus.iceberg_current_export ?? (sync.iceberg || {}).current_export;
+  const symbolCounts = week.live_symbol_counts || {};
+  const concentrated = Object.entries(symbolCounts).sort((left, right) => Number(right[1]) - Number(left[1]))[0];
+  const concentrationLabel = concentrated
+    ? `${concentrated[0]} ${integer(concentrated[1])}/${integer((week.live_emissions || []).length)}`
+    : "--";
+  const killLabel = `${String(kill.status || "--")} · ${integer(kill.resolved_live_marks)}/${integer(10)} rolling · ${kill.rebuild_production_change_allowed ? "rebuild allowed" : "production artifacts frozen"}`;
+  const cards = [
+    ["Live week return", `${signedPercent(live.mean_return)} on ${integer(live.resolved)} resolved`],
+    ["Win rate", percent(live.win_rate)],
+    ["Live emissions", `${integer((week.live_emissions || []).length)} across ${integer(week.unique_live_days)} days`],
+    ["Name concentration", concentrationLabel],
+    ["Challenger", `${String(challenger.experiment_id || "--").replaceAll("_", " ")} · ${signedPercent(challenger.mean_return_lift)}`],
+    ["Alpha vs Cirrus", String(cirrus.alpha_verdict || weekly.alpha_verdict || "--").replaceAll("_", " ")],
+    ["Iceberg current export", icebergExportLabel(icebergCurrent)],
+    ["Kill switch", killLabel],
+    ["Scan health", scanDetail],
+  ];
+  const decisions = Array.isArray(weekly.lane_decisions) ? weekly.lane_decisions : [];
+  const decisionRows = decisions.length
+    ? decisions.map((row) => `
+        <tr>
+          <td><strong>${escapeHtml(String(row.lane || "--").replaceAll("_", " "))}</strong></td>
+          <td>${escapeHtml(String(row.action || "--").replaceAll("_", " "))}</td>
+          <td>${escapeHtml(row.replacement ? String(row.replacement).replaceAll("_", " ") : "—")}</td>
+          <td>${escapeHtml(row.reason || "--")}</td>
+        </tr>`).join("")
+    : `<tr><td colspan="4" class="admin-history-loading">No lane decisions in this review.</td></tr>`;
+  root.innerHTML = `
+    <div class="admin-weekly-head">
+      <h3>Weekly alpha</h3>
+      <p class="muted">Week ending ${escapeHtml(formatDateTime(weekly.week_end_utc))}. Observation only; this panel cannot route orders.</p>
+    </div>
+    <div class="admin-grid admin-overview-grid admin-weekly-summary">
+      ${cards.map(([label, value]) => `<article class="summary-item admin-card inventory-slot"><span class="summary-label">${escapeHtml(label)}</span><span class="summary-value">${escapeHtml(value)}</span></article>`).join("")}
+    </div>
+    <p class="admin-weekly-next"><strong>Next action.</strong> ${escapeHtml(nextAction)}</p>
+    <div class="admin-history-table-wrap auction-house-log">
+      <table class="data-table admin-history-table admin-weekly-table">
+        <thead><tr><th>Lane</th><th>Action</th><th>Replacement</th><th>Reason</th></tr></thead>
+        <tbody>${decisionRows}</tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderMartAudit(payload, sync, weekly) {
   const bundle = payload.consumer_bundle || {};
   const views = bundle.views || {};
@@ -392,6 +483,7 @@ function renderMartAudit(payload, sync, weekly) {
       ["Orographic refresh", sync.orographic_refreshed ? "current canonical" : (sync.orographic_refreshed === false ? "frozen archive" : "--")],
       ["Training rows", integer(sync.training_rows ?? cirrus.training_rows)],
       ["Iceberg Cirrus rows", integer((sync.iceberg || {}).recommendation_rows)],
+      ["Iceberg current export", icebergExportLabel((sync.iceberg || {}).current_export)],
       ["Iceberg Cirrus max date", (sync.iceberg || {}).max_decision_at_utc || "--"],
       ["Iceberg publication", (sync.iceberg || {}).latest_publication_mart_id || "--"],
       ["Cirrus R2 prefixes", integer(listed.length)],
@@ -405,6 +497,7 @@ function renderMartAudit(payload, sync, weekly) {
       ["Executable coverage", percent(coverage)],
     ].map(([label, value]) => `<article class="summary-item admin-card inventory-slot"><span class="summary-label">${escapeHtml(label)}</span><span class="summary-value">${escapeHtml(value)}</span></article>`).join("");
   }
+  renderWeeklyAlpha(weekly, sync);
   const tbody = document.getElementById("admin-mart-views-tbody");
   if (tbody) {
     const rows = Object.entries(views);
@@ -422,8 +515,12 @@ function renderMartAuditError(error) {
   const message = escapeHtml(friendlyLoadError(error, "mart"));
   const status = document.getElementById("admin-mart-status");
   const tbody = document.getElementById("admin-mart-views-tbody");
+  const weekly = document.getElementById("admin-weekly-alpha");
   if (status) status.textContent = "Unavailable";
   if (tbody) tbody.innerHTML = `<tr><td colspan="4" class="admin-history-loading is-error">${message}</td></tr>`;
+  if (weekly) {
+    weekly.innerHTML = `<p class="admin-history-loading is-error">${message} Weekly alpha cannot be scored until the mart artifact loads. Refresh or open the hosted admin after sign-in.</p>`;
+  }
 }
 
 function renderOrderLedger(events) {
