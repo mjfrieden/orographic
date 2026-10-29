@@ -11,7 +11,7 @@ test("Book party frames keep quantity and action on a 720px phone", async () => 
   const source = await readFile(appPath, "utf8");
   const html = await readFile(indexPath, "utf8");
 
-  assert.match(html, /cockpit\.css\?v=20261018a/);
+  assert.match(html, /cockpit\.css\?v=20261029-mobile/);
   assert.match(
     styles,
     /@media \(max-width:\s*720px\)[\s\S]*\.cockpit-position-row\s*\{[^}]*grid-template-areas:/s,
