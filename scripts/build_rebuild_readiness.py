@@ -31,6 +31,8 @@ def main() -> int:
         default=Path("output/shared_mart_consumers/consumer_manifest.json"),
     )
     parser.add_argument("--output", type=Path, default=Path("web/data/diagnostics/orographic_rebuild_readiness_latest.json"))
+    parser.add_argument("--fold-evaluation-manifest", type=Path, help="Completed immutable Scout evaluation manifest (optional; missing fails closed).")
+    parser.add_argument("--fold-evaluation-sha256", help="Expected manifest byte SHA-256, pinned independently of its contents.")
     args = parser.parse_args()
     artifact = build_rebuild_readiness(
         _read(args.pair_readiness),
@@ -38,6 +40,8 @@ def main() -> int:
         _read(args.promotion),
         _read(args.scan_health),
         _read_optional(args.mart_consumer_manifest),
+        fold_evaluation_manifest=args.fold_evaluation_manifest,
+        fold_evaluation_sha256=args.fold_evaluation_sha256,
     )
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(artifact, indent=2), encoding="utf-8")

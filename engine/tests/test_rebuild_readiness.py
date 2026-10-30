@@ -54,8 +54,11 @@ class RebuildReadinessTests(unittest.TestCase):
             mart_consumer,
         )
 
-        self.assertTrue(result["production_model_change_allowed"])
-        self.assertEqual(result["status"], "ready_for_fold_frozen_challenger")
+        # Planned folds cannot satisfy completed validation, even with every
+        # other gate green.
+        self.assertFalse(result["production_model_change_allowed"])
+        self.assertEqual(result["status"], "hold_collecting_executable_evidence")
+        self.assertFalse(result["gates"]["fold_frozen_validation"]["passed"])
         self.assertEqual(
             result["preferred_training_source"]["tables"],
             ["recommendations", "execution_outcomes", "option_quotes", "feature_snapshots"],

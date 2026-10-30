@@ -17,6 +17,8 @@ test("recognizes Chicago scan slots across daylight saving time", () => {
   assert.equal(isChicagoScanSlot(Date.parse("2026-01-05T15:25:00Z")), true);
   assert.equal(isChicagoScanSlot(Date.parse("2026-08-03T15:25:00Z")), false);
   assert.equal(isChicagoScanSlot(Date.parse("2026-08-02T14:25:00Z")), false);
+  assert.equal(isChicagoScanSlot(Date.parse("2026-10-30T14:25:00Z")), true);
+  assert.equal(isChicagoOutcomeCaptureSlot(Date.parse("2026-10-30T14:25:00Z")), false);
 });
 
 test("scan and outcome capture slots never overlap", () => {

@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any
 
+from .fold_evaluation_evidence import verify_fold_evaluation
 from .shared_mart_consumers import CONSUMER_SCHEMA_VERSION
 from .shared_research_mart import MART_SCHEMA_VERSION
 
@@ -19,9 +21,11 @@ def build_rebuild_readiness(
     promotion_comparison: dict[str, Any],
     scan_health: dict[str, Any],
     mart_consumer: dict[str, Any] | None = None,
+    *,
+    fold_evaluation_manifest: Path | None = None,
+    fold_evaluation_sha256: str | None = None,
 ) -> dict[str, Any]:
     pair_coverage = pair_readiness.get("coverage") if isinstance(pair_readiness.get("coverage"), dict) else {}
-    fold_plan = pair_readiness.get("fold_frozen_evaluation_plan") if isinstance(pair_readiness.get("fold_frozen_evaluation_plan"), dict) else {}
     exit_summary = exit_shadow.get("summary") if isinstance(exit_shadow.get("summary"), dict) else {}
     live_policies = exit_summary.get("live_by_policy") if isinstance(exit_summary.get("live_by_policy"), dict) else {}
     best_live_coverage = max(
@@ -36,7 +40,8 @@ def build_rebuild_readiness(
     cohort = lifecycle.get("current_model_cohort") if isinstance(lifecycle.get("current_model_cohort"), dict) else {}
     resolved_current = int(cohort.get("resolved_recommendations") or 0)
     complete_pairs = int(pair_coverage.get("complete_explicit_pairs") or 0)
-    ready_folds = int(fold_plan.get("ready_folds") or 0)
+    fold_evidence = verify_fold_evaluation(pair_readiness, fold_evaluation_manifest, fold_evaluation_sha256)
+    completed_folds = fold_evidence["completed_folds"]
     mart_consumer = mart_consumer if isinstance(mart_consumer, dict) else {}
     consumer_views = mart_consumer.get("views") if isinstance(mart_consumer.get("views"), dict) else {}
     required_consumer_views = {
@@ -69,7 +74,12 @@ def build_rebuild_readiness(
             required="ready_observation_only",
         ),
         "matched_side_pairs": _gate(complete_pairs >= 150, actual=complete_pairs, required=150),
-        "fold_frozen_validation": _gate(ready_folds >= 3, actual=ready_folds, required=3),
+        "fold_frozen_validation": {
+            **_gate(completed_folds >= 3 and fold_evidence.get("evidence_kind") == "real"
+                    and fold_evidence.get("completion_contract_version") == 2,
+                    actual=completed_folds, required=3),
+            "evidence": fold_evidence,
+        },
         "current_model_resolutions": _gate(resolved_current >= 100, actual=resolved_current, required=100),
         "exit_policy_coverage": _gate(best_live_coverage >= 0.60, actual=round(best_live_coverage, 4), required=0.60),
         "baseline_promotion_ready": _gate(
