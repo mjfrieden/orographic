@@ -984,6 +984,16 @@ def _directional_option_training_frame(merged: pd.DataFrame) -> pd.DataFrame:
     return directional
 
 
+def _side_estimator(fold: int) -> Any:
+    """Shared existing three-class Scout specification; no active artifacts."""
+    return lgb.LGBMClassifier(
+        objective="multiclass", num_class=3, n_estimators=260,
+        learning_rate=0.04, max_depth=4, num_leaves=15,
+        subsample=0.85, colsample_bytree=0.85, min_child_samples=10,
+        class_weight="balanced", random_state=43 + fold, verbose=-1,
+    )
+
+
 def _side_cv_report(
     X: np.ndarray,
     y: np.ndarray,
@@ -1021,20 +1031,7 @@ def _side_cv_report(
         scaler = RobustScaler()
         X_train = scaler.fit_transform(X_sorted[train_idx])
         X_val = scaler.transform(X_sorted[val_idx])
-        model = lgb.LGBMClassifier(
-            objective="multiclass",
-            num_class=3,
-            n_estimators=260,
-            learning_rate=0.04,
-            max_depth=4,
-            num_leaves=15,
-            subsample=0.85,
-            colsample_bytree=0.85,
-            min_child_samples=10,
-            class_weight="balanced",
-            random_state=43 + fold,
-            verbose=-1,
-        )
+        model = _side_estimator(fold)
         model.fit(X_train, y_sorted[train_idx])
         preds = model.predict(X_val)
         score = float(balanced_accuracy_score(y_sorted[val_idx], preds))
