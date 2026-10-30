@@ -1,0 +1,565 @@
+{
+  "schema_version": 1,
+  "source_commit": "f6b6fedab784542ecba25b6e8bede99dc03a4121",
+  "sources": {
+    "sync": {
+      "path": "/data/diagnostics/shared_mart_sync_latest.json",
+      "sha256": "a0ca3debe1b2d50caa977456a688aed0f6ee516eb16e7cefdc6eccbd68d5a8e6",
+      "generated_at_utc": "2026-10-16T20:06:51+00:00"
+    },
+    "shadow": {
+      "path": "/data/diagnostics/shared_mart_shadow_evidence_latest.json",
+      "sha256": "fc69231e48bafad5300f430168f6b50d75647a375bc10c04607c88c6c4eaab41",
+      "generated_at_utc": "2026-10-16T20:06:51+00:00"
+    },
+    "health": {
+      "path": "/data/diagnostics/research_readiness_health_latest.json",
+      "sha256": "c8d2c98f62f993e0ab62cab478344e188d873308e5a47b0ebed92bdfc9a78c97",
+      "generated_at_utc": "2026-10-29T20:42:26.563280Z"
+    },
+    "runtime": {
+      "path": "/data/latest_run.json",
+      "sha256": "a4761fe5dd6e4f2ece25d39c2ff5434de677e6dd45c8b155e3e27070b1d813e7",
+      "generated_at_utc": "2026-10-29T20:29:33+00:00"
+    },
+    "models": {
+      "path": "/data/diagnostics/current_model_cards_latest.json",
+      "sha256": "bbbfe256284017d88aa19b4eb5c61298d2a4c78b469574f54f07b2d0d6fd22f1",
+      "generated_at_utc": "2026-10-29T20:37:42.363333+00:00"
+    },
+    "ledger": {
+      "path": "/data/diagnostics/prospective_dashboard_summary_latest.json",
+      "sha256": "2473329bdb4235cc7985861abd184acae79fbcfebc29921fd0d0c78bd9a1d4a5",
+      "generated_at_utc": "2026-10-29T20:37:19+00:00"
+    }
+  },
+  "sync": {
+    "mart_id": "ee2b28df4f25c666d01b49238d1d567ac8fd59a6e312553a7f275c90949f9f8e",
+    "generated_at_utc": "2026-10-16T20:06:51+00:00",
+    "rows": {
+      "model_runs": 549,
+      "recommendations": 5113,
+      "execution_outcomes": 3648,
+      "option_quotes": 6138686,
+      "quote_provenance": 151748,
+      "feature_snapshots": 5113,
+      "path_exclusions": 0,
+      "position_legs": 5162,
+      "experiment_tags": 22,
+      "experiment_scan_decisions": 38
+    },
+    "iceberg": {
+      "status": "inspected",
+      "source_system": "cirrus",
+      "recommendation_rows": 187,
+      "min_decision_at_utc": "2026-07-03T17:10:48.253353+00:00",
+      "max_decision_at_utc": "2026-10-14T17:20:21.642249+00:00",
+      "symbols": 14,
+      "latest_publication_mart_id": "c86f3d0e2b1d9a55e0dd4da51000578ab3876b2bee600b3521f1a2cc32dcce7f",
+      "latest_publication_at_utc": "2026-10-14 20:54:31+00",
+      "snapshot_scoped": true,
+      "current_export": false
+    },
+    "production_changes_allowed": false
+  },
+  "shadow": {
+    "mart_id": "ee2b28df4f25c666d01b49238d1d567ac8fd59a6e312553a7f275c90949f9f8e",
+    "generated_at_utc": "2026-10-16T20:06:51+00:00",
+    "common_replay": {
+      "label_contract_id": "joint.fixed_24h_ask_to_bid.v1",
+      "entry_policy": "decision_ask",
+      "exit_policy": "nearest_24h_bid_within_3h",
+      "production_alpha_eligible": false,
+      "orographic_live_recommendations": 46,
+      "orographic_live_replays": 20,
+      "cirrus_shadow_recommendations": 54,
+      "cirrus_shadow_replays": 17,
+      "cirrus_shadow_vertical_replays": 12,
+      "fixed_24h_exploratory_shadow_pairs": 2,
+      "fixed_24h_exploratory_shadow_market_dates": 2,
+      "avg_fixed_24h_equal_premium_return_difference": -2.328706570347437,
+      "fixed_24h_unsynchronized_days": 11,
+      "fixed_24h_missing_orographic_replay_days": 0,
+      "fixed_24h_missing_cirrus_shadow_replay_days": 2
+    },
+    "cross_system_comparison": {
+      "daily_symbol_comparisons": 1559,
+      "paired_comparisons": 15,
+      "paired_market_dates": 12,
+      "same_contract": 0,
+      "same_side_different_contract": 7,
+      "directional_disagreements": 8,
+      "orographic_only": 1382,
+      "cirrus_only": 162,
+      "paired_executable_outcomes": 7,
+      "paired_live_lanes": 0,
+      "paired_live_executable_outcomes": 0,
+      "avg_orographic_minus_cirrus_return": -0.9532631114984385,
+      "live_market_dates": 57,
+      "overlapping_live_market_dates": 9,
+      "same_underlying_live_market_dates": 0,
+      "same_contract_live_market_dates": 0,
+      "synchronized_live_market_dates": 1,
+      "overlapping_live_shadow_market_dates": 15,
+      "same_underlying_live_shadow_market_dates": 0,
+      "multi_leg_cirrus_shadow_overlap_dates": 5,
+      "synchronized_live_shadow_market_dates": 4,
+      "direct_return_comparable_pairs": 0,
+      "direct_return_comparable_market_dates": 0,
+      "avg_direct_comparable_return_difference": null,
+      "same_contract_pairs": 0,
+      "same_contract_synchronized_pairs": 0,
+      "live_direct_return_comparable_pairs": 0,
+      "live_direct_return_comparable_market_dates": 0,
+      "avg_live_direct_comparable_return_difference": null,
+      "fixed_24h_exploratory_shadow_pairs": 2,
+      "fixed_24h_exploratory_shadow_market_dates": 2,
+      "avg_fixed_24h_equal_premium_return_difference": -2.328706570347437,
+      "fixed_24h_unsynchronized_days": 11,
+      "fixed_24h_missing_orographic_replay_days": 0,
+      "fixed_24h_missing_cirrus_shadow_replay_days": 2,
+      "alpha_comparison_design_id": null,
+      "risk_normalized_live_comparable_pairs": 0,
+      "risk_normalized_live_comparable_market_dates": 0,
+      "avg_risk_normalized_live_return_difference": null
+    },
+    "training_funnel": {
+      "recommendations": 5113,
+      "with_any_feature": 5113,
+      "with_point_in_time_feature": 5113,
+      "with_valid_label_outcome": 3534,
+      "training_eligible_recommendations": 3534,
+      "training_rows": 3534,
+      "dropped_missing_feature": 0,
+      "dropped_feature_not_point_in_time": 0,
+      "dropped_missing_executable_outcome": 1579,
+      "dropped_label_before_decision": 0,
+      "min_point_in_time_feature_coverage_rate": 1,
+      "min_training_eligibility_rate": 0.4153846153846154,
+      "training_mart_usable": true
+    },
+    "joint_learning": {
+      "candidate_rows": 5113,
+      "recommendations": 5113,
+      "legacy_feature_rows": 113,
+      "native_feature_rows": 5000,
+      "lane_only_model_rows": 152,
+      "multi_leg_rows": 49,
+      "source_specific_training_rows": 3484,
+      "orographic_source_specific_training_rows": 3453,
+      "cirrus_source_specific_training_rows": 31,
+      "pooled_training_rows": 0,
+      "experiment_tagged_rows": 22
+    },
+    "shadow_entry_gates": {
+      "paired_executable_outcomes": {
+        "passed": false,
+        "actual": 7,
+        "required": 30
+      },
+      "paired_market_dates": {
+        "passed": false,
+        "actual": 12,
+        "required": 30
+      },
+      "direct_return_comparable_pairs": {
+        "passed": false,
+        "actual": 0,
+        "required": 30
+      },
+      "direct_return_comparable_market_dates": {
+        "passed": false,
+        "actual": 0,
+        "required": 30
+      },
+      "live_direct_return_comparable_pairs": {
+        "passed": false,
+        "actual": 0,
+        "required": 30
+      },
+      "live_direct_return_comparable_market_dates": {
+        "passed": false,
+        "actual": 0,
+        "required": 30
+      }
+    },
+    "data_quality": {
+      "cohorts": 3,
+      "recommendations": 5113,
+      "worst_critical_null_rate": 0,
+      "worst_integrity_anomaly_rate": 0.00045578851412944393,
+      "worst_wide_entry_spread_rate": 0,
+      "min_feature_coverage_rate": 1,
+      "min_path_quote_coverage_rate": 0.22641509433962265,
+      "min_executable_outcome_coverage_rate": 0.4153846153846154,
+      "avg_entry_spread_pct": 0.07214016869811975,
+      "cohorts_with_integrity_anomalies": 1,
+      "cohorts_with_null_gaps": 0,
+      "integrity_clean": false
+    }
+  },
+  "health": {
+    "generated_at_utc": "2026-10-29T20:42:26.563280Z",
+    "status": "red",
+    "gates": [
+      {
+        "code": "freshness",
+        "status": "amber",
+        "blocking": false,
+        "title": "Artifact freshness",
+        "summary": "One or more evidence ledgers are stale.",
+        "metrics": {
+          "snapshot_age_minutes": 12.89,
+          "snapshot_max_age_minutes": 240,
+          "prospective_ledger_age_minutes": 12.89,
+          "moonshot_ledger_age_minutes": 100831.43,
+          "evidence_max_age_minutes": 1440,
+          "stale_evidence_sources": [
+            "moonshot"
+          ]
+        },
+        "actions": [
+          "Run and publish a fresh scan before using current-state claims."
+        ]
+      },
+      {
+        "code": "label_cohort_completion",
+        "status": "red",
+        "blocking": true,
+        "title": "Outcome cohort completion",
+        "summary": "Too few emitted recommendations have complete fixed-horizon labels.",
+        "metrics": {
+          "total_picks": 5742,
+          "with_any_mark": 5026,
+          "fully_labeled": 3312,
+          "observed_mark_coverage_pct": 0.8753,
+          "total_cohort_completion_pct": 0.5768,
+          "amber_completion_threshold_pct": 0.95,
+          "red_completion_threshold_pct": 0.8,
+          "by_lane_family": {
+            "core": {
+              "picks": 5268,
+              "with_any_mark": 4560,
+              "complete": 2909,
+              "pending": 708,
+              "partial": 1651,
+              "observed_mark_coverage_pct": 0.8656,
+              "total_cohort_completion_pct": 0.5522,
+              "executable_quote_rows": 4068,
+              "friday_outcome_rows": 4068,
+              "executable_quote_coverage_pct": 1,
+              "updated_at_utc": "2026-10-29T20:29:33+00:00",
+              "quotes_missing_last_run": 0
+            },
+            "moonshot": {
+              "picks": 474,
+              "with_any_mark": 466,
+              "complete": 403,
+              "pending": 8,
+              "partial": 63,
+              "observed_mark_coverage_pct": 0.9831,
+              "total_cohort_completion_pct": 0.8502,
+              "executable_quote_rows": 413,
+              "friday_outcome_rows": 413,
+              "executable_quote_coverage_pct": 1,
+              "updated_at_utc": "2026-08-20T20:11:01+00:00",
+              "quotes_missing_last_run": 0
+            }
+          }
+        },
+        "actions": [
+          "Backfill due fixed-horizon marks and publish matched cohort cutoffs.",
+          "Do not describe observed-mark coverage as total cohort completion."
+        ]
+      },
+      {
+        "code": "executable_quote_coverage",
+        "status": "green",
+        "blocking": false,
+        "title": "Executable quote coverage",
+        "summary": "Friday outcomes have sufficient ask-to-bid quote coverage.",
+        "metrics": {
+          "executable_quote_rows": 4481,
+          "friday_outcome_rows": 4481,
+          "executable_quote_coverage_pct": 1,
+          "required_min_pct": 0.95,
+          "return_contract": "entry ask to exit bid; costs/slippage reported separately"
+        },
+        "actions": []
+      },
+      {
+        "code": "event_feed_health",
+        "status": "red",
+        "blocking": true,
+        "title": "Event data health",
+        "summary": "Complete outcomes lack sufficient point-in-time event coverage.",
+        "metrics": {
+          "feed_status": "rate_limit_cooldown",
+          "http_429_responses": 0,
+          "new_rows": 0,
+          "complete_outcome_event_coverage_pct": 0.3513,
+          "required_min_pct": 0.5
+        },
+        "actions": [
+          "Repair/backfill the point-in-time event feed before event-model claims."
+        ]
+      },
+      {
+        "code": "artifact_integrity",
+        "status": "green",
+        "blocking": false,
+        "title": "Artifact integrity",
+        "summary": "Required research artifacts and model files pass integrity checks.",
+        "metrics": {
+          "audit_status": "passed",
+          "failed_audit_checks": [],
+          "missing_required_models": [],
+          "missing_sources": []
+        },
+        "actions": []
+      },
+      {
+        "code": "promotion_eligibility",
+        "status": "red",
+        "blocking": true,
+        "title": "Promotion eligibility",
+        "summary": "Production-active models are not supported by the latest promotion comparison.",
+        "metrics": {
+          "decision": "not_ready",
+          "as_of_utc": "2026-08-19T17:10:56+00:00",
+          "coverage_complete": false,
+          "incomplete_windows": [
+            "6_month",
+            "12_month"
+          ],
+          "failed_risk_windows": [
+            "3_month"
+          ],
+          "active_model_modes": [
+            "directional_scout",
+            "side_aware_scout",
+            "payoff_ranker",
+            "side_model_source"
+          ]
+        },
+        "actions": [
+          "Hold promotion or revert to canary/shadow until canonical gates pass."
+        ]
+      }
+    ]
+  },
+  "runtime": {
+    "generated_at_utc": "2026-10-29T20:29:33+00:00",
+    "models": {
+      "scout_model": {
+        "present": true,
+        "sha256": "d38cc7c392fca619a19c38d57c040bfa4ea6e972cb714e0d4d6ee8bd055483ca",
+        "required": true
+      },
+      "scout_scaler": {
+        "present": true,
+        "sha256": "f867df30e5cadf84b8fd844a53abff4255b82b54ddd6d7e68e9e529e667afaba",
+        "required": true
+      },
+      "scout_side_model": {
+        "present": true,
+        "sha256": "bb097b2db11d5de3b124a98cc9dbb8537910cb9a2589f9d8ef815f6802ed53f8",
+        "required": true
+      },
+      "production_payoff_ranker": {
+        "present": true,
+        "sha256": "fe95801fd2aebed04f20d25d15ee1e49a6f216aaa578739573c3d72defaf8410",
+        "required": true
+      },
+      "scout_model_card": {
+        "present": true,
+        "sha256": "5518f5898c364959749a3a96168efe397443f4dc44c219bea3d403c738fd3829",
+        "required": true
+      },
+      "production_payoff_ranker_card": {
+        "present": true,
+        "sha256": "e7491c828521cd7bceb37965e8c2b13fb08f8d2ea3b55d839ce8080386c8934c",
+        "required": true
+      }
+    },
+    "abstain": true,
+    "reason": "All candidates failed executable-liquidity or repeat-entry controls.",
+    "candidate_count": 11,
+    "live_count": 0
+  },
+  "models": [
+    {
+      "id": "scout-direction",
+      "title": "Directional Scout",
+      "version": 3,
+      "model_sha256": "d38cc7c392fca619a19c38d57c040bfa4ea6e972cb714e0d4d6ee8bd055483ca",
+      "how_it_works": "LightGBM uses stock and market features to estimate a positive five-day underlying return. This directional artifact is distinct from the active call/put/no-trade policy.",
+      "population": "Underlying-stock symbol-date observations; not option trades.",
+      "evaluation_window": "Training coverage: 2024-07-03 to 2026-06-26. Validation fold date endpoints are not reported.",
+      "limitations": [
+        "Historical validation is not current live performance. F1 is not reported in this model card.",
+        "Identity matches published runtime metadata and exact card bytes; the model binary was not independently rehashed here."
+      ]
+    },
+    {
+      "id": "scout-side",
+      "title": "Scout side and abstention",
+      "version": 3,
+      "model_sha256": "bb097b2db11d5de3b124a98cc9dbb8537910cb9a2589f9d8ef815f6802ed53f8",
+      "how_it_works": "Three-class Scout estimates call-edge, put-edge and no-trade probabilities before Forge selects option contracts.",
+      "population": "Strict-real option-payoff labels grouped by symbol/date.",
+      "evaluation_window": "Historical cross-validation; fold date endpoints are not reported.",
+      "limitations": [
+        "Historical validation is not current live performance. F1 is not reported in this model card.",
+        "Identity matches published runtime metadata and exact card bytes; the model binary was not independently rehashed here.",
+        "Imbalanced training classes limit conclusions, especially the put class. Training accuracy is not out-of-sample skill."
+      ]
+    },
+    {
+      "id": "tail-ranker",
+      "title": "Forge tail-utility ranker",
+      "version": 2,
+      "model_sha256": "fe95801fd2aebed04f20d25d15ee1e49a6f216aaa578739573c3d72defaf8410",
+      "how_it_works": "Forge filters contracts, then the tail-utility ranker estimates large-win and severe-loss risks and ranks after-friction utility. Council applies the final selection and abstention policy.",
+      "population": "Option candidate rows in forward evaluation. Selected-policy replay is a separate population.",
+      "evaluation_window": "Later frozen forward validation window; complete start/end dates are not reported by the model card.",
+      "limitations": [
+        "Historical validation is not current live performance. F1 is not reported in this model card.",
+        "Identity matches published runtime metadata and exact card bytes; the model binary was not independently rehashed here.",
+        "Selected-policy results are historical quote replays, not broker fills or account P&L. Small samples cannot establish profitability."
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "2026-10-29T17:30:07+00:00|live|XLE261106C00068000",
+      "date": "2026-10-29T17:30:07+00:00",
+      "symbol": "XLE",
+      "contract_symbol": "XLE261106C00068000",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-29T17:30:07+00:00",
+        "chain_snapshot_at_utc": "2026-10-29T17:29:54+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 1.36,
+        "bid": 1.29
+      },
+      "status": "partial",
+      "friday": null
+    },
+    {
+      "id": "2026-10-28T14:30:14+00:00|live|XLE261106C00069500",
+      "date": "2026-10-28T14:30:14+00:00",
+      "symbol": "XLE",
+      "contract_symbol": "XLE261106C00069500",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-28T14:30:14+00:00",
+        "chain_snapshot_at_utc": "2026-10-28T14:30:00+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 0.95,
+        "bid": 0.91
+      },
+      "status": "partial",
+      "friday": null
+    },
+    {
+      "id": "2026-10-27T17:30:03+00:00|live|BAC261106C00050000",
+      "date": "2026-10-27T17:30:03+00:00",
+      "symbol": "BAC",
+      "contract_symbol": "BAC261106C00050000",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-27T17:30:03+00:00",
+        "chain_snapshot_at_utc": "2026-10-27T17:29:52+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 1.37,
+        "bid": 1.3
+      },
+      "status": "partial",
+      "friday": null
+    },
+    {
+      "id": "2026-10-26T14:29:48+00:00|live|BAC261106C00051000",
+      "date": "2026-10-26T14:29:48+00:00",
+      "symbol": "BAC",
+      "contract_symbol": "BAC261106C00051000",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-26T14:29:48+00:00",
+        "chain_snapshot_at_utc": "2026-10-26T14:29:39+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 1.05,
+        "bid": 1
+      },
+      "status": "partial",
+      "friday": null
+    },
+    {
+      "id": "2026-10-23T17:30:01+00:00|live|BAC261106C00050000",
+      "date": "2026-10-23T17:30:01+00:00",
+      "symbol": "BAC",
+      "contract_symbol": "BAC261106C00050000",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-23T17:30:01+00:00",
+        "chain_snapshot_at_utc": "2026-10-23T17:29:40+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 1.43,
+        "bid": 1.36
+      },
+      "status": "complete",
+      "friday": -0.0179
+    },
+    {
+      "id": "2026-10-23T14:29:25+00:00|live|BAC261030C00051000",
+      "date": "2026-10-23T14:29:25+00:00",
+      "symbol": "BAC",
+      "contract_symbol": "BAC261030C00051000",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-23T14:29:25+00:00",
+        "chain_snapshot_at_utc": "2026-10-23T14:29:17+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 0.53,
+        "bid": 0.5
+      },
+      "status": "complete",
+      "friday": 0
+    },
+    {
+      "id": "2026-10-21T20:28:42+00:00|live|SPY261028C00776000",
+      "date": "2026-10-21T20:28:42+00:00",
+      "symbol": "SPY",
+      "contract_symbol": "SPY261028C00776000",
+      "lane": "live",
+      "quote": {
+        "captured_at_utc": "2026-10-21T20:28:42+00:00",
+        "chain_snapshot_at_utc": "2026-10-21T20:28:41+00:00",
+        "entry_data_source": "tradier",
+        "entry_quote_type": "ask",
+        "ask": 4.19,
+        "bid": 4.14
+      },
+      "status": "partial",
+      "friday": -0.9052
+    }
+  ],
+  "decision_total": 7,
+  "publication_review": {
+    "reviewed_at_utc": "2026-10-29T14:09:00Z",
+    "run": "40774763527",
+    "status": "failed",
+    "stage": "Iceberg publication",
+    "reason": "Missing delete Parquet object (HTTP 404); persistence and downstream refresh skipped.",
+    "source": "https://github.com/mjfrieden/orographic/actions/runs/40774763527",
+    "authority": "Dated October 29 handoff review; current service state not reverified."
+  },
+  "snapshot_id": "59ef3e7ddeece3ee8d3103b6e03adecbf1e44c0023d4fd9d019baef9614574e4"
+}
