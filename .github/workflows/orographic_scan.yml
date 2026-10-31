@@ -390,6 +390,12 @@ jobs:
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
         run: |
+          python scripts/preflight_research_archive.py \
+            --canonical output/canonical_evidence \
+            --output output/r2_archive_preflight.json \
+            engine/data/live_options_archive \
+            engine/data/event_observatory \
+            output/research_datasets
           python scripts/upload_research_artifacts_to_r2.py \
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
             engine/data/live_options_archive \
@@ -472,6 +478,7 @@ jobs:
             engine/data/event_observatory/
             output/research_datasets/
             output/canonical_evidence/
+            output/r2_archive_preflight.json
           retention-days: 90
 
       - name: Fail when snapshot push did not reach GitHub
