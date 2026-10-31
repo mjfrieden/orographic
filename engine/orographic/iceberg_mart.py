@@ -112,7 +112,11 @@ def publish_iceberg_mart(
     token: str,
     catalog_name: str = "r2_mart",
     namespace: str = "research_mart",
+    preflight_only: bool = False,
+    allow_full_scan: bool = False,
 ) -> dict[str, Any]:
+    if not allow_full_scan:
+        raise ValueError("Full destination reads require explicit allow_full_scan=True; no catalog access performed")
     if not catalog_uri.startswith("https://"):
         raise ValueError("R2 catalog URI must use HTTPS")
     if not warehouse.strip() or not token.strip():
@@ -131,6 +135,7 @@ def publish_iceberg_mart(
     catalog = plan["catalog_name"]
     schema = plan["namespace"]
     connection = duckdb.connect()
+    writes_started = False
     try:
         _attach_iceberg_catalog(
             connection,
@@ -139,6 +144,10 @@ def publish_iceberg_mart(
             warehouse=warehouse,
             token=token,
         )
+        preflight = preflight_iceberg_tables(connection, plan=plan)
+        if preflight_only:
+            return preflight
+        writes_started = True
         connection.execute(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{schema}")
         for table in plan["tables"]:
             name = table["name"]
@@ -183,9 +192,74 @@ def publish_iceberg_mart(
                 json.dumps(manifest["artifacts"], sort_keys=True), "published",
             ],
         )
+    except IcebergPreflightError:
+        raise
+    except Exception as exc:
+        raise IcebergPreflightError({
+            "status": "publication_failed" if writes_started else "catalog_attach_failed",
+            "error_type": type(exc).__name__, "remote_writes_started": writes_started,
+            "rebuilt_mart_id": plan["mart_id"], "published_mart_id": None,
+            "served_mart_id": None, "publication_verified": False,
+            "served_verified": False,
+            "commit_outcome": "uncertain" if writes_started else "not_started",
+        }) from None
     finally:
         connection.close()
-    return {**plan, "status": "published"}
+    return {
+        **plan, "status": "published", "rebuilt_mart_id": plan["mart_id"],
+        "published_mart_id": plan["mart_id"], "served_mart_id": None,
+        "publication_verified": False, "served_verified": False,
+    }
+
+
+class IcebergPreflightError(RuntimeError):
+    """Sanitized publication/preflight failure; inspect remote_writes_started."""
+
+    def __init__(self, report: dict[str, Any]):
+        self.report = report
+        super().__init__(json.dumps(report, sort_keys=True))
+
+
+def preflight_iceberg_tables(connection: Any, *, plan: dict[str, Any]) -> dict[str, Any]:
+    """Read every existing destination before the first remote mutation.
+
+    A full projection drained in batches forces data and delete application;
+    COUNT(*)/LIMIT can be answered from metadata without reading missing files.
+    This is not a transaction or a guarantee against concurrent catalog changes.
+    """
+    catalog = _identifier(plan["catalog_name"], label="catalog name")
+    schema = _identifier(plan["namespace"], label="namespace")
+    report: dict[str, Any] = {
+        "status": "preflight_passed", "rebuilt_mart_id": plan["mart_id"],
+        "published_mart_id": None, "served_mart_id": None,
+        "remote_writes_started": False, "tables": [],
+        "publication_verified": False, "served_verified": False,
+    }
+    for name in [*[item["name"] for item in plan["tables"]], "mart_publications"]:
+        _identifier(name, label="table name")
+        target = f"{catalog}.{schema}.{name}"
+        item: dict[str, Any] = {"target": target}
+        report["tables"].append(item)
+        try:
+            exists = connection.execute(
+                "SELECT COUNT(*) FROM information_schema.tables "
+                "WHERE table_catalog = ? AND table_schema = ? AND table_name = ?",
+                [catalog, schema, name],
+            ).fetchone()[0]
+            if not exists:
+                item["status"] = "absent"
+                continue
+            cursor = connection.execute(f"SELECT * FROM {target}")
+            rows = 0
+            while batch := cursor.fetchmany(8192):
+                rows += len(batch)
+            item.update(status="readable", rows=rows)
+        except Exception as exc:
+            item.update(status="unreadable", error_type=type(exc).__name__)
+            report["status"] = "blocked_unreadable_destination"
+            # Raw engine errors can contain signed object URLs. Do not persist them.
+            raise IcebergPreflightError(report) from None
+    return report
 
 
 def publication_environment() -> dict[str, str]:
