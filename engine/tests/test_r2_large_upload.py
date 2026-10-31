@@ -81,8 +81,12 @@ def test_multipart_bounds_and_input_mutation(tmp_path):
 
 
 def test_no_automatic_part_size_growth(tmp_path):
-    path = sparse(tmp_path / "too-large", multipart.PART_BYTES * multipart.MAX_PARTS + 1)
-    with mock.patch.object(multipart, "large_object_client") as client:
+    path = tmp_path / "too-large"
+    # Only stat is inspected before rejection. Avoid allocating a nominal
+    # 625 GiB file on filesystems where truncate does not create sparse extents.
+    with mock.patch.object(Path, "stat", return_value=mock.Mock(
+            st_size=multipart.PART_BYTES * multipart.MAX_PARTS + 1)), \
+         mock.patch.object(multipart, "large_object_client") as client:
         with pytest.raises(ValueError, match="bounded"):
             multipart.upload_large_object("bucket", "key", path)
     client.assert_not_called()

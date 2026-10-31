@@ -20,7 +20,7 @@ if __package__ in {None, ""}:
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from engine.orographic.evidence_store import validate_canonical_bundle  # noqa: E402
-from scripts.r2_multipart import WRANGLER_MAX_BYTES, upload_large_object  # noqa: E402
+from scripts.r2_multipart import WRANGLER_MAX_BYTES, upload_large_object, require_upload_configuration  # noqa: E402
 
 
 ARCHIVE_ROOT = "orographic/research-data"
@@ -51,6 +51,8 @@ def _sha256(path: Path) -> str:
 def _iter_files(paths: list[Path]) -> list[tuple[Path, Path]]:
     files: list[tuple[Path, Path]] = []
     for path in paths:
+        if not path.exists():
+            raise FileNotFoundError(f"Requested research artifact is missing: {path}")
         if path.is_file():
             files.append((path.parent, path))
         elif path.is_dir():
@@ -152,12 +154,15 @@ def _upload_archive(
     api_token: str,
 ) -> None:
     files = _iter_files(paths)
-    if not files:
-        print("No research artifact files found to upload.")
-        return
+    require_upload_configuration([path for _, path in files])
     manifest = _archive_manifest(prefix, files)
     for (base, file_path), record in zip(files, manifest["files"], strict=True):
         _put_object(bucket, str(record["object_key"]), file_path)
+
+    # A manifest is a commit point, not a list of intended uploads. Reject a
+    # changing source before publishing hashes that no longer describe it.
+    if _archive_manifest(prefix, files)["files"] != manifest["files"]:
+        raise RuntimeError("Archive source changed during upload; manifest not published")
 
     with tempfile.TemporaryDirectory(prefix="orographic-r2-manifest-") as tmpdir:
         manifest_path = Path(tmpdir) / "manifest.json"
@@ -204,6 +209,7 @@ def _upload_canonical(*, bucket: str, prefix: str, bundle: Path) -> None:
     original_manifest = (bundle / "evidence_manifest.json").read_bytes()
     if json.loads(original_manifest) != manifest:
         raise RuntimeError("Canonical manifest changed after validation")
+    require_upload_configuration([bundle / str(row["path"]) for row in manifest["files"]])
     generation = hashlib.sha256(original_manifest).hexdigest()
     with tempfile.TemporaryDirectory(prefix="orographic-publish-", dir=bundle.parent) as tmpdir:
         # Snapshot every input before the first remote write, then validate that
@@ -265,8 +271,8 @@ def main() -> int:
     args = parse_args()
     bucket = str(args.bucket).strip()
     if not bucket:
-        print("OROGRAPHIC_RESEARCH_R2_BUCKET is not configured; skipping R2 upload.")
-        return 0
+        print("OROGRAPHIC_RESEARCH_R2_BUCKET is not configured; no archive was published.")
+        return 0 if args.mode == "cirrus" else 1
     if args.mode == "canonical":
         bundle = args.paths[0] if args.paths else Path("output/canonical_evidence")
         _upload_canonical(

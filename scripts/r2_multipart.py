@@ -15,7 +15,8 @@ MAX_PARTS = 10_000
 MAX_CONCURRENCY = 2
 
 
-def large_object_client():
+def validate_large_object_configuration() -> None:
+    """Check explicit configuration without constructing a client or making requests."""
     account = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()
     access_key = os.environ.get("R2_ACCESS_KEY_ID", "").strip()
     secret_key = os.environ.get("R2_SECRET_ACCESS_KEY", "").strip()
@@ -25,6 +26,13 @@ def large_object_client():
             "R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY. No credentials were "
             "created or derived; the current manifest has not advanced."
         )
+
+
+def large_object_client():
+    validate_large_object_configuration()
+    account = os.environ["CLOUDFLARE_ACCOUNT_ID"].strip()
+    access_key = os.environ["R2_ACCESS_KEY_ID"].strip()
+    secret_key = os.environ["R2_SECRET_ACCESS_KEY"].strip()
     import boto3
     from botocore.config import Config
 
@@ -39,6 +47,38 @@ def large_object_client():
             response_checksum_validation="when_required",
         ),
     )
+
+
+def preflight_files(paths: list[Path]) -> dict:
+    """No credential values, client discovery, remote writes, or publication claim."""
+    if not paths:
+        raise ValueError("No research artifact files found; nothing was published")
+    records = [{"path": str(path), "bytes": path.stat().st_size,
+                "transport": "multipart" if path.stat().st_size > WRANGLER_MAX_BYTES else "wrangler"}
+               for path in paths]
+    if any(row["bytes"] > PART_BYTES * MAX_PARTS for row in records):
+        raise ValueError("R2 object exceeds the bounded 64 MiB / 10,000-part limit")
+    large = [row for row in records if row["transport"] == "multipart"]
+    missing = []
+    if large:
+        if not re.fullmatch(r"[a-fA-F0-9]{32}", os.environ.get("CLOUDFLARE_ACCOUNT_ID", "").strip()):
+            missing.append("CLOUDFLARE_ACCOUNT_ID")
+        missing.extend(name for name in ("R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY")
+                       if not os.environ.get(name, "").strip())
+    return {"status": "blocked" if missing else "configuration_ready",
+            "publication_verified": False, "remote_requests_performed": False,
+            "multipart_threshold_bytes": WRANGLER_MAX_BYTES,
+            "files": records, "missing_or_invalid_configuration": missing}
+
+
+def require_upload_configuration(paths: list[Path]) -> dict:
+    report = preflight_files(paths)
+    if report["missing_or_invalid_configuration"]:
+        raise RuntimeError("Archive preflight blocked before remote writes: "
+                           + ", ".join(report["missing_or_invalid_configuration"])
+                           + "; map existing authorized R2 S3 credentials on the upload step. "
+                           "Wrangler REST credentials do not configure multipart uploads.")
+    return report
 
 
 def upload_large_object(bucket: str, object_key: str, file_path: Path) -> None:
