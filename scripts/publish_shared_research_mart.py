@@ -24,7 +24,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--mart-dir", type=Path, default=Path("output/shared_research_mart"))
     parser.add_argument("--catalog-name", default="r2_mart")
     parser.add_argument("--namespace", default="research_mart")
-    parser.add_argument("--allow-full-scan", action="store_true", help="Explicitly accept full destination read cost; required for --preflight or --apply.")
+    parser.add_argument("--allow-full-scan", action="store_true", help="Opt into full table reads instead of the default bounded metadata/object checks.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--preflight", action="store_true", help="Read all existing Iceberg destinations without publishing.")
     mode.add_argument(

@@ -115,8 +115,6 @@ def publish_iceberg_mart(
     preflight_only: bool = False,
     allow_full_scan: bool = False,
 ) -> dict[str, Any]:
-    if not allow_full_scan:
-        raise ValueError("Full destination reads require explicit allow_full_scan=True; no catalog access performed")
     if not catalog_uri.startswith("https://"):
         raise ValueError("R2 catalog URI must use HTTPS")
     if not warehouse.strip() or not token.strip():
@@ -125,6 +123,13 @@ def publish_iceberg_mart(
         mart_dir=mart_dir, catalog_name=catalog_name, namespace=namespace
     )
     contracts = contracts_for_schema(plan["schema_version"])
+    if not allow_full_scan:
+        from .iceberg_preflight import bounded_preflight
+        preflight = bounded_preflight(plan, catalog_uri=catalog_uri, warehouse=warehouse, token=token)
+        if preflight["status"] != "preflight_passed":
+            raise IcebergPreflightError(preflight)
+        if preflight_only:
+            return preflight
     try:
         import duckdb
     except ImportError as exc:  # pragma: no cover - depends on optional runtime
@@ -144,7 +149,8 @@ def publish_iceberg_mart(
             warehouse=warehouse,
             token=token,
         )
-        preflight = preflight_iceberg_tables(connection, plan=plan)
+        if allow_full_scan:
+            preflight = preflight_iceberg_tables(connection, plan=plan)
         if preflight_only:
             return preflight
         writes_started = True

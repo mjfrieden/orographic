@@ -1,146 +1,108 @@
-# Atmosphere publication recovery — 2026-10-30
+# Atmosphere bounded publication preflight
 
-## Verified evidence
+PR107 is a draft. The prior full-scan rollout gate has been replaced by default
+bounded REST/manifest/object-existence checks. Existing scheduled and manual
+`--apply` commands no longer require `--allow-full-scan`. They proceed only when
+all checks complete, and fail closed on missing objects, insufficient access,
+unsupported metadata or exhausted budgets. No schedule or credential changes.
 
-Run https://github.com/mjfrieden/orographic/actions/runs/41132458253 at commit
-`b3d8f1e9dd5ae04d16aba42de9de4b70e760026f` rebuilt 3,945 training rows, then
-failed during MERGE at 21:46:24 UTC. Verification and subsequent persistence
-steps did not run. Earlier tables may have been changed: this publisher is not
-a multi-table transaction. Do not assume the catalog is unchanged.
+## Contracts inspected
 
-Artifact 13014715730 was downloaded and its SHA-256 verified:
-`64149eb5082dbfdb365e3757c86d8052e51b770360848522201fc1229ba09219`.
-It contains four diagnostics, no Iceberg table metadata, manifests, snapshots,
-or missing-object backup. These establish distinct identities:
+- Apache Iceberg REST specification: https://github.com/apache/iceberg/blob/main/open-api/rest-catalog-open-api.yaml
+  Config defaults/overrides and prefix; LoadTable metadata-location/metadata;
+  vended storage-credentials take precedence over legacy config credentials.
+- Apache Iceberg format: https://iceberg.apache.org/spec/
+  Current snapshot manifest list; live entry status 0/1 versus removed status 2;
+  data content 0, position deletes 1, equality deletes 2.
+- DuckDB metadata interface: https://duckdb.org/docs/stable/extensions/iceberg/overview
+  Metadata functions exist, but do not expose the required wire-byte/request
+  budgets. SQL LIMIT is not a transport budget.
+- Cloudflare configuration: https://developers.cloudflare.com/basin-catalog/config-examples/pyiceberg/
+  Existing catalog token and warehouse; access delegation uses temporary
+  server-vended credentials. No credential creation or persistence is performed.
+- Botocore S3SigV4Auth signs bounded urllib HEAD/GET requests; fastavro parses
+  Avro manifests. No SDK credential search, retries, redirect following, or
+  remote-signing calls. Existing boto3 dependency supplies botocore.
 
-* Rebuilt: `e60cc6bc3e82f0ddb34139bab24f2706ce2de6cbe0b3b98faeb24ca622cb982e`.
-* Previously published, as inspected before the failed merge:
-  `ee2b28df4f25c666d01b49238d1d567ac8fd59a6e312553a7f275c90949f9f8e`,
-  publication timestamp October 19 21:43:12 UTC.
-* Repository web diagnostic at the inspected commit: October 16,
-  also `ee2b28df4f25c666d01b49238d1d567ac8fd59a6e312553a7f275c90949f9f8e`.
-  The live served endpoint was not independently fetched in this task.
+## Limits and behavior
 
-The engine reported HTTP 404 / NoSuchKey for the key:
-`__r2_data_catalog/01a031a8-7ef0-7741-9f5c-456088b18315/01a031b5-9b87-7431-bd6b-a95a0344bc59/data/07304215-c8b1-41a2-8353-9a1e91d3d3d2-deletes.parquet`.
-The bucket/account were masked. The table name, referencing snapshot and
-metadata location cannot be established from this artifact or traceback.
+Global budget for one invocation: 32 MiB metadata response bodies, less than
+4 MiB per document, 128 manifests, 2,048 unique live objects across tables,
+4,096 HTTP requests, and 100,000 manifest entries. A 120-second cooperative
+deadline is checked before requests, body reads and entries; socket operations
+have a maximum 5-second timeout. DNS/CPU parsing are not a hard wall-clock or
+memory bound. Metadata-body budgets count encoded Avro bytes, not decompressed
+Python objects. Responses reaching the document cap without observed EOF are
+rejected conservatively. Defaults are conservative limits, not measurements of
+production inventory. No retry or fallback to unbounded scanning exists.
 
-## Local repair
+The reader uses only the configured catalog.cloudflarestorage.com account/bucket
+and that account's R2 S3 endpoint. It negotiates vended credentials, loads known
+tables without listing storage, checks the REST metadata against its JSON object,
+reads current-snapshot Avro lists/manifests, and HEADs every distinct live data,
+position-delete and equality-delete object with expected size. Removed manifest
+entries are not live snapshot references. Unknown content/status values fail.
+Only .json/.avro paths can receive metadata GETs; no Parquet GETs are issued.
 
-With explicit full-scan consent, the publisher scans every existing destination, including
-`mart_publications`, before any remote write. It drains full projections in
-batches; COUNT(*) or LIMIT alone would not establish object readability.
-Read failures identify the target table and stop publication. Raw engine
-messages are excluded from the structured report because they can contain
-signed URLs. This adds a full-read cost; it does not provide atomicity,
-snapshot pinning or protection against a concurrent deletion after preflight.
+All table metadata identities are reloaded after inspection. Changes detected
+during the check stop publication. A later catalog/object change remains possible:
+this is not atomic publication or a lock. Earlier table writes may persist when
+a later MERGE fails; diagnostics report uncertain commit outcome. HEAD proves
+existence and declared length, not content/checksum correctness.
 
-With existing authorized catalog access and a validated retained/rebuilt mart:
+Supported: Iceberg v1/v2 current snapshots with manifest-list, S3 locations in
+the configured bucket, client-side planning and vended S3 credentials. Remote
+signing, v3, partial/read-restricted metadata, unsupported endpoints and layouts
+fail closed. Real R2 response compatibility remains unverified pending access.
 
-```sh
-python scripts/publish_shared_research_mart.py --mart-dir output/shared_research_mart --preflight --allow-full-scan > preflight.json
-```
+`python scripts/publish_shared_research_mart.py --mart-dir <validated-mart> --preflight`
+performs only bounded remote reads. No flag performs local planning only.
+`--apply` uses the same bounded gate before DuckDB attachment or remote writes.
+`--allow-full-scan` remains an explicit alternative diagnostic mode; it has not
+been enabled in workflows and is outside current production authorization.
 
-Both remote modes require `--allow-full-scan` (API `allow_full_scan=True`).
-Without it they fail before opening the catalog. The existing scheduled
-`--apply` command will therefore fail closed until an operator explicitly
-accepts the read cost; this patch does not change that workflow automatically.
-This mode only reads remote tables. No flag still performs local validation
-only. `--apply` and `--preflight` are mutually exclusive. Preflight success
-never sets a published or served identity. A completed publication still
-requires the separate verifier and independently fetched served evidence.
+## Verified incident and pending access
 
-## Smallest next recovery step (read-only)
+Failure run: https://github.com/mjfrieden/orographic/actions/runs/41132458253
+Base failure commit: b3d8f1e9dd5ae04d16aba42de9de4b70e760026f.
+Retained artifact13014715730 ZIP SHA256:
+64149eb5082dbfdb365e3757c86d8052e51b770360848522201fc1229ba09219.
+Rebuilt 3,945 training rows / mart:
+e60cc6bc3e82f0ddb34139bab24f2706ce2de6cbe0b3b98faeb24ca622cb982e.
+Previously published identity observed before failure:
+ee2b28df4f25c666d01b49238d1d567ac8fd59a6e312553a7f275c90949f9f8e.
+The repository diagnostic remained October16; live serving was not independently
+verified. The artifact contains four diagnostics, no Iceberg manifests or backups.
 
-Use an already authorized environment to run preflight and export the affected
-table's current metadata location/UUID, snapshot IDs, manifest list and
-manifest entries, plus the missing key's object metadata and backup/version
-inventory if available. Record hashes of downloaded metadata. Do not create
-credentials. No catalog environment values are present in this task; no live
-inspection or recovery was attempted here.
+Missing key:
+__r2_data_catalog/01a031a8-7ef0-7741-9f5c-456088b18315/01a031b5-9b87-7431-bd6b-a95a0344bc59/data/07304215-c8b1-41a2-8353-9a1e91d3d3d2-deletes.parquet
 
-Trace the exact delete-file reference and sequence/content semantics. If an
-immutable byte-identical backup exists, propose restoring only that exact
-missing key using a create-only conditional write. Before approval, record
-source key/version, SHA-256, byte size, destination bucket/key, proof the
-destination is absent, and all referencing snapshots. None of those backup
-identities are yet known. Do not silently remove a delete reference, fabricate
-an empty delete file, or overwrite an existing object.
+Minimum existing read access: REST config and known research_mart table loads;
+GET for their metadata JSON/current manifest-list/manifests, HEAD for referenced
+live data/delete objects. Initial incident-only diagnosis can be scoped to the
+UUID prefix above plus table mapping. No object listing is needed for preflight.
+Namespace listing is needed only if table-to-UUID mapping is otherwise unknown.
+Backup discovery requires separate scoped reads of an identified backup location.
 
-No live repair is approved by this document. There is no verified rollback
-snapshot yet. If restoration fails verification, stop publication and retain
-evidence; do not automatically delete the restored object or move metadata.
-A metadata rollback needs its own approved, verified snapshot and assessment
-of all historical rows it would lose. If no exact backup exists, design a
-separate replacement namespace from complete validated history, with explicit
-consumer cutover/rollback approval; the current local mart alone is not proof
-that retained history can be reconstructed.
+Pending evidence: exact table UUID/name, metadata location/hash, current snapshot,
+manifest-list and delete-entry lineage (status/content/sequence/size), current
+HEAD result, vended credential scope and non-secret config shape, object/manifest
+counts within limits. Do not provide tokens or signed URLs in reports.
 
-After an approved exact-object restoration: repeat the full read-only
-preflight, compare pinned metadata identities, then request approval for any
-publication. After approved publication, verify source-bundle row counts and
-publication identity with `verify_shared_research_mart.py`, independently
-fetch the served identity and timestamps, and keep those three observations
-separate. No model promotion follows from these software checks.
+If an exact immutable backup is found, propose the precise source/version/hash,
+destination missing key and create-only restore, with verification and rollback
+identities, for separate approval. Never remove a delete reference, create an
+empty replacement, rewrite metadata, or delete storage to manufacture success.
+No verified backup or rollback snapshot has been found. No live repair attempted.
 
-## Cost, ordering, and read access
+## Validation scope
 
-No production cost measurement was made. The three-table fixture performs six
-SQL executions (one existence lookup plus one full SELECT per table), and
-three fetches per SELECT (two data batches then EOF). For N present tables,
-the preflight adds 2N SQL executions and a full read of all projected rows,
-including retained historical data, plus delete application. An 8,192-row
-fetch size bounds the Python batch, not DuckDB memory, bytes read, requests,
-runtime, or billing. There is intentionally no claim of a production cost cap.
-The October 30 rebuilt fixture inventory already contains 6,962,128 quote
-rows; destination history may be larger. Explicit opt-in is mandatory.
-
-Local INSTALL/LOAD, an ephemeral in-memory SECRET, and catalog ATTACH precede
-the reads. They are not remote table mutations, but extension installation
-can perform network/local-cache operations. Tests mock this setup and make
-no production calls. All destination reads finish before CREATE SCHEMA,
-CREATE TABLE, MERGE or publication INSERT. An attach or preflight failure
-returns a sanitized report with no raw exception text. A later failure is
-reported as `publication_failed`, `remote_writes_started=true`, and
-`commit_outcome=uncertain`, never as a successful publication.
-
-A stale catalog or changed object after preflight remains unsafe: the fixture
-allows the first MERGE and then raises a missing-delete error on the second.
-No publication marker is inserted, but earlier writes may persist. Preflight
-does not refresh/pin snapshots, compare catalog versions or roll back writes.
-Its result must not be described as a concurrency guarantee.
-
-Smallest read-only access for lineage diagnosis: existing authorization to
-load/list table metadata in `research_mart` in the configured R2 Data Catalog
-warehouse, and GET/HEAD for the metadata JSON, manifest lists and manifests
-referenced by the affected table under
-`__r2_data_catalog/01a031a8-7ef0-7741-9f5c-456088b18315/01a031b5-9b87-7431-bd6b-a95a0344bc59/`.
-Also HEAD the exact missing key above. If the UUID cannot be mapped by loading
-known tables, namespace table listing is needed. Backup discovery additionally
-needs prefix-scoped listing/GET only for an identified existing backup location;
-no such location is known. Full preflight would require GET for all referenced
-data/delete objects across all destination tables, a broader and potentially
-costly read scope. No PUT, DELETE, catalog commit, new credential or workflow
-run permission is needed for the initial metadata diagnosis.
-
-## Local regression evidence
-
-Python 3.12, DuckDB 1.5.6 (within the repository's >=1.4,<2 constraint),
-PyArrow 26.0.0. Final patch: 49 tests passed in 13.954 seconds. Unchanged
-`b3d8f1e9dd5ae04d16aba42de9de4b70e760026f` baseline: 38 corresponding
-existing tests passed in 13.571 seconds. No final failures. Modules:
-`test_iceberg_mart`, `test_mart_streaming_rows`, `test_shared_mart_consumers`,
-`test_shared_research_mart`, `test_sync_shared_research_mart`,
-`test_evidence_store`, plus 11 new `test_iceberg_preflight` tests on the patch.
-The first narrower run encountered three sandbox temporary-directory permission
-errors; rerunning with TEMP/TMP inside the permitted workspace resolved them.
-
-New fixtures cover explicit cost consent, full-read call counts, missing delete
-on a later fetch, absent destinations, local catalog setup command ordering,
-attach/preflight/post-preflight error redaction, stale absence followed by a
-concurrent create, and successful preflight followed by a failing second MERGE.
-Remote engine calls are mocked; these are ordering/reporting tests, not a real
-Iceberg delete-file integration or billing benchmark. Full repository tests,
-live catalog/object checks, extension installation, real Iceberg integration,
-production publication, and served endpoint validation were not run.
+Fixtures use actual Avro serialization for fields consumed by the checker and
+mocked read-only REST/object transports. They exercise all three file contents,
+missing deletes, removed entries, budgets, body caps, signed HEAD construction,
+metadata mismatch, identity changes, healthy default --apply, blocked default
+writes and uncertain partial commits. These are not real R2 integration tests.
+Aggregate Linux CI must pass on the final pushed head. Prior head7498b39 passed
+601 Python tests/125 subtests,109 observation,4 smoke,555 JS/1 skip and22 mart tests;
+those counts do not certify the new implementation. No production reads, writes,
+full scans, serving verification, model promotion or trading actions are included.

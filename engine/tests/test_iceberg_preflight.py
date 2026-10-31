@@ -45,6 +45,37 @@ class Connection:
 
 
 class PreflightTests(unittest.TestCase):
+    def test_default_apply_healthy_path_does_not_require_full_scan_flag(self):
+        connection = Connection(absent=True)
+        plan = {**PLAN, "tables": [{"name": "first", "target": "r2_mart.research_mart.first", "path": "local.parquet"}]}
+        manifest = {"mart_id": "rebuilt", "generated_at_utc": "2026-10-31T00:00:00Z", "schema_version": "test", "sources": [], "artifacts": {}}
+        with (
+            mock.patch("engine.orographic.iceberg_mart.build_iceberg_publication_plan", return_value=plan),
+            mock.patch("engine.orographic.iceberg_mart.contracts_for_schema", return_value={}),
+            mock.patch("engine.orographic.iceberg_mart.validate_shared_research_mart", return_value=manifest),
+            mock.patch("engine.orographic.iceberg_preflight.bounded_preflight", return_value={"status": "preflight_passed"}),
+            mock.patch("engine.orographic.iceberg_mart.preflight_iceberg_tables") as full_scan,
+            mock.patch("engine.orographic.iceberg_mart._attach_iceberg_catalog"),
+            mock.patch.dict(sys.modules, {"duckdb": mock.Mock(connect=mock.Mock(return_value=connection))}),
+        ):
+            result = publish_iceberg_mart(mart_dir="unused", catalog_uri="https://example.test", warehouse="w", token="t")
+        full_scan.assert_not_called()
+        self.assertEqual(result["published_mart_id"], "rebuilt")
+        self.assertIsNone(result["served_mart_id"])
+        self.assertFalse(result["publication_verified"])
+        self.assertTrue(connection.calls[-1].startswith("INSERT INTO"))
+
+    def test_default_blocked_preflight_cannot_attach_or_write(self):
+        with (
+            mock.patch("engine.orographic.iceberg_mart.build_iceberg_publication_plan", return_value=PLAN),
+            mock.patch("engine.orographic.iceberg_mart.contracts_for_schema", return_value={}),
+            mock.patch("engine.orographic.iceberg_preflight.bounded_preflight", return_value={"status": "blocked", "reason": "limit_objects", "remote_writes_started": False}),
+            mock.patch("engine.orographic.iceberg_mart._attach_iceberg_catalog") as attach,
+        ):
+            with self.assertRaises(IcebergPreflightError):
+                publish_iceberg_mart(mart_dir="unused", catalog_uri="https://example.test", warehouse="w", token="t")
+        attach.assert_not_called()
+
     def test_catalog_setup_has_no_remote_table_mutations(self):
         from engine.orographic.iceberg_mart import _attach_iceberg_catalog
         connection = Connection()
@@ -73,11 +104,17 @@ class PreflightTests(unittest.TestCase):
         self.assertNotIn("secret", str(raised.exception))
         self.assertTrue(connection.closed)
 
-    def test_default_rejects_full_scan_before_connecting(self):
-        with mock.patch("engine.orographic.iceberg_mart.build_iceberg_publication_plan") as plan:
-            with self.assertRaisesRegex(ValueError, "explicit allow_full_scan"):
-                publish_iceberg_mart(mart_dir="unused", catalog_uri="https://example.test", warehouse="w", token="t")
-            plan.assert_not_called()
+    def test_default_uses_bounded_preflight_without_full_scan_consent(self):
+        with (
+            mock.patch("engine.orographic.iceberg_mart.build_iceberg_publication_plan", return_value=PLAN),
+            mock.patch("engine.orographic.iceberg_mart.contracts_for_schema", return_value={}),
+            mock.patch("engine.orographic.iceberg_preflight.bounded_preflight", return_value={"status": "preflight_passed"}) as bounded,
+            mock.patch("engine.orographic.iceberg_mart._attach_iceberg_catalog") as attach,
+        ):
+            result = publish_iceberg_mart(mart_dir="unused", catalog_uri="https://example.test", warehouse="w", token="t", preflight_only=True)
+            self.assertEqual(result["status"], "preflight_passed")
+            bounded.assert_called_once()
+            attach.assert_not_called()
 
     def test_stale_catalog_then_missing_delete_during_merge_is_uncertain(self):
         plan = {**PLAN, "tables": [
