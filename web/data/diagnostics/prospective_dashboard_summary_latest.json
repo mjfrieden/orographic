@@ -1,34 +1,34 @@
 {
   "artifact": "prospective_dashboard_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-11-02T21:38:09+00:00",
-  "updated_at_utc": "2026-11-02T21:30:08+00:00",
+  "generated_at_utc": "2026-11-03T15:38:31+00:00",
+  "updated_at_utc": "2026-11-03T15:34:18+00:00",
   "source_artifact": "prospective_pick_ledger",
-  "source_entry_count": 350,
+  "source_entry_count": 351,
   "dashboard_summary": {
-    "runs": 350,
-    "picks": 5385,
+    "runs": 351,
+    "picks": 5407,
     "marked": 4660,
     "complete": 3114,
-    "pending": 717,
+    "pending": 739,
     "live": 60,
     "shadow": 473,
     "take_profit_hits": 376,
     "stop_hits": 1462,
-    "latest_run": "2026-11-02T21:30:08+00:00",
+    "latest_run": "2026-11-03T15:30:23+00:00",
     "avg_best": 0.32264424892703863,
     "avg_worst": -0.2932031545064378
   },
   "aggregate": {
-    "runs": 350,
-    "pick_rows": 5385,
+    "runs": 351,
+    "pick_rows": 5407,
     "live": 60,
     "shadow": 473,
-    "council_holdout": 917,
-    "friction_veto": 1909,
+    "council_holdout": 921,
+    "friction_veto": 1917,
     "counterfactual_observation": 0,
-    "paired_side_observation": 2026,
-    "paired_side_pair_member": 2544
+    "paired_side_observation": 2036,
+    "paired_side_pair_member": 2558
   },
   "outcome_policy": {
     "required_fixed_exits": [
@@ -44,1502 +44,30 @@
     "purpose": "Judge every emitted contract recommendation, whether traded or not."
   },
   "last_mark_summary": {
-    "entries_seen": 350,
-    "picks_seen": 5385,
+    "entries_seen": 351,
+    "picks_seen": 5407,
     "marks_written": 0,
     "executable_labels_written": 0,
     "executable_labels_skipped": 3891,
     "quotes_missing": 0,
     "picks_completed": 3114,
     "picks_partial": 1554,
-    "picks_pending": 717,
-    "capture_windows_due": 14729,
+    "picks_pending": 739,
+    "capture_windows_due": 14758,
     "capture_windows_valid": 12664,
     "capture_windows_quote_missing": 0,
     "capture_windows_stale_quote": 0,
     "capture_windows_missed": 846,
     "capture_windows_newly_missed": 0,
-    "capture_windows_off_session": 1219,
+    "capture_windows_off_session": 1248,
     "legacy_capture_policy_picks_skipped": 1648,
-    "trajectory_marks_written": 0,
+    "trajectory_marks_written": 113,
     "trajectory_quotes_missing": 0,
     "trajectory_quotes_stale": 0,
-    "trajectory_active_picks": 0,
-    "ledger_changed": 0
+    "trajectory_active_picks": 113,
+    "ledger_changed": 1
   },
   "entries": [
-    {
-      "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-      "picks": [
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "live",
-          "symbol": "BAC",
-          "option_type": "call",
-          "contract_symbol": "BAC261106C00050000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.36,
-            "ask": 1.43,
-            "mid": 1.395,
-            "last": 1.4,
-            "spread": 0.07,
-            "spread_pct": 0.0502,
-            "open_interest": 503,
-            "volume": 121,
-            "contract_cost": 143.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.395,
-            "quote_spread_dollars": 0.07,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:40+00:00",
-            "last_trade_age_seconds": 418.289
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0287
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0179
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.0681
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0179
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0287,
-              "max_adverse_excursion_pct": -0.0681,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": 0.0,
-              "max_bid_pnl": 0.0753
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.9496,
-            "forge_score": 0.9496,
-            "learned_rank_score": 0.9496
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "council_holdout",
-          "symbol": "JPM",
-          "option_type": "call",
-          "contract_symbol": "JPM261030C00335000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 2.28,
-            "ask": 2.48,
-            "mid": 2.38,
-            "last": 2.46,
-            "spread": 0.2,
-            "spread_pct": 0.084,
-            "open_interest": 575,
-            "volume": 261,
-            "contract_cost": 248.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 2.38,
-            "quote_spread_dollars": 0.2,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:50+00:00",
-            "last_trade_age_seconds": 374.05
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.2206
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0735
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.3235
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0735
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.3235,
-              "max_adverse_excursion_pct": 0.0735,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": {
-                "captured_at_utc": "2026-10-23T19:21:47+00:00",
-                "bid": 2.8,
-                "pnl_pct_from_emission": 0.25,
-                "event": "target_25_bid"
-              },
-              "min_bid_pnl": 0.0042,
-              "max_bid_pnl": 0.2521,
-              "crossings": {
-                "target_10_bid": {
-                  "captured_at_utc": "2026-10-23T17:51:40+00:00",
-                  "bid": 2.5,
-                  "pnl_pct_from_emission": 0.1113,
-                  "event": "target_10_bid"
-                },
-                "target_25_bid": {
-                  "captured_at_utc": "2026-10-23T19:21:47+00:00",
-                  "bid": 2.8,
-                  "pnl_pct_from_emission": 0.25,
-                  "event": "target_25_bid"
-                }
-              }
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.9043,
-            "forge_score": 0.9043,
-            "learned_rank_score": 0.9043
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "council_holdout",
-          "symbol": "BAC",
-          "option_type": "call",
-          "contract_symbol": "BAC261106C00052000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.45,
-            "ask": 0.49,
-            "mid": 0.47,
-            "last": 0.49,
-            "spread": 0.04,
-            "spread_pct": 0.0851,
-            "open_interest": 1782,
-            "volume": 93,
-            "contract_cost": 49.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.47,
-            "quote_spread_dollars": 0.04,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:40+00:00",
-            "last_trade_age_seconds": 1571.043
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0106
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.1809
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0,
-              "max_adverse_excursion_pct": -0.1809,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0319,
-              "max_bid_pnl": 0.0851
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.8428,
-            "forge_score": 0.8428,
-            "learned_rank_score": 0.8428
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "council_holdout",
-          "symbol": "MS",
-          "option_type": "call",
-          "contract_symbol": "MS261030C00182500",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.89,
-            "ask": 2.24,
-            "mid": 2.065,
-            "last": 2.18,
-            "spread": 0.35,
-            "spread_pct": 0.1695,
-            "open_interest": 153,
-            "volume": 39,
-            "contract_cost": 224.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 2.065,
-            "quote_spread_dollars": 0.35,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:43+00:00",
-            "last_trade_age_seconds": 973.36
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.046
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.1186
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.5496
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.1186
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.5496,
-              "max_adverse_excursion_pct": -0.1186,
-              "first_hit": {
-                "window": "next_day_close",
-                "rule": "take_profit_40_pct_fixed_mark_proxy"
-              }
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.1065,
-              "max_bid_pnl": 0.1065,
-              "crossings": {
-                "target_10_bid": {
-                  "captured_at_utc": "2026-10-23T18:02:41+00:00",
-                  "bid": 2.11,
-                  "pnl_pct_from_emission": 0.1065,
-                  "event": "target_10_bid"
-                }
-              }
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.8078,
-            "forge_score": 0.8078,
-            "learned_rank_score": 0.8078
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "council_holdout",
-          "symbol": "XLK",
-          "option_type": "call",
-          "contract_symbol": "XLK261030C00187000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.75,
-            "ask": 2.09,
-            "mid": 1.92,
-            "last": 1.83,
-            "spread": 0.34,
-            "spread_pct": 0.1771,
-            "open_interest": 355,
-            "volume": 73,
-            "contract_cost": 209.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.92,
-            "quote_spread_dollars": 0.34,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:44+00:00",
-            "last_trade_age_seconds": 1175.274
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0078
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0651
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.2448
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0651
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.2448,
-              "max_adverse_excursion_pct": -0.0651,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0938,
-              "max_bid_pnl": 0.0208
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.7525,
-            "forge_score": 0.7525,
-            "learned_rank_score": 0.7525
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "XLE",
-          "option_type": "call",
-          "contract_symbol": "XLE261030C00069500",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.1,
-            "ask": 1.14,
-            "mid": 1.12,
-            "last": 1.12,
-            "spread": 0.04,
-            "spread_pct": 0.0357,
-            "open_interest": 689,
-            "volume": 306,
-            "contract_cost": 114.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.12,
-            "quote_spread_dollars": 0.04,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:47+00:00",
-            "last_trade_age_seconds": 113.271
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0223
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0804
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.1607
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0804
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0804,
-              "max_adverse_excursion_pct": -0.1607,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.067,
-              "max_bid_pnl": 0.067
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.7185,
-            "forge_score": 0.7185,
-            "learned_rank_score": 0.7185
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "SCHW",
-          "option_type": "call",
-          "contract_symbol": "SCHW261030C00091000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.03,
-            "ask": 1.14,
-            "mid": 1.085,
-            "last": 1.07,
-            "spread": 0.11,
-            "spread_pct": 0.1014,
-            "open_interest": 511,
-            "volume": 97,
-            "contract_cost": 114.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.085,
-            "quote_spread_dollars": 0.11,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:41+00:00",
-            "last_trade_age_seconds": 73.927
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0415
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.106
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.4194
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.106
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.106,
-              "max_adverse_excursion_pct": -0.4194,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0046,
-              "max_bid_pnl": 0.1843,
-              "crossings": {
-                "target_10_bid": {
-                  "captured_at_utc": "2026-10-23T19:21:47+00:00",
-                  "bid": 1.17,
-                  "pnl_pct_from_emission": 0.1244,
-                  "event": "target_10_bid"
-                }
-              }
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.716,
-            "forge_score": 0.716,
-            "learned_rank_score": 0.716
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "AAPL",
-          "option_type": "call",
-          "contract_symbol": "AAPL261030C00350000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 3.2,
-            "ask": 2.9,
-            "mid": 3.05,
-            "last": 2.77,
-            "spread": -0.3,
-            "spread_pct": -0.0984,
-            "open_interest": 14350,
-            "volume": 10129,
-            "contract_cost": 290.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 3.05,
-            "quote_spread_dollars": -0.3,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:46+00:00",
-            "last_trade_age_seconds": 55.492
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.077
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0492
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.5459
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0492
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0492,
-              "max_adverse_excursion_pct": -0.5459,
-              "first_hit": {
-                "window": "next_day_close",
-                "rule": "stop_50_pct_fixed_mark_proxy"
-              }
-            },
-            "trajectory_overlay": {
-              "mark_count": 14,
-              "first_hit": null,
-              "min_bid_pnl": -0.1,
-              "max_bid_pnl": 0.082
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.699,
-            "forge_score": 0.699,
-            "learned_rank_score": 0.699
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "KO",
-          "option_type": "call",
-          "contract_symbol": "KO261030C00094000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.04,
-            "ask": 1.11,
-            "mid": 1.075,
-            "last": 1.08,
-            "spread": 0.07,
-            "spread_pct": 0.0651,
-            "open_interest": 1062,
-            "volume": 229,
-            "contract_cost": 111.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.075,
-            "quote_spread_dollars": 0.07,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:42+00:00",
-            "last_trade_age_seconds": 101.004
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0558
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0791
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.1302
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0791
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0558,
-              "max_adverse_excursion_pct": -0.1302,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.093,
-              "max_bid_pnl": -0.0093
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.5954,
-            "forge_score": 0.5954,
-            "learned_rank_score": 0.5954
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "QQQ",
-          "option_type": "call",
-          "contract_symbol": "QQQ261030C00721000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 4.32,
-            "ask": 4.35,
-            "mid": 4.335,
-            "last": 4.34,
-            "spread": 0.03,
-            "spread_pct": 0.0069,
-            "open_interest": 761,
-            "volume": 319,
-            "contract_cost": 435.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 4.335,
-            "quote_spread_dollars": 0.03,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:52+00:00",
-            "last_trade_age_seconds": 297.848
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0035
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.1061
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.0058
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.1061
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0058,
-              "max_adverse_excursion_pct": -0.1061,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.1223,
-              "max_bid_pnl": 0.0369
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.47,
-            "forge_score": 0.47,
-            "learned_rank_score": 0.47
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "XLY",
-          "option_type": "call",
-          "contract_symbol": "XLY261106C00115000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.35,
-            "ask": 1.5,
-            "mid": 1.425,
-            "last": 1.45,
-            "spread": 0.15,
-            "spread_pct": 0.1053,
-            "open_interest": 182,
-            "volume": 147,
-            "contract_cost": 150.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.425,
-            "quote_spread_dollars": 0.15,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:51+00:00",
-            "last_trade_age_seconds": 1060.391
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0351
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.193
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0351
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.193,
-              "max_adverse_excursion_pct": -0.0351,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 13,
-              "first_hit": null,
-              "min_bid_pnl": -0.0351,
-              "max_bid_pnl": 0.0
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.4264,
-            "forge_score": 0.4264,
-            "learned_rank_score": 0.4264
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "friction_veto",
-          "symbol": "SPY",
-          "option_type": "call",
-          "contract_symbol": "SPY261030C00771000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 2.53,
-            "ask": 2.57,
-            "mid": 2.55,
-            "last": 2.5,
-            "spread": 0.04,
-            "spread_pct": 0.0157,
-            "open_interest": 4158,
-            "volume": 676,
-            "contract_cost": 257.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 2.55,
-            "quote_spread_dollars": 0.04,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:57+00:00",
-            "last_trade_age_seconds": 258.886
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0078
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0843
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.102
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0843
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.102,
-              "max_adverse_excursion_pct": -0.0843,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.1,
-              "max_bid_pnl": 0.0314
-            }
-          },
-          "scores": {
-            "final_candidate_score": 0.2953,
-            "forge_score": 0.2953,
-            "learned_rank_score": 0.2953
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "BAC",
-          "option_type": "call",
-          "contract_symbol": "BAC261030C00051000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.54,
-            "ask": 0.57,
-            "mid": 0.555,
-            "last": 0.53,
-            "spread": 0.03,
-            "spread_pct": 0.0541,
-            "open_interest": 2684,
-            "volume": 9332,
-            "contract_cost": 57.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.555,
-            "quote_spread_dollars": 0.03,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:40+00:00",
-            "last_trade_age_seconds": 223.058
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.009
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0721
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.2523
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0721
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.009,
-              "max_adverse_excursion_pct": -0.2523,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.045,
-              "max_bid_pnl": 0.0721
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "BAC",
-          "option_type": "put",
-          "contract_symbol": "BAC261030P00050000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.42,
-            "ask": 0.43,
-            "mid": 0.425,
-            "last": 0.43,
-            "spread": 0.01,
-            "spread_pct": 0.0235,
-            "open_interest": 4832,
-            "volume": 1426,
-            "contract_cost": 43.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.425,
-            "quote_spread_dollars": 0.01,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:40+00:00",
-            "last_trade_age_seconds": 72.099
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0588
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0235
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.1647
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0235
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0235,
-              "max_adverse_excursion_pct": -0.1647,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.1294,
-              "max_bid_pnl": 0.0118
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "SCHW",
-          "option_type": "call",
-          "contract_symbol": "SCHW261030C00092000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.66,
-            "ask": 0.75,
-            "mid": 0.705,
-            "last": 0.75,
-            "spread": 0.09,
-            "spread_pct": 0.1277,
-            "open_interest": 336,
-            "volume": 70,
-            "contract_cost": 75.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.705,
-            "quote_spread_dollars": 0.09,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:41+00:00",
-            "last_trade_age_seconds": 438.764
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0071
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0638
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.4823
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0638
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0638,
-              "max_adverse_excursion_pct": -0.4823,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0142,
-              "max_bid_pnl": 0.1844,
-              "crossings": {
-                "target_10_bid": {
-                  "captured_at_utc": "2026-10-23T19:31:42+00:00",
-                  "bid": 0.77,
-                  "pnl_pct_from_emission": 0.1418,
-                  "event": "target_10_bid"
-                }
-              }
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "SCHW",
-          "option_type": "put",
-          "contract_symbol": "SCHW261030P00090000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 1.11,
-            "ask": 1.19,
-            "mid": 1.15,
-            "last": 1.1,
-            "spread": 0.08,
-            "spread_pct": 0.0696,
-            "open_interest": 1253,
-            "volume": 95,
-            "contract_cost": 119.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.15,
-            "quote_spread_dollars": 0.08,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:41+00:00",
-            "last_trade_age_seconds": 2976.104
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0348
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.113
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.1391
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.113
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.1391,
-              "max_adverse_excursion_pct": -0.113,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.187,
-              "max_bid_pnl": 0.0,
-              "crossings": {
-                "stop_15_bid": {
-                  "captured_at_utc": "2026-10-23T19:21:47+00:00",
-                  "bid": 0.92,
-                  "pnl_pct_from_emission": -0.1696,
-                  "event": "stop_15_bid"
-                }
-              }
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "KO",
-          "option_type": "call",
-          "contract_symbol": "KO261030C00095000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.69,
-            "ask": 0.75,
-            "mid": 0.72,
-            "last": 0.75,
-            "spread": 0.06,
-            "spread_pct": 0.0833,
-            "open_interest": 1283,
-            "volume": 234,
-            "contract_cost": 75.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.72,
-            "quote_spread_dollars": 0.06,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:42+00:00",
-            "last_trade_age_seconds": 34.008
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0556
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0903
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.1389
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0903
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0556,
-              "max_adverse_excursion_pct": -0.1389,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.1042,
-              "max_bid_pnl": 0.0139
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "KO",
-          "option_type": "put",
-          "contract_symbol": "KO261030P00092000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.95,
-            "ask": 1.05,
-            "mid": 1.0,
-            "last": 1.02,
-            "spread": 0.1,
-            "spread_pct": 0.1,
-            "open_interest": 251,
-            "volume": 422,
-            "contract_cost": 105.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 1.0,
-            "quote_spread_dollars": 0.1,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:42+00:00",
-            "last_trade_age_seconds": 293.992
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.075
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.145
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.14
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.145
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.145,
-              "max_adverse_excursion_pct": 0.075,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": 0.025,
-              "max_bid_pnl": 0.15,
-              "crossings": {
-                "target_10_bid": {
-                  "captured_at_utc": "2026-10-23T19:41:47+00:00",
-                  "bid": 1.1,
-                  "pnl_pct_from_emission": 0.14,
-                  "event": "target_10_bid"
-                }
-              }
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "AAPL",
-          "option_type": "put",
-          "contract_symbol": "AAPL261030P00342500",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 2.8,
-            "ask": 2.78,
-            "mid": 2.79,
-            "last": 2.91,
-            "spread": -0.02,
-            "spread_pct": -0.0072,
-            "open_interest": 1510,
-            "volume": 994,
-            "contract_cost": 278.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 2.79,
-            "quote_spread_dollars": -0.02,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:46+00:00",
-            "last_trade_age_seconds": 143.92
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0161
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.2025
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.0699
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.2025
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0699,
-              "max_adverse_excursion_pct": -0.2025,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.19,
-              "max_bid_pnl": 0.0466,
-              "crossings": {
-                "stop_15_bid": {
-                  "captured_at_utc": "2026-10-23T19:51:49+00:00",
-                  "bid": 2.21,
-                  "pnl_pct_from_emission": -0.19,
-                  "event": "stop_15_bid"
-                }
-              }
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "XLE",
-          "option_type": "call",
-          "contract_symbol": "XLE261030C00070500",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.68,
-            "ask": 0.74,
-            "mid": 0.71,
-            "last": 0.78,
-            "spread": 0.06,
-            "spread_pct": 0.0845,
-            "open_interest": 356,
-            "volume": 364,
-            "contract_cost": 74.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.71,
-            "quote_spread_dollars": 0.06,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:47+00:00",
-            "last_trade_age_seconds": 1762.425
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.007
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": 0.0141
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.1549
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": 0.0141
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.0141,
-              "max_adverse_excursion_pct": -0.1549,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0634,
-              "max_bid_pnl": 0.0986
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "XLE",
-          "option_type": "put",
-          "contract_symbol": "XLE261030P00068000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 0.65,
-            "ask": 0.67,
-            "mid": 0.66,
-            "last": 0.65,
-            "spread": 0.02,
-            "spread_pct": 0.0303,
-            "open_interest": 181,
-            "volume": 140,
-            "contract_cost": 67.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 0.66,
-            "quote_spread_dollars": 0.02,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:47+00:00",
-            "last_trade_age_seconds": 340.253
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.053
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.1515
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.4318
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.1515
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.053,
-              "max_adverse_excursion_pct": -0.4318,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0758,
-              "max_bid_pnl": 0.0682
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "JPM",
-          "option_type": "put",
-          "contract_symbol": "JPM261030P00327500",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 2.55,
-            "ask": 2.75,
-            "mid": 2.65,
-            "last": 2.65,
-            "spread": 0.2,
-            "spread_pct": 0.0755,
-            "open_interest": 398,
-            "volume": 99,
-            "contract_cost": 275.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 2.65,
-            "quote_spread_dollars": 0.2,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:50+00:00",
-            "last_trade_age_seconds": 458.978
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.1528
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.1302
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.5623
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.1302
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.1302,
-              "max_adverse_excursion_pct": -0.5623,
-              "first_hit": {
-                "window": "next_day_close",
-                "rule": "stop_50_pct_fixed_mark_proxy"
-              }
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.2264,
-              "max_bid_pnl": 0.0208,
-              "crossings": {
-                "stop_15_bid": {
-                  "captured_at_utc": "2026-10-23T18:02:41+00:00",
-                  "bid": 2.05,
-                  "pnl_pct_from_emission": -0.1566,
-                  "event": "stop_15_bid"
-                }
-              }
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "SPY",
-          "option_type": "call",
-          "contract_symbol": "SPY261030C00767000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 4.04,
-            "ask": 4.07,
-            "mid": 4.055,
-            "last": 4.02,
-            "spread": 0.03,
-            "spread_pct": 0.0074,
-            "open_interest": 3024,
-            "volume": 1019,
-            "contract_cost": 407.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 4.055,
-            "quote_spread_dollars": 0.03,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:57+00:00",
-            "last_trade_age_seconds": 181.0
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": 0.0111
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0691
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": 0.1492
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0691
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": 0.1492,
-              "max_adverse_excursion_pct": -0.0691,
-              "first_hit": null
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0801,
-              "max_bid_pnl": 0.0284
-            }
-          }
-        },
-        {
-          "run_generated_at_utc": "2026-10-23T17:30:01+00:00",
-          "lane": "paired_side_observation",
-          "symbol": "SPY",
-          "option_type": "put",
-          "contract_symbol": "SPY261030P00753000",
-          "emission_quote": {
-            "captured_at_utc": "2026-10-23T17:30:01+00:00",
-            "bid": 4.34,
-            "ask": 4.38,
-            "mid": 4.36,
-            "last": 4.34,
-            "spread": 0.04,
-            "spread_pct": 0.0092,
-            "open_interest": 2248,
-            "volume": 793,
-            "contract_cost": 438.0,
-            "entry_quote_type": "ask",
-            "entry_data_source": "tradier",
-            "quote_mid": 4.36,
-            "quote_spread_dollars": 0.04,
-            "chain_snapshot_at_utc": "2026-10-23T17:29:57+00:00",
-            "last_trade_age_seconds": 410.191
-          },
-          "outcomes": {
-            "status": "complete",
-            "fixed_exit_marks": {
-              "one_hour": {
-                "pnl_pct_from_emission": -0.0585
-              },
-              "end_of_day": {
-                "pnl_pct_from_emission": -0.0241
-              },
-              "next_day_close": {
-                "pnl_pct_from_emission": -0.6044
-              },
-              "friday_close": {
-                "pnl_pct_from_emission": -0.0241
-              }
-            },
-            "path_rules": {
-              "take_profit_40_pct_before_stop_50_pct": false,
-              "take_profit_25_pct_before_stop_50_pct": false,
-              "max_favorable_excursion_pct": -0.0241,
-              "max_adverse_excursion_pct": -0.6044,
-              "first_hit": {
-                "window": "next_day_close",
-                "rule": "stop_50_pct_fixed_mark_proxy"
-              }
-            },
-            "trajectory_overlay": {
-              "mark_count": 15,
-              "first_hit": null,
-              "min_bid_pnl": -0.0906,
-              "max_bid_pnl": 0.0172
-            }
-          }
-        }
-      ]
-    },
     {
       "run_generated_at_utc": "2026-10-23T20:30:41+00:00",
       "picks": [
@@ -28448,14 +26976,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:41:44+00:00",
                 "bid": 3.95,
                 "pnl_pct_from_emission": 0.5613,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": -0.2625,
+              "min_bid_pnl": -0.5556,
               "max_bid_pnl": 0.6188,
               "crossings": {
                 "target_10_bid": {
@@ -28487,6 +27015,18 @@
                   "bid": 1.88,
                   "pnl_pct_from_emission": -0.2625,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.5,
+                  "pnl_pct_from_emission": -0.4061,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 1.2,
+                  "pnl_pct_from_emission": -0.5192,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -28542,14 +27082,14 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 5.1,
                 "pnl_pct_from_emission": 0.6694,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.5887,
+              "min_bid_pnl": 0.2742,
               "max_bid_pnl": 1.1129,
               "crossings": {
                 "target_10_bid": {
@@ -28621,14 +27161,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 0.98,
                 "pnl_pct_from_emission": 0.3278,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.1778,
+              "min_bid_pnl": -0.0278,
               "max_bid_pnl": 0.6111,
               "crossings": {
                 "target_10_bid": {
@@ -28700,9 +27240,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": null,
-              "min_bid_pnl": -0.2667,
+              "min_bid_pnl": -0.48,
               "max_bid_pnl": 0.1467,
               "crossings": {
                 "target_10_bid": {
@@ -28722,6 +27262,12 @@
                   "bid": 0.54,
                   "pnl_pct_from_emission": -0.2667,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.35,
+                  "pnl_pct_from_emission": -0.48,
+                  "event": "stop_40_bid"
                 }
               }
             }
@@ -28774,14 +27320,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 1.85,
                 "pnl_pct_from_emission": 0.4238,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.2862,
+              "min_bid_pnl": 0.0037,
               "max_bid_pnl": 0.5242,
               "crossings": {
                 "target_10_bid": {
@@ -28856,7 +27402,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 2.65,
@@ -28935,14 +27481,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 42,
+              "mark_count": 50,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T15:01:50+00:00",
                 "bid": 2.19,
                 "pnl_pct_from_emission": 0.4259,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.0674,
+              "min_bid_pnl": -0.0377,
               "max_bid_pnl": 0.4259,
               "crossings": {
                 "target_10_bid": {
@@ -29017,14 +27563,14 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 1.95,
                 "pnl_pct_from_emission": 0.3881,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.3881,
+              "min_bid_pnl": 0.2836,
               "max_bid_pnl": 0.9851,
               "crossings": {
                 "target_10_bid": {
@@ -29096,14 +27642,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T18:37:45+00:00",
                 "bid": 0.44,
                 "pnl_pct_from_emission": 0.3,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": -0.4143,
+              "min_bid_pnl": -0.4571,
               "max_bid_pnl": 0.6,
               "crossings": {
                 "stop_15_bid": {
@@ -29196,7 +27742,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:41:44+00:00",
                 "bid": 4.55,
@@ -29296,14 +27842,14 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:41:44+00:00",
                 "bid": 0.5,
                 "pnl_pct_from_emission": -0.5738,
                 "event": "stop_50_bid"
               },
-              "min_bid_pnl": -0.7295,
+              "min_bid_pnl": -0.873,
               "max_bid_pnl": -0.3975,
               "crossings": {
                 "stop_15_bid": {
@@ -29384,7 +27930,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 3.0,
@@ -29463,10 +28009,10 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": null,
               "min_bid_pnl": -0.4322,
-              "max_bid_pnl": -0.2034,
+              "max_bid_pnl": -0.1638,
               "crossings": {
                 "stop_15_bid": {
                   "captured_at_utc": "2026-11-02T14:31:42+00:00",
@@ -29532,9 +28078,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
-              "first_hit": null,
-              "min_bid_pnl": -0.303,
+              "mark_count": 51,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                "bid": 0.12,
+                "pnl_pct_from_emission": -0.5455,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.5455,
               "max_bid_pnl": 0.1515,
               "crossings": {
                 "target_10_bid": {
@@ -29554,6 +28105,18 @@
                   "bid": 0.22,
                   "pnl_pct_from_emission": -0.303,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.12,
+                  "pnl_pct_from_emission": -0.5455,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.12,
+                  "pnl_pct_from_emission": -0.5455,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -29601,7 +28164,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T20:51:41+00:00",
                 "bid": 0.63,
@@ -29609,7 +28172,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": -0.3061,
-              "max_bid_pnl": 0.3061,
+              "max_bid_pnl": 0.6122,
               "crossings": {
                 "stop_15_bid": {
                   "captured_at_utc": "2026-11-02T14:31:42+00:00",
@@ -29634,6 +28197,12 @@
                   "bid": 0.63,
                   "pnl_pct_from_emission": 0.3061,
                   "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.73,
+                  "pnl_pct_from_emission": 0.6122,
+                  "event": "target_40_bid"
                 }
               }
             }
@@ -29684,14 +28253,14 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:41:44+00:00",
                 "bid": 1.68,
                 "pnl_pct_from_emission": -0.5444,
                 "event": "stop_50_bid"
               },
-              "min_bid_pnl": -0.7868,
+              "min_bid_pnl": -0.8106,
               "max_bid_pnl": -0.4874,
               "crossings": {
                 "stop_15_bid": {
@@ -29767,7 +28336,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T15:21:51+00:00",
                 "bid": 1.75,
@@ -29868,7 +28437,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:31:42+00:00",
                 "bid": 0.74,
@@ -29876,7 +28445,7 @@
                 "event": "stop_50_bid"
               },
               "min_bid_pnl": -0.7491,
-              "max_bid_pnl": -0.6059,
+              "max_bid_pnl": -0.6022,
               "crossings": {
                 "stop_15_bid": {
                   "captured_at_utc": "2026-11-02T14:31:42+00:00",
@@ -29948,7 +28517,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:51:46+00:00",
                 "bid": 0.63,
@@ -29956,7 +28525,7 @@
                 "event": "stop_50_bid"
               },
               "min_bid_pnl": -0.5498,
-              "max_bid_pnl": -0.4244,
+              "max_bid_pnl": -0.2214,
               "crossings": {
                 "stop_15_bid": {
                   "captured_at_utc": "2026-11-02T14:31:42+00:00",
@@ -30031,7 +28600,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 43,
+              "mark_count": 51,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T14:51:46+00:00",
                 "bid": 0.81,
@@ -30111,9 +28680,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 43,
-              "first_hit": null,
-              "min_bid_pnl": -0.3519,
+              "mark_count": 51,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 0.22,
+                "pnl_pct_from_emission": -0.5185,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.5185,
               "max_bid_pnl": 0.1019,
               "crossings": {
                 "target_10_bid": {
@@ -30133,6 +28707,18 @@
                   "bid": 0.39,
                   "pnl_pct_from_emission": -0.25,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.23,
+                  "pnl_pct_from_emission": -0.4167,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.22,
+                  "pnl_pct_from_emission": -0.5185,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -30185,9 +28771,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.1935,
+              "min_bid_pnl": -0.3364,
               "max_bid_pnl": 0.0369,
               "crossings": {
                 "stop_15_bid": {
@@ -30195,6 +28781,12 @@
                   "bid": 0.84,
                   "pnl_pct_from_emission": -0.1935,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.64,
+                  "pnl_pct_from_emission": -0.3364,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -30247,14 +28839,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T17:21:34+00:00",
                 "bid": 0.81,
                 "pnl_pct_from_emission": 0.2519,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.0148,
+              "min_bid_pnl": -0.4741,
               "max_bid_pnl": 0.2741,
               "crossings": {
                 "target_10_bid": {
@@ -30268,6 +28860,24 @@
                   "bid": 0.81,
                   "pnl_pct_from_emission": 0.2519,
                   "event": "target_25_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.45,
+                  "pnl_pct_from_emission": -0.2222,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.39,
+                  "pnl_pct_from_emission": -0.3926,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.33,
+                  "pnl_pct_from_emission": -0.4593,
+                  "event": "stop_40_bid"
                 }
               }
             }
@@ -30320,10 +28930,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.0421,
-              "max_bid_pnl": 0.0737
+              "min_bid_pnl": -0.3368,
+              "max_bid_pnl": 0.0737,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.32,
+                  "pnl_pct_from_emission": -0.2316,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.28,
+                  "pnl_pct_from_emission": -0.3368,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -30374,9 +28998,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
-              "first_hit": null,
-              "min_bid_pnl": -0.2846,
+              "mark_count": 44,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T15:01:44+00:00",
+                "bid": 1.09,
+                "pnl_pct_from_emission": -0.5049,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.5205,
               "max_bid_pnl": 0.0565,
               "crossings": {
                 "stop_15_bid": {
@@ -30390,6 +29019,18 @@
                   "bid": 1.8,
                   "pnl_pct_from_emission": -0.2534,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 1.16,
+                  "pnl_pct_from_emission": -0.4405,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T15:01:44+00:00",
+                  "bid": 1.09,
+                  "pnl_pct_from_emission": -0.5049,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -30442,9 +29083,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.1026,
+              "min_bid_pnl": -0.2667,
               "max_bid_pnl": 0.1128,
               "crossings": {
                 "target_10_bid": {
@@ -30452,6 +29093,18 @@
                   "bid": 1.0,
                   "pnl_pct_from_emission": 0.1128,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.53,
+                  "pnl_pct_from_emission": -0.2667,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.53,
+                  "pnl_pct_from_emission": -0.2667,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -30504,9 +29157,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.0743,
+              "min_bid_pnl": -0.2248,
               "max_bid_pnl": 0.1681,
               "crossings": {
                 "target_10_bid": {
@@ -30514,6 +29167,12 @@
                   "bid": 3.05,
                   "pnl_pct_from_emission": 0.115,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 2.22,
+                  "pnl_pct_from_emission": -0.1823,
+                  "event": "stop_15_bid"
                 }
               }
             }
@@ -30566,9 +29225,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.12,
+              "min_bid_pnl": -0.22,
               "max_bid_pnl": 0.1846,
               "crossings": {
                 "target_10_bid": {
@@ -30576,6 +29235,12 @@
                   "bid": 3.0,
                   "pnl_pct_from_emission": 0.1308,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 2.34,
+                  "pnl_pct_from_emission": -0.1708,
+                  "event": "stop_15_bid"
                 }
               }
             }
@@ -30628,10 +29293,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.12,
-              "max_bid_pnl": 0.0259
+              "min_bid_pnl": -0.2141,
+              "max_bid_pnl": 0.0259,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.61,
+                  "pnl_pct_from_emission": -0.2141,
+                  "event": "stop_15_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -30682,9 +29355,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
-              "first_hit": null,
-              "min_bid_pnl": -0.3551,
+              "mark_count": 44,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                "bid": 0.3,
+                "pnl_pct_from_emission": -0.6215,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.6215,
               "max_bid_pnl": 0.0514,
               "crossings": {
                 "stop_15_bid": {
@@ -30698,6 +29376,18 @@
                   "bid": 0.75,
                   "pnl_pct_from_emission": -0.2757,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.3,
+                  "pnl_pct_from_emission": -0.6215,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.3,
+                  "pnl_pct_from_emission": -0.6215,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -30750,9 +29440,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.097,
+              "min_bid_pnl": -0.3657,
               "max_bid_pnl": 0.194,
               "crossings": {
                 "target_10_bid": {
@@ -30760,6 +29450,18 @@
                   "bid": 1.45,
                   "pnl_pct_from_emission": 0.1007,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 1.06,
+                  "pnl_pct_from_emission": -0.194,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.97,
+                  "pnl_pct_from_emission": -0.2687,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -30812,7 +29514,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T17:31:50+00:00",
                 "bid": 0.92,
@@ -30894,7 +29596,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T17:01:49+00:00",
                 "bid": 3.95,
@@ -30973,9 +29675,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.2083,
+              "min_bid_pnl": -0.375,
               "max_bid_pnl": 0.0333,
               "crossings": {
                 "stop_15_bid": {
@@ -30983,6 +29685,12 @@
                   "bid": 0.48,
                   "pnl_pct_from_emission": -0.1583,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.32,
+                  "pnl_pct_from_emission": -0.375,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -31033,7 +29741,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T19:31:39+00:00",
                 "bid": 0.59,
@@ -31041,7 +29749,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": -0.0103,
-              "max_bid_pnl": 0.4639,
+              "max_bid_pnl": 0.7732,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T16:21:45+00:00",
@@ -31107,9 +29815,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": null,
-              "min_bid_pnl": -0.0921,
+              "min_bid_pnl": -0.2365,
               "max_bid_pnl": 0.1508,
               "crossings": {
                 "target_10_bid": {
@@ -31117,6 +29825,12 @@
                   "bid": 3.4,
                   "pnl_pct_from_emission": 0.1032,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 2.48,
+                  "pnl_pct_from_emission": -0.2016,
+                  "event": "stop_15_bid"
                 }
               }
             }
@@ -31164,16 +29878,27 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
-              "first_hit": null,
+              "mark_count": 44,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                "bid": 3.8,
+                "pnl_pct_from_emission": 0.2831,
+                "event": "target_25_bid"
+              },
               "min_bid_pnl": -0.0662,
-              "max_bid_pnl": 0.2334,
+              "max_bid_pnl": 0.3493,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T19:21:43+00:00",
                   "bid": 3.25,
                   "pnl_pct_from_emission": 0.1093,
                   "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 3.8,
+                  "pnl_pct_from_emission": 0.2831,
+                  "event": "target_25_bid"
                 }
               }
             }
@@ -31221,14 +29946,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T17:01:49+00:00",
                 "bid": 0.31,
                 "pnl_pct_from_emission": 0.28,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": -0.14,
+              "min_bid_pnl": -0.58,
               "max_bid_pnl": 0.4,
               "crossings": {
                 "target_10_bid": {
@@ -31248,6 +29973,30 @@
                   "bid": 0.34,
                   "pnl_pct_from_emission": 0.4,
                   "event": "target_40_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.17,
+                  "pnl_pct_from_emission": -0.3,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.17,
+                  "pnl_pct_from_emission": -0.3,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.14,
+                  "pnl_pct_from_emission": -0.42,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.1,
+                  "pnl_pct_from_emission": -0.58,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -31295,7 +30044,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T20:21:41+00:00",
                 "bid": 0.35,
@@ -31303,7 +30052,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": -0.1887,
-              "max_bid_pnl": 0.3396,
+              "max_bid_pnl": 1.1887,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T15:51:38+00:00",
@@ -31322,6 +30071,12 @@
                   "bid": 0.35,
                   "pnl_pct_from_emission": 0.3396,
                   "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.4,
+                  "pnl_pct_from_emission": 0.5472,
+                  "event": "target_40_bid"
                 }
               }
             }
@@ -31369,9 +30124,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
-              "first_hit": null,
-              "min_bid_pnl": -0.3596,
+              "mark_count": 44,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 0.37,
+                "pnl_pct_from_emission": -0.5674,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.5955,
               "max_bid_pnl": 0.0449,
               "crossings": {
                 "stop_15_bid": {
@@ -31385,6 +30145,18 @@
                   "bid": 0.62,
                   "pnl_pct_from_emission": -0.2865,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.12,
+                  "pnl_pct_from_emission": -0.4831,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.37,
+                  "pnl_pct_from_emission": -0.5674,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -31435,7 +30207,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 36,
+              "mark_count": 44,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T16:31:46+00:00",
                 "bid": 1.19,
@@ -31443,7 +30215,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": -0.0423,
-              "max_bid_pnl": 0.7143,
+              "max_bid_pnl": 1.1852,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T16:01:40+00:00",
@@ -31509,10 +30281,15 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 36,
-              "first_hit": null,
+              "mark_count": 44,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                "bid": 1.29,
+                "pnl_pct_from_emission": 0.3636,
+                "event": "target_25_bid"
+              },
               "min_bid_pnl": -0.2222,
-              "max_bid_pnl": 0.1869,
+              "max_bid_pnl": 0.5707,
               "crossings": {
                 "stop_15_bid": {
                   "captured_at_utc": "2026-11-02T16:01:40+00:00",
@@ -31525,6 +30302,18 @@
                   "bid": 0.97,
                   "pnl_pct_from_emission": 0.1869,
                   "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.29,
+                  "pnl_pct_from_emission": 0.3636,
+                  "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 1.41,
+                  "pnl_pct_from_emission": 0.4798,
+                  "event": "target_40_bid"
                 }
               }
             }
@@ -31577,9 +30366,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": 0.0,
+              "min_bid_pnl": -0.3061,
               "max_bid_pnl": 0.1224,
               "crossings": {
                 "target_10_bid": {
@@ -31587,6 +30376,18 @@
                   "bid": 0.27,
                   "pnl_pct_from_emission": 0.1224,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.18,
+                  "pnl_pct_from_emission": -0.1837,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.17,
+                  "pnl_pct_from_emission": -0.2857,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -31639,14 +30440,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T20:41:33+00:00",
                 "bid": 1.56,
                 "pnl_pct_from_emission": 0.2734,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": -0.0039,
+              "min_bid_pnl": -0.4297,
               "max_bid_pnl": 0.2734,
               "crossings": {
                 "target_10_bid": {
@@ -31660,6 +30461,24 @@
                   "bid": 1.56,
                   "pnl_pct_from_emission": 0.2734,
                   "event": "target_25_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.75,
+                  "pnl_pct_from_emission": -0.2812,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.75,
+                  "pnl_pct_from_emission": -0.2812,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.67,
+                  "pnl_pct_from_emission": -0.4258,
+                  "event": "stop_40_bid"
                 }
               }
             }
@@ -31712,9 +30531,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.0063,
+              "min_bid_pnl": -0.3722,
               "max_bid_pnl": 0.2114,
               "crossings": {
                 "target_10_bid": {
@@ -31722,6 +30541,18 @@
                   "bid": 1.67,
                   "pnl_pct_from_emission": 0.1104,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 1.0,
+                  "pnl_pct_from_emission": -0.1956,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.88,
+                  "pnl_pct_from_emission": -0.3344,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -31774,9 +30605,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.2083,
+              "min_bid_pnl": -0.375,
               "max_bid_pnl": 0.0,
               "crossings": {
                 "stop_15_bid": {
@@ -31784,6 +30615,12 @@
                   "bid": 0.48,
                   "pnl_pct_from_emission": -0.1583,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.32,
+                  "pnl_pct_from_emission": -0.375,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -31836,9 +30673,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.1698,
+              "min_bid_pnl": -0.3255,
               "max_bid_pnl": 0.0236,
               "crossings": {
                 "stop_15_bid": {
@@ -31846,6 +30683,12 @@
                   "bid": 0.82,
                   "pnl_pct_from_emission": -0.1557,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.53,
+                  "pnl_pct_from_emission": -0.3255,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -31898,9 +30741,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.1526,
+              "min_bid_pnl": -0.2874,
               "max_bid_pnl": -0.0148,
               "crossings": {
                 "stop_15_bid": {
@@ -31908,6 +30751,12 @@
                   "bid": 2.83,
                   "pnl_pct_from_emission": -0.1526,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 2.48,
+                  "pnl_pct_from_emission": -0.2548,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -31960,14 +30809,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T19:11:34+00:00",
                 "bid": 0.37,
                 "pnl_pct_from_emission": 0.254,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.0159,
+              "min_bid_pnl": -0.4286,
               "max_bid_pnl": 0.3333,
               "crossings": {
                 "target_10_bid": {
@@ -31981,6 +30830,24 @@
                   "bid": 0.37,
                   "pnl_pct_from_emission": 0.254,
                   "event": "target_25_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.19,
+                  "pnl_pct_from_emission": -0.3016,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.19,
+                  "pnl_pct_from_emission": -0.3016,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 0.16,
+                  "pnl_pct_from_emission": -0.4127,
+                  "event": "stop_40_bid"
                 }
               }
             }
@@ -32033,14 +30900,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T20:31:43+00:00",
                 "bid": 2.08,
                 "pnl_pct_from_emission": 0.2743,
                 "event": "target_25_bid"
               },
-              "min_bid_pnl": 0.0029,
+              "min_bid_pnl": -0.1886,
               "max_bid_pnl": 0.3257,
               "crossings": {
                 "target_10_bid": {
@@ -32054,6 +30921,12 @@
                   "bid": 2.08,
                   "pnl_pct_from_emission": 0.2743,
                   "event": "target_25_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 1.25,
+                  "pnl_pct_from_emission": -0.1886,
+                  "event": "stop_15_bid"
                 }
               }
             }
@@ -32106,9 +30979,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.0669,
+              "min_bid_pnl": -0.3244,
               "max_bid_pnl": 0.1104,
               "crossings": {
                 "target_10_bid": {
@@ -32116,6 +30989,18 @@
                   "bid": 1.58,
                   "pnl_pct_from_emission": 0.1104,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.88,
+                  "pnl_pct_from_emission": -0.3244,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.88,
+                  "pnl_pct_from_emission": -0.3244,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -32168,9 +31053,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 23,
               "first_hit": null,
-              "min_bid_pnl": -0.0347,
+              "min_bid_pnl": -0.4053,
               "max_bid_pnl": 0.1627,
               "crossings": {
                 "target_10_bid": {
@@ -32178,6 +31063,24 @@
                   "bid": 1.96,
                   "pnl_pct_from_emission": 0.152,
                   "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.24,
+                  "pnl_pct_from_emission": -0.1733,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:01:44+00:00",
+                  "bid": 1.11,
+                  "pnl_pct_from_emission": -0.296,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 1.01,
+                  "pnl_pct_from_emission": -0.4053,
+                  "event": "stop_40_bid"
                 }
               }
             }
@@ -32230,9 +31133,9 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.1983,
+              "min_bid_pnl": -0.4612,
               "max_bid_pnl": -0.0129,
               "crossings": {
                 "stop_15_bid": {
@@ -32240,6 +31143,18 @@
                   "bid": 0.97,
                   "pnl_pct_from_emission": -0.1509,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.8,
+                  "pnl_pct_from_emission": -0.2974,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.62,
+                  "pnl_pct_from_emission": -0.4612,
+                  "event": "stop_40_bid"
                 }
               }
             }
@@ -32292,9 +31207,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
-              "first_hit": null,
-              "min_bid_pnl": -0.1807,
+              "mark_count": 24,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                "bid": 1.06,
+                "pnl_pct_from_emission": -0.5985,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.5985,
               "max_bid_pnl": 0.0018,
               "crossings": {
                 "stop_15_bid": {
@@ -32302,6 +31222,24 @@
                   "bid": 2.27,
                   "pnl_pct_from_emission": -0.1533,
                   "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 1.32,
+                  "pnl_pct_from_emission": -0.4891,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 1.32,
+                  "pnl_pct_from_emission": -0.4891,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.06,
+                  "pnl_pct_from_emission": -0.5985,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -32357,7 +31295,7 @@
               }
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T20:31:43+00:00",
                 "bid": 0.65,
@@ -32365,7 +31303,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": 0.0096,
-              "max_bid_pnl": 0.3654,
+              "max_bid_pnl": 0.6538,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T19:21:43+00:00",
@@ -32378,6 +31316,12 @@
                   "bid": 0.65,
                   "pnl_pct_from_emission": 0.2885,
                   "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.81,
+                  "pnl_pct_from_emission": 0.6538,
+                  "event": "target_40_bid"
                 }
               }
             }
@@ -32425,16 +31369,28 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": null,
-              "min_bid_pnl": -0.1933,
-              "max_bid_pnl": 0.0168,
+              "min_bid_pnl": -0.2689,
+              "max_bid_pnl": 0.1513,
               "crossings": {
                 "stop_15_bid": {
                   "captured_at_utc": "2026-11-02T20:11:46+00:00",
                   "bid": 0.47,
                   "pnl_pct_from_emission": -0.1681,
                   "event": "stop_15_bid"
+                },
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.37,
+                  "pnl_pct_from_emission": 0.1513,
+                  "event": "target_10_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:01:44+00:00",
+                  "bid": 0.37,
+                  "pnl_pct_from_emission": -0.2689,
+                  "event": "stop_25_bid"
                 }
               }
             }
@@ -32482,16 +31438,27 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
-              "first_hit": null,
+              "mark_count": 24,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                "bid": 3.8,
+                "pnl_pct_from_emission": 0.25,
+                "event": "target_25_bid"
+              },
               "min_bid_pnl": 0.0081,
-              "max_bid_pnl": 0.2016,
+              "max_bid_pnl": 0.3145,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T19:31:39+00:00",
                   "bid": 3.3,
                   "pnl_pct_from_emission": 0.1048,
                   "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 3.8,
+                  "pnl_pct_from_emission": 0.25,
+                  "event": "target_25_bid"
                 }
               }
             }
@@ -32539,16 +31506,27 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
-              "first_hit": null,
+              "mark_count": 24,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 1.68,
+                "pnl_pct_from_emission": 0.2997,
+                "event": "target_25_bid"
+              },
               "min_bid_pnl": -0.0572,
-              "max_bid_pnl": 0.1347,
+              "max_bid_pnl": 0.2997,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T20:21:41+00:00",
                   "bid": 1.58,
                   "pnl_pct_from_emission": 0.1077,
                   "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 1.68,
+                  "pnl_pct_from_emission": 0.2997,
+                  "event": "target_25_bid"
                 }
               }
             }
@@ -32596,7 +31574,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T19:21:43+00:00",
                 "bid": 0.27,
@@ -32604,7 +31582,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": -0.0189,
-              "max_bid_pnl": 0.3585,
+              "max_bid_pnl": 0.6415,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T19:21:43+00:00",
@@ -32617,6 +31595,12 @@
                   "bid": 0.27,
                   "pnl_pct_from_emission": 0.3585,
                   "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.22,
+                  "pnl_pct_from_emission": 0.6415,
+                  "event": "target_40_bid"
                 }
               }
             }
@@ -32664,9 +31648,14 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
-              "first_hit": null,
-              "min_bid_pnl": -0.2951,
+              "mark_count": 24,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 0.14,
+                "pnl_pct_from_emission": -0.5246,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.6557,
               "max_bid_pnl": 0.0,
               "crossings": {
                 "stop_15_bid": {
@@ -32680,6 +31669,18 @@
                   "bid": 0.21,
                   "pnl_pct_from_emission": -0.2951,
                   "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.17,
+                  "pnl_pct_from_emission": -0.4262,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.14,
+                  "pnl_pct_from_emission": -0.5246,
+                  "event": "stop_50_bid"
                 }
               }
             }
@@ -32727,7 +31728,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T20:11:46+00:00",
                 "bid": 0.76,
@@ -32735,7 +31736,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": 0.0252,
-              "max_bid_pnl": 0.4202,
+              "max_bid_pnl": 1.0504,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T19:31:39+00:00",
@@ -32801,7 +31802,7 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 16,
+              "mark_count": 24,
               "first_hit": {
                 "captured_at_utc": "2026-11-02T19:21:43+00:00",
                 "bid": 4.25,
@@ -32809,7 +31810,7 @@
                 "event": "target_25_bid"
               },
               "min_bid_pnl": 0.0217,
-              "max_bid_pnl": 0.3913,
+              "max_bid_pnl": 0.6957,
               "crossings": {
                 "target_10_bid": {
                   "captured_at_utc": "2026-11-02T19:11:34+00:00",
@@ -32822,6 +31823,12 @@
                   "bid": 4.25,
                   "pnl_pct_from_emission": 0.2536,
                   "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 5.05,
+                  "pnl_pct_from_emission": 0.5,
+                  "event": "target_40_bid"
                 }
               }
             }
@@ -32867,8 +31874,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.32,
+              "max_bid_pnl": -0.12,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.18,
+                  "pnl_pct_from_emission": -0.2,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.17,
+                  "pnl_pct_from_emission": -0.3,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -32912,8 +31935,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2467,
+              "max_bid_pnl": -0.12,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.31,
+                  "pnl_pct_from_emission": -0.2267,
+                  "event": "stop_15_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -32957,8 +31990,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.3862,
+              "max_bid_pnl": -0.1816,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 1.31,
+                  "pnl_pct_from_emission": -0.1816,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.15,
+                  "pnl_pct_from_emission": -0.3112,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33002,8 +32051,41 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 0.47,
+                "pnl_pct_from_emission": -0.53,
+                "event": "stop_50_bid"
+              },
+              "min_bid_pnl": -0.576,
+              "max_bid_pnl": -0.3779,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.6,
+                  "pnl_pct_from_emission": -0.3779,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.6,
+                  "pnl_pct_from_emission": -0.3779,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.48,
+                  "pnl_pct_from_emission": -0.4747,
+                  "event": "stop_40_bid"
+                },
+                "stop_50_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.47,
+                  "pnl_pct_from_emission": -0.53,
+                  "event": "stop_50_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33047,8 +32129,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.1325,
+              "max_bid_pnl": 0.2108,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 0.96,
+                  "pnl_pct_from_emission": 0.1988,
+                  "event": "target_10_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33092,8 +32184,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2011,
+              "max_bid_pnl": 0.0,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.53,
+                  "pnl_pct_from_emission": -0.2011,
+                  "event": "stop_15_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33137,8 +32239,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.1943,
+              "max_bid_pnl": -0.0101,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 2.48,
+                  "pnl_pct_from_emission": -0.1575,
+                  "event": "stop_15_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33182,8 +32294,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.276,
+              "max_bid_pnl": -0.086,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.88,
+                  "pnl_pct_from_emission": -0.276,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.88,
+                  "pnl_pct_from_emission": -0.276,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33227,8 +32355,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.351,
+              "max_bid_pnl": -0.0662,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.54,
+                  "pnl_pct_from_emission": -0.245,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 0.52,
+                  "pnl_pct_from_emission": -0.2781,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33272,8 +32416,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 7,
+              "first_hit": null,
+              "min_bid_pnl": -0.4614,
+              "max_bid_pnl": -0.2367,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.24,
+                  "pnl_pct_from_emission": -0.2512,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.24,
+                  "pnl_pct_from_emission": -0.2512,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 1.01,
+                  "pnl_pct_from_emission": -0.4614,
+                  "event": "stop_40_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33317,8 +32483,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2975,
+              "max_bid_pnl": -0.1074,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.97,
+                  "pnl_pct_from_emission": -0.1901,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.84,
+                  "pnl_pct_from_emission": -0.2975,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33362,8 +32544,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.4064,
+              "max_bid_pnl": -0.2756,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 2.72,
+                  "pnl_pct_from_emission": -0.2756,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 2.72,
+                  "pnl_pct_from_emission": -0.2756,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 2.27,
+                  "pnl_pct_from_emission": -0.4064,
+                  "event": "stop_40_bid"
+                }
+              }
             }
           },
           "scores": {
@@ -33407,8 +32611,10 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.0391,
+              "max_bid_pnl": 0.0416
             }
           },
           "scores": {
@@ -33452,8 +32658,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.1848,
+              "max_bid_pnl": 0.2065,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.32,
+                  "pnl_pct_from_emission": -0.1848,
+                  "event": "stop_15_bid"
+                },
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 0.52,
+                  "pnl_pct_from_emission": 0.1848,
+                  "event": "target_10_bid"
+                }
+              }
             }
           }
         },
@@ -33492,8 +32714,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2609,
+              "max_bid_pnl": 0.1913,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.61,
+                  "pnl_pct_from_emission": 0.1913,
+                  "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 0.44,
+                  "pnl_pct_from_emission": -0.1826,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 0.4,
+                  "pnl_pct_from_emission": -0.2609,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           }
         },
@@ -33532,8 +32776,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.0426,
+              "max_bid_pnl": 0.1447,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T15:01:44+00:00",
+                  "bid": 1.18,
+                  "pnl_pct_from_emission": 0.1447,
+                  "event": "target_10_bid"
+                }
+              }
             }
           }
         },
@@ -33572,8 +32826,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": 0.0187,
+              "max_bid_pnl": 0.2025,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 1.59,
+                  "pnl_pct_from_emission": 0.1464,
+                  "event": "target_10_bid"
+                }
+              }
             }
           }
         },
@@ -33612,8 +32876,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.4536,
+              "max_bid_pnl": -0.1856,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.39,
+                  "pnl_pct_from_emission": -0.1856,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.33,
+                  "pnl_pct_from_emission": -0.3093,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.26,
+                  "pnl_pct_from_emission": -0.4536,
+                  "event": "stop_40_bid"
+                }
+              }
             }
           }
         },
@@ -33652,8 +32938,35 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 0.44,
+                "pnl_pct_from_emission": 0.2676,
+                "event": "target_25_bid"
+              },
+              "min_bid_pnl": 0.1549,
+              "max_bid_pnl": 0.6338,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.4,
+                  "pnl_pct_from_emission": 0.1549,
+                  "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.44,
+                  "pnl_pct_from_emission": 0.2676,
+                  "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.57,
+                  "pnl_pct_from_emission": 0.6338,
+                  "event": "target_40_bid"
+                }
+              }
             }
           }
         },
@@ -33692,8 +33005,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.4706,
+              "max_bid_pnl": -0.1765,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.22,
+                  "pnl_pct_from_emission": -0.1765,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:11:43+00:00",
+                  "bid": 0.19,
+                  "pnl_pct_from_emission": -0.3529,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 0.18,
+                  "pnl_pct_from_emission": -0.4118,
+                  "event": "stop_40_bid"
+                }
+              }
             }
           }
         },
@@ -33732,8 +33067,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2627,
+              "max_bid_pnl": 0.161,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.37,
+                  "pnl_pct_from_emission": 0.161,
+                  "event": "target_10_bid"
+                },
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.37,
+                  "pnl_pct_from_emission": -0.2288,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:01:44+00:00",
+                  "bid": 0.37,
+                  "pnl_pct_from_emission": -0.2627,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           }
         },
@@ -33772,8 +33129,29 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                "bid": 0.54,
+                "pnl_pct_from_emission": 0.2826,
+                "event": "target_25_bid"
+              },
+              "min_bid_pnl": -0.1087,
+              "max_bid_pnl": 0.337,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.54,
+                  "pnl_pct_from_emission": 0.2826,
+                  "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 0.54,
+                  "pnl_pct_from_emission": 0.2826,
+                  "event": "target_25_bid"
+                }
+              }
             }
           }
         },
@@ -33812,8 +33190,24 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2656,
+              "max_bid_pnl": -0.0382,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T15:21:44+00:00",
+                  "bid": 2.49,
+                  "pnl_pct_from_emission": -0.2137,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 2.38,
+                  "pnl_pct_from_emission": -0.2641,
+                  "event": "stop_25_bid"
+                }
+              }
             }
           }
         },
@@ -33852,8 +33246,18 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.0989,
+              "max_bid_pnl": 0.1648,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T15:28:29+00:00",
+                  "bid": 2.58,
+                  "pnl_pct_from_emission": 0.1648,
+                  "event": "target_10_bid"
+                }
+              }
             }
           }
         },
@@ -33892,8 +33296,30 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.4929,
+              "max_bid_pnl": -0.25,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.45,
+                  "pnl_pct_from_emission": -0.25,
+                  "event": "stop_15_bid"
+                },
+                "stop_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.45,
+                  "pnl_pct_from_emission": -0.25,
+                  "event": "stop_25_bid"
+                },
+                "stop_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.39,
+                  "pnl_pct_from_emission": -0.4143,
+                  "event": "stop_40_bid"
+                }
+              }
             }
           }
         },
@@ -33932,8 +33358,35 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                "bid": 0.79,
+                "pnl_pct_from_emission": 0.4602,
+                "event": "target_25_bid"
+              },
+              "min_bid_pnl": 0.1858,
+              "max_bid_pnl": 0.7257,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 0.62,
+                  "pnl_pct_from_emission": 0.1858,
+                  "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.79,
+                  "pnl_pct_from_emission": 0.4602,
+                  "event": "target_25_bid"
+                },
+                "target_40_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 0.79,
+                  "pnl_pct_from_emission": 0.4602,
+                  "event": "target_40_bid"
+                }
+              }
             }
           }
         },
@@ -33972,8 +33425,29 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": {
+                "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                "bid": 5.35,
+                "pnl_pct_from_emission": 0.2543,
+                "event": "target_25_bid"
+              },
+              "min_bid_pnl": 0.104,
+              "max_bid_pnl": 0.2543,
+              "crossings": {
+                "target_10_bid": {
+                  "captured_at_utc": "2026-11-03T14:31:54+00:00",
+                  "bid": 4.65,
+                  "pnl_pct_from_emission": 0.104,
+                  "event": "target_10_bid"
+                },
+                "target_25_bid": {
+                  "captured_at_utc": "2026-11-03T14:41:45+00:00",
+                  "bid": 5.35,
+                  "pnl_pct_from_emission": 0.2543,
+                  "event": "target_25_bid"
+                }
+              }
             }
           }
         },
@@ -34012,8 +33486,10 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
-              "first_hit": null
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.0619,
+              "max_bid_pnl": 0.0418
             }
           }
         },
@@ -34052,8 +33528,1007 @@
               "first_hit": null
             },
             "trajectory_overlay": {
-              "mark_count": 0,
+              "mark_count": 8,
+              "first_hit": null,
+              "min_bid_pnl": -0.2273,
+              "max_bid_pnl": -0.1118,
+              "crossings": {
+                "stop_15_bid": {
+                  "captured_at_utc": "2026-11-03T14:51:48+00:00",
+                  "bid": 3.44,
+                  "pnl_pct_from_emission": -0.1536,
+                  "event": "stop_15_bid"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+      "picks": [
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "council_holdout",
+          "symbol": "NFLX",
+          "option_type": "call",
+          "contract_symbol": "NFLX261113C00064000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.86,
+            "ask": 0.9,
+            "mid": 0.88,
+            "last": 0.88,
+            "spread": 0.04,
+            "spread_pct": 0.0455,
+            "open_interest": 1948,
+            "volume": 780,
+            "contract_cost": 90.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.88,
+            "quote_spread_dollars": 0.04,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:18+00:00",
+            "last_trade_age_seconds": 27.901
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
               "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0227,
+              "max_bid_pnl": 0.0227
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.9222,
+            "forge_score": 0.9222,
+            "learned_rank_score": 0.9222
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "council_holdout",
+          "symbol": "PEP",
+          "option_type": "call",
+          "contract_symbol": "PEP261113C00139000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.99,
+            "ask": 2.23,
+            "mid": 2.11,
+            "last": 2.05,
+            "spread": 0.24,
+            "spread_pct": 0.1137,
+            "open_interest": 279,
+            "volume": 31,
+            "contract_cost": 223.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 2.11,
+            "quote_spread_dollars": 0.24,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:20+00:00",
+            "last_trade_age_seconds": 632.875
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0521,
+              "max_bid_pnl": 0.0521
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.888,
+            "forge_score": 0.888,
+            "learned_rank_score": 0.888
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "council_holdout",
+          "symbol": "GLD",
+          "option_type": "call",
+          "contract_symbol": "GLD261113C00367000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 3.2,
+            "ask": 3.45,
+            "mid": 3.325,
+            "last": 3.35,
+            "spread": 0.25,
+            "spread_pct": 0.0752,
+            "open_interest": 156,
+            "volume": 77,
+            "contract_cost": 345.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 3.325,
+            "quote_spread_dollars": 0.25,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:13+00:00",
+            "last_trade_age_seconds": 620.049
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": -0.0075,
+              "max_bid_pnl": -0.0075
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.8465,
+            "forge_score": 0.8465,
+            "learned_rank_score": 0.8465
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "council_holdout",
+          "symbol": "BAC",
+          "option_type": "call",
+          "contract_symbol": "BAC261113C00050000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.94,
+            "ask": 1.0,
+            "mid": 0.97,
+            "last": 0.96,
+            "spread": 0.06,
+            "spread_pct": 0.0619,
+            "open_interest": 708,
+            "volume": 88,
+            "contract_cost": 100.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.97,
+            "quote_spread_dollars": 0.06,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:06+00:00",
+            "last_trade_age_seconds": 51.412
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0361,
+              "max_bid_pnl": 0.0361
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.7677,
+            "forge_score": 0.7677,
+            "learned_rank_score": 0.7677
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "DIA",
+          "option_type": "call",
+          "contract_symbol": "DIA261113C00520000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 4.35,
+            "ask": 4.5,
+            "mid": 4.425,
+            "last": 4.35,
+            "spread": 0.15,
+            "spread_pct": 0.0339,
+            "open_interest": 156,
+            "volume": 37,
+            "contract_cost": 450.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 4.425,
+            "quote_spread_dollars": 0.15,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:22+00:00",
+            "last_trade_age_seconds": 620.945
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0169,
+              "max_bid_pnl": 0.0169
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.7406,
+            "forge_score": 0.7406,
+            "learned_rank_score": 0.7406
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "UPS",
+          "option_type": "call",
+          "contract_symbol": "UPS261113C00110000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.39,
+            "ask": 1.65,
+            "mid": 1.52,
+            "last": 1.58,
+            "spread": 0.26,
+            "spread_pct": 0.1711,
+            "open_interest": 536,
+            "volume": 357,
+            "contract_cost": 165.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.52,
+            "quote_spread_dollars": 0.26,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:07+00:00",
+            "last_trade_age_seconds": 275.129
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0789,
+              "max_bid_pnl": 0.0789
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.6364,
+            "forge_score": 0.6364,
+            "learned_rank_score": 0.6364
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "PG",
+          "option_type": "call",
+          "contract_symbol": "PG261113C00162500",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.97,
+            "ask": 2.22,
+            "mid": 2.095,
+            "last": 2.1,
+            "spread": 0.25,
+            "spread_pct": 0.1193,
+            "open_interest": 245,
+            "volume": 86,
+            "contract_cost": 222.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 2.095,
+            "quote_spread_dollars": 0.25,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:23+00:00",
+            "last_trade_age_seconds": 559.928
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0095,
+              "max_bid_pnl": 0.0095
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.6183,
+            "forge_score": 0.6183,
+            "learned_rank_score": 0.6183
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "XLP",
+          "option_type": "call",
+          "contract_symbol": "XLP261113C00090000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.89,
+            "ask": 0.96,
+            "mid": 0.925,
+            "last": 0.94,
+            "spread": 0.07,
+            "spread_pct": 0.0757,
+            "open_interest": 650,
+            "volume": 308,
+            "contract_cost": 96.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.925,
+            "quote_spread_dollars": 0.07,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:16+00:00",
+            "last_trade_age_seconds": 385.975
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0,
+              "max_bid_pnl": 0.0
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.6028,
+            "forge_score": 0.6028,
+            "learned_rank_score": 0.6028
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "DIS",
+          "option_type": "call",
+          "contract_symbol": "DIS261113C00114000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.48,
+            "ask": 1.62,
+            "mid": 1.55,
+            "last": 1.68,
+            "spread": 0.14,
+            "spread_pct": 0.0903,
+            "open_interest": 272,
+            "volume": 49,
+            "contract_cost": 162.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.55,
+            "quote_spread_dollars": 0.14,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:18+00:00",
+            "last_trade_age_seconds": 377.555
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0194,
+              "max_bid_pnl": 0.0194
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.5054,
+            "forge_score": 0.5054,
+            "learned_rank_score": 0.5054
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "KO",
+          "option_type": "call",
+          "contract_symbol": "KO261113C00095000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.02,
+            "ask": 1.17,
+            "mid": 1.095,
+            "last": 1.11,
+            "spread": 0.15,
+            "spread_pct": 0.137,
+            "open_interest": 815,
+            "volume": 27,
+            "contract_cost": 117.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.095,
+            "quote_spread_dollars": 0.15,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:21+00:00",
+            "last_trade_age_seconds": 309.921
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0046,
+              "max_bid_pnl": 0.0046
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.4467,
+            "forge_score": 0.4467,
+            "learned_rank_score": 0.4467
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "TLT",
+          "option_type": "call",
+          "contract_symbol": "TLT261113C00080500",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.18,
+            "ask": 1.22,
+            "mid": 1.2,
+            "last": 1.24,
+            "spread": 0.04,
+            "spread_pct": 0.0333,
+            "open_interest": 3308,
+            "volume": 43,
+            "contract_cost": 122.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.2,
+            "quote_spread_dollars": 0.04,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:09+00:00",
+            "last_trade_age_seconds": 1682.152
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0042,
+              "max_bid_pnl": 0.0042
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.3566,
+            "forge_score": 0.3566,
+            "learned_rank_score": 0.3566
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "friction_veto",
+          "symbol": "XLU",
+          "option_type": "call",
+          "contract_symbol": "XLU261113C00044000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.4,
+            "ask": 0.47,
+            "mid": 0.435,
+            "last": 0.4,
+            "spread": 0.07,
+            "spread_pct": 0.1609,
+            "open_interest": 349,
+            "volume": 162,
+            "contract_cost": 47.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.435,
+            "quote_spread_dollars": 0.07,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:11+00:00",
+            "last_trade_age_seconds": 1166.069
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0115,
+              "max_bid_pnl": 0.0115
+            }
+          },
+          "scores": {
+            "final_candidate_score": 0.2341,
+            "forge_score": 0.2341,
+            "learned_rank_score": 0.2341
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "BAC",
+          "option_type": "call",
+          "contract_symbol": "BAC261113C00051000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.51,
+            "ask": 0.57,
+            "mid": 0.54,
+            "last": 0.52,
+            "spread": 0.06,
+            "spread_pct": 0.1111,
+            "open_interest": 1065,
+            "volume": 154,
+            "contract_cost": 57.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.54,
+            "quote_spread_dollars": 0.06,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:06+00:00",
+            "last_trade_age_seconds": 355.974
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0278,
+              "max_bid_pnl": 0.0278
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "BAC",
+          "option_type": "put",
+          "contract_symbol": "BAC261113P00049000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.55,
+            "ask": 0.61,
+            "mid": 0.58,
+            "last": 0.6,
+            "spread": 0.06,
+            "spread_pct": 0.1034,
+            "open_interest": 1012,
+            "volume": 250,
+            "contract_cost": 61.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.58,
+            "quote_spread_dollars": 0.06,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:06+00:00",
+            "last_trade_age_seconds": 328.805
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0,
+              "max_bid_pnl": 0.0
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "TLT",
+          "option_type": "call",
+          "contract_symbol": "TLT261111C00082000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.39,
+            "ask": 0.41,
+            "mid": 0.4,
+            "last": 0.38,
+            "spread": 0.02,
+            "spread_pct": 0.05,
+            "open_interest": 2949,
+            "volume": 50,
+            "contract_cost": 41.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.4,
+            "quote_spread_dollars": 0.02,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:08+00:00",
+            "last_trade_age_seconds": 1248.932
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0125,
+              "max_bid_pnl": 0.0125
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "TLT",
+          "option_type": "put",
+          "contract_symbol": "TLT261111P00081000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.61,
+            "ask": 0.63,
+            "mid": 0.62,
+            "last": 0.62,
+            "spread": 0.02,
+            "spread_pct": 0.0323,
+            "open_interest": 640,
+            "volume": 35,
+            "contract_cost": 63.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.62,
+            "quote_spread_dollars": 0.02,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:08+00:00",
+            "last_trade_age_seconds": 1.44
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": -0.0161,
+              "max_bid_pnl": -0.0161
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "GLD",
+          "option_type": "put",
+          "contract_symbol": "GLD261113P00350000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 2.55,
+            "ask": 2.7,
+            "mid": 2.625,
+            "last": 2.5,
+            "spread": 0.15,
+            "spread_pct": 0.0571,
+            "open_interest": 637,
+            "volume": 112,
+            "contract_cost": 270.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 2.625,
+            "quote_spread_dollars": 0.15,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:13+00:00",
+            "last_trade_age_seconds": 569.594
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": -0.0229,
+              "max_bid_pnl": -0.0229
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "XLP",
+          "option_type": "call",
+          "contract_symbol": "XLP261113C00090500",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.7,
+            "ask": 0.77,
+            "mid": 0.735,
+            "last": 0.7,
+            "spread": 0.07,
+            "spread_pct": 0.0952,
+            "open_interest": 536,
+            "volume": 25,
+            "contract_cost": 77.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.735,
+            "quote_spread_dollars": 0.07,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:16+00:00",
+            "last_trade_age_seconds": 257.55
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0,
+              "max_bid_pnl": 0.0
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "XLP",
+          "option_type": "put",
+          "contract_symbol": "XLP261113P00088000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.62,
+            "ask": 0.7,
+            "mid": 0.66,
+            "last": 0.66,
+            "spread": 0.08,
+            "spread_pct": 0.1212,
+            "open_interest": 2796,
+            "volume": 174,
+            "contract_cost": 70.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 0.66,
+            "quote_spread_dollars": 0.08,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:16+00:00",
+            "last_trade_age_seconds": 1630.434
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": 0.0,
+              "max_bid_pnl": 0.0
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "NFLX",
+          "option_type": "put",
+          "contract_symbol": "NFLX261113P00062000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.27,
+            "ask": 1.32,
+            "mid": 1.295,
+            "last": 1.26,
+            "spread": 0.05,
+            "spread_pct": 0.0386,
+            "open_interest": 1133,
+            "volume": 97,
+            "contract_cost": 132.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.295,
+            "quote_spread_dollars": 0.05,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:18+00:00",
+            "last_trade_age_seconds": 430.044
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": -0.0193,
+              "max_bid_pnl": -0.0193
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "PEP",
+          "option_type": "put",
+          "contract_symbol": "PEP261113P00135000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 0.94,
+            "ask": 1.08,
+            "mid": 1.01,
+            "last": 1.15,
+            "spread": 0.14,
+            "spread_pct": 0.1386,
+            "open_interest": 672,
+            "volume": 172,
+            "contract_cost": 108.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.01,
+            "quote_spread_dollars": 0.14,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:20+00:00",
+            "last_trade_age_seconds": 2650.37
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": -0.0149,
+              "max_bid_pnl": -0.0149
+            }
+          }
+        },
+        {
+          "run_generated_at_utc": "2026-11-03T15:30:23+00:00",
+          "lane": "paired_side_observation",
+          "symbol": "KO",
+          "option_type": "put",
+          "contract_symbol": "KO261113P00094000",
+          "emission_quote": {
+            "captured_at_utc": "2026-11-03T15:30:23+00:00",
+            "bid": 1.11,
+            "ask": 1.18,
+            "mid": 1.145,
+            "last": 1.17,
+            "spread": 0.07,
+            "spread_pct": 0.0611,
+            "open_interest": 163,
+            "volume": 112,
+            "contract_cost": 118.0,
+            "entry_quote_type": "ask",
+            "entry_data_source": "tradier",
+            "quote_mid": 1.145,
+            "quote_spread_dollars": 0.07,
+            "chain_snapshot_at_utc": "2026-11-03T15:30:21+00:00",
+            "last_trade_age_seconds": 74.002
+          },
+          "outcomes": {
+            "status": "pending",
+            "fixed_exit_marks": {},
+            "path_rules": {
+              "take_profit_40_pct_before_stop_50_pct": null,
+              "take_profit_25_pct_before_stop_50_pct": null,
+              "max_favorable_excursion_pct": null,
+              "max_adverse_excursion_pct": null,
+              "first_hit": null
+            },
+            "trajectory_overlay": {
+              "mark_count": 1,
+              "first_hit": null,
+              "min_bid_pnl": -0.0044,
+              "max_bid_pnl": -0.0044
             }
           }
         }
