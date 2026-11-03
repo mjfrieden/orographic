@@ -46,9 +46,10 @@ def push_ledgers(*, bucket: str, prefix: str, paths: tuple[Path, ...] = LEDGER_P
         temp_root = Path(tmpdir)
         for path in paths:
             if not path.is_file():
-                continue
+                raise RuntimeError(f"Required operational ledger is missing: {path}")
             raw = path.read_bytes()
-            json.loads(raw)
+            if not isinstance(json.loads(raw), dict):
+                raise RuntimeError(f"Expected a JSON object while publishing {path}")
             raw_sha256 = _sha256(raw)
             compressed = gzip.compress(raw, compresslevel=6, mtime=0)
             archive = temp_root / f"{path.name}.gz"
@@ -84,31 +85,40 @@ def pull_ledgers(
     *,
     bucket: str,
     prefix: str,
-    allow_missing: bool = False,
     paths: tuple[Path, ...] = LEDGER_PATHS,
 ) -> int:
     allowed_paths = set(paths)
     with tempfile.TemporaryDirectory(prefix="orographic-operational-r2-") as tmpdir:
         temp_root = Path(tmpdir)
         manifest_path = temp_root / "manifest.json"
-        try:
-            _wrangler_object("get", bucket=bucket, key=f"{prefix}/manifest.json", file_path=manifest_path)
-        except subprocess.CalledProcessError:
-            if allow_missing:
-                print(f"No operational ledger manifest found at r2://{bucket}/{prefix}; using repository seed data.")
-                return 0
-            raise
+        # Normal operational reads must never substitute repository seed data.
+        _wrangler_object("get", bucket=bucket, key=f"{prefix}/manifest.json", file_path=manifest_path)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        records = manifest.get("ledgers") if isinstance(manifest.get("ledgers"), list) else []
-        restored = 0
-        for index, record in enumerate(records):
+        if not isinstance(manifest, dict) or manifest.get("artifact") != "orographic_operational_ledger_manifest" or manifest.get("schema_version") != 1:
+            raise RuntimeError("Invalid operational ledger manifest")
+        records = manifest.get("ledgers")
+        if not isinstance(records, list):
+            raise RuntimeError("Operational manifest must contain all required ledgers")
+        selected: dict[Path, dict[str, Any]] = {}
+        for record in records:
             if not isinstance(record, dict):
-                continue
+                raise RuntimeError("Invalid operational ledger record")
             destination = Path(str(record.get("path") or ""))
             if destination in RETIRED_LEDGER_PATHS:
                 continue
-            if destination not in allowed_paths:
-                raise RuntimeError(f"Operational manifest contains an unexpected path: {destination}")
+            if destination not in allowed_paths or destination in selected:
+                raise RuntimeError(f"Unexpected or duplicate operational path: {destination}")
+            digest = record.get("sha256")
+            if not isinstance(digest, str) or len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
+                raise RuntimeError(f"Invalid checksum for {destination}")
+            if record.get("object_key") != _object_key(prefix, destination, digest):
+                raise RuntimeError(f"Invalid content-addressed object key for {destination}")
+            selected[destination] = record
+        if set(selected) != allowed_paths:
+            raise RuntimeError("Operational manifest is missing required ledgers")
+        staged_files: list[tuple[Path, Path]] = []
+        # Validate the complete bundle before replacing either repository seed.
+        for index, (destination, record) in enumerate(selected.items()):
             archive = temp_root / f"ledger-{index}.json.gz"
             _wrangler_object("get", bucket=bucket, key=str(record["object_key"]), file_path=archive)
             raw = gzip.decompress(archive.read_bytes())
@@ -120,9 +130,10 @@ def pull_ledgers(
             destination.parent.mkdir(parents=True, exist_ok=True)
             staged = destination.with_suffix(destination.suffix + ".r2tmp")
             staged.write_bytes(raw)
+            staged_files.append((staged, destination))
+        for staged, destination in staged_files:
             staged.replace(destination)
-            restored += 1
-    return restored
+    return len(staged_files)
 
 
 def main() -> int:
@@ -130,14 +141,13 @@ def main() -> int:
     parser.add_argument("action", choices=("pull", "push"))
     parser.add_argument("--bucket", default=os.getenv("OROGRAPHIC_RESEARCH_R2_BUCKET", ""))
     parser.add_argument("--prefix", default=OPERATIONAL_PREFIX)
-    parser.add_argument("--allow-missing", action="store_true")
     args = parser.parse_args()
     bucket = str(args.bucket).strip()
     if not bucket:
         raise SystemExit("OROGRAPHIC_RESEARCH_R2_BUCKET is required for operational ledger storage.")
     prefix = str(args.prefix).strip().strip("/")
     if args.action == "pull":
-        restored = pull_ledgers(bucket=bucket, prefix=prefix, allow_missing=args.allow_missing)
+        restored = pull_ledgers(bucket=bucket, prefix=prefix)
         print(f"Restored {restored} operational ledgers from R2.")
     else:
         manifest = push_ledgers(bucket=bucket, prefix=prefix)
@@ -147,3 +157,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
