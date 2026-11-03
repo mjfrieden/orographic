@@ -78,12 +78,12 @@ jobs:
             --allow-missing
 
       - name: Restore mutable research ledgers from R2
+        id: restore_ledgers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
           python scripts/sync_operational_ledgers_r2.py pull \
-            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
-            --allow-missing
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
 
       - name: Bootstrap pre-manifest R2 history
         if: ${{ inputs.bootstrap_legacy_r2 == true && env.OROGRAPHIC_RESEARCH_R2_BUCKET != '' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_R2_API_TOKEN != '' }}
@@ -285,6 +285,7 @@ jobs:
           PY
 
       - name: Publish mutable research ledgers to R2
+        if: ${{ success() && steps.restore_ledgers.outcome == 'success' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
@@ -407,7 +408,7 @@ jobs:
             output/canonical_evidence
 
       - name: Write scan health summary
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         run: |
           python scripts/build_scan_health_summary.py \
             --output web/data/diagnostics/scan_health_summary_latest.json \
@@ -424,7 +425,7 @@ jobs:
 
       - name: Commit scan health summary
         id: health_summary
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -449,14 +450,14 @@ jobs:
 
       - name: Push scan health summary to GitHub
         id: push_health_summary
-        if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' && steps.health_summary.outputs.health_summary_changed == 'true' }}
         continue-on-error: true
         run: |
           python scripts/push_scan_artifacts.py --branch "${GITHUB_REF_NAME}"
 
       - name: Deploy scan health summary to Cloudflare Pages
         id: deploy_health_summary
-        if: ${{ always() && steps.health_summary.outputs.health_summary_changed == 'true' && steps.push_health_summary.outcome == 'success' && steps.push_snapshot.outcome != 'failure' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' && steps.health_summary.outputs.health_summary_changed == 'true' && steps.push_health_summary.outcome == 'success' && steps.push_snapshot.outcome != 'failure' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         continue-on-error: true
         run: |
           python scripts/validate_publish_snapshot.py
@@ -469,7 +470,7 @@ jobs:
 
       - name: Upload live research data artifact
         id: canonical-artifact
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         uses: actions/upload-artifact@v6
         with:
           name: orographic-live-research-data
@@ -522,4 +523,5 @@ jobs:
             --artifact-id "${{ steps.canonical-artifact.outputs.artifact-id }}" \
             --digest "${{ steps.canonical-artifact.outputs.artifact-digest }}" \
             --head-sha "${{ github.sha }}"
+
 

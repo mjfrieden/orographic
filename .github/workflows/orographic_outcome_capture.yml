@@ -71,12 +71,12 @@ jobs:
           node-version: "22"
 
       - name: Restore mutable research ledgers from R2
+        id: restore_ledgers
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
           python scripts/sync_operational_ledgers_r2.py pull \
-            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}" \
-            --allow-missing
+            --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
 
       - name: Check Tradier capture configuration
         id: capture_config
@@ -98,7 +98,7 @@ jobs:
 
       - name: Refresh production training evidence
         id: refresh_evidence
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         continue-on-error: true
         run: |
           if [ -f web/data/diagnostics/prospective_pick_ledger.json ]; then
@@ -106,7 +106,7 @@ jobs:
           fi
 
       - name: Build capture health and governance artifacts
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         run: |
           python scripts/build_outcome_capture_health.py \
             --token-configured "${{ steps.capture_config.outputs.configured }}" \
@@ -122,12 +122,13 @@ jobs:
           python scripts/build_rebuild_readiness.py
 
       - name: Build compact dashboard prospective summary
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         run: |
           python scripts/build_dashboard_prospective_summary.py
 
       - name: Publish mutable research ledgers to R2
-        if: ${{ always() }}
+        id: publish_ledgers
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_R2_API_TOKEN }}
         run: |
@@ -135,7 +136,7 @@ jobs:
             --bucket "${OROGRAPHIC_RESEARCH_R2_BUCKET}"
 
       - name: Deploy refreshed capture evidence to Cloudflare Pages
-        if: ${{ always() && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' && steps.publish_ledgers.outcome == 'success' && env.CLOUDFLARE_ACCOUNT_ID != '' && env.CLOUDFLARE_API_TOKEN != '' }}
         run: |
           python scripts/validate_publish_snapshot.py
           python scripts/build_pages_bundle.py
@@ -145,8 +146,14 @@ jobs:
             --commit-hash "$(git rev-parse HEAD)" \
             --commit-message "outcome capture evidence (${GITHUB_REF_NAME})"
 
+      - name: Surface operational restore failure
+        if: ${{ always() && steps.restore_ledgers.outcome != 'success' }}
+        run: |
+          echo "Operational ledger restore incomplete; capture and publication blocked. Tradier configuration was not evaluated." >&2
+          exit 1
+
       - name: Surface capture-health alert
-        if: ${{ always() }}
+        if: ${{ always() && steps.restore_ledgers.outcome == 'success' }}
         run: |
           python - <<'PY'
           import json
@@ -163,3 +170,4 @@ jobs:
           else:
               print("Outcome capture health passed.")
           PY
+
