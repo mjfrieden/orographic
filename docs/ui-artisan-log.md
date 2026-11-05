@@ -2,6 +2,12 @@
 
 Newest cycle first. Each run appends what shipped, which surfaces changed, and what was deliberately left alone.
 
+## Cycle 105 — 2026-10-28 — Harbor Gate skip-link reaches 44px (NN/g H6, Fitts)
+
+- Skip to credentials matches the username, password, and Show controls at 44px so a keyboard user can land on it without missing a 34px gold gate. `#login-form`, `#username`, `#password`, `#error`, `#toggle-password`, and the `/api/login` payload stay. Cycle 104 HOLD funnel remains on PR #101.
+
+Left alone: Scout/Forge/Council, Tradier payloads, required cockpit DOM ids, dungeon, cockpit (PR #101 open), admin.
+
 ## Cycle 103 — 2026-10-24 — Harbor Gate credential fields reach 44px (NN/g H6, Fitts)
 
 - Username and password inputs match the Show control at 44px so a phone user can tap the fields without missing a 42px well. `#login-form`, `#username`, `#password`, `#error`, `#toggle-password`, and the `/api/login` payload stay.

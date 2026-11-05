@@ -136,6 +136,8 @@ Audit juice shipped:
 101. Master Harbor history and ledger errors wrap on a 720px phone (NN/g H9/H6). **Shipped in cycle 101 (PR #93).**
 102. Research dungeon quest-receipt filters and Show more are 44px targets (NN/g H6, Fitts). **Shipped in cycle 102 (PR #96).**
 103. Harbor Gate username and password fields are 44px targets (NN/g H6, Fitts). **Shipped in cycle 103.**
+104. HOLD Why no trade? reason stacks on a 720px phone (NN/g H6). **Shipped in cycle 104 (PR #101).**
+105. Harbor Gate skip-link is a 44px target (NN/g H6, Fitts). **Shipped in cycle 105.**
 
 ## Done when
 

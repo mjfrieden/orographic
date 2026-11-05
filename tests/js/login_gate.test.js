@@ -29,5 +29,8 @@ test("Harbor Gate keeps login contracts and adds a show-password control", async
   assert.ok(css.includes(".login-page #toggle-password"));
   assert.match(css, /#toggle-password[\s\S]*min-height:\s*44px/);
   assert.match(css, /\.login-page \.field input[\s\S]*min-height:\s*44px/);
-  assert.match(html, /login-gate\.css\?v=20261024a/);
+  assert.match(css, /\.login-page \.skip-link[\s\S]*min-height:\s*44px/);
+  assert.ok(html.includes('class="skip-link"'));
+  assert.ok(html.includes('href="#login-form"'));
+  assert.match(html, /login-gate\.css\?v=20261028a/);
 });
