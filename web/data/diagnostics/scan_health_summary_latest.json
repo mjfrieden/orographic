@@ -1,14 +1,14 @@
 {
   "artifact": "scan_health_summary",
   "schema_version": 1,
-  "generated_at_utc": "2026-11-05T15:41:55.507642Z",
+  "generated_at_utc": "2026-11-05T18:40:42.024076Z",
   "status": "degraded",
   "snapshot": {
     "path": "web/data/latest_run.json",
-    "generated_at_utc": "2026-11-05T15:29:39+00:00",
-    "age_minutes": 12.28,
+    "generated_at_utc": "2026-11-05T18:29:31+00:00",
+    "age_minutes": 11.18,
     "regime_mode": "extreme_vol",
-    "regime_bias": -0.6279,
+    "regime_bias": -1.0,
     "scout_signal_count": 0,
     "pre_forge_signal_count": 0,
     "forge_candidate_count": 0,
@@ -20,8 +20,8 @@
     "prospective": {
       "path": "web/data/diagnostics/prospective_pick_ledger.json",
       "exists": true,
-      "updated_at_utc": "2026-11-05T15:32:27+00:00",
-      "runs": 357,
+      "updated_at_utc": "2026-11-05T18:31:00+00:00",
+      "runs": 358,
       "picks": 5509,
       "pending": 704,
       "partial": 1691,
@@ -41,12 +41,12 @@
       "capture_windows_quote_missing_last_run": 0,
       "capture_windows_stale_quote_last_run": 0,
       "trajectory_scored_picks": 3851,
-      "trajectory_marks": 253952,
+      "trajectory_marks": 257586,
       "trajectory_picks_with_4_marks": 3851,
       "trajectory_active_picks_last_run": 215,
-      "trajectory_marks_written_last_run": 214,
+      "trajectory_marks_written_last_run": 213,
       "trajectory_quotes_missing_last_run": 0,
-      "trajectory_quotes_stale_last_run": 1,
+      "trajectory_quotes_stale_last_run": 2,
       "stale_quote_examples_last_run": []
     },
     "moonshot": {
@@ -92,37 +92,37 @@
     "capture_windows_quote_missing_last_run": 0,
     "capture_windows_stale_quote_last_run": 0,
     "trajectory_active_picks_last_run": 215,
-    "trajectory_marks_written_last_run": 214,
+    "trajectory_marks_written_last_run": 213,
     "trajectory_quotes_missing_last_run": 0,
-    "trajectory_quotes_stale_last_run": 1,
-    "trajectory_capture_ratio_last_run": 0.9953,
+    "trajectory_quotes_stale_last_run": 2,
+    "trajectory_capture_ratio_last_run": 0.9907,
     "trajectory_minimum_alert_ratio": 0.3,
     "stale_quote_examples_last_run": [],
     "trajectory_scored_picks": 3888,
-    "trajectory_marks": 258444,
+    "trajectory_marks": 262078,
     "trajectory_picks_with_4_marks": 3888
   },
   "research": {
     "audit_status": "passed",
     "audit_summary": {
-      "archived_rows": 51004,
+      "archived_rows": 50646,
       "archived_symbols": 60,
       "prospective_ledger_pick_rows": 5509,
       "moonshot_ledger_pick_rows": 474,
       "recommendation_dataset_rows": 5509,
       "moonshot_dataset_rows": -1,
       "combined_dataset_rows": 5509,
-      "event_observation_rows": 7890,
+      "event_observation_rows": 8047,
       "event_enriched_dataset_rows": -1,
       "rows_with_prior_events": 0,
       "complete_outcome_event_coverage_pct": 0.0,
-      "event_feed_status": "rate_limited",
+      "event_feed_status": "rate_limit_cooldown",
       "event_feed_new_rows": 0,
       "event_feed_mapped_symbols": 31,
-      "event_feed_http_429_responses": 1,
-      "event_feed_elapsed_seconds": 10.748
+      "event_feed_http_429_responses": 0,
+      "event_feed_elapsed_seconds": 0.073
     },
-    "archive_rows": 51004,
+    "archive_rows": 50646,
     "archive_symbols": 60,
     "recommendation_dataset_rows": 5509,
     "moonshot_dataset_rows": -1,
@@ -137,10 +137,10 @@
           "with_any_fixed_mark": 518,
           "with_friday_executable_label": 110
         },
-        "option_quote_rows": 7043108,
+        "option_quote_rows": 7093754,
         "primary": {
           "recommendations": 5536,
-          "runs": 358,
+          "runs": 359,
           "strict_capture_policy_v2": 3888,
           "with_any_executable_label": 3822,
           "with_any_fixed_mark": 4805,
@@ -160,19 +160,19 @@
         "strict_capture_policy_v2_primary_recommendations": 3888
       }
     },
-    "canonical_bundle_id": "4dba28f6936efa03d7d2",
+    "canonical_bundle_id": "824aa6f2489bd608bf1c",
     "canonical_manifest_path": "output/canonical_evidence/evidence_manifest.json",
     "cirrus_materialization": {
       "artifact": "cirrus_canonical_archive_materialization",
       "schema_version": 2,
       "status": "passed",
-      "canonical_bundle_id": "4dba28f6936efa03d7d2",
+      "canonical_bundle_id": "824aa6f2489bd608bf1c",
       "canonical_manifest": "output/canonical_evidence/evidence_manifest.json",
       "output_dir": "engine/data/options/blended/partitioned",
-      "partitions": 3479,
-      "expected_partitions": 3479,
-      "rows": 7043108,
-      "expected_rows": 7043108,
+      "partitions": 3482,
+      "expected_partitions": 3482,
+      "rows": 7093754,
+      "expected_rows": 7093754,
       "latest_quote_date": "2026-11-05",
       "checks": {
         "canonical_bundle_valid": true,
@@ -206,7 +206,7 @@
     {
       "name": "snapshot_is_fresh",
       "passed": true,
-      "actual_age_minutes": 12.28,
+      "actual_age_minutes": 11.18,
       "max_age_minutes": 240
     },
     {
@@ -259,10 +259,10 @@
       "name": "trajectory_capture_health",
       "passed": true,
       "active_picks": 215,
-      "marks_written": 214,
+      "marks_written": 213,
       "missing_quotes": 0,
-      "stale_quotes": 1,
-      "capture_ratio": 0.9953,
+      "stale_quotes": 2,
+      "capture_ratio": 0.9907,
       "minimum_alert_ratio": 0.3,
       "note": "No active picks is valid; incomplete capture degrades health and fails only at or below the service threshold."
     },
@@ -274,7 +274,7 @@
     {
       "name": "archive_rows_captured",
       "passed": true,
-      "actual": 51004
+      "actual": 50646
     },
     {
       "name": "research_audit_passed",
@@ -298,17 +298,17 @@
       "name": "canonical_evidence_bundle_valid",
       "passed": true,
       "path": "output/canonical_evidence/evidence_manifest.json",
-      "bundle_id": "4dba28f6936efa03d7d2",
+      "bundle_id": "824aa6f2489bd608bf1c",
       "inputs_readable": true
     },
     {
       "name": "cirrus_materialization_valid",
       "passed": true,
       "path": "engine/data/options/blended/partitioned/canonical_materialization.json",
-      "bundle_id": "4dba28f6936efa03d7d2",
-      "expected_bundle_id": "4dba28f6936efa03d7d2",
-      "rows": 7043108,
-      "expected_rows": 7043108,
+      "bundle_id": "824aa6f2489bd608bf1c",
+      "expected_bundle_id": "824aa6f2489bd608bf1c",
+      "rows": 7093754,
+      "expected_rows": 7093754,
       "latest_quote_date": "2026-11-05"
     },
     {
@@ -332,17 +332,17 @@
     {
       "name": "trajectory_capture_degraded",
       "active_picks": 215,
-      "marks_written": 214,
+      "marks_written": 213,
       "missing_quotes": 0,
-      "stale_quotes": 1,
-      "capture_ratio": 0.9953,
+      "stale_quotes": 2,
+      "capture_ratio": 0.9907,
       "minimum_alert_ratio": 0.3
     },
     {
       "name": "event_feed_delivery_degraded",
-      "status": "rate_limited",
+      "status": "rate_limit_cooldown",
       "new_rows": 0,
-      "http_429_responses": 1,
+      "http_429_responses": 0,
       "note": "Market and option collection can remain healthy while event evidence is degraded."
     }
   ]
